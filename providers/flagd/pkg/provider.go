@@ -12,12 +12,18 @@ type Provider struct {
 	port        int32
 	host        string
 	serviceName string
+	protocol    string
 }
 
 type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
-	provider := &Provider{}
+	provider := &Provider{
+		serviceName: "http",
+		port:        8080,
+		host:        "localhost",
+		protocol:    "http",
+	}
 	for _, opt := range opts {
 		opt(provider)
 	}
@@ -30,6 +36,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		provider.service = HTTPService.NewHTTPService(
 			HTTPService.WithPort(provider.port),
 			HTTPService.WithHost(provider.host),
+			HTTPService.WithProtocol(provider.protocol),
 		)
 	}
 	return provider
@@ -51,6 +58,13 @@ func WithHost(host string) ProviderOption {
 func WithService(service string) ProviderOption {
 	return func(p *Provider) {
 		p.serviceName = service
+	}
+}
+
+// service should be one of "http" or "https", if not the default "http" will be used, https is not currently supported
+func WithProtocol(protocol string) ProviderOption {
+	return func(p *Provider) {
+		p.protocol = protocol
 	}
 }
 

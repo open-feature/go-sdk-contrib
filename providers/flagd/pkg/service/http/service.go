@@ -15,8 +15,9 @@ import (
 )
 
 type HTTPServiceConfiguration struct {
-	Port int32
-	Host string
+	Port     int32
+	Host     string
+	Protocol string
 }
 
 type HTTPService struct {
@@ -25,7 +26,7 @@ type HTTPService struct {
 }
 
 func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveBooleanResponse, error) {
-	url := fmt.Sprintf("http://%s:%d/flags/%s/resolve/boolean", s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/boolean", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveBooleanResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
@@ -37,7 +38,7 @@ func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContex
 }
 
 func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveStringResponse, error) {
-	url := fmt.Sprintf("http://%s:%d/flags/%s/resolve/string", s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/string", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveStringResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
@@ -49,7 +50,7 @@ func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext
 }
 
 func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveNumberResponse, error) {
-	url := fmt.Sprintf("http://%s:%d/flags/%s/resolve/number", s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/number", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveNumberResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
@@ -61,7 +62,7 @@ func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext
 }
 
 func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveObjectResponse, error) {
-	url := fmt.Sprintf("http://%s:%d/flags/%s/resolve/object", s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/object", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveObjectResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {

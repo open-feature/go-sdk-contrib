@@ -42,8 +42,9 @@ func TestServiceResolveString(t *testing.T) {
 				OutErr:   nil,
 			},
 			HTTPServiceConfiguration: service.HTTPServiceConfiguration{
-				Port: 8080,
-				Host: "localhost",
+				Port:     8080,
+				Host:     "localhost",
+				Protocol: "http",
 			},
 			httpResponseBody: schemaV1.ResolveStringResponse{
 				Value:   "value",
@@ -68,8 +69,9 @@ func TestServiceResolveString(t *testing.T) {
 				OutErr:   nil,
 			},
 			HTTPServiceConfiguration: service.HTTPServiceConfiguration{
-				Port: 8080,
-				Host: "localhost",
+				Port:     8080,
+				Host:     "localhost",
+				Protocol: "http",
 			},
 			httpResponseBody: schemaV1.ErrorResponse{
 				Reason:    models.StaticReason,
@@ -90,8 +92,9 @@ func TestServiceResolveString(t *testing.T) {
 				OutErr:   errors.New("its all gone wrong"),
 			},
 			HTTPServiceConfiguration: service.HTTPServiceConfiguration{
-				Port: 8080,
-				Host: "localhost",
+				Port:     8080,
+				Host:     "localhost",
+				Protocol: "http",
 			},
 			flagKey: "string",
 			evCtx:   nil,

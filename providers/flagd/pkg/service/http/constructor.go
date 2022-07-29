@@ -4,12 +4,15 @@ type HTTPServiceOption func(*HTTPService)
 
 func NewHTTPService(opts ...HTTPServiceOption) *HTTPService {
 	const (
-		port = 8080
+		port     = 8080
+		host     = "localhost"
+		protocol = "http"
 	)
 	svc := &HTTPService{
 		HTTPServiceConfiguration: &HTTPServiceConfiguration{
-			Port: port,
-			Host: "localhost",
+			Port:     port,
+			Host:     host,
+			Protocol: protocol,
 		},
 		Client: &HTTPClient{},
 	}
@@ -28,5 +31,11 @@ func WithPort(port int32) HTTPServiceOption {
 func WithHost(host string) HTTPServiceOption {
 	return func(s *HTTPService) {
 		s.HTTPServiceConfiguration.Host = host
+	}
+}
+
+func WithProtocol(protocol string) HTTPServiceOption {
+	return func(s *HTTPService) {
+		s.HTTPServiceConfiguration.Protocol = protocol
 	}
 }
