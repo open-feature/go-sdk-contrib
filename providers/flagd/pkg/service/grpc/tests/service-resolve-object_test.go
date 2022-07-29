@@ -8,6 +8,7 @@ import (
 	models "github.com/open-feature/flagd/pkg/model"
 	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
 	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc/tests/mocks"
+	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -143,7 +144,7 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 		}
 		res, err := srv.ResolveObject(test.flagKey, test.evCtx)
-		if (test.err != nil && err != nil) && test.err.Error() != err.Error() {
+		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.err, err)
 		}
 		if res.Reason != test.reason {

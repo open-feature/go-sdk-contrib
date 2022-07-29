@@ -12,6 +12,7 @@ import (
 	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
 	mocks "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http/tests/mocks"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/stretchr/testify/assert"
 	schemav1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 )
 
@@ -157,7 +158,7 @@ func TestFetchFlag(t *testing.T) {
 		target := map[string]interface{}{}
 		err = svc.FetchFlag(test.url, test.ctx, &target)
 
-		if !errorCompare(err, test.err) {
+		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
 			t.Errorf("%s: unexpected value for error expected %v recieved %v", test.name, test.err, err)
 		}
 	}
