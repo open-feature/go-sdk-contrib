@@ -8,6 +8,9 @@ on:
   pull_request:
     branches:
       - main
+env:
+  # Default minimum version of Go to support.
+  DEFAULT_GO_VERSION: 1.18
 
 jobs:
   lint:
@@ -16,26 +19,49 @@ jobs:
       GOPATH: /home/runner/work/open-feature/golang-sdk-contrib
       GOBIN: /home/runner/work/open-feature/golang-sdk-contrib/bin
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Setup go
-        uses: actions/setup-go@v1
+      - name: Install Go
+        uses: actions/setup-go@v3
         with:
-          go-version: '1.18.1'
-      - run: make workspace-init
-      - run: make lint
+          go-version: ${{ env.DEFAULT_GO_VERSION }}
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Environment
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      - name: Module cache
+        uses: actions/cache@v3
+        env:
+          cache-name: go-mod-cache
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
+      - name: Run workspace init
+        run: make workspace-init
+      - name: Run linter
+        run: make lint
 
   test:
     runs-on: ubuntu-latest
-    env:
-      GOPATH: /home/runner/work/open-feature/golang-sdk-contrib
-      GOBIN: /home/runner/work/open-feature/golang-sdk-contrib/bin
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Setup go
-        uses: actions/setup-go@v1
+      - name: Install Go
+        uses: actions/setup-go@v3
         with:
-          go-version: '1.18.1' 
-      - run: make workspace-init
-      - run: make test
+          go-version: ${{ env.DEFAULT_GO_VERSION }}
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Environment
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      - name: Module cache
+        uses: actions/cache@v3
+        env:
+          cache-name: go-mod-cache
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
+      - name: Run workspace init
+        run: make workspace-init
+      - name: Run tests
+        run: make test
