@@ -21,8 +21,8 @@ for example:
 package main
 
 import (
-	"github.com/open-feature/golang-sdk-contrib/providers/flagd"
-    "github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg"
+   	 "github.com/open-feature/golang-sdk/pkg/openfeature"
 )
 
 func main() {
