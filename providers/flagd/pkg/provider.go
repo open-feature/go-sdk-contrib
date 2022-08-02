@@ -15,11 +15,11 @@ type Provider struct {
 	protocol    string
 }
 
-type ServiceType string
+type ServiceType int
 
 const (
-	HTTP ServiceType = "http"
-	GRPC ServiceType = "grpc"
+	HTTP ServiceType = iota
+	GRPC
 )
 
 type ProviderOption func(*Provider)
@@ -49,19 +49,21 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
+// WithHost specifies the port of the flagd server. Defaults to 8080
 func WithPort(port int32) ProviderOption {
 	return func(p *Provider) {
 		p.port = port
 	}
 }
 
+// WithHost specifies the host name of the flagd server. Defaults to localhost
 func WithHost(host string) ProviderOption {
 	return func(p *Provider) {
 		p.host = host
 	}
 }
 
-// service should be one of "http" or "grpc", if not the default "http" will be used
+// WithService specifies the type of the service. service should be one of "http" or "grpc", if not the default "http" will be used
 func WithService(service ServiceType) ProviderOption {
 	return func(p *Provider) {
 		p.serviceName = service
