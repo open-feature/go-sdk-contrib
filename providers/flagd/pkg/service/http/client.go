@@ -13,7 +13,7 @@ type HTTPClient struct {
 	client *http.Client
 }
 
-func (c *HTTPClient) GetInstance() http.Client {
+func (c *HTTPClient) Instance() http.Client {
 	if c.client == nil {
 		c.client = &http.Client{}
 	}
@@ -25,6 +25,6 @@ func (c *HTTPClient) Request(method string, url string, body io.Reader) (*http.R
 	if err != nil {
 		return nil, err
 	}
-	client := c.GetInstance()
+	client := c.Instance()
 	return client.Do(req)
 }

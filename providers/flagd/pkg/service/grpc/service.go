@@ -23,7 +23,7 @@ type GRPCService struct {
 }
 
 func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error) {
-	client := s.Client.GetInstance()
+	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: flagdModels.ErrorReason,
@@ -56,7 +56,7 @@ func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContex
 }
 
 func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveStringResponse, error) {
-	client := s.Client.GetInstance()
+	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: flagdModels.ErrorReason,
@@ -89,7 +89,7 @@ func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext
 }
 
 func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error) {
-	client := s.Client.GetInstance()
+	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveNumberResponse{
 			Reason: flagdModels.ErrorReason,
@@ -122,7 +122,7 @@ func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext
 }
 
 func (s *GRPCService) ResolveObject(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error) {
-	client := s.Client.GetInstance()
+	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: flagdModels.ErrorReason,

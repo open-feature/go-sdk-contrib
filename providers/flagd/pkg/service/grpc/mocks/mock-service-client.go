@@ -22,7 +22,7 @@ type MockClient struct {
 	Testing *testing.T
 }
 
-func (m *MockClient) GetInstance() schemaV1.ServiceClient {
+func (m *MockClient) Instance() schemaV1.ServiceClient {
 	if m.ReturnNilClient {
 		return nil
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 type IGRPCClient interface {
-	GetInstance() schemaV1.ServiceClient
+	Instance() schemaV1.ServiceClient
 }
 
 type GRPCClient struct {
@@ -33,7 +33,7 @@ func (s *GRPCClient) Connect() {
 	}
 }
 
-func (s *GRPCClient) GetInstance() schemaV1.ServiceClient {
+func (s *GRPCClient) Instance() schemaV1.ServiceClient {
 	s.Connect()
 	if s.conn == nil {
 		return nil
