@@ -13,7 +13,7 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 		host: host,
 	}
 	svc := &GRPCService{
-		client: &gRPCClient{
+		Client: &gRPCClient{
 			gRPCServiceConfiguration: serviceConfiguration,
 		},
 	}
