@@ -54,7 +54,7 @@ func WithHost(host string) ProviderOption {
 	}
 }
 
-// service should be one of "http" or "grpc", if not the default "http" will be used
+// WithService specifies the type of the service. service should be one of "http" or "grpc", if not the default "http" will be used
 func WithService(service string) ProviderOption {
 	return func(p *Provider) {
 		p.serviceName = service
