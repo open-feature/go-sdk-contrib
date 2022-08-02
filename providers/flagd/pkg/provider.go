@@ -12,7 +12,7 @@ type Provider struct {
 	port        int32
 	host        string
 	serviceName ServiceType
-	protocol    string
+	protocol    HTTPService.ProtocolType
 }
 
 type ServiceType int
@@ -29,7 +29,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		serviceName: HTTP,
 		port:        8080,
 		host:        "localhost",
-		protocol:    "http",
+		protocol:    HTTPService.HTTPS,
 	}
 	for _, opt := range opts {
 		opt(provider)
@@ -71,7 +71,7 @@ func WithService(service ServiceType) ProviderOption {
 }
 
 // WithProtocol specifies the protocol used by the http service. Should be one of "http" or "https", if not the default "http" will be used, https is not currently supported
-func WithProtocol(protocol string) ProviderOption {
+func WithProtocol(protocol HTTPService.ProtocolType) ProviderOption {
 	return func(p *Provider) {
 		p.protocol = protocol
 	}
@@ -143,7 +143,7 @@ func (p *Provider) NumberEvaluation(flagKey string, defaultValue float64, evalCt
 		}
 	}
 	return of.NumberResolutionDetail{
-		Value: float64(res.Value), // todo - update flagd to output float64 (proto file change)
+		Value: float64(res.Value),
 		ResolutionDetail: of.ResolutionDetail{
 			Reason:  res.Reason,
 			Value:   res.Value,

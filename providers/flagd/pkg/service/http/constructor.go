@@ -2,18 +2,25 @@ package http_service
 
 type HTTPServiceOption func(*HTTPService)
 
+type ProtocolType int
+
+const (
+	HTTP ProtocolType = iota
+	HTTPS
+)
+
 // NewHTTPService creates a new HTTPService taking configuration options to overide default values
 func NewHTTPService(opts ...HTTPServiceOption) *HTTPService {
 	const (
 		port     = 8080
 		host     = "localhost"
-		protocol = "http"
+		protocol = HTTP
 	)
 	svc := &HTTPService{
 		httpServiceConfiguration: &httpServiceConfiguration{
 			port:     port,
 			host:     host,
-			protocol: protocol,
+			protocol: "http",
 		},
 		client: &httpClient{},
 	}
@@ -38,8 +45,11 @@ func WithHost(host string) HTTPServiceOption {
 }
 
 // WithProtocol overides the default flagd protocol (http) (currently only http is supported)
-func WithProtocol(protocol string) HTTPServiceOption {
-	return func(s *HTTPService) {
-		s.httpServiceConfiguration.protocol = protocol
+func WithProtocol(protocol ProtocolType) HTTPServiceOption {
+	if protocol == HTTPS {
+		return func(s *HTTPService) {
+			s.httpServiceConfiguration.protocol = "https"
+		}
 	}
+	return nil
 }
