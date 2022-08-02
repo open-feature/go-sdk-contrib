@@ -21,7 +21,7 @@ type GRPCClient struct {
 func (s *GRPCClient) Connect() {
 	if s.conn == nil {
 		conn, err := grpc.Dial(
-			fmt.Sprintf("localhost:%d", s.GRPCServiceConfiguration.Port),
+			fmt.Sprintf("%s:%d", s.GRPCServiceConfiguration.Host, s.GRPCServiceConfiguration.Port),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithBlock(),
 		)

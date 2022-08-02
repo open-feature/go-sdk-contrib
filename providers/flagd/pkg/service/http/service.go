@@ -73,13 +73,13 @@ func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext
 	return &resMess, nil
 }
 
-func (c *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interface{}) error {
+func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interface{}) error {
 	body, err := json.Marshal(ctx)
 	if err != nil {
 		log.Error(err)
 		return errors.New(models.ParseErrorCode)
 	}
-	res, err := c.Client.Request("POST", url, bytes.NewBuffer(body))
+	res, err := s.Client.Request("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		log.Error(err)
 		return errors.New(models.GeneralErrorCode)

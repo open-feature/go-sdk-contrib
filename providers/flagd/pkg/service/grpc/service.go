@@ -169,7 +169,7 @@ func ParseError(err error) (*schemaV1.ErrorResponse, bool) {
 func FormatAsStructpb(evCtx of.EvaluationContext) (*structpb.Struct, error) {
 	evCtxM, ok := evCtx.(map[string]interface{})
 	if !ok {
-		return nil, errors.New("Evaluation context is not map[string]interface{}")
+		return nil, errors.New("evaluation context is not map[string]interface{}")
 	}
 	return structpb.NewStruct(evCtxM)
 }

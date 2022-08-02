@@ -11,15 +11,22 @@ type Provider struct {
 	service     service.IService
 	port        int32
 	host        string
-	serviceName string
+	serviceName ServiceType
 	protocol    string
 }
+
+type ServiceType string
+
+const (
+	HTTP ServiceType = "http"
+	GRPC ServiceType = "grpc"
+)
 
 type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
-		serviceName: "http",
+		serviceName: HTTP,
 		port:        8080,
 		host:        "localhost",
 		protocol:    "http",
@@ -27,7 +34,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	for _, opt := range opts {
 		opt(provider)
 	}
-	if provider.serviceName == "grpc" {
+	if provider.serviceName == GRPC {
 		provider.service = GRPCService.NewGRPCService(
 			GRPCService.WithPort(provider.port),
 			GRPCService.WithHost(provider.host),
@@ -55,13 +62,13 @@ func WithHost(host string) ProviderOption {
 }
 
 // service should be one of "http" or "grpc", if not the default "http" will be used
-func WithService(service string) ProviderOption {
+func WithService(service ServiceType) ProviderOption {
 	return func(p *Provider) {
 		p.serviceName = service
 	}
 }
 
-// service should be one of "http" or "https", if not the default "http" will be used, https is not currently supported
+// WithProtocol specifies the protocol used by the http service. Should be one of "http" or "https", if not the default "http" will be used, https is not currently supported
 func WithProtocol(protocol string) ProviderOption {
 	return func(p *Provider) {
 		p.protocol = protocol

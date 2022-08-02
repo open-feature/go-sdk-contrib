@@ -9,6 +9,7 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 	)
 	serviceConfiguration := &GRPCServiceConfiguration{
 		Port: port,
+		Host: host,
 	}
 	svc := &GRPCService{
 		Client: &GRPCClient{
