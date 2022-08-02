@@ -65,14 +65,14 @@ func WithHost(host string) ProviderOption {
 	}
 }
 
-// WithService specifies the type of the service. etakes type of ServiceType. defaults to http
+// WithService specifies the type of the service. Takes argument of type ServiceType. Defaults to http
 func WithService(service ServiceType) ProviderOption {
 	return func(p *Provider) {
 		p.serviceName = service
 	}
 }
 
-// WithProtocol specifies the protocol used by the http service. takes type of HTTPService.ProtocolType, defaults to http
+// WithProtocol specifies the protocol used by the http service. Takes argument of type HTTPService.ProtocolType. Defaults to http
 func WithProtocol(protocol HTTPService.ProtocolType) ProviderOption {
 	return func(p *Provider) {
 		p.protocol = protocol
