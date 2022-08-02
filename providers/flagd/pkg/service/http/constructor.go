@@ -17,12 +17,12 @@ func NewHTTPService(opts ...HTTPServiceOption) *HTTPService {
 		protocol = HTTP
 	)
 	svc := &HTTPService{
-		httpServiceConfiguration: &httpServiceConfiguration{
-			port:     port,
-			host:     host,
-			protocol: "http",
+		HttpServiceConfiguration: &HttpServiceConfiguration{
+			Port:     port,
+			Host:     host,
+			Protocol: "http",
 		},
-		client: &httpClient{},
+		Client: &httpClient{},
 	}
 	for _, opt := range opts {
 		opt(svc)
@@ -33,14 +33,14 @@ func NewHTTPService(opts ...HTTPServiceOption) *HTTPService {
 // WithPort overides the default flagd http port (8080)
 func WithPort(port int32) HTTPServiceOption {
 	return func(s *HTTPService) {
-		s.httpServiceConfiguration.port = port
+		s.HttpServiceConfiguration.Port = port
 	}
 }
 
 // WithHost overides the default flagd host name (localhost)
 func WithHost(host string) HTTPServiceOption {
 	return func(s *HTTPService) {
-		s.httpServiceConfiguration.host = host
+		s.HttpServiceConfiguration.Host = host
 	}
 }
 
@@ -48,7 +48,7 @@ func WithHost(host string) HTTPServiceOption {
 func WithProtocol(protocol ProtocolType) HTTPServiceOption {
 	if protocol == HTTPS {
 		return func(s *HTTPService) {
-			s.httpServiceConfiguration.protocol = "https"
+			s.HttpServiceConfiguration.Protocol = "https"
 		}
 	}
 	return nil

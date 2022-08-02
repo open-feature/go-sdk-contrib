@@ -10,14 +10,14 @@ type iHTTPClient interface {
 }
 
 type httpClient struct {
-	client *http.Client
+	Client *http.Client
 }
 
 func (c *httpClient) instance() http.Client {
-	if c.client == nil {
-		c.client = &http.Client{}
+	if c.Client == nil {
+		c.Client = &http.Client{}
 	}
-	return *c.client
+	return *c.Client
 }
 
 func (c *httpClient) Request(method string, url string, body io.Reader) (*http.Response, error) {

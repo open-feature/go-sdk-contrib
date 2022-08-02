@@ -13,23 +13,23 @@ import (
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 )
 
-type httpServiceConfiguration struct {
-	port     int32
-	host     string
-	protocol string
+type HttpServiceConfiguration struct {
+	Port     int32
+	Host     string
+	Protocol string
 }
 
 // HTTPService handles the client side http interface for the flagd server
 type HTTPService struct {
-	httpServiceConfiguration *httpServiceConfiguration
-	client                   iHTTPClient
+	HttpServiceConfiguration *HttpServiceConfiguration
+	Client                   iHTTPClient
 }
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/boolean endpoint
 func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/boolean", s.httpServiceConfiguration.protocol, s.httpServiceConfiguration.host, s.httpServiceConfiguration.port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/boolean", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveBooleanResponse{}
-	err := s.fetchFlag(url, context, &resMess)
+	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: models.ErrorReason,
@@ -40,9 +40,9 @@ func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContex
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/string endpoint
 func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveStringResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/string", s.httpServiceConfiguration.protocol, s.httpServiceConfiguration.host, s.httpServiceConfiguration.port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/string", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveStringResponse{}
-	err := s.fetchFlag(url, context, &resMess)
+	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: models.ErrorReason,
@@ -53,9 +53,9 @@ func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/number endpoint
 func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/number", s.httpServiceConfiguration.protocol, s.httpServiceConfiguration.host, s.httpServiceConfiguration.port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/number", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveNumberResponse{}
-	err := s.fetchFlag(url, context, &resMess)
+	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
 		return &schemaV1.ResolveNumberResponse{
 			Reason: models.ErrorReason,
@@ -66,9 +66,9 @@ func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/object endpoint
 func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/object", s.httpServiceConfiguration.protocol, s.httpServiceConfiguration.host, s.httpServiceConfiguration.port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/object", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveObjectResponse{}
-	err := s.fetchFlag(url, context, &resMess)
+	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: models.ErrorReason,
@@ -77,13 +77,13 @@ func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext
 	return &resMess, nil
 }
 
-func (s *HTTPService) fetchFlag(url string, ctx of.EvaluationContext, p interface{}) error {
+func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interface{}) error {
 	body, err := json.Marshal(flattenContext(ctx))
 	if err != nil {
 		log.Error(err)
 		return errors.New(models.ParseErrorCode)
 	}
-	res, err := s.client.Request("POST", url, bytes.NewBuffer(body))
+	res, err := s.Client.Request("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		log.Error(err)
 		return errors.New(models.GeneralErrorCode)
