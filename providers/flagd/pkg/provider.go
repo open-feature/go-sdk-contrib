@@ -83,7 +83,7 @@ func (p *Provider) Metadata() of.Metadata {
 	}
 }
 
-func (p *Provider) GetBooleanEvaluation(flagKey string, defaultValue bool, evalCtx of.EvaluationContext, options ...of.EvaluationOption) of.BoolResolutionDetail {
+func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.BoolResolutionDetail {
 	res, err := p.service.ResolveBoolean(flagKey, evalCtx)
 	if err != nil {
 		return of.BoolResolutionDetail{
@@ -106,7 +106,7 @@ func (p *Provider) GetBooleanEvaluation(flagKey string, defaultValue bool, evalC
 	}
 }
 
-func (p *Provider) GetStringEvaluation(flagKey string, defaultValue string, evalCtx of.EvaluationContext, options ...of.EvaluationOption) of.StringResolutionDetail {
+func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.StringResolutionDetail {
 	res, err := p.service.ResolveString(flagKey, evalCtx)
 	if err != nil {
 		return of.StringResolutionDetail{
@@ -129,7 +129,7 @@ func (p *Provider) GetStringEvaluation(flagKey string, defaultValue string, eval
 	}
 }
 
-func (p *Provider) GetNumberEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext, options ...of.EvaluationOption) of.NumberResolutionDetail {
+func (p *Provider) NumberEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.NumberResolutionDetail {
 	res, err := p.service.ResolveNumber(flagKey, evalCtx)
 	if err != nil {
 		return of.NumberResolutionDetail{
@@ -152,7 +152,7 @@ func (p *Provider) GetNumberEvaluation(flagKey string, defaultValue float64, eva
 	}
 }
 
-func (p *Provider) GetObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx of.EvaluationContext, options ...of.EvaluationOption) of.ResolutionDetail {
+func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.ResolutionDetail {
 	res, err := p.service.ResolveObject(flagKey, evalCtx)
 	if err != nil {
 		return of.ResolutionDetail{

@@ -8,7 +8,6 @@ import (
 	"io"
 
 	models "github.com/open-feature/flagd/pkg/model"
-	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
@@ -25,7 +24,7 @@ type HTTPService struct {
 	Client                   IHTTPClient
 }
 
-func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveBooleanResponse, error) {
+func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/boolean", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveBooleanResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -37,7 +36,7 @@ func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContex
 	return &resMess, nil
 }
 
-func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveStringResponse, error) {
+func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveStringResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/string", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveStringResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -49,7 +48,7 @@ func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext
 	return &resMess, nil
 }
 
-func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveNumberResponse, error) {
+func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/number", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveNumberResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -61,7 +60,7 @@ func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext
 	return &resMess, nil
 }
 
-func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveObjectResponse, error) {
+func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/object", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveObjectResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -74,7 +73,7 @@ func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext
 }
 
 func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interface{}) error {
-	body, err := json.Marshal(ctx)
+	body, err := json.Marshal(flattenContext(ctx))
 	if err != nil {
 		log.Error(err)
 		return errors.New(models.ParseErrorCode)
@@ -116,4 +115,14 @@ func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interfac
 	}
 
 	return errors.New(models.GeneralErrorCode)
+}
+
+func flattenContext(ctx of.EvaluationContext) map[string]interface{} {
+	if ctx.TargetingKey != "" {
+		ctx.Attributes["TargettingKey"] = ctx.TargetingKey
+	}
+	if ctx.Attributes == nil {
+		return map[string]interface{}{}
+	}
+	return ctx.Attributes
 }

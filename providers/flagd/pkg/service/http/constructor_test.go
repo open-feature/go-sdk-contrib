@@ -1,16 +1,14 @@
-package tests
+package http_service
 
 import (
 	"testing"
-
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
 )
 
 type TestConstructorArgs struct {
 	name    string
 	port    int32
 	host    string
-	options []service.HTTPServiceOption
+	options []HTTPServiceOption
 }
 
 func TestNewHTTPService(t *testing.T) {
@@ -25,21 +23,21 @@ func TestNewHTTPService(t *testing.T) {
 			name: "withHost",
 			port: 8080,
 			host: "not localhost",
-			options: []service.HTTPServiceOption{
-				service.WithHost("not localhost"),
+			options: []HTTPServiceOption{
+				WithHost("not localhost"),
 			},
 		},
 		{
 			name: "withPort",
 			port: 1,
 			host: "localhost",
-			options: []service.HTTPServiceOption{
-				service.WithPort(1),
+			options: []HTTPServiceOption{
+				WithPort(1),
 			},
 		},
 	}
 	for _, test := range tests {
-		svc := service.NewHTTPService(test.options...)
+		svc := NewHTTPService(test.options...)
 		if svc == nil {
 			t.Error("recieved nil service from NewHTTPService")
 			t.FailNow()

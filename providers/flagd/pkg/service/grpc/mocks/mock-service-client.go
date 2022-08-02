@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -46,7 +47,7 @@ type MockServiceClient struct {
 
 type MockResolveBooleanArgs struct {
 	InFK   string
-	InCtx  map[string]interface{}
+	InCtx  of.EvaluationContext
 	Out    *schemaV1.ResolveBooleanResponse
 	OutErr error
 }
@@ -56,7 +57,7 @@ func (m *MockServiceClient) ResolveBoolean(ctx context.Context, in *schemaV1.Res
 		m.Testing.Errorf("unexpected value for flagKey received, expected %v got %v", m.RBArgs.InFK, in.FlagKey)
 		return m.RBArgs.Out, m.RBArgs.OutErr
 	}
-	inF, err := structpb.NewStruct(m.RBArgs.InCtx)
+	inF, err := structpb.NewStruct(m.RBArgs.InCtx.Attributes)
 	if err != nil {
 		m.Testing.Error(err)
 		return m.RBArgs.Out, m.RBArgs.OutErr
@@ -69,7 +70,7 @@ func (m *MockServiceClient) ResolveBoolean(ctx context.Context, in *schemaV1.Res
 
 type MockResolveNumberArgs struct {
 	InFK   string
-	InCtx  map[string]interface{}
+	InCtx  of.EvaluationContext
 	Out    *schemaV1.ResolveNumberResponse
 	OutErr error
 }
@@ -79,7 +80,7 @@ func (m *MockServiceClient) ResolveNumber(ctx context.Context, in *schemaV1.Reso
 		m.Testing.Errorf("unexpected value for flagKey received, expected %v got %v", m.RNArgs.InFK, in.FlagKey)
 		return m.RNArgs.Out, m.RNArgs.OutErr
 	}
-	inF, err := structpb.NewStruct(m.RNArgs.InCtx)
+	inF, err := structpb.NewStruct(m.RNArgs.InCtx.Attributes)
 	if err != nil {
 		m.Testing.Error(err)
 		return m.RNArgs.Out, m.RNArgs.OutErr
@@ -92,7 +93,7 @@ func (m *MockServiceClient) ResolveNumber(ctx context.Context, in *schemaV1.Reso
 
 type MockResolveStringArgs struct {
 	InFK   string
-	InCtx  map[string]interface{}
+	InCtx  of.EvaluationContext
 	Out    *schemaV1.ResolveStringResponse
 	OutErr error
 }
@@ -102,7 +103,7 @@ func (m *MockServiceClient) ResolveString(ctx context.Context, in *schemaV1.Reso
 		m.Testing.Errorf("unexpected value for flagKey received, expected %v got %v", m.RSArgs.InFK, in.FlagKey)
 		return m.RSArgs.Out, m.RSArgs.OutErr
 	}
-	inF, err := structpb.NewStruct(m.RSArgs.InCtx)
+	inF, err := structpb.NewStruct(m.RSArgs.InCtx.Attributes)
 	if err != nil {
 		m.Testing.Error(err)
 		return m.RSArgs.Out, m.RSArgs.OutErr
@@ -115,7 +116,7 @@ func (m *MockServiceClient) ResolveString(ctx context.Context, in *schemaV1.Reso
 
 type MockResolveObjectArgs struct {
 	InFK   string
-	InCtx  map[string]interface{}
+	InCtx  of.EvaluationContext
 	OutMap map[string]interface{}
 	Out    *schemaV1.ResolveObjectResponse
 	OutErr error
@@ -126,7 +127,7 @@ func (m *MockServiceClient) ResolveObject(ctx context.Context, in *schemaV1.Reso
 		m.Testing.Errorf("unexpected value for flagKey received, expected %v got %v", m.ROArgs.InFK, in.FlagKey)
 		return m.ROArgs.Out, m.ROArgs.OutErr
 	}
-	inF, err := structpb.NewStruct(m.ROArgs.InCtx)
+	inF, err := structpb.NewStruct(m.ROArgs.InCtx.Attributes)
 	if err != nil {
 		m.Testing.Error(err)
 		return m.ROArgs.Out, m.ROArgs.OutErr

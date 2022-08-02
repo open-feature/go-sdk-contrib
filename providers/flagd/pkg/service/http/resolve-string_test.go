@@ -1,4 +1,4 @@
-package tests
+package http_service
 
 import (
 	"bytes"
@@ -9,53 +9,57 @@ import (
 	"testing"
 
 	models "github.com/open-feature/flagd/pkg/model"
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
-	mocks "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http/tests/mocks"
+	mocks "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http/mocks"
+	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 )
 
-type TestServiceResolveBooleanArgs struct {
+type TestServiceResolveStringArgs struct {
 	name                          string
 	ServiceClientMockRequestSetup mocks.ServiceClientMockRequestSetup
-	HTTPServiceConfiguration      service.HTTPServiceConfiguration
+	HTTPServiceConfiguration      HTTPServiceConfiguration
 	httpResponseBody              interface{}
 	httpResponseCode              int
-	flagKey                       string
-	evCtx                         interface{}
 
-	value   bool
+	flagKey string
+	evCtx   of.EvaluationContext
+
+	value   string
 	variant string
 	reason  string
 	err     error
 }
 
-func TestServiceResolveBoolean(t *testing.T) {
-	tests := []TestServiceResolveBooleanArgs{
+func TestServiceResolveString(t *testing.T) {
+	tests := []TestServiceResolveStringArgs{
 		{
 			name: "happy path",
 			ServiceClientMockRequestSetup: mocks.ServiceClientMockRequestSetup{
-				InUrl:    "http://localhost:8080/flags/bool/resolve/boolean",
+				InUrl:    "http://localhost:8080/flags/string/resolve/string",
 				InMethod: http.MethodPost,
 				OutRes:   &http.Response{},
 				OutErr:   nil,
 			},
-			HTTPServiceConfiguration: service.HTTPServiceConfiguration{
+			HTTPServiceConfiguration: HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
 			},
-			httpResponseBody: schemaV1.ResolveBooleanResponse{
-				Value:   true,
+			httpResponseBody: schemaV1.ResolveStringResponse{
+				Value:   "value",
 				Variant: "on",
 				Reason:  models.StaticReason,
 			},
 			httpResponseCode: 200,
+			flagKey:          "string",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
 
-			flagKey: "bool",
-			evCtx:   map[string]interface{}{},
-
-			value:   true,
+			value:   "value",
 			variant: "on",
 			reason:  models.StaticReason,
 			err:     nil,
@@ -63,45 +67,49 @@ func TestServiceResolveBoolean(t *testing.T) {
 		{
 			name: "handle non 200",
 			ServiceClientMockRequestSetup: mocks.ServiceClientMockRequestSetup{
-				InUrl:    "http://localhost:8080/flags/bool/resolve/boolean",
+				InUrl:    "http://localhost:8080/flags/string/resolve/string",
 				InMethod: http.MethodPost,
 				OutRes:   &http.Response{},
 				OutErr:   nil,
 			},
-			HTTPServiceConfiguration: service.HTTPServiceConfiguration{
+			HTTPServiceConfiguration: HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
 			},
 			httpResponseBody: schemaV1.ErrorResponse{
-				ErrorCode: "CUSTOM ERROR CODE",
+				Reason:    models.StaticReason,
+				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			httpResponseCode: 400,
-
-			flagKey: "bool",
-			evCtx:   nil,
-
-			value:  false,
+			flagKey:          "string",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
 			reason: models.ErrorReason,
-			err:    errors.New("CUSTOM ERROR CODE"),
+			err:    errors.New("CUSTOM ERROR MESSAGE"),
 		},
 		{
 			name: "handle error",
 			ServiceClientMockRequestSetup: mocks.ServiceClientMockRequestSetup{
-				InUrl:    "http://localhost:8080/flags/bool/resolve/boolean",
+				InUrl:    "http://localhost:8080/flags/string/resolve/string",
 				InMethod: http.MethodPost,
 				OutRes:   &http.Response{},
-				OutErr:   errors.New("Its all gone wrong"),
+				OutErr:   errors.New("its all gone wrong"),
 			},
-			HTTPServiceConfiguration: service.HTTPServiceConfiguration{
+			HTTPServiceConfiguration: HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
 			},
-			flagKey: "bool",
-			evCtx:   nil,
-
-			value:  false,
+			flagKey: "string",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
 			reason: models.ErrorReason,
 			err:    errors.New(models.GeneralErrorCode),
 		},
@@ -121,14 +129,14 @@ func TestServiceResolveBoolean(t *testing.T) {
 			StatusCode: test.httpResponseCode,
 			Body:       io.NopCloser(bytes.NewReader(bodyM)),
 		}
-		srv := service.HTTPService{
+		srv := HTTPService{
 			Client: &mocks.ServiceClient{
 				RequestSetup: test.ServiceClientMockRequestSetup,
 				Testing:      t,
 			},
 			HTTPServiceConfiguration: &test.HTTPServiceConfiguration,
 		}
-		res, err := srv.ResolveBoolean(test.flagKey, test.evCtx)
+		res, err := srv.ResolveString(test.flagKey, test.evCtx)
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.err, err)
 		}

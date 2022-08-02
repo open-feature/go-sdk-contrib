@@ -1,4 +1,4 @@
-package tests
+package http_service
 
 import (
 	"bytes"
@@ -9,8 +9,7 @@ import (
 	"testing"
 
 	models "github.com/open-feature/flagd/pkg/model"
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
-	mocks "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http/tests/mocks"
+	mocks "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http/mocks"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	schemav1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
@@ -40,8 +39,10 @@ func TestFetchFlag(t *testing.T) {
 				"food": "bars",
 			},
 			url: "GET/MY/FLAG",
-			ctx: map[string]interface{}{
-				"con": "text",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			statusCode: 200,
 			err:        nil,
@@ -56,8 +57,10 @@ func TestFetchFlag(t *testing.T) {
 			},
 			body: "string",
 			url:  "GET/MY/FLAG",
-			ctx: map[string]interface{}{
-				"con": "text",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			statusCode: 200,
 			err:        errors.New(models.ParseErrorCode),
@@ -72,8 +75,10 @@ func TestFetchFlag(t *testing.T) {
 			},
 			body: "string",
 			url:  "GET/MY/FLAG",
-			ctx: map[string]interface{}{
-				"con": "text",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			statusCode: 400,
 			err:        errors.New(models.ParseErrorCode),
@@ -90,8 +95,10 @@ func TestFetchFlag(t *testing.T) {
 				ErrorCode: models.FlagNotFoundErrorCode,
 			},
 			url: "GET/MY/FLAG",
-			ctx: map[string]interface{}{
-				"con": "text",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			statusCode: 404,
 			err:        errors.New(models.FlagNotFoundErrorCode),
@@ -105,24 +112,13 @@ func TestFetchFlag(t *testing.T) {
 				OutErr:   nil,
 			},
 			url: "GET/MY/FLAG",
-			ctx: map[string]interface{}{
-				"con": "text",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			statusCode: 500,
 			err:        errors.New(models.GeneralErrorCode),
-		},
-		{
-			name: "ctx cannot be parsed",
-			serviceClientMockRequestSetup: mocks.ServiceClientMockRequestSetup{
-				InMethod: "POST",
-				InUrl:    "GET/MY/FLAG",
-				OutRes:   &http.Response{},
-				OutErr:   nil,
-			},
-			url:        "GET/MY/FLAG",
-			ctx:        make(chan error, 5),
-			statusCode: 500,
-			err:        errors.New(models.ParseErrorCode),
 		},
 		{
 			name: "fall through",
@@ -149,7 +145,7 @@ func TestFetchFlag(t *testing.T) {
 			StatusCode: test.statusCode,
 			Body:       io.NopCloser(bytes.NewReader(bodyM)),
 		}
-		svc := service.HTTPService{
+		svc := HTTPService{
 			Client: &mocks.ServiceClient{
 				RequestSetup: test.serviceClientMockRequestSetup,
 				Testing:      t,

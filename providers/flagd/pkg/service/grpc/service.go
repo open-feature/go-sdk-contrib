@@ -4,9 +4,8 @@ import (
 	ctx "context"
 	"errors"
 
-	models "github.com/open-feature/flagd/pkg/model"
-	models2 "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/model"
-	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service"
+	flagdModels "github.com/open-feature/flagd/pkg/model"
+	sdkModels "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/model"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
@@ -23,19 +22,19 @@ type GRPCService struct {
 	Client IGRPCClient
 }
 
-func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveBooleanResponse, error) {
+func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error) {
 	client := s.Client.GetInstance()
 	if client == nil {
 		return &schemaV1.ResolveBooleanResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models2.ConnectionErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(sdkModels.ConnectionErrorCode)
 	}
 	ctxF, err := FormatAsStructpb(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveBooleanResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models.ParseErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(flagdModels.ParseErrorCode)
 	}
 	res, err := client.ResolveBoolean(ctx.TODO(), &schemaV1.ResolveBooleanRequest{
 		FlagKey: flagKey,
@@ -46,8 +45,8 @@ func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContex
 		if !ok {
 			log.Error(err)
 			return &schemaV1.ResolveBooleanResponse{
-				Reason: models.ErrorReason,
-			}, errors.New(models.GeneralErrorCode)
+				Reason: flagdModels.ErrorReason,
+			}, errors.New(flagdModels.GeneralErrorCode)
 		}
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: res.Reason,
@@ -56,19 +55,19 @@ func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContex
 	return res, nil
 }
 
-func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveStringResponse, error) {
+func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveStringResponse, error) {
 	client := s.Client.GetInstance()
 	if client == nil {
 		return &schemaV1.ResolveStringResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models2.ConnectionErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(sdkModels.ConnectionErrorCode)
 	}
 	contextF, err := FormatAsStructpb(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveStringResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models.ParseErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(flagdModels.ParseErrorCode)
 	}
 	res, err := client.ResolveString(ctx.TODO(), &schemaV1.ResolveStringRequest{
 		FlagKey: flagKey,
@@ -79,8 +78,8 @@ func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext
 		if !ok {
 			log.Error(err)
 			return &schemaV1.ResolveStringResponse{
-				Reason: models.ErrorReason,
-			}, errors.New(models.GeneralErrorCode)
+				Reason: flagdModels.ErrorReason,
+			}, errors.New(flagdModels.GeneralErrorCode)
 		}
 		return &schemaV1.ResolveStringResponse{
 			Reason: res.Reason,
@@ -89,19 +88,19 @@ func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext
 	return res, nil
 }
 
-func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveNumberResponse, error) {
+func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error) {
 	client := s.Client.GetInstance()
 	if client == nil {
 		return &schemaV1.ResolveNumberResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models2.ConnectionErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(sdkModels.ConnectionErrorCode)
 	}
 	contextF, err := FormatAsStructpb(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveNumberResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models.ParseErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(flagdModels.ParseErrorCode)
 	}
 	res, err := client.ResolveNumber(ctx.TODO(), &schemaV1.ResolveNumberRequest{
 		FlagKey: flagKey,
@@ -112,8 +111,8 @@ func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext
 		if !ok {
 			log.Error(err)
 			return &schemaV1.ResolveNumberResponse{
-				Reason: models.ErrorReason,
-			}, errors.New(models.GeneralErrorCode)
+				Reason: flagdModels.ErrorReason,
+			}, errors.New(flagdModels.GeneralErrorCode)
 		}
 		return &schemaV1.ResolveNumberResponse{
 			Reason: res.Reason,
@@ -122,19 +121,19 @@ func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext
 	return res, nil
 }
 
-func (s *GRPCService) ResolveObject(flagKey string, context of.EvaluationContext, options ...service.IServiceOption) (*schemaV1.ResolveObjectResponse, error) {
+func (s *GRPCService) ResolveObject(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error) {
 	client := s.Client.GetInstance()
 	if client == nil {
 		return &schemaV1.ResolveObjectResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models2.ConnectionErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(sdkModels.ConnectionErrorCode)
 	}
 	contextF, err := FormatAsStructpb(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveObjectResponse{
-			Reason: models.ErrorReason,
-		}, errors.New(models.ParseErrorCode)
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(flagdModels.ParseErrorCode)
 	}
 	res, err := client.ResolveObject(ctx.TODO(), &schemaV1.ResolveObjectRequest{
 		FlagKey: flagKey,
@@ -145,8 +144,8 @@ func (s *GRPCService) ResolveObject(flagKey string, context of.EvaluationContext
 		if !ok {
 			log.Error(err)
 			return &schemaV1.ResolveObjectResponse{
-				Reason: models.ErrorReason,
-			}, errors.New(models.GeneralErrorCode)
+				Reason: flagdModels.ErrorReason,
+			}, errors.New(flagdModels.GeneralErrorCode)
 		}
 		return &schemaV1.ResolveObjectResponse{
 			Reason: res.Reason,
@@ -167,9 +166,9 @@ func ParseError(err error) (*schemaV1.ErrorResponse, bool) {
 }
 
 func FormatAsStructpb(evCtx of.EvaluationContext) (*structpb.Struct, error) {
-	evCtxM, ok := evCtx.(map[string]interface{})
-	if !ok {
-		return nil, errors.New("evaluation context is not map[string]interface{}")
+	if evCtx.TargetingKey != "" {
+		evCtx.Attributes["TargettingKey"] = evCtx.TargetingKey
 	}
-	return structpb.NewStruct(evCtxM)
+
+	return structpb.NewStruct(evCtx.Attributes)
 }

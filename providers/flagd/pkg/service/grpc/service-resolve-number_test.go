@@ -1,123 +1,128 @@
-package tests
+package grpc_service
 
 import (
 	"errors"
 	"testing"
 
 	models "github.com/open-feature/flagd/pkg/model"
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
-	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc/tests/mocks"
+	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc/mocks"
+	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type TestServiceResolveBooleanArgs struct {
+type TestServiceResolveNumberArgs struct {
 	name string
-	mocks.MockResolveBooleanArgs
+	mocks.MockResolveNumberArgs
 	nilClient bool
 
 	flagKey string
-	evCtx   interface{}
+	evCtx   of.EvaluationContext
 
-	value     bool
+	value     float32
 	variant   string
 	reason    string
 	err       error
 	customErr string
 }
 
-func TestServiceResolveBoolean(t *testing.T) {
-	tests := []TestServiceResolveBooleanArgs{
+func TestServiceResolveNumber(t *testing.T) {
+	tests := []TestServiceResolveNumberArgs{
 		{
 			name: "happy path",
-			MockResolveBooleanArgs: mocks.MockResolveBooleanArgs{
+			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
 				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
 				},
-				Out: &schemaV1.ResolveBooleanResponse{
-					Value:   true,
+				Out: &schemaV1.ResolveNumberResponse{
+					Value:   12,
 					Variant: "on",
 					Reason:  models.StaticReason,
 				},
 			},
 			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
-			value:   true,
 			variant: "on",
+			value:   12,
 			reason:  models.StaticReason,
 			err:     nil,
 		},
 		{
-			name:    "FormatAsStructpb fails",
-			flagKey: "bool",
-			evCtx:   "not a map[string]interface{}!",
-			value:   false,
-			reason:  models.ErrorReason,
-			err:     errors.New(models.ParseErrorCode),
-		},
-		{
 			name: "custom error response",
-			MockResolveBooleanArgs: mocks.MockResolveBooleanArgs{
+			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
 				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
 				},
 				OutErr: status.Error(codes.NotFound, "custom message"),
 			},
 			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
-			value:     false,
 			reason:    models.ErrorReason,
 			customErr: "CUSTOM ERROR",
 			err:       errors.New("CUSTOM ERROR"),
 		},
 		{
-			name: "error parse failure",
-			MockResolveBooleanArgs: mocks.MockResolveBooleanArgs{
-				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
-				},
-				OutErr: status.Error(codes.NotFound, "custom message"),
-			},
-			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
-			},
-			value:  false,
-			reason: models.ErrorReason,
-			err:    errors.New("GENERAL"),
-		},
-		{
 			name: "nil client",
-			MockResolveBooleanArgs: mocks.MockResolveBooleanArgs{
+			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
 				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
 				},
 				OutErr: status.Error(codes.NotFound, "custom message"),
 			},
 			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			nilClient: true,
-			value:     false,
 			reason:    models.ErrorReason,
 			err:       errors.New("CONNECTION_ERROR"),
+		},
+		{
+			name: "error parse failure",
+			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
+				InFK: "bool",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
+				},
+				OutErr: status.Error(codes.NotFound, "custom message"),
+			},
+			flagKey: "bool",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
+			reason: models.ErrorReason,
+			err:    errors.New("GENERAL"),
 		},
 	}
 
 	for _, test := range tests {
 		if test.customErr != "" {
-			st, ok := status.FromError(test.MockResolveBooleanArgs.OutErr)
+			st, ok := status.FromError(test.MockResolveNumberArgs.OutErr)
 			if !ok {
 				t.Errorf("%s: malformed error status recieved, cannot attach custom properties", test.name)
 			}
@@ -128,16 +133,16 @@ func TestServiceResolveBoolean(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			test.MockResolveBooleanArgs.OutErr = stWD.Err()
+			test.MockResolveNumberArgs.OutErr = stWD.Err()
 		}
-		srv := service.GRPCService{
+		srv := GRPCService{
 			Client: &mocks.MockClient{
 				ReturnNilClient: test.nilClient,
-				RBArgs:          test.MockResolveBooleanArgs,
+				RNArgs:          test.MockResolveNumberArgs,
 				Testing:         t,
 			},
 		}
-		res, err := srv.ResolveBoolean(test.flagKey, test.evCtx)
+		res, err := srv.ResolveNumber(test.flagKey, test.evCtx)
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.err, err)
 		}

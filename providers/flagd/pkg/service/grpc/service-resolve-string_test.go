@@ -1,76 +1,77 @@
-package tests
+package grpc_service
 
 import (
 	"errors"
 	"testing"
 
 	models "github.com/open-feature/flagd/pkg/model"
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
-	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc/tests/mocks"
+	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc/mocks"
+	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type TestServiceResolveNumberArgs struct {
+type TestServiceResolveStringArgs struct {
 	name string
-	mocks.MockResolveNumberArgs
+	mocks.MockResolveStringArgs
 	nilClient bool
 
 	flagKey string
-	evCtx   interface{}
+	evCtx   of.EvaluationContext
 
-	value     float32
+	value     string
 	variant   string
 	reason    string
 	err       error
 	customErr string
 }
 
-func TestServiceResolveNumber(t *testing.T) {
-	tests := []TestServiceResolveNumberArgs{
+func TestServiceResolveString(t *testing.T) {
+	tests := []TestServiceResolveStringArgs{
 		{
 			name: "happy path",
-			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
+			MockResolveStringArgs: mocks.MockResolveStringArgs{
 				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
 				},
-				Out: &schemaV1.ResolveNumberResponse{
-					Value:   12,
+				Out: &schemaV1.ResolveStringResponse{
+					Value:   "on",
 					Variant: "on",
 					Reason:  models.StaticReason,
 				},
 			},
 			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			variant: "on",
-			value:   12,
+			value:   "on",
 			reason:  models.StaticReason,
 			err:     nil,
 		},
 		{
-			name:    "FormatAsStructpb fails",
-			flagKey: "bool",
-			evCtx:   "not a map[string]interface{}!",
-			reason:  models.ErrorReason,
-			err:     errors.New(models.ParseErrorCode),
-		},
-		{
 			name: "custom error response",
-			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
+			MockResolveStringArgs: mocks.MockResolveStringArgs{
 				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
 				},
 				OutErr: status.Error(codes.NotFound, "custom message"),
 			},
 			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			reason:    models.ErrorReason,
 			customErr: "CUSTOM ERROR",
@@ -78,16 +79,20 @@ func TestServiceResolveNumber(t *testing.T) {
 		},
 		{
 			name: "nil client",
-			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
+			MockResolveStringArgs: mocks.MockResolveStringArgs{
 				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
 				},
 				OutErr: status.Error(codes.NotFound, "custom message"),
 			},
 			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			nilClient: true,
 			reason:    models.ErrorReason,
@@ -95,16 +100,20 @@ func TestServiceResolveNumber(t *testing.T) {
 		},
 		{
 			name: "error parse failure",
-			MockResolveNumberArgs: mocks.MockResolveNumberArgs{
+			MockResolveStringArgs: mocks.MockResolveStringArgs{
 				InFK: "bool",
-				InCtx: map[string]interface{}{
-					"dog": "cat",
+				InCtx: of.EvaluationContext{
+					Attributes: map[string]interface{}{
+						"con": "text",
+					},
 				},
 				OutErr: status.Error(codes.NotFound, "custom message"),
 			},
 			flagKey: "bool",
-			evCtx: map[string]interface{}{
-				"dog": "cat",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
 			},
 			reason: models.ErrorReason,
 			err:    errors.New("GENERAL"),
@@ -113,7 +122,7 @@ func TestServiceResolveNumber(t *testing.T) {
 
 	for _, test := range tests {
 		if test.customErr != "" {
-			st, ok := status.FromError(test.MockResolveNumberArgs.OutErr)
+			st, ok := status.FromError(test.MockResolveStringArgs.OutErr)
 			if !ok {
 				t.Errorf("%s: malformed error status recieved, cannot attach custom properties", test.name)
 			}
@@ -124,16 +133,16 @@ func TestServiceResolveNumber(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			test.MockResolveNumberArgs.OutErr = stWD.Err()
+			test.MockResolveStringArgs.OutErr = stWD.Err()
 		}
-		srv := service.GRPCService{
+		srv := GRPCService{
 			Client: &mocks.MockClient{
 				ReturnNilClient: test.nilClient,
-				RNArgs:          test.MockResolveNumberArgs,
+				RSArgs:          test.MockResolveStringArgs,
 				Testing:         t,
 			},
 		}
-		res, err := srv.ResolveNumber(test.flagKey, test.evCtx)
+		res, err := srv.ResolveString(test.flagKey, test.evCtx)
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.err, err)
 		}
