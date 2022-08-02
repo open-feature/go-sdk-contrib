@@ -38,7 +38,7 @@ func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContex
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(flagdModels.ParseErrorCode)
 	}
-	res, err := client.ResolveBoolean(ctx.TODO(), &schemaV1.ResolveBooleanRequest{
+	res, err := client.ResolveBoolean(ctx.Background(), &schemaV1.ResolveBooleanRequest{
 		FlagKey: flagKey,
 		Context: ctxF,
 	})
@@ -72,7 +72,7 @@ func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(flagdModels.ParseErrorCode)
 	}
-	res, err := client.ResolveString(ctx.TODO(), &schemaV1.ResolveStringRequest{
+	res, err := client.ResolveString(ctx.Background(), &schemaV1.ResolveStringRequest{
 		FlagKey: flagKey,
 		Context: contextF,
 	})
@@ -106,7 +106,7 @@ func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(flagdModels.ParseErrorCode)
 	}
-	res, err := client.ResolveNumber(ctx.TODO(), &schemaV1.ResolveNumberRequest{
+	res, err := client.ResolveNumber(ctx.Background(), &schemaV1.ResolveNumberRequest{
 		FlagKey: flagKey,
 		Context: contextF,
 	})
@@ -140,7 +140,7 @@ func (s *GRPCService) ResolveObject(flagKey string, context of.EvaluationContext
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(flagdModels.ParseErrorCode)
 	}
-	res, err := client.ResolveObject(ctx.TODO(), &schemaV1.ResolveObjectRequest{
+	res, err := client.ResolveObject(ctx.Background(), &schemaV1.ResolveObjectRequest{
 		FlagKey: flagKey,
 		Context: contextF,
 	})
