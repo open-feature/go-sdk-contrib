@@ -18,7 +18,9 @@ type Provider struct {
 type ServiceType int
 
 const (
+	// HTTP argument for use in WithService, this is the default value
 	HTTP ServiceType = iota
+	// GRPC argument for use in WithService, overides the default value of http
 	GRPC
 )
 
@@ -63,14 +65,14 @@ func WithHost(host string) ProviderOption {
 	}
 }
 
-// WithService specifies the type of the service. service should be one of "http" or "grpc", if not the default "http" will be used
+// WithService specifies the type of the service. etakes type of ServiceType. defaults to http
 func WithService(service ServiceType) ProviderOption {
 	return func(p *Provider) {
 		p.serviceName = service
 	}
 }
 
-// WithProtocol specifies the protocol used by the http service. Should be one of "http" or "https", if not the default "http" will be used, https is not currently supported
+// WithProtocol specifies the protocol used by the http service. takes type of HTTPService.ProtocolType, defaults to http
 func WithProtocol(protocol HTTPService.ProtocolType) ProviderOption {
 	return func(p *Provider) {
 		p.protocol = protocol
