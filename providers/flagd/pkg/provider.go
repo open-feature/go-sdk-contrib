@@ -31,7 +31,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		serviceName: HTTP,
 		port:        8080,
 		host:        "localhost",
-		protocol:    HTTPService.HTTPS,
+		protocol:    HTTPService.HTTP,
 	}
 	for _, opt := range opts {
 		opt(provider)
