@@ -136,7 +136,7 @@ func TestServiceResolveString(t *testing.T) {
 			test.MockResolveStringArgs.OutErr = stWD.Err()
 		}
 		srv := GRPCService{
-			Client: &mocks.MockClient{
+			client: &mocks.MockClient{
 				ReturnNilClient: test.nilClient,
 				RSArgs:          test.MockResolveStringArgs,
 				Testing:         t,

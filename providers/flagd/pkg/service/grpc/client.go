@@ -9,19 +9,19 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type IGRPCClient interface {
+type iGRPCClient interface {
 	Instance() schemaV1.ServiceClient
 }
 
-type GRPCClient struct {
+type gRPCClient struct {
 	conn                     *grpc.ClientConn
-	GRPCServiceConfiguration *GRPCServiceConfiguration
+	gRPCServiceConfiguration *gRPCServiceConfiguration
 }
 
-func (s *GRPCClient) Connect() {
+func (s *gRPCClient) connect() {
 	if s.conn == nil {
 		conn, err := grpc.Dial(
-			fmt.Sprintf("%s:%d", s.GRPCServiceConfiguration.Host, s.GRPCServiceConfiguration.Port),
+			fmt.Sprintf("%s:%d", s.gRPCServiceConfiguration.host, s.gRPCServiceConfiguration.port),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithBlock(),
 		)
@@ -33,8 +33,9 @@ func (s *GRPCClient) Connect() {
 	}
 }
 
-func (s *GRPCClient) Instance() schemaV1.ServiceClient {
-	s.Connect()
+// Instance returns an instance of schemaV1.ServiceClient using the shared *grpc.ClientConn
+func (s *gRPCClient) Instance() schemaV1.ServiceClient {
+	s.connect()
 	if s.conn == nil {
 		return nil
 	}

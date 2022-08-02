@@ -20,7 +20,7 @@ import (
 type TestServiceResolveObjectArgs struct {
 	name                          string
 	ServiceClientMockRequestSetup mocks.ServiceClientMockRequestSetup
-	HTTPServiceConfiguration      HTTPServiceConfiguration
+	httpServiceConfiguration      httpServiceConfiguration
 	httpResponseBody              interface{}
 	httpResponseCode              int
 
@@ -44,10 +44,10 @@ func TestServiceResolveObject(t *testing.T) {
 				OutRes:   &http.Response{},
 				OutErr:   nil,
 			},
-			HTTPServiceConfiguration: HTTPServiceConfiguration{
-				Port:     8080,
-				Host:     "localhost",
-				Protocol: "http",
+			httpServiceConfiguration: httpServiceConfiguration{
+				port:     8080,
+				host:     "localhost",
+				protocol: "http",
 			},
 			httpResponseBody: schemaV1.ResolveObjectResponse{
 				Variant: "on",
@@ -75,10 +75,10 @@ func TestServiceResolveObject(t *testing.T) {
 				OutRes:   &http.Response{},
 				OutErr:   nil,
 			},
-			HTTPServiceConfiguration: HTTPServiceConfiguration{
-				Port:     8080,
-				Host:     "localhost",
-				Protocol: "http",
+			httpServiceConfiguration: httpServiceConfiguration{
+				port:     8080,
+				host:     "localhost",
+				protocol: "http",
 			},
 			httpResponseBody: schemaV1.ErrorResponse{
 				Reason:    models.StaticReason,
@@ -104,10 +104,10 @@ func TestServiceResolveObject(t *testing.T) {
 				OutRes:   &http.Response{},
 				OutErr:   errors.New("Its all gone wrong"),
 			},
-			HTTPServiceConfiguration: HTTPServiceConfiguration{
-				Port:     8080,
-				Host:     "localhost",
-				Protocol: "http",
+			httpServiceConfiguration: httpServiceConfiguration{
+				port:     8080,
+				host:     "localhost",
+				protocol: "http",
 			},
 			flagKey: "object",
 			evCtx: of.EvaluationContext{
@@ -149,11 +149,11 @@ func TestServiceResolveObject(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewReader(bodyM)),
 		}
 		srv := HTTPService{
-			Client: &mocks.ServiceClient{
+			client: &mocks.ServiceClient{
 				RequestSetup: test.ServiceClientMockRequestSetup,
 				Testing:      t,
 			},
-			HTTPServiceConfiguration: &test.HTTPServiceConfiguration,
+			httpServiceConfiguration: &test.httpServiceConfiguration,
 		}
 		res, err := srv.ResolveObject(test.flagKey, test.evCtx)
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {

@@ -146,7 +146,7 @@ func TestServiceResolveObject(t *testing.T) {
 			test.MockResolveObjectArgs.Out.Value = inF
 		}
 		srv := GRPCService{
-			Client: &mocks.MockClient{
+			client: &mocks.MockClient{
 				ReturnNilClient: test.nilClient,
 				ROArgs:          test.MockResolveObjectArgs,
 				Testing:         t,

@@ -146,13 +146,13 @@ func TestFetchFlag(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewReader(bodyM)),
 		}
 		svc := HTTPService{
-			Client: &mocks.ServiceClient{
+			client: &mocks.ServiceClient{
 				RequestSetup: test.serviceClientMockRequestSetup,
 				Testing:      t,
 			},
 		}
 		target := map[string]interface{}{}
-		err = svc.FetchFlag(test.url, test.ctx, &target)
+		err = svc.fetchFlag(test.url, test.ctx, &target)
 
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
 			t.Errorf("%s: unexpected value for error expected %v recieved %v", test.name, test.err, err)

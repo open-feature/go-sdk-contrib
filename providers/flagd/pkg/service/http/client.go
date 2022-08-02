@@ -5,26 +5,26 @@ import (
 	"net/http"
 )
 
-type IHTTPClient interface {
+type iHTTPClient interface {
 	Request(method string, url string, body io.Reader) (*http.Response, error)
 }
 
-type HTTPClient struct {
+type httpClient struct {
 	client *http.Client
 }
 
-func (c *HTTPClient) Instance() http.Client {
+func (c *httpClient) instance() http.Client {
 	if c.client == nil {
 		c.client = &http.Client{}
 	}
 	return *c.client
 }
 
-func (c *HTTPClient) Request(method string, url string, body io.Reader) (*http.Response, error) {
+func (c *httpClient) Request(method string, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
-	client := c.Instance()
+	client := c.instance()
 	return client.Do(req)
 }

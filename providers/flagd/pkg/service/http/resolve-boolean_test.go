@@ -18,7 +18,7 @@ import (
 type TestServiceResolveBooleanArgs struct {
 	name                          string
 	ServiceClientMockRequestSetup mocks.ServiceClientMockRequestSetup
-	HTTPServiceConfiguration      HTTPServiceConfiguration
+	httpServiceConfiguration      httpServiceConfiguration
 	httpResponseBody              interface{}
 	httpResponseCode              int
 	flagKey                       string
@@ -40,10 +40,10 @@ func TestServiceResolveBoolean(t *testing.T) {
 				OutRes:   &http.Response{},
 				OutErr:   nil,
 			},
-			HTTPServiceConfiguration: HTTPServiceConfiguration{
-				Port:     8080,
-				Host:     "localhost",
-				Protocol: "http",
+			httpServiceConfiguration: httpServiceConfiguration{
+				port:     8080,
+				host:     "localhost",
+				protocol: "http",
 			},
 			httpResponseBody: schemaV1.ResolveBooleanResponse{
 				Value:   true,
@@ -72,10 +72,10 @@ func TestServiceResolveBoolean(t *testing.T) {
 				OutRes:   &http.Response{},
 				OutErr:   nil,
 			},
-			HTTPServiceConfiguration: HTTPServiceConfiguration{
-				Port:     8080,
-				Host:     "localhost",
-				Protocol: "http",
+			httpServiceConfiguration: httpServiceConfiguration{
+				port:     8080,
+				host:     "localhost",
+				protocol: "http",
 			},
 			httpResponseBody: schemaV1.ErrorResponse{
 				ErrorCode: "CUSTOM ERROR CODE",
@@ -101,10 +101,10 @@ func TestServiceResolveBoolean(t *testing.T) {
 				OutRes:   &http.Response{},
 				OutErr:   errors.New("Its all gone wrong"),
 			},
-			HTTPServiceConfiguration: HTTPServiceConfiguration{
-				Port:     8080,
-				Host:     "localhost",
-				Protocol: "http",
+			httpServiceConfiguration: httpServiceConfiguration{
+				port:     8080,
+				host:     "localhost",
+				protocol: "http",
 			},
 			flagKey: "bool",
 			evCtx: of.EvaluationContext{
@@ -134,11 +134,11 @@ func TestServiceResolveBoolean(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewReader(bodyM)),
 		}
 		srv := HTTPService{
-			Client: &mocks.ServiceClient{
+			client: &mocks.ServiceClient{
 				RequestSetup: test.ServiceClientMockRequestSetup,
 				Testing:      t,
 			},
-			HTTPServiceConfiguration: &test.HTTPServiceConfiguration,
+			httpServiceConfiguration: &test.httpServiceConfiguration,
 		}
 		res, err := srv.ResolveBoolean(test.flagKey, test.evCtx)
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {

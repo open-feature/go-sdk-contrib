@@ -139,7 +139,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			test.MockResolveBooleanArgs.OutErr = stWD.Err()
 		}
 		srv := GRPCService{
-			Client: &mocks.MockClient{
+			client: &mocks.MockClient{
 				ReturnNilClient: test.nilClient,
 				RBArgs:          test.MockResolveBooleanArgs,
 				Testing:         t,
