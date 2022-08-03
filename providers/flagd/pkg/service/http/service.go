@@ -125,11 +125,11 @@ func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interfac
 }
 
 func flattenContext(ctx of.EvaluationContext) map[string]interface{} {
+	if ctx.Attributes == nil {
+		ctx.Attributes = map[string]interface{}{}
+	}
 	if ctx.TargetingKey != "" {
 		ctx.Attributes["TargettingKey"] = ctx.TargetingKey
-	}
-	if ctx.Attributes == nil {
-		return map[string]interface{}{}
 	}
 	return ctx.Attributes
 }
