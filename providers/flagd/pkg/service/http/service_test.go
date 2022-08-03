@@ -518,9 +518,6 @@ func TestFetchFlag(t *testing.T) {
 			url: "GET/MY/FLAG",
 			ctx: of.EvaluationContext{
 				TargetingKey: "target",
-				Attributes: map[string]interface{}{
-					"con": "text",
-				},
 			},
 			mockHttpResponseCode: 200,
 			err:                  nil,
