@@ -8,7 +8,7 @@ import (
 
 type TestConstructorArgs struct {
 	name     string
-	port     int32
+	port     uint16
 	host     string
 	protocol string
 	options  []service.GRPCServiceOption

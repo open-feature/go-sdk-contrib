@@ -24,7 +24,7 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 }
 
 // WithPort overides the default flagd dial port (8080)
-func WithPort(port int32) GRPCServiceOption {
+func WithPort(port uint16) GRPCServiceOption {
 	return func(s *GRPCServiceConfiguration) {
 		s.Port = port
 	}

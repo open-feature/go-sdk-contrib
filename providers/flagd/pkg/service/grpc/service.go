@@ -14,7 +14,7 @@ import (
 )
 
 type GRPCServiceConfiguration struct {
-	Port int32
+	Port uint16
 	Host string
 }
 

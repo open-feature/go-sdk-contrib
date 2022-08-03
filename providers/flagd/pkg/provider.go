@@ -13,7 +13,7 @@ type Provider struct {
 }
 
 type ProviderConfiguration struct {
-	Port        int32
+	Port        uint16
 	Host        string
 	ServiceName ServiceType
 }
@@ -62,8 +62,8 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
-// WithHost specifies the port of the flagd server. Defaults to 8080
-func WithPort(port int32) ProviderOption {
+// WithPort specifies the port of the flagd server. Defaults to 8080
+func WithPort(port uint16) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Port = port
 	}
