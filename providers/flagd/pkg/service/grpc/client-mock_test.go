@@ -1,6 +1,7 @@
-package mock_grpc_service
+package grpc_service_test
 
 import (
+	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 )
 
@@ -14,4 +15,8 @@ func (m *MockClient) Instance() schemaV1.ServiceClient {
 		return nil
 	}
 	return m.Client
+}
+
+func (s *MockClient) Configuration() *service.GRPCServiceConfiguration {
+	return nil
 }

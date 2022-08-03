@@ -11,17 +11,18 @@ import (
 
 type iGRPCClient interface {
 	Instance() schemaV1.ServiceClient
+	Configuration() *GRPCServiceConfiguration
 }
 
 type gRPCClient struct {
 	conn                     *grpc.ClientConn
-	gRPCServiceConfiguration *gRPCServiceConfiguration
+	GRPCServiceConfiguration *GRPCServiceConfiguration
 }
 
 func (s *gRPCClient) connect() {
 	if s.conn == nil {
 		conn, err := grpc.Dial(
-			fmt.Sprintf("%s:%d", s.gRPCServiceConfiguration.host, s.gRPCServiceConfiguration.port),
+			fmt.Sprintf("%s:%d", s.GRPCServiceConfiguration.Host, s.GRPCServiceConfiguration.Port),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithBlock(),
 		)
@@ -40,4 +41,9 @@ func (s *gRPCClient) Instance() schemaV1.ServiceClient {
 		return nil
 	}
 	return schemaV1.NewServiceClient(s.conn)
+}
+
+// Configuration returns the current GRPCServiceConfiguration for the client
+func (s *gRPCClient) Configuration() *GRPCServiceConfiguration {
+	return s.GRPCServiceConfiguration
 }

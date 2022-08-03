@@ -13,7 +13,7 @@ import (
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 )
 
-type HttpServiceConfiguration struct {
+type HTTPServiceConfiguration struct {
 	Port     int32
 	Host     string
 	Protocol string
@@ -21,13 +21,13 @@ type HttpServiceConfiguration struct {
 
 // HTTPService handles the client side http interface for the flagd server
 type HTTPService struct {
-	HttpServiceConfiguration *HttpServiceConfiguration
+	HTTPServiceConfiguration *HTTPServiceConfiguration
 	Client                   iHTTPClient
 }
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/boolean endpoint
 func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/boolean", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/boolean", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveBooleanResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContex
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/string endpoint
 func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveStringResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/string", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/string", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveStringResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
@@ -53,7 +53,7 @@ func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/number endpoint
 func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/number", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/number", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveNumberResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd flags/{flagKey}/resolve/object endpoint
 func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/object", s.HttpServiceConfiguration.Protocol, s.HttpServiceConfiguration.Host, s.HttpServiceConfiguration.Port, flagKey)
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/object", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveObjectResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {

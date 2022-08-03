@@ -7,34 +7,56 @@ import (
 )
 
 type TestConstructorArgs struct {
-	name    string
-	port    int32
-	host    string
-	options []service.HTTPServiceOption
+	name     string
+	port     int32
+	host     string
+	protocol string
+	options  []service.HTTPServiceOption
 }
 
 func TestNewHTTPService(t *testing.T) {
 	tests := []TestConstructorArgs{
 		{
-			name:    "default",
-			port:    8080,
-			host:    "localhost",
-			options: nil,
+			name:     "default",
+			port:     8080,
+			host:     "localhost",
+			protocol: "http",
+			options:  nil,
 		},
 		{
-			name: "withHost",
-			port: 8080,
-			host: "not localhost",
+			name:     "withHost",
+			port:     8080,
+			host:     "not localhost",
+			protocol: "http",
 			options: []service.HTTPServiceOption{
 				service.WithHost("not localhost"),
 			},
 		},
 		{
-			name: "withPort",
-			port: 1,
-			host: "localhost",
+			name:     "withPort",
+			port:     1,
+			host:     "localhost",
+			protocol: "http",
 			options: []service.HTTPServiceOption{
 				service.WithPort(1),
+			},
+		},
+		{
+			name:     "withProtocol",
+			port:     8080,
+			host:     "localhost",
+			protocol: "https",
+			options: []service.HTTPServiceOption{
+				service.WithProtocol(service.HTTPS),
+			},
+		},
+		{
+			name:     "withProtocol http",
+			port:     8080,
+			host:     "localhost",
+			protocol: "http",
+			options: []service.HTTPServiceOption{
+				service.WithProtocol(service.HTTP),
 			},
 		},
 	}
@@ -44,22 +66,29 @@ func TestNewHTTPService(t *testing.T) {
 			t.Error("recieved nil service from NewHTTPService")
 			t.FailNow()
 		}
-		if svc.HttpServiceConfiguration == nil {
+		if svc.HTTPServiceConfiguration == nil {
 			t.Error("svc.HTTPServiceConfiguration is nil")
 			t.FailNow()
 		}
-		if svc.HttpServiceConfiguration.Host != test.host {
+		if svc.HTTPServiceConfiguration.Host != test.host {
 			t.Errorf(
 				"recieved unexpected HTTPServiceConfiguration.Host from NewHTTPService, expected %s got %s",
 				test.host,
-				svc.HttpServiceConfiguration.Host,
+				svc.HTTPServiceConfiguration.Host,
 			)
 		}
-		if svc.HttpServiceConfiguration.Port != test.port {
+		if svc.HTTPServiceConfiguration.Port != test.port {
 			t.Errorf(
 				"recieved unexpected HTTPServiceConfiguration.Port from NewHTTPService, expected %d got %d",
 				test.port,
-				svc.HttpServiceConfiguration.Port,
+				svc.HTTPServiceConfiguration.Port,
+			)
+		}
+		if svc.HTTPServiceConfiguration.Protocol != test.protocol {
+			t.Errorf(
+				"recieved unexpected HTTPServiceConfiguration.Protocol from NewHTTPService, expected %s got %s",
+				test.protocol,
+				svc.HTTPServiceConfiguration.Protocol,
 			)
 		}
 

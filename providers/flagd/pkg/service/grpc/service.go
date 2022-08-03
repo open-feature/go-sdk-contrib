@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	flagdModels "github.com/open-feature/flagd/pkg/model"
-	sdkModels "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/model"
+	providerModels "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/model"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
@@ -13,9 +13,9 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type gRPCServiceConfiguration struct {
-	port int32
-	host string
+type GRPCServiceConfiguration struct {
+	Port int32
+	Host string
 }
 
 // GRPCService handles the client side grpc interface for the flagd server
@@ -29,7 +29,7 @@ func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContex
 	if client == nil {
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(sdkModels.ConnectionErrorCode)
+		}, errors.New(providerModels.ConnectionErrorCode)
 	}
 	ctxF, err := FormatAsStructpb(context)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext
 	if client == nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(sdkModels.ConnectionErrorCode)
+		}, errors.New(providerModels.ConnectionErrorCode)
 	}
 	contextF, err := FormatAsStructpb(context)
 	if err != nil {
@@ -97,7 +97,7 @@ func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext
 	if client == nil {
 		return &schemaV1.ResolveNumberResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(sdkModels.ConnectionErrorCode)
+		}, errors.New(providerModels.ConnectionErrorCode)
 	}
 	contextF, err := FormatAsStructpb(context)
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *GRPCService) ResolveObject(flagKey string, context of.EvaluationContext
 	if client == nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(sdkModels.ConnectionErrorCode)
+		}, errors.New(providerModels.ConnectionErrorCode)
 	}
 	contextF, err := FormatAsStructpb(context)
 	if err != nil {

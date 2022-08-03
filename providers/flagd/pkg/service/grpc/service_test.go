@@ -8,7 +8,6 @@ import (
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
 	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
-	mocks "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc/mocks"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
@@ -34,6 +33,8 @@ type TestServiceResolveBooleanArgs struct {
 	outReason  string
 	outVariant string
 	outValue   bool
+
+	structFormatCheck bool
 }
 
 func TestServiceResolveBoolean(t *testing.T) {
@@ -126,13 +127,35 @@ func TestServiceResolveBoolean(t *testing.T) {
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
 		},
+		{
+			name: "formatStructAsPbFails",
+			mockIn: &schemaV1.ResolveBooleanRequest{
+				FlagKey: "flag",
+				Context: nil,
+			},
+			mockOut: &schemaV1.ResolveBooleanResponse{
+				Value:   true,
+				Variant: "on",
+				Reason:  models.StaticReason,
+			},
+			mockErr: nil,
+			flagKey: "flag",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"this": make(chan error, 5),
+				},
+			},
+			outErr:            nil,
+			outReason:         models.ErrorReason,
+			structFormatCheck: true,
+		},
 	}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockServiceClient(ctrl)
+		mock := NewMockServiceClient(ctrl)
 
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
@@ -149,7 +172,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) {
+		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
 				t.Error(err)
@@ -160,7 +183,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 
 		mock.EXPECT().ResolveBoolean(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
-			Client: &mocks.MockClient{
+			Client: &MockClient{
 				Client:    mock,
 				NilClient: test.nilClient,
 			},
@@ -198,6 +221,8 @@ type TestServiceResolveNumberArgs struct {
 	outReason  string
 	outVariant string
 	outValue   float32
+
+	structFormatCheck bool
 }
 
 func TestServiceResolveNumber(t *testing.T) {
@@ -291,13 +316,35 @@ func TestServiceResolveNumber(t *testing.T) {
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
 		},
+		{
+			name: "formatStructAsPb Fails",
+			mockIn: &schemaV1.ResolveNumberRequest{
+				FlagKey: "flag",
+				Context: nil,
+			},
+			mockOut: &schemaV1.ResolveNumberResponse{
+				Value:   float32(12),
+				Variant: "on",
+				Reason:  models.StaticReason,
+			},
+			mockErr: nil,
+			flagKey: "flag",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"this": make(chan error, 5),
+				},
+			},
+			outErr:            nil,
+			outReason:         models.ErrorReason,
+			structFormatCheck: true,
+		},
 	}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockServiceClient(ctrl)
+		mock := NewMockServiceClient(ctrl)
 
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
@@ -314,7 +361,7 @@ func TestServiceResolveNumber(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) {
+		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
 				t.Error(err)
@@ -325,7 +372,7 @@ func TestServiceResolveNumber(t *testing.T) {
 
 		mock.EXPECT().ResolveNumber(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
-			Client: &mocks.MockClient{
+			Client: &MockClient{
 				Client:    mock,
 				NilClient: test.nilClient,
 			},
@@ -363,6 +410,8 @@ type TestServiceResolveStringArgs struct {
 	outReason  string
 	outVariant string
 	outValue   string
+
+	structFormatCheck bool
 }
 
 func TestServiceResolveString(t *testing.T) {
@@ -455,13 +504,35 @@ func TestServiceResolveString(t *testing.T) {
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
 		},
+		{
+			name: "formatStructAsPb Fails",
+			mockIn: &schemaV1.ResolveStringRequest{
+				FlagKey: "flag",
+				Context: nil,
+			},
+			mockOut: &schemaV1.ResolveStringResponse{
+				Value:   "ok",
+				Variant: "on",
+				Reason:  models.StaticReason,
+			},
+			mockErr: nil,
+			flagKey: "flag",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"this": make(chan error, 5),
+				},
+			},
+			outErr:            nil,
+			outReason:         models.ErrorReason,
+			structFormatCheck: true,
+		},
 	}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockServiceClient(ctrl)
+		mock := NewMockServiceClient(ctrl)
 
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
@@ -478,7 +549,7 @@ func TestServiceResolveString(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) {
+		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
 				t.Error(err)
@@ -489,7 +560,7 @@ func TestServiceResolveString(t *testing.T) {
 
 		mock.EXPECT().ResolveString(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
-			Client: &mocks.MockClient{
+			Client: &MockClient{
 				Client:    mock,
 				NilClient: test.nilClient,
 			},
@@ -527,6 +598,8 @@ type TestServiceResolveObjectArgs struct {
 	outReason  string
 	outVariant string
 	outValue   map[string]interface{}
+
+	structFormatCheck bool
 }
 
 func TestServiceResolveObject(t *testing.T) {
@@ -617,13 +690,35 @@ func TestServiceResolveObject(t *testing.T) {
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
 		},
+
+		{
+			name: "formatStructasPb fails",
+			mockIn: &schemaV1.ResolveObjectRequest{
+				FlagKey: "flag",
+				Context: nil,
+			},
+			mockOut: &schemaV1.ResolveObjectResponse{
+				Variant: "on",
+				Reason:  models.StaticReason,
+			},
+			mockErr: nil,
+			flagKey: "flag",
+			evCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"this": make(chan error, 5),
+				},
+			},
+			outErr:            nil,
+			outReason:         models.ErrorReason,
+			structFormatCheck: true,
+		},
 	}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockServiceClient(ctrl)
+		mock := NewMockServiceClient(ctrl)
 
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
@@ -640,7 +735,7 @@ func TestServiceResolveObject(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) {
+		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
 				t.Error(err)
@@ -660,7 +755,7 @@ func TestServiceResolveObject(t *testing.T) {
 
 		mock.EXPECT().ResolveObject(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
-			Client: &mocks.MockClient{
+			Client: &MockClient{
 				Client:    mock,
 				NilClient: test.nilClient,
 			},

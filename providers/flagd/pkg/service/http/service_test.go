@@ -12,7 +12,6 @@ import (
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
 	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
-	mocks "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http/mocks"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
@@ -29,7 +28,7 @@ type TestServiceResolveBooleanArgs struct {
 	mockHttpResponseBody interface{}
 	mockErr              error
 
-	httpServiceConfiguration service.HttpServiceConfiguration
+	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
 	evCtx   of.EvaluationContext
@@ -53,7 +52,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 				Reason:  models.StaticReason,
 			},
 			mockErr: nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -74,7 +73,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -89,7 +88,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockUrl:              "http://localhost:8080/flags/flag/resolve/boolean",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -103,7 +102,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockiHTTPClient(ctrl)
+		mock := NewMockiHTTPClient(ctrl)
 		bodyM, err := json.Marshal(test.mockHttpResponseBody)
 		if err != nil {
 			t.Error(err)
@@ -117,7 +116,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		)
 		srv := service.HTTPService{
 			Client:                   mock,
-			HttpServiceConfiguration: &test.httpServiceConfiguration,
+			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
 		res, err := srv.ResolveBoolean(test.flagKey, test.evCtx)
@@ -146,7 +145,7 @@ type TestServiceResolveStringArgs struct {
 	mockHttpResponseBody interface{}
 	mockErr              error
 
-	httpServiceConfiguration service.HttpServiceConfiguration
+	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
 	evCtx   of.EvaluationContext
@@ -170,7 +169,7 @@ func TestServiceResolveString(t *testing.T) {
 				Reason:  models.StaticReason,
 			},
 			mockErr: nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -191,7 +190,7 @@ func TestServiceResolveString(t *testing.T) {
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -206,7 +205,7 @@ func TestServiceResolveString(t *testing.T) {
 			mockUrl:              "http://localhost:8080/flags/flag/resolve/string",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -220,7 +219,7 @@ func TestServiceResolveString(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockiHTTPClient(ctrl)
+		mock := NewMockiHTTPClient(ctrl)
 		bodyM, err := json.Marshal(test.mockHttpResponseBody)
 		if err != nil {
 			t.Error(err)
@@ -234,7 +233,7 @@ func TestServiceResolveString(t *testing.T) {
 		)
 		srv := service.HTTPService{
 			Client:                   mock,
-			HttpServiceConfiguration: &test.httpServiceConfiguration,
+			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
 		res, err := srv.ResolveString(test.flagKey, test.evCtx)
@@ -263,7 +262,7 @@ type TestServiceResolveNumberArgs struct {
 	mockHttpResponseBody interface{}
 	mockErr              error
 
-	httpServiceConfiguration service.HttpServiceConfiguration
+	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
 	evCtx   of.EvaluationContext
@@ -287,7 +286,7 @@ func TestServiceResolveNumber(t *testing.T) {
 				Reason:  models.StaticReason,
 			},
 			mockErr: nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -308,7 +307,7 @@ func TestServiceResolveNumber(t *testing.T) {
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -323,7 +322,7 @@ func TestServiceResolveNumber(t *testing.T) {
 			mockUrl:              "http://localhost:8080/flags/flag/resolve/number",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -337,7 +336,7 @@ func TestServiceResolveNumber(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockiHTTPClient(ctrl)
+		mock := NewMockiHTTPClient(ctrl)
 		bodyM, err := json.Marshal(test.mockHttpResponseBody)
 		if err != nil {
 			t.Error(err)
@@ -351,7 +350,7 @@ func TestServiceResolveNumber(t *testing.T) {
 		)
 		srv := service.HTTPService{
 			Client:                   mock,
-			HttpServiceConfiguration: &test.httpServiceConfiguration,
+			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
 		res, err := srv.ResolveNumber(test.flagKey, test.evCtx)
@@ -380,7 +379,7 @@ type TestServiceResolveObjectArgs struct {
 	mockHttpResponseBody interface{}
 	mockErr              error
 
-	httpServiceConfiguration service.HttpServiceConfiguration
+	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
 	evCtx   of.EvaluationContext
@@ -399,7 +398,7 @@ func TestServiceResolveObject(t *testing.T) {
 			mockUrl:              "http://localhost:8080/flags/flag/resolve/object",
 			mockHttpResponseCode: http.StatusOK,
 			mockErr:              nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -422,7 +421,7 @@ func TestServiceResolveObject(t *testing.T) {
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -437,7 +436,7 @@ func TestServiceResolveObject(t *testing.T) {
 			mockUrl:              "http://localhost:8080/flags/flag/resolve/object",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
-			httpServiceConfiguration: service.HttpServiceConfiguration{
+			httpServiceConfiguration: service.HTTPServiceConfiguration{
 				Port:     8080,
 				Host:     "localhost",
 				Protocol: "http",
@@ -451,7 +450,7 @@ func TestServiceResolveObject(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := mocks.NewMockiHTTPClient(ctrl)
+		mock := NewMockiHTTPClient(ctrl)
 		if test.outValue != nil {
 			f, err := structpb.NewStruct(test.outValue)
 			if err != nil {
@@ -477,7 +476,7 @@ func TestServiceResolveObject(t *testing.T) {
 		)
 		srv := service.HTTPService{
 			Client:                   mock,
-			HttpServiceConfiguration: &test.httpServiceConfiguration,
+			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
 		res, err := srv.ResolveObject(test.flagKey, test.evCtx)
@@ -492,6 +491,142 @@ func TestServiceResolveObject(t *testing.T) {
 		}
 		if res.Variant != test.outVariant {
 			t.Errorf("%s: unexpected variant received, expected %v, got %v", test.name, test.outVariant, res.Variant)
+		}
+	}
+}
+
+type TestFetchFlagArgs struct {
+	name string
+
+	mockHttpResponseCode int
+	mockHttpResponseBody interface{}
+	mockErr              error
+
+	body interface{}
+	url  string
+	ctx  of.EvaluationContext
+	err  error
+}
+
+func TestFetchFlag(t *testing.T) {
+	tests := []TestFetchFlagArgs{
+		{
+			name: "happy path",
+			body: map[string]interface{}{
+				"food": "bars",
+			},
+			url: "GET/MY/FLAG",
+			ctx: of.EvaluationContext{
+				TargetingKey: "target",
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
+			mockHttpResponseCode: 200,
+			err:                  nil,
+		},
+		{
+			name: "200 response cannot unmarshal",
+			body: "string",
+			url:  "GET/MY/FLAG",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
+			mockHttpResponseCode: 200,
+			err:                  errors.New(models.ParseErrorCode),
+		},
+		{
+			name: "non 200 response cannot unmarshal",
+			body: "string",
+			url:  "GET/MY/FLAG",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
+			mockHttpResponseCode: 400,
+			err:                  errors.New(models.ParseErrorCode),
+		},
+		{
+			name: "non 200 response",
+			body: schemaV1.ErrorResponse{
+				ErrorCode: models.FlagNotFoundErrorCode,
+			},
+			url: "GET/MY/FLAG",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
+			mockHttpResponseCode: 404,
+			err:                  errors.New(models.FlagNotFoundErrorCode),
+		},
+		{
+			name: "500 response",
+			url:  "GET/MY/FLAG",
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"con": "text",
+				},
+			},
+			mockHttpResponseCode: 500,
+			err:                  errors.New(models.GeneralErrorCode),
+		},
+		{
+			name: "fall through",
+			body: schemaV1.ErrorResponse{
+				ErrorCode: "",
+			},
+			url:                  "GET/MY/FLAG",
+			mockHttpResponseCode: 400,
+			err:                  errors.New(models.GeneralErrorCode),
+		},
+		{
+			name: "context marshal failure",
+			body: schemaV1.ErrorResponse{
+				ErrorCode: "",
+			},
+			url:                  "GET/MY/FLAG",
+			mockHttpResponseCode: 400,
+			err:                  errors.New(models.ParseErrorCode),
+			ctx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"will fail": make(chan error, 5),
+				},
+			},
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	for _, test := range tests {
+		mock := NewMockiHTTPClient(ctrl)
+		bodyM, err := json.Marshal(test.body)
+		if err != nil {
+			t.Error(err)
+		}
+		test.mockHttpResponseBody = &http.Response{
+			StatusCode: test.mockHttpResponseCode,
+			Body:       io.NopCloser(bytes.NewReader(bodyM)),
+		}
+		mock.EXPECT().Request(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(
+			&http.Response{
+				StatusCode: test.mockHttpResponseCode,
+				Body:       io.NopCloser(bytes.NewReader(bodyM)),
+			},
+			test.mockErr,
+		)
+		svc := service.HTTPService{
+			Client: mock,
+		}
+		target := map[string]interface{}{}
+		err = svc.FetchFlag(test.url, test.ctx, &target)
+
+		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
+			t.Errorf("%s: unexpected value for error expected %v recieved %v", test.name, test.err, err)
 		}
 	}
 }

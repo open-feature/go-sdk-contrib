@@ -12,10 +12,9 @@ openfeature.SetProvider(flagd.NewProvider())
 ```  
 You may also provide additional options to configure the provider client
 ```
-flagd.WithService("http" or "grpc") // defaults to http
+flagd.WithService(HTTP | HTTPS | GRPC) // defaults to http, https is not currently implemented by flagd
 flagd.WithHost(string)              // defaults to localhost
 flagd.WithPort(int32)               // defaults to 8080
-flagd.WithProtocol(string)          // defaults to http (https is not currently supported by flagd)
 ```
 for example:
 ```
@@ -23,12 +22,12 @@ package main
 
 import (
 	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg"
-   	 "github.com/open-feature/golang-sdk/pkg/openfeature"
+   	"github.com/open-feature/golang-sdk/pkg/openfeature"
 )
 
 func main() {
     openfeature.SetProvider(flagd.NewProvider(
-        flagd.WithService("grpc"),
+        flagd.WithService(flagd.GRPC),
         flagd.WithHost("localhost"),
         flagd.WithPort(8000),
     ))

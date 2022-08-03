@@ -1,6 +1,6 @@
 package grpc_service
 
-type GRPCServiceOption func(*gRPCServiceConfiguration)
+type GRPCServiceOption func(*GRPCServiceConfiguration)
 
 // NewGRPCService creates a new GRPCService taking configuration options to overide default values
 func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
@@ -8,13 +8,13 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 		port = 8080
 		host = "localhost"
 	)
-	serviceConfiguration := &gRPCServiceConfiguration{
-		port: port,
-		host: host,
+	serviceConfiguration := &GRPCServiceConfiguration{
+		Port: port,
+		Host: host,
 	}
 	svc := &GRPCService{
 		Client: &gRPCClient{
-			gRPCServiceConfiguration: serviceConfiguration,
+			GRPCServiceConfiguration: serviceConfiguration,
 		},
 	}
 	for _, opt := range opts {
@@ -25,14 +25,14 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 
 // WithPort overides the default flagd dial port (8080)
 func WithPort(port int32) GRPCServiceOption {
-	return func(s *gRPCServiceConfiguration) {
-		s.port = port
+	return func(s *GRPCServiceConfiguration) {
+		s.Port = port
 	}
 }
 
 // WithHost overides the flagd dial host name (localhost)
 func WithHost(host string) GRPCServiceOption {
-	return func(s *gRPCServiceConfiguration) {
-		s.host = host
+	return func(s *GRPCServiceConfiguration) {
+		s.Host = host
 	}
 }
