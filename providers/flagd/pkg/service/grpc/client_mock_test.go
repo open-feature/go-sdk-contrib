@@ -17,6 +17,6 @@ func (m *MockClient) Instance() schemaV1.ServiceClient {
 	return m.Client
 }
 
-func (s *MockClient) Configuration() *service.GRPCServiceConfiguration {
+func (m *MockClient) Configuration() *service.GRPCServiceConfiguration {
 	return nil
 }

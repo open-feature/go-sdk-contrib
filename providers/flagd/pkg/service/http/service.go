@@ -77,7 +77,7 @@ func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext
 	return &resMess, nil
 }
 
-// FlagKey handles the calling and parsing of the flag evaluation endpoints.
+// FetchFlag handles the calling and parsing of the flag evaluation endpoints.
 // Argument p should be a pointer to a valid Resolve{type}Response struct for unmarshalling the response, e.g ResolveObjectResponse{}.
 func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interface{}) error {
 	body, err := json.Marshal(flattenContext(ctx))

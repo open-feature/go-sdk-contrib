@@ -45,7 +45,7 @@ func TestNewGRPCService(t *testing.T) {
 	for _, test := range tests {
 		svc := service.NewGRPCService(test.options...)
 		if svc == nil {
-			t.Error("recieved nil service from NewGRPCService")
+			t.Error("received nil service from NewGRPCService")
 			t.FailNow()
 		}
 		config := svc.Client.Configuration()
@@ -55,14 +55,14 @@ func TestNewGRPCService(t *testing.T) {
 		}
 		if config.Host != test.host {
 			t.Errorf(
-				"recieved unexpected GRPCServiceConfiguration.Host from NewGRPCService, expected %s got %s",
+				"received unexpected GRPCServiceConfiguration.Host from NewGRPCService, expected %s got %s",
 				test.host,
 				config.Host,
 			)
 		}
 		if config.Port != test.port {
 			t.Errorf(
-				"recieved unexpected GRPCServiceConfiguration.Port from NewGRPCService, expected %d got %d",
+				"received unexpected GRPCServiceConfiguration.Port from NewGRPCService, expected %d got %d",
 				test.port,
 				config.Port,
 			)

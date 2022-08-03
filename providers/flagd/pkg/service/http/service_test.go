@@ -623,7 +623,7 @@ func TestFetchFlag(t *testing.T) {
 		err = svc.FetchFlag(test.url, test.ctx, &target)
 
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
-			t.Errorf("%s: unexpected value for error expected %v recieved %v", test.name, test.err, err)
+			t.Errorf("%s: unexpected value for error expected %v received %v", test.name, test.err, err)
 		}
 	}
 }

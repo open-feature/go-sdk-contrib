@@ -23,9 +23,9 @@ type ServiceType int
 const (
 	// HTTP argument for use in WithService, this is the default value
 	HTTP ServiceType = iota
-	// HTTPS argument for use in WithService, overides the default value of http (NOT IMPLEMENTED BY FLAGD)
+	// HTTPS argument for use in WithService, overrides the default value of http (NOT IMPLEMENTED BY FLAGD)
 	HTTPS
-	// GRPC argument for use in WithService, overides the default value of http
+	// GRPC argument for use in WithService, overrides the default value of http
 	GRPC
 )
 

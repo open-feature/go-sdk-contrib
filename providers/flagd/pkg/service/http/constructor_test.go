@@ -63,7 +63,7 @@ func TestNewHTTPService(t *testing.T) {
 	for _, test := range tests {
 		svc := service.NewHTTPService(test.options...)
 		if svc == nil {
-			t.Error("recieved nil service from NewHTTPService")
+			t.Error("received nil service from NewHTTPService")
 			t.FailNow()
 		}
 		if svc.HTTPServiceConfiguration == nil {
@@ -72,21 +72,21 @@ func TestNewHTTPService(t *testing.T) {
 		}
 		if svc.HTTPServiceConfiguration.Host != test.host {
 			t.Errorf(
-				"recieved unexpected HTTPServiceConfiguration.Host from NewHTTPService, expected %s got %s",
+				"received unexpected HTTPServiceConfiguration.Host from NewHTTPService, expected %s got %s",
 				test.host,
 				svc.HTTPServiceConfiguration.Host,
 			)
 		}
 		if svc.HTTPServiceConfiguration.Port != test.port {
 			t.Errorf(
-				"recieved unexpected HTTPServiceConfiguration.Port from NewHTTPService, expected %d got %d",
+				"received unexpected HTTPServiceConfiguration.Port from NewHTTPService, expected %d got %d",
 				test.port,
 				svc.HTTPServiceConfiguration.Port,
 			)
 		}
 		if svc.HTTPServiceConfiguration.Protocol != test.protocol {
 			t.Errorf(
-				"recieved unexpected HTTPServiceConfiguration.Protocol from NewHTTPService, expected %s got %s",
+				"received unexpected HTTPServiceConfiguration.Protocol from NewHTTPService, expected %s got %s",
 				test.protocol,
 				svc.HTTPServiceConfiguration.Protocol,
 			)

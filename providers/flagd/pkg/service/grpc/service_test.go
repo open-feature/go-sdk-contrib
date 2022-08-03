@@ -160,7 +160,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
 			if !ok {
-				t.Errorf("%s: malformed error status recieved, cannot attach custom properties", test.name)
+				t.Errorf("%s: malformed error status received, cannot attach custom properties", test.name)
 			}
 			stWD, err := st.WithDetails(&schemaV1.ErrorResponse{
 				ErrorCode: test.customErr,
@@ -349,7 +349,7 @@ func TestServiceResolveNumber(t *testing.T) {
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
 			if !ok {
-				t.Errorf("%s: malformed error status recieved, cannot attach custom properties", test.name)
+				t.Errorf("%s: malformed error status received, cannot attach custom properties", test.name)
 			}
 			stWD, err := st.WithDetails(&schemaV1.ErrorResponse{
 				ErrorCode: test.customErr,
@@ -537,7 +537,7 @@ func TestServiceResolveString(t *testing.T) {
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
 			if !ok {
-				t.Errorf("%s: malformed error status recieved, cannot attach custom properties", test.name)
+				t.Errorf("%s: malformed error status received, cannot attach custom properties", test.name)
 			}
 			stWD, err := st.WithDetails(&schemaV1.ErrorResponse{
 				ErrorCode: test.customErr,
@@ -723,7 +723,7 @@ func TestServiceResolveObject(t *testing.T) {
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
 			if !ok {
-				t.Errorf("%s: malformed error status recieved, cannot attach custom properties", test.name)
+				t.Errorf("%s: malformed error status received, cannot attach custom properties", test.name)
 			}
 			stWD, err := st.WithDetails(&schemaV1.ErrorResponse{
 				ErrorCode: test.customErr,
