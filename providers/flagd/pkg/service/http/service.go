@@ -129,7 +129,7 @@ func flattenContext(ctx of.EvaluationContext) map[string]interface{} {
 		ctx.Attributes = map[string]interface{}{}
 	}
 	if ctx.TargetingKey != "" {
-		ctx.Attributes["TargettingKey"] = ctx.TargetingKey
+		ctx.Attributes["TargetingKey"] = ctx.TargetingKey
 	}
 	return ctx.Attributes
 }
