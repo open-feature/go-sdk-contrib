@@ -84,7 +84,7 @@ func (s *HTTPService) ResolveInt(flagKey string, context of.EvaluationContext) (
 			Reason: models.ErrorReason,
 		}, err
 	}
-	val, err := strconv.Atoi(intermediate.Value)
+	val, err := strconv.ParseInt(intermediate.Value, 10, 64)
 	if err != nil {
 		return &schemaV1.ResolveIntResponse{
 			Reason: models.ErrorReason,
@@ -92,7 +92,7 @@ func (s *HTTPService) ResolveInt(flagKey string, context of.EvaluationContext) (
 	}
 	return &schemaV1.ResolveIntResponse{
 		Reason:  intermediate.Reason,
-		Value:   int64(val),
+		Value:   val,
 		Variant: intermediate.Variant,
 	}, nil
 }
@@ -129,6 +129,7 @@ func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interfac
 		log.Error(err)
 		return errors.New(models.GeneralErrorCode)
 	}
+	fmt.Println(string(b))
 	err = json.Unmarshal(b, p)
 	if err != nil {
 		log.Error(err)
