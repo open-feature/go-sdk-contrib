@@ -1,0 +1,3 @@
+[submodule "golang-sdk"]
+	path = golang-sdk
+	url = https://github.com/skyerus/golang-sdk.git

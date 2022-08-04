@@ -5,10 +5,10 @@ go 1.18
 require (
 	github.com/golang/mock v1.6.0
 	github.com/open-feature/flagd v0.0.5
-	github.com/open-feature/golang-sdk v0.0.0-20220729134802-91d68f3ffa9f
+	github.com/open-feature/golang-sdk v0.0.0-20220804120913-c3308003be50
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.0
-	go.buf.build/grpc/go/open-feature/flagd v1.4.1
+	go.buf.build/grpc/go/open-feature/flagd v1.4.2
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.1
 )

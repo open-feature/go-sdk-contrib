@@ -8,6 +8,7 @@ import (
 type IService interface {
 	ResolveBoolean(string, of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error)
 	ResolveString(string, of.EvaluationContext) (*schemaV1.ResolveStringResponse, error)
-	ResolveNumber(string, of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error)
+	ResolveFloat(string, of.EvaluationContext) (*schemaV1.ResolveFloatResponse, error)
+	ResolveInt(string, of.EvaluationContext) (*schemaV1.ResolveIntResponse, error)
 	ResolveObject(string, of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error)
 }

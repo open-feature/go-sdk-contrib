@@ -50,19 +50,34 @@ func (mr *MockIServiceMockRecorder) ResolveBoolean(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveBoolean", reflect.TypeOf((*MockIService)(nil).ResolveBoolean), arg0, arg1)
 }
 
-// ResolveNumber mocks base method.
-func (m *MockIService) ResolveNumber(arg0 string, arg1 openfeature.EvaluationContext) (*schemav1.ResolveNumberResponse, error) {
+// ResolveFloat mocks base method.
+func (m *MockIService) ResolveFloat(arg0 string, arg1 openfeature.EvaluationContext) (*schemav1.ResolveFloatResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveNumber", arg0, arg1)
-	ret0, _ := ret[0].(*schemav1.ResolveNumberResponse)
+	ret := m.ctrl.Call(m, "ResolveFloat", arg0, arg1)
+	ret0, _ := ret[0].(*schemav1.ResolveFloatResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ResolveNumber indicates an expected call of ResolveNumber.
-func (mr *MockIServiceMockRecorder) ResolveNumber(arg0, arg1 interface{}) *gomock.Call {
+// ResolveFloat indicates an expected call of ResolveFloat.
+func (mr *MockIServiceMockRecorder) ResolveFloat(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveNumber", reflect.TypeOf((*MockIService)(nil).ResolveNumber), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveFloat", reflect.TypeOf((*MockIService)(nil).ResolveFloat), arg0, arg1)
+}
+
+// ResolveInt mocks base method.
+func (m *MockIService) ResolveInt(arg0 string, arg1 openfeature.EvaluationContext) (*schemav1.ResolveIntResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveInt", arg0, arg1)
+	ret0, _ := ret[0].(*schemav1.ResolveIntResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResolveInt indicates an expected call of ResolveInt.
+func (mr *MockIServiceMockRecorder) ResolveInt(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveInt", reflect.TypeOf((*MockIService)(nil).ResolveInt), arg0, arg1)
 }
 
 // ResolveObject mocks base method.

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 
 	models "github.com/open-feature/flagd/pkg/model"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
@@ -23,6 +24,15 @@ type HTTPServiceConfiguration struct {
 type HTTPService struct {
 	HTTPServiceConfiguration *HTTPServiceConfiguration
 	Client                   iHTTPClient
+}
+
+// IntDecodeIntermediate is a required intermediate for decoding the int flag values.
+// grpc gateway uses the proto3 json spec to encode its payload, this means that int64 values are encoded into a string
+// https://developers.google.com/protocol-buffers/docs/proto3#json
+type IntDecodeIntermediate struct {
+	Value   string
+	Variant string
+	Reason  string
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd flags/{flagKey}/resolve/boolean endpoint
@@ -51,17 +61,40 @@ func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext
 	return &resMess, nil
 }
 
-// ResolveNumber handles the flag evaluation response from the flags/{flagKey}/resolve/number endpoint
-func (s *HTTPService) ResolveNumber(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error) {
-	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/number", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
-	resMess := schemaV1.ResolveNumberResponse{}
+// ResolveFloat handles the flag evaluation response from the flags/{flagKey}/resolve/float endpoint
+func (s *HTTPService) ResolveFloat(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveFloatResponse, error) {
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/float", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
+	resMess := schemaV1.ResolveFloatResponse{}
 	err := s.FetchFlag(url, context, &resMess)
 	if err != nil {
-		return &schemaV1.ResolveNumberResponse{
+		return &schemaV1.ResolveFloatResponse{
 			Reason: models.ErrorReason,
 		}, err
 	}
 	return &resMess, nil
+}
+
+// ResolveInt handles the flag evaluation response from the flags/{flagKey}/resolve/int endpoint
+func (s *HTTPService) ResolveInt(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveIntResponse, error) {
+	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/int", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
+	intermediate := IntDecodeIntermediate{}
+	err := s.FetchFlag(url, context, &intermediate)
+	if err != nil {
+		return &schemaV1.ResolveIntResponse{
+			Reason: models.ErrorReason,
+		}, err
+	}
+	val, err := strconv.Atoi(intermediate.Value)
+	if err != nil {
+		return &schemaV1.ResolveIntResponse{
+			Reason: models.ErrorReason,
+		}, errors.New(models.ParseErrorCode)
+	}
+	return &schemaV1.ResolveIntResponse{
+		Reason:  intermediate.Reason,
+		Value:   int64(val),
+		Variant: intermediate.Variant,
+	}, nil
 }
 
 // ResolveObject handles the flag evaluation response from the flags/{flagKey}/resolve/object endpoint

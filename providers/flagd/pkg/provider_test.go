@@ -290,20 +290,20 @@ func TestStringEvaluation(t *testing.T) {
 	}
 }
 
-type TestNumberEvaluationArgs struct {
+type TestFloatEvaluationArgs struct {
 	name         string
 	flagKey      string
 	defaultValue float64
 	evalCtx      of.EvaluationContext
 
-	mockOut   *schemav1.ResolveNumberResponse
+	mockOut   *schemav1.ResolveFloatResponse
 	mockError error
 
-	response of.NumberResolutionDetail
+	response of.FloatResolutionDetail
 }
 
-func TestNumberEvaluation(t *testing.T) {
-	tests := []TestNumberEvaluationArgs{
+func TestFloatEvaluation(t *testing.T) {
+	tests := []TestFloatEvaluationArgs{
 		{
 			name:         "happy path",
 			flagKey:      "flag",
@@ -313,14 +313,14 @@ func TestNumberEvaluation(t *testing.T) {
 					"food": "bars",
 				},
 			},
-			mockOut: &schemav1.ResolveNumberResponse{
-				Value:   float32(1),
+			mockOut: &schemav1.ResolveFloatResponse{
+				Value:   1,
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
 			mockError: nil,
-			response: of.NumberResolutionDetail{
-				Value: float64(1),
+			response: of.FloatResolutionDetail{
+				Value: 1,
 				ResolutionDetail: of.ResolutionDetail{
 					Value:   true,
 					Variant: "on",
@@ -337,12 +337,12 @@ func TestNumberEvaluation(t *testing.T) {
 					"food": "bars",
 				},
 			},
-			mockOut: &schemav1.ResolveNumberResponse{
+			mockOut: &schemav1.ResolveFloatResponse{
 				Reason: flagdModels.StaticReason,
 			},
 			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
-			response: of.NumberResolutionDetail{
-				Value: float64(1),
+			response: of.FloatResolutionDetail{
+				Value: 1,
 				ResolutionDetail: of.ResolutionDetail{
 					Value:     true,
 					Reason:    flagdModels.StaticReason,
@@ -357,13 +357,103 @@ func TestNumberEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveNumber(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		mock.EXPECT().ResolveFloat(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := flagd.Provider{
 			Service: mock,
 		}
 
-		res := provider.NumberEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
+		res := provider.FloatEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
+
+		if res.ErrorCode != test.response.ErrorCode {
+			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
+		}
+		if res.Variant != test.response.Variant {
+			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
+		}
+		if res.Value != test.response.Value {
+			t.Errorf("%s: unexpected Value received, expected %v, got %v", test.name, test.response.Value, res.Value)
+		}
+		if res.Reason != test.response.Reason {
+			t.Errorf("%s: unexpected Reason received, expected %v, got %v", test.name, test.response.Reason, res.Reason)
+		}
+	}
+}
+
+type TestIntEvaluationArgs struct {
+	name         string
+	flagKey      string
+	defaultValue int64
+	evalCtx      of.EvaluationContext
+
+	mockOut   *schemav1.ResolveIntResponse
+	mockError error
+
+	response of.IntResolutionDetail
+}
+
+func TestIntEvaluation(t *testing.T) {
+	tests := []TestIntEvaluationArgs{
+		{
+			name:         "happy path",
+			flagKey:      "flag",
+			defaultValue: 1,
+			evalCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"food": "bars",
+				},
+			},
+			mockOut: &schemav1.ResolveIntResponse{
+				Value:   1,
+				Variant: "on",
+				Reason:  flagdModels.StaticReason,
+			},
+			mockError: nil,
+			response: of.IntResolutionDetail{
+				Value: 1,
+				ResolutionDetail: of.ResolutionDetail{
+					Value:   true,
+					Variant: "on",
+					Reason:  flagdModels.StaticReason,
+				},
+			},
+		},
+		{
+			name:         "error response",
+			flagKey:      "flag",
+			defaultValue: 1,
+			evalCtx: of.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"food": "bars",
+				},
+			},
+			mockOut: &schemav1.ResolveIntResponse{
+				Reason: flagdModels.StaticReason,
+			},
+			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
+			response: of.IntResolutionDetail{
+				Value: 1,
+				ResolutionDetail: of.ResolutionDetail{
+					Value:     true,
+					Reason:    flagdModels.StaticReason,
+					ErrorCode: flagdModels.FlagNotFoundErrorCode,
+				},
+			},
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	for _, test := range tests {
+		mock := NewMockIService(ctrl)
+		mock.EXPECT().ResolveInt(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+
+		provider := flagd.Provider{
+			Service: mock,
+		}
+
+		res := provider.IntEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
 
 		if res.ErrorCode != test.response.ErrorCode {
 			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)

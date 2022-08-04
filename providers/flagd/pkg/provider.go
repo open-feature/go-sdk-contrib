@@ -141,10 +141,10 @@ func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx
 	}
 }
 
-func (p *Provider) NumberEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.NumberResolutionDetail {
-	res, err := p.Service.ResolveNumber(flagKey, evalCtx)
+func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.FloatResolutionDetail {
+	res, err := p.Service.ResolveFloat(flagKey, evalCtx)
 	if err != nil {
-		return of.NumberResolutionDetail{
+		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ResolutionDetail: of.ResolutionDetail{
 				Reason:    res.Reason,
@@ -154,8 +154,31 @@ func (p *Provider) NumberEvaluation(flagKey string, defaultValue float64, evalCt
 			},
 		}
 	}
-	return of.NumberResolutionDetail{
-		Value: float64(res.Value),
+	return of.FloatResolutionDetail{
+		Value: res.Value,
+		ResolutionDetail: of.ResolutionDetail{
+			Reason:  res.Reason,
+			Value:   res.Value,
+			Variant: res.Variant,
+		},
+	}
+}
+
+func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.IntResolutionDetail {
+	res, err := p.Service.ResolveInt(flagKey, evalCtx)
+	if err != nil {
+		return of.IntResolutionDetail{
+			Value: defaultValue,
+			ResolutionDetail: of.ResolutionDetail{
+				Reason:    res.Reason,
+				Value:     defaultValue,
+				Variant:   res.Variant,
+				ErrorCode: err.Error(),
+			},
+		}
+	}
+	return of.IntResolutionDetail{
+		Value: res.Value,
 		ResolutionDetail: of.ResolutionDetail{
 			Reason:  res.Reason,
 			Value:   res.Value,
