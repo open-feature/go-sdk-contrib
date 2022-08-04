@@ -129,7 +129,6 @@ func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interfac
 		log.Error(err)
 		return errors.New(models.GeneralErrorCode)
 	}
-	fmt.Println(string(b))
 	err = json.Unmarshal(b, p)
 	if err != nil {
 		log.Error(err)
