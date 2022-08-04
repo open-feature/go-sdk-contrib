@@ -91,22 +91,22 @@ func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext
 	return res, nil
 }
 
-// ResolveNumber handles the flag evaluation response from the grpc flagd interface ResolveNumber rpc
-func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveNumberResponse, error) {
+// ResolveFloat handles the flag evaluation response from the grpc flagd interface ResolveFloat rpc
+func (s *GRPCService) ResolveFloat(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveFloatResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
-		return &schemaV1.ResolveNumberResponse{
+		return &schemaV1.ResolveFloatResponse{
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(providerModels.ConnectionErrorCode)
 	}
 	contextF, err := FormatAsStructpb(context)
 	if err != nil {
 		log.Error(err)
-		return &schemaV1.ResolveNumberResponse{
+		return &schemaV1.ResolveFloatResponse{
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(flagdModels.ParseErrorCode)
 	}
-	res, err := client.ResolveNumber(ctx.Background(), &schemaV1.ResolveNumberRequest{
+	res, err := client.ResolveFloat(ctx.Background(), &schemaV1.ResolveFloatRequest{
 		FlagKey: flagKey,
 		Context: contextF,
 	})
@@ -114,11 +114,45 @@ func (s *GRPCService) ResolveNumber(flagKey string, context of.EvaluationContext
 		res, ok := parseError(err)
 		if !ok {
 			log.Error(err)
-			return &schemaV1.ResolveNumberResponse{
+			return &schemaV1.ResolveFloatResponse{
 				Reason: flagdModels.ErrorReason,
 			}, errors.New(flagdModels.GeneralErrorCode)
 		}
-		return &schemaV1.ResolveNumberResponse{
+		return &schemaV1.ResolveFloatResponse{
+			Reason: res.Reason,
+		}, errors.New(res.ErrorCode)
+	}
+	return res, nil
+}
+
+// ResolveFloat handles the flag evaluation response from the grpc flagd interface ResolveNumber rpc
+func (s *GRPCService) ResolveInt(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveIntResponse, error) {
+	client := s.Client.Instance()
+	if client == nil {
+		return &schemaV1.ResolveIntResponse{
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(providerModels.ConnectionErrorCode)
+	}
+	contextF, err := FormatAsStructpb(context)
+	if err != nil {
+		log.Error(err)
+		return &schemaV1.ResolveIntResponse{
+			Reason: flagdModels.ErrorReason,
+		}, errors.New(flagdModels.ParseErrorCode)
+	}
+	res, err := client.ResolveInt(ctx.Background(), &schemaV1.ResolveIntRequest{
+		FlagKey: flagKey,
+		Context: contextF,
+	})
+	if err != nil {
+		res, ok := parseError(err)
+		if !ok {
+			log.Error(err)
+			return &schemaV1.ResolveIntResponse{
+				Reason: flagdModels.ErrorReason,
+			}, errors.New(flagdModels.GeneralErrorCode)
+		}
+		return &schemaV1.ResolveIntResponse{
 			Reason: res.Reason,
 		}, errors.New(res.ErrorCode)
 	}
