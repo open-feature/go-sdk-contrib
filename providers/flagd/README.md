@@ -12,9 +12,9 @@ openfeature.SetProvider(flagd.NewProvider())
 ```  
 You may also provide additional options to configure the provider client
 ```
-flagd.WithService(HTTP | HTTPS | GRPC) // defaults to http, https is not currently implemented by flagd
-flagd.WithHost(string)              // defaults to localhost
-flagd.WithPort(uint16)               // defaults to 8080
+flagd.WithService(HTTP | HTTPS | GRPC)  // defaults to http 
+flagd.WithHost(string)                  // defaults to localhost
+flagd.WithPort(uint16)                  // defaults to 8080
 ```
 for example:
 ```
