@@ -44,7 +44,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		{
 			name:                 "happy path",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/boolean",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/boolean",
 			mockHttpResponseCode: http.StatusOK,
 			mockHttpResponseBody: schemaV1.ResolveBooleanResponse{
 				Value:   true,
@@ -53,7 +53,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -66,7 +66,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/boolean",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/boolean",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
 				Reason:    models.StaticReason,
@@ -74,7 +74,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -85,11 +85,11 @@ func TestServiceResolveBoolean(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/boolean",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/boolean",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -161,7 +161,7 @@ func TestServiceResolveString(t *testing.T) {
 		{
 			name:                 "happy path",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/string",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/string",
 			mockHttpResponseCode: http.StatusOK,
 			mockHttpResponseBody: schemaV1.ResolveStringResponse{
 				Value:   "value",
@@ -170,7 +170,7 @@ func TestServiceResolveString(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -183,7 +183,7 @@ func TestServiceResolveString(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/string",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/string",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
 				Reason:    models.StaticReason,
@@ -191,7 +191,7 @@ func TestServiceResolveString(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -202,11 +202,11 @@ func TestServiceResolveString(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/string",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/string",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -278,7 +278,7 @@ func TestServiceResolveFloat(t *testing.T) {
 		{
 			name:                 "happy path",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/float",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/float",
 			mockHttpResponseCode: http.StatusOK,
 			mockHttpResponseBody: schemaV1.ResolveFloatResponse{
 				Value:   32,
@@ -287,7 +287,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -300,7 +300,7 @@ func TestServiceResolveFloat(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/float",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/float",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
 				Reason:    models.StaticReason,
@@ -308,7 +308,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -319,11 +319,11 @@ func TestServiceResolveFloat(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/float",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/float",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -395,7 +395,7 @@ func TestServiceResolveInt(t *testing.T) {
 		{
 			name:                 "happy path",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/int",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/int",
 			mockHttpResponseCode: http.StatusOK,
 			mockHttpResponseBody: service.IntDecodeIntermediate{
 				Value:   "32",
@@ -404,7 +404,7 @@ func TestServiceResolveInt(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -417,7 +417,7 @@ func TestServiceResolveInt(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/int",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/int",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
 				Reason:    models.StaticReason,
@@ -425,7 +425,7 @@ func TestServiceResolveInt(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -436,11 +436,11 @@ func TestServiceResolveInt(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/int",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/int",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -512,11 +512,11 @@ func TestServiceResolveObject(t *testing.T) {
 		{
 			name:                 "happy path",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/object",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/object",
 			mockHttpResponseCode: http.StatusOK,
 			mockErr:              nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -531,7 +531,7 @@ func TestServiceResolveObject(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/object",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/object",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
 				Reason:    models.StaticReason,
@@ -539,7 +539,7 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},
@@ -550,11 +550,11 @@ func TestServiceResolveObject(t *testing.T) {
 		{
 			name:                 "non 200",
 			mockMethod:           "POST",
-			mockUrl:              "http://localhost:8080/flags/flag/resolve/object",
+			mockUrl:              "http://localhost:8013/flags/flag/resolve/object",
 			mockHttpResponseCode: http.StatusInternalServerError,
 			mockErr:              errors.New("its all gone wrong"),
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
-				Port:     8080,
+				Port:     8013,
 				Host:     "localhost",
 				Protocol: "http",
 			},

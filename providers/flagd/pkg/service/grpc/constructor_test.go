@@ -18,14 +18,14 @@ func TestNewGRPCService(t *testing.T) {
 	tests := []TestConstructorArgs{
 		{
 			name:     "default",
-			port:     8080,
+			port:     8013,
 			host:     "localhost",
 			protocol: "http",
 			options:  nil,
 		},
 		{
 			name:     "withHost",
-			port:     8080,
+			port:     8013,
 			host:     "not localhost",
 			protocol: "http",
 			options: []service.GRPCServiceOption{

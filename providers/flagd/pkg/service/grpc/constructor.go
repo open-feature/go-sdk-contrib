@@ -5,7 +5,7 @@ type GRPCServiceOption func(*GRPCServiceConfiguration)
 // NewGRPCService creates a new GRPCService taking configuration options to override default values
 func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 	const (
-		port = 8080
+		port = 8013
 		host = "localhost"
 	)
 	serviceConfiguration := &GRPCServiceConfiguration{
@@ -24,7 +24,7 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 	return svc
 }
 
-// WithPort overrides the default flagd dial port (8080)
+// WithPort overrides the default flagd dial port (8013)
 func WithPort(port uint16) GRPCServiceOption {
 	return func(s *GRPCServiceConfiguration) {
 		s.Port = port

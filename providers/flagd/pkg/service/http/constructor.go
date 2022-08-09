@@ -12,7 +12,7 @@ const (
 // NewHTTPService creates a new HTTPService taking configuration options to override default values
 func NewHTTPService(opts ...HTTPServiceOption) *HTTPService {
 	const (
-		port = 8080
+		port = 8013
 		host = "localhost"
 	)
 	svc := &HTTPService{
@@ -29,7 +29,7 @@ func NewHTTPService(opts ...HTTPServiceOption) *HTTPService {
 	return svc
 }
 
-// WithPort overrides the default flagd http port (8080)
+// WithPort overrides the default flagd http port (8013)
 func WithPort(port uint16) HTTPServiceOption {
 	return func(s *HTTPService) {
 		s.HTTPServiceConfiguration.Port = port

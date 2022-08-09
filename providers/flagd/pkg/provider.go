@@ -36,7 +36,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
 		providerConfiguration: &ProviderConfiguration{
 			ServiceName:     HTTP,
-			Port:            8080,
+			Port:            8013,
 			Host:            "localhost",
 			CertificatePath: "",
 		},
@@ -72,7 +72,7 @@ func WithCertificatePath(path string) ProviderOption {
 	}
 }
 
-// WithPort specifies the port of the flagd server. Defaults to 8080
+// WithPort specifies the port of the flagd server. Defaults to 8013
 func WithPort(port uint16) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Port = port
