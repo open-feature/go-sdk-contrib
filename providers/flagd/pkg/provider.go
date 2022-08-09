@@ -13,9 +13,10 @@ type Provider struct {
 }
 
 type ProviderConfiguration struct {
-	Port        uint16
-	Host        string
-	ServiceName ServiceType
+	Port            uint16
+	Host            string
+	ServiceName     ServiceType
+	CertificatePath string
 }
 
 type ServiceType int
@@ -23,7 +24,7 @@ type ServiceType int
 const (
 	// HTTP argument for use in WithService, this is the default value
 	HTTP ServiceType = iota
-	// HTTPS argument for use in WithService, overrides the default value of http (NOT IMPLEMENTED BY FLAGD)
+	// HTTPS argument for use in WithService, overrides the default value of http
 	HTTPS
 	// GRPC argument for use in WithService, overrides the default value of http
 	GRPC
@@ -34,9 +35,10 @@ type ProviderOption func(*Provider)
 func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
 		providerConfiguration: &ProviderConfiguration{
-			ServiceName: HTTP,
-			Port:        8080,
-			Host:        "localhost",
+			ServiceName:     HTTP,
+			Port:            8080,
+			Host:            "localhost",
+			CertificatePath: "",
 		},
 	}
 	for _, opt := range opts {
@@ -46,6 +48,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		provider.Service = GRPCService.NewGRPCService(
 			GRPCService.WithPort(provider.providerConfiguration.Port),
 			GRPCService.WithHost(provider.providerConfiguration.Host),
+			GRPCService.WithCertificatePath(provider.providerConfiguration.CertificatePath),
 		)
 	} else if provider.providerConfiguration.ServiceName == HTTPS {
 		provider.Service = HTTPService.NewHTTPService(
@@ -60,6 +63,13 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		)
 	}
 	return provider
+}
+
+// WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials. If certificate loading fails insecure credentials will be used instead
+func WithCertificatePath(path string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.CertificatePath = path
+	}
 }
 
 // WithPort specifies the port of the flagd server. Defaults to 8080

@@ -9,8 +9,9 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 		host = "localhost"
 	)
 	serviceConfiguration := &GRPCServiceConfiguration{
-		Port: port,
-		Host: host,
+		Port:            port,
+		Host:            host,
+		CertificatePath: "",
 	}
 	svc := &GRPCService{
 		Client: &gRPCClient{
@@ -34,5 +35,12 @@ func WithPort(port uint16) GRPCServiceOption {
 func WithHost(host string) GRPCServiceOption {
 	return func(s *GRPCServiceConfiguration) {
 		s.Host = host
+	}
+}
+
+// WithCertificatePath specifies the fliepath of the certificate to be used in the gRPC dial credentials. If certificate loading fails or no path is provided insecure credentials will be used instead
+func WithCertificatePath(cPath string) GRPCServiceOption {
+	return func(s *GRPCServiceConfiguration) {
+		s.CertificatePath = cPath
 	}
 }
