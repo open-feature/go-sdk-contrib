@@ -14,7 +14,7 @@ You may also provide additional options to configure the provider client
 ```
 flagd.WithService(HTTP | HTTPS | GRPC)  // defaults to http 
 flagd.WithHost(string)                  // defaults to localhost
-flagd.WithPort(uint16)                  // defaults to 8080
+flagd.WithPort(uint16)                  // defaults to 8013
 ```
 for example:
 ```

@@ -25,13 +25,13 @@ func TestNewProvider(t *testing.T) {
 	tests := []TestConstructorArgs{
 		{
 			name:    "happy path",
-			port:    8080,
+			port:    8013,
 			host:    "localhost",
 			service: flagd.HTTP,
 		},
 		{
 			name:    "with service https",
-			port:    8080,
+			port:    8013,
 			host:    "localhost",
 			service: flagd.HTTPS,
 			options: []flagd.ProviderOption{
@@ -40,7 +40,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			name:    "with service grpc",
-			port:    8080,
+			port:    8013,
 			host:    "localhost",
 			service: flagd.GRPC,
 			options: []flagd.ProviderOption{
@@ -58,7 +58,7 @@ func TestNewProvider(t *testing.T) {
 		},
 		{
 			name:    "with hostname",
-			port:    8080,
+			port:    8013,
 			host:    "not localhost",
 			service: flagd.HTTP,
 			options: []flagd.ProviderOption{
