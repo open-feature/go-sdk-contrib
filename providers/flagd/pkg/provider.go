@@ -17,6 +17,7 @@ type ProviderConfiguration struct {
 	Host            string
 	ServiceName     ServiceType
 	CertificatePath string
+	SocketPath      string
 }
 
 type ServiceType int
@@ -39,6 +40,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			Port:            8013,
 			Host:            "localhost",
 			CertificatePath: "",
+			SocketPath:      "",
 		},
 	}
 	for _, opt := range opts {
@@ -49,6 +51,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			GRPCService.WithPort(provider.providerConfiguration.Port),
 			GRPCService.WithHost(provider.providerConfiguration.Host),
 			GRPCService.WithCertificatePath(provider.providerConfiguration.CertificatePath),
+			GRPCService.WithSocketPath(provider.providerConfiguration.SocketPath),
 		)
 	} else if provider.providerConfiguration.ServiceName == HTTPS {
 		provider.Service = HTTPService.NewHTTPService(
@@ -63,6 +66,13 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		)
 	}
 	return provider
+}
+
+// WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
+func WithSocketPath(socketPath string) ProviderOption {
+	return func(s *Provider) {
+		s.providerConfiguration.SocketPath = socketPath
+	}
 }
 
 // WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials. If certificate loading fails insecure credentials will be used instead
