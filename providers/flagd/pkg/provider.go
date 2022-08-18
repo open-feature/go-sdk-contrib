@@ -31,6 +31,11 @@ const (
 	GRPC
 )
 
+// Hooks flagd provider does not have any hooks, returns empty slice
+func (p *Provider) Hooks() []of.Hook {
+	return []of.Hook{}
+}
+
 type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
