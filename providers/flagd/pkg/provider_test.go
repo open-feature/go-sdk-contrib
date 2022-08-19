@@ -108,7 +108,7 @@ func TestNewProvider(t *testing.T) {
 			)
 		}
 
-		// this line will fail linting if this procider is no longer compatible with the openfeature sdk
+		// this line will fail linting if this provider is no longer compatible with the openfeature sdk
 		var _ of.FeatureProvider = svc
 	}
 }
