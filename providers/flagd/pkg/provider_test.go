@@ -2,6 +2,7 @@ package flagd_test
 
 import (
 	"errors"
+	"fmt"
 	reflect "reflect"
 	"testing"
 
@@ -19,6 +20,7 @@ type TestConstructorArgs struct {
 	host    string
 	service flagd.ServiceType
 	options []flagd.ProviderOption
+	env     bool
 }
 
 func TestNewProvider(t *testing.T) {
@@ -65,9 +67,33 @@ func TestNewProvider(t *testing.T) {
 				flagd.WithHost("not localhost"),
 			},
 		},
+		{
+			name:    "from env",
+			port:    1,
+			host:    "not localhost",
+			service: flagd.HTTPS,
+			options: []flagd.ProviderOption{
+				flagd.FromEnv(),
+			},
+			env: true,
+		},
 	}
 
 	for _, test := range tests {
+		if test.env {
+			t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.port))
+			if test.service == flagd.HTTP {
+				t.Setenv("FLAGD_SERVICE_PROVIDER", "http")
+			}
+			if test.service == flagd.HTTPS {
+				t.Setenv("FLAGD_SERVICE_PROVIDER", "https")
+			}
+			if test.service == flagd.GRPC {
+				t.Setenv("FLAGD_SERVICE_PROVIDER", "grpc")
+			}
+			t.Setenv("FLAGD_HOST", test.host)
+		}
+		fmt.Println("")
 		svc := flagd.NewProvider(test.options...)
 		if svc == nil {
 			t.Error("received nil service from NewProvider")

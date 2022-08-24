@@ -1,10 +1,14 @@
 package flagd
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service"
 	GRPCService "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
 	HTTPService "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	log "github.com/sirupsen/logrus"
 )
 
 type Provider struct {
@@ -63,6 +67,42 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		)
 	}
 	return provider
+}
+
+// FromEnv sets the provider configuration from environemnt variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH
+func FromEnv() ProviderOption {
+	return func(p *Provider) {
+
+		portS := os.Getenv("FLAGD_PORT")
+		if portS != "" {
+			port, err := strconv.Atoi(portS)
+			if err != nil {
+				log.Error("invalid env config for FLAGD_PORT provided, using default value")
+			} else {
+				p.providerConfiguration.Port = uint16(port)
+			}
+		}
+
+		serviceS := os.Getenv("FLAGD_SERVICE_PROVIDER")
+		switch serviceS {
+		case "http":
+			p.providerConfiguration.ServiceName = HTTP
+		case "https":
+			p.providerConfiguration.ServiceName = HTTPS
+		case "grpc":
+			p.providerConfiguration.ServiceName = GRPC
+		}
+
+		certificatePath := os.Getenv("FLAGD_SERVER_CERT_PATH")
+		if certificatePath != "" {
+			p.providerConfiguration.CertificatePath = certificatePath
+		}
+
+		host := os.Getenv("FLAGD_HOST")
+		if host != "" {
+			p.providerConfiguration.Host = host
+		}
+	}
 }
 
 // WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials. If certificate loading fails insecure credentials will be used instead
