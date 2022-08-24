@@ -12,6 +12,7 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 		Port:            port,
 		Host:            host,
 		CertificatePath: "",
+		SocketPath:      "",
 	}
 	svc := &GRPCService{
 		Client: &gRPCClient{
@@ -22,6 +23,13 @@ func NewGRPCService(opts ...GRPCServiceOption) *GRPCService {
 		opt(serviceConfiguration)
 	}
 	return svc
+}
+
+// WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
+func WithSocketPath(socketPath string) GRPCServiceOption {
+	return func(s *GRPCServiceConfiguration) {
+		s.SocketPath = socketPath
+	}
 }
 
 // WithPort overrides the default flagd dial port (8013)
