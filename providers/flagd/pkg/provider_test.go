@@ -15,12 +15,15 @@ import (
 )
 
 type TestConstructorArgs struct {
-	name    string
-	port    uint16
-	host    string
-	service flagd.ServiceType
-	options []flagd.ProviderOption
-	env     bool
+	name       string
+	port       uint16
+	host       string
+	service    flagd.ServiceType
+	options    []flagd.ProviderOption
+	env        bool
+	envPort    uint16
+	envHost    string
+	envService flagd.ServiceType
 }
 
 func TestNewProvider(t *testing.T) {
@@ -68,30 +71,48 @@ func TestNewProvider(t *testing.T) {
 			},
 		},
 		{
-			name:    "from env",
-			port:    1,
+			name:    "from env - maintain default port preventing overwrite",
+			port:    8013,
+			host:    "not localhost",
+			service: flagd.HTTPS,
+			options: []flagd.ProviderOption{
+				flagd.WithPort(8013), //matched default
+				flagd.FromEnv(),
+			},
+			env:        true,
+			envService: flagd.HTTPS,
+			envPort:    1,
+			envHost:    "not localhost",
+		},
+		{
+			name:    "from env - maintain default port with explicit overwrite",
+			port:    8013,
 			host:    "not localhost",
 			service: flagd.HTTPS,
 			options: []flagd.ProviderOption{
 				flagd.FromEnv(),
+				flagd.WithPort(8013), //matched default
 			},
-			env: true,
+			env:        true,
+			envService: flagd.HTTPS,
+			envPort:    1,
+			envHost:    "not localhost",
 		},
 	}
 
 	for _, test := range tests {
 		if test.env {
-			t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.port))
-			if test.service == flagd.HTTP {
+			t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.envPort))
+			if test.envService == flagd.HTTP {
 				t.Setenv("FLAGD_SERVICE_PROVIDER", "http")
 			}
-			if test.service == flagd.HTTPS {
+			if test.envService == flagd.HTTPS {
 				t.Setenv("FLAGD_SERVICE_PROVIDER", "https")
 			}
-			if test.service == flagd.GRPC {
+			if test.envService == flagd.GRPC {
 				t.Setenv("FLAGD_SERVICE_PROVIDER", "grpc")
 			}
-			t.Setenv("FLAGD_HOST", test.host)
+			t.Setenv("FLAGD_HOST", test.envHost)
 		}
 		svc := flagd.NewProvider(test.options...)
 		if svc == nil {
