@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
@@ -64,7 +64,7 @@ func (s *gRPCClient) Configuration() *GRPCServiceConfiguration {
 }
 
 func loadTLSCredentials(serverCertPath string) (credentials.TransportCredentials, error) {
-	pemServerCA, err := ioutil.ReadFile(serverCertPath)
+	pemServerCA, err := os.ReadFile(serverCertPath)
 	if err != nil {
 		return nil, err
 	}
