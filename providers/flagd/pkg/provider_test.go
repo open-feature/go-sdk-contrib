@@ -116,13 +116,14 @@ func TestNewProvider(t *testing.T) {
 		}
 		svc := flagd.NewProvider(test.options...)
 		if svc == nil {
-			t.Error("received nil service from NewProvider")
+			t.Errorf("%s received nil service from NewProvider", test.name)
 			t.FailNow()
 		}
 		metadata := svc.Metadata()
 		if metadata.Name != "flagd" {
 			t.Errorf(
-				"received unexpected metadata from NewProvider, expected %s got %s",
+				"%s received unexpected metadata from NewProvider, expected %s got %s",
+				test.name,
 				"flagd",
 				metadata.Name,
 			)
@@ -134,21 +135,24 @@ func TestNewProvider(t *testing.T) {
 		}
 		if config.Host != test.host {
 			t.Errorf(
-				"received unexpected ProviderConfiguration.Host from NewProvider, expected %s got %s",
+				"%s received unexpected ProviderConfiguration.Host from NewProvider, expected %s got %s",
+				test.name,
 				test.host,
 				config.Host,
 			)
 		}
 		if config.Port != test.port {
 			t.Errorf(
-				"received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				"%s received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				test.name,
 				test.port,
 				config.Port,
 			)
 		}
 		if config.ServiceName != test.service {
 			t.Errorf(
-				"received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				"%s received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				test.name,
 				test.service,
 				config.ServiceName,
 			)

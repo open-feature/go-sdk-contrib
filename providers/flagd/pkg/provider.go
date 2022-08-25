@@ -27,7 +27,7 @@ type ServiceType int
 
 const (
 	// HTTP argument for use in WithService, this is the default value
-	HTTP ServiceType = iota
+	HTTP ServiceType = iota + 1
 	// HTTPS argument for use in WithService, overrides the default value of http
 	HTTPS
 	// GRPC argument for use in WithService, overrides the default value of http
@@ -38,11 +38,9 @@ type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
-		// providerConfiguration maintains its default values, with the exception of ServiceName (default would be 0 which == HTTP) to ensure that the FromEnv
-		// option does not overwrite any explicitly set values (default values are then set after the options are run via applyDefaults())
-		providerConfiguration: &ProviderConfiguration{
-			ServiceName: -1,
-		},
+		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
+		// values (default values are then set after the options are run via applyDefaults())
+		providerConfiguration: &ProviderConfiguration{},
 	}
 	for _, opt := range opts {
 		opt(provider)
@@ -76,7 +74,7 @@ func (p *Provider) applyDefaults() {
 	if p.providerConfiguration.Port == 0 {
 		p.providerConfiguration.Port = 8013
 	}
-	if p.providerConfiguration.ServiceName == -1 {
+	if p.providerConfiguration.ServiceName == 0 {
 		p.providerConfiguration.ServiceName = HTTP
 	}
 }
@@ -97,7 +95,7 @@ func FromEnv() ProviderOption {
 			}
 		}
 
-		if p.providerConfiguration.ServiceName == -1 {
+		if p.providerConfiguration.ServiceName == 0 {
 			serviceS := os.Getenv("FLAGD_SERVICE_PROVIDER")
 			switch serviceS {
 			case "http":

@@ -33,8 +33,15 @@ func main() {
         flagd.WithPort(8000),
     ))
 }
-
 ```
+
+### Using flagd.FromEnv()  
+By default the flagd provider will not read environment variables to set its own configuration, however, if the `flagd.FromEnv()` option is set as an argument for the `flagd.NewProvider()` method, then the following environment variables will be checked: `FLAGD_HOST`, `FLAGD_PORT`, `FLAGD_SERVICE_PROVIDER`, `FLAGD_SERVER_CERT_PATH`.
+
+In the event that another configuration option is passed to the `flagd.NewProvider()` method, just as `flagd.WithPort(8013)` then this value will be prioritized over any existing environment variable configuration. This means that the priority order is as follows:
+1. Explicitly set configuration via `WithXXX` options
+1. Environment variable configuration values (if the `flagd.FromEnv()` option is set)
+1. Default values (service `HTTP`, host `localhost`, port `8013`)
 
 ## License
 
