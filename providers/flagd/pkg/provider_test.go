@@ -93,7 +93,6 @@ func TestNewProvider(t *testing.T) {
 			}
 			t.Setenv("FLAGD_HOST", test.host)
 		}
-		fmt.Println("")
 		svc := flagd.NewProvider(test.options...)
 		if svc == nil {
 			t.Error("received nil service from NewProvider")
