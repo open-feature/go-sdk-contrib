@@ -38,16 +38,16 @@ type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
+		// providerConfiguration maintains its default values, with the exception of ServiceName to ensure that the FromEnv
+		// option does not overwrite any explicitly set values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration: &ProviderConfiguration{
-			ServiceName:     HTTP,
-			Port:            8013,
-			Host:            "localhost",
-			CertificatePath: "",
+			ServiceName: -1,
 		},
 	}
 	for _, opt := range opts {
 		opt(provider)
 	}
+	provider.applyDefaults()
 	if provider.providerConfiguration.ServiceName == GRPC {
 		provider.Service = GRPCService.NewGRPCService(
 			GRPCService.WithPort(provider.providerConfiguration.Port),
@@ -69,39 +69,60 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
-// FromEnv sets the provider configuration from environment variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH
+func (p *Provider) applyDefaults() {
+	if p.providerConfiguration.Host == "" {
+		p.providerConfiguration.Host = "localhost"
+	}
+	if p.providerConfiguration.Port == 0 {
+		p.providerConfiguration.Port = 8013
+	}
+	if p.providerConfiguration.ServiceName == -1 {
+		p.providerConfiguration.ServiceName = HTTP
+	}
+}
+
+// FromEnv sets the provider configuration from environemnt variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
 
-		portS := os.Getenv("FLAGD_PORT")
-		if portS != "" {
-			port, err := strconv.Atoi(portS)
-			if err != nil {
-				log.Error("invalid env config for FLAGD_PORT provided, using default value")
-			} else {
-				p.providerConfiguration.Port = uint16(port)
+		if p.providerConfiguration.Port == 0 {
+			portS := os.Getenv("FLAGD_PORT")
+			if portS != "" {
+				port, err := strconv.Atoi(portS)
+				if err != nil {
+					log.Error("invalid env config for FLAGD_PORT provided, using default value")
+				} else {
+					p.providerConfiguration.Port = uint16(port)
+				}
 			}
 		}
 
-		serviceS := os.Getenv("FLAGD_SERVICE_PROVIDER")
-		switch serviceS {
-		case "http":
-			p.providerConfiguration.ServiceName = HTTP
-		case "https":
-			p.providerConfiguration.ServiceName = HTTPS
-		case "grpc":
-			p.providerConfiguration.ServiceName = GRPC
+		if p.providerConfiguration.ServiceName == -1 {
+			serviceS := os.Getenv("FLAGD_SERVICE_PROVIDER")
+			switch serviceS {
+			case "http":
+				p.providerConfiguration.ServiceName = HTTP
+			case "https":
+				p.providerConfiguration.ServiceName = HTTPS
+			case "grpc":
+				p.providerConfiguration.ServiceName = GRPC
+			}
 		}
 
-		certificatePath := os.Getenv("FLAGD_SERVER_CERT_PATH")
-		if certificatePath != "" {
-			p.providerConfiguration.CertificatePath = certificatePath
+		if p.providerConfiguration.CertificatePath == "" {
+			certificatePath := os.Getenv("FLAGD_SERVER_CERT_PATH")
+			if certificatePath != "" {
+				p.providerConfiguration.CertificatePath = certificatePath
+			}
 		}
 
-		host := os.Getenv("FLAGD_HOST")
-		if host != "" {
-			p.providerConfiguration.Host = host
+		if p.providerConfiguration.Host == "" {
+			host := os.Getenv("FLAGD_HOST")
+			if host != "" {
+				p.providerConfiguration.Host = host
+			}
 		}
+
 	}
 }
 
