@@ -116,8 +116,7 @@ func TestNewProvider(t *testing.T) {
 		}
 		svc := flagd.NewProvider(test.options...)
 		if svc == nil {
-			t.Errorf("%s received nil service from NewProvider", test.name)
-			t.FailNow()
+			t.Fatalf("%s received nil service from NewProvider", test.name)
 		}
 		metadata := svc.Metadata()
 		if metadata.Name != "flagd" {
@@ -130,8 +129,7 @@ func TestNewProvider(t *testing.T) {
 		}
 		config := svc.Configuration()
 		if config == nil {
-			t.Error("config is nil")
-			t.FailNow()
+			t.Fatal("config is nil")
 		}
 		if config.Host != test.host {
 			t.Errorf(
@@ -586,8 +584,7 @@ func TestObjectEvaluation(t *testing.T) {
 		if test.response.Value != nil {
 			f, err := structpb.NewStruct(test.response.Value.(map[string]interface{}))
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockOut.Value = f
 		}

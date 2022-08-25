@@ -63,12 +63,10 @@ func TestNewHTTPService(t *testing.T) {
 	for _, test := range tests {
 		svc := service.NewHTTPService(test.options...)
 		if svc == nil {
-			t.Error("received nil service from NewHTTPService")
-			t.FailNow()
+			t.Fatal("received nil service from NewHTTPService")
 		}
 		if svc.HTTPServiceConfiguration == nil {
-			t.Error("svc.HTTPServiceConfiguration is nil")
-			t.FailNow()
+			t.Fatal("svc.HTTPServiceConfiguration is nil")
 		}
 		if svc.HTTPServiceConfiguration.Host != test.host {
 			t.Errorf(
