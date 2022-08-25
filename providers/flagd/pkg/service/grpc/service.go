@@ -17,6 +17,7 @@ type GRPCServiceConfiguration struct {
 	Port            uint16
 	Host            string
 	CertificatePath string
+	SocketPath      string
 }
 
 // GRPCService handles the client side grpc interface for the flagd server
