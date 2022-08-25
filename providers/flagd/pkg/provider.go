@@ -38,7 +38,7 @@ type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
-		// providerConfiguration maintains its default values, with the exception of ServiceName to ensure that the FromEnv
+		// providerConfiguration maintains its default values, with the exception of ServiceName (default would be 0 which == HTTP) to ensure that the FromEnv
 		// option does not overwrite any explicitly set values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration: &ProviderConfiguration{
 			ServiceName: -1,
