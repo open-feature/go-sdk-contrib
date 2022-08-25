@@ -69,7 +69,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
-// FromEnv sets the provider configuration from environemnt variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH
+// FromEnv sets the provider configuration from environment variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
 
