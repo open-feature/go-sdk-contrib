@@ -15,6 +15,7 @@ You may also provide additional options to configure the provider client
 flagd.WithService(HTTP | HTTPS | GRPC)  // defaults to http 
 flagd.WithHost(string)                  // defaults to localhost
 flagd.WithPort(uint16)                  // defaults to 8013
+flagd.WithSocketPath(string)            // no default, when set a unix socket connection is used (only available for GRPC)
 ```
 for example:
 ```
