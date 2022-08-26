@@ -155,6 +155,9 @@ func TestNewProvider(t *testing.T) {
 				config.ServiceName,
 			)
 		}
+
+		// this line will fail linting if this provider is no longer compatible with the openfeature sdk
+		var _ of.FeatureProvider = svc
 	}
 }
 

@@ -27,6 +27,9 @@ func (s *gRPCClient) connect() {
 	if s.conn == nil {
 		var credentials credentials.TransportCredentials
 		var err error
+		var address string
+
+		// Handle certificate
 		if s.GRPCServiceConfiguration.CertificatePath != "" {
 			credentials, err = loadTLSCredentials(s.GRPCServiceConfiguration.CertificatePath)
 			if err != nil {
@@ -36,8 +39,17 @@ func (s *gRPCClient) connect() {
 		} else {
 			credentials = insecure.NewCredentials()
 		}
+
+		// Handle unix socket
+		if s.GRPCServiceConfiguration.SocketPath != "" {
+			address = fmt.Sprintf("passthrough:///unix://%s", s.GRPCServiceConfiguration.SocketPath)
+		} else {
+			address = fmt.Sprintf("%s:%d", s.GRPCServiceConfiguration.Host, s.GRPCServiceConfiguration.Port)
+		}
+
+		// Dial
 		conn, err := grpc.Dial(
-			fmt.Sprintf("%s:%d", s.GRPCServiceConfiguration.Host, s.GRPCServiceConfiguration.Port),
+			address,
 			grpc.WithTransportCredentials(credentials),
 			grpc.WithBlock(),
 		)

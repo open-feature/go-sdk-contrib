@@ -21,6 +21,7 @@ type ProviderConfiguration struct {
 	Host            string
 	ServiceName     ServiceType
 	CertificatePath string
+	SocketPath      string
 }
 
 type ServiceType int
@@ -34,6 +35,11 @@ const (
 	GRPC
 )
 
+// Hooks flagd provider does not have any hooks, returns empty slice
+func (p *Provider) Hooks() []of.Hook {
+	return []of.Hook{}
+}
+
 type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
@@ -41,6 +47,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
 		// values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration: &ProviderConfiguration{},
+			SocketPath:      "",
 	}
 	for _, opt := range opts {
 		opt(provider)
@@ -51,6 +58,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			GRPCService.WithPort(provider.providerConfiguration.Port),
 			GRPCService.WithHost(provider.providerConfiguration.Host),
 			GRPCService.WithCertificatePath(provider.providerConfiguration.CertificatePath),
+			GRPCService.WithSocketPath(provider.providerConfiguration.SocketPath),
 		)
 	} else if provider.providerConfiguration.ServiceName == HTTPS {
 		provider.Service = HTTPService.NewHTTPService(
@@ -67,6 +75,11 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
+// WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
+func WithSocketPath(socketPath string) ProviderOption {
+	return func(s *Provider) {
+		s.providerConfiguration.SocketPath = socketPath
+	}
 func (p *Provider) applyDefaults() {
 	if p.providerConfiguration.Host == "" {
 		p.providerConfiguration.Host = "localhost"
