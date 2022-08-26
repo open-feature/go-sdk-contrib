@@ -64,18 +64,21 @@ func main() {
 	client := openfeature.NewClient("foo")
 	evalOptions := openfeature.NewEvaluationOptions([]openfeature.Hook{v}, openfeature.HookHints{})
 
-	_, err := client.
+	result, err := client.
 		StringValueDetails("blue", "invalidhex", openfeature.EvaluationContext{}, evalOptions)
 	if err != nil {
 		fmt.Println("err:", err)
 	}
+	fmt.Println("result:", result)
 }
 ```
 
 ```shell
 go run main.go
 err: execute after hook: invalid format
+result {blue 1 {invalidhex   }}
 ```
+Note that despite getting an error we still get a result.
 
 ## Validators
 
