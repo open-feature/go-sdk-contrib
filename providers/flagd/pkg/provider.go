@@ -35,11 +35,6 @@ const (
 	GRPC
 )
 
-// Hooks flagd provider does not have any hooks, returns empty slice
-func (p *Provider) Hooks() []of.Hook {
-	return []of.Hook{}
-}
-
 type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
@@ -166,6 +161,11 @@ func WithService(service ServiceType) ProviderOption {
 	}
 }
 
+// Hooks flagd provider does not have any hooks, returns empty slice
+func (p *Provider) Hooks() []of.Hook {
+	return []of.Hook{}
+}
+
 // Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
 func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
@@ -178,7 +178,7 @@ func (p *Provider) Configuration() *ProviderConfiguration {
 	return p.providerConfiguration
 }
 
-func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.BoolResolutionDetail {
+func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx of.EvaluationContext) of.BoolResolutionDetail {
 	res, err := p.Service.ResolveBoolean(flagKey, evalCtx)
 	if err != nil {
 		return of.BoolResolutionDetail{
@@ -201,7 +201,7 @@ func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx 
 	}
 }
 
-func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.StringResolutionDetail {
+func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx of.EvaluationContext) of.StringResolutionDetail {
 	res, err := p.Service.ResolveString(flagKey, evalCtx)
 	if err != nil {
 		return of.StringResolutionDetail{
@@ -224,7 +224,7 @@ func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx
 	}
 }
 
-func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.FloatResolutionDetail {
+func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext) of.FloatResolutionDetail {
 	res, err := p.Service.ResolveFloat(flagKey, evalCtx)
 	if err != nil {
 		return of.FloatResolutionDetail{
@@ -247,7 +247,7 @@ func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx
 	}
 }
 
-func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.IntResolutionDetail {
+func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.EvaluationContext) of.IntResolutionDetail {
 	res, err := p.Service.ResolveInt(flagKey, evalCtx)
 	if err != nil {
 		return of.IntResolutionDetail{
@@ -270,7 +270,7 @@ func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.
 	}
 }
 
-func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.ResolutionDetail {
+func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx of.EvaluationContext) of.ResolutionDetail {
 	res, err := p.Service.ResolveObject(flagKey, evalCtx)
 	if err != nil {
 		return of.ResolutionDetail{
