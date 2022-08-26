@@ -7,14 +7,15 @@ import (
 )
 
 type StoredFlag struct {
-	DefaultVariant string             `json:"defaultVariant"`
-	Variants       map[string]Variant `json:"variant"`
+	DefaultVariant string    `json:"defaultVariant"`
+	Variants       []Variant `json:"variant"`
 }
 
 type Variant struct {
 	Criteria     []Criteria  `json:"criteria"`
 	TargetingKey string      `json:"targetingKey"`
 	Value        interface{} `json:"value"`
+	Name         string      `json:"name"`
 }
 
 type Criteria struct {
@@ -23,7 +24,11 @@ type Criteria struct {
 }
 
 func (f *StoredFlag) evaluate(evalCtx openfeature.EvaluationContext) (string, string, interface{}, error) {
-	for name, variant := range f.Variants {
+	var defaultVariant *Variant
+	for _, variant := range f.Variants {
+		if variant.Name == f.DefaultVariant {
+			defaultVariant = &variant
+		}
 		if variant.TargetingKey != "" && variant.TargetingKey != evalCtx.TargetingKey {
 			continue
 		}
@@ -36,12 +41,11 @@ func (f *StoredFlag) evaluate(evalCtx openfeature.EvaluationContext) (string, st
 			}
 		}
 		if match {
-			return name, ReasonTargetingMatch, variant.Value, nil
+			return variant.Name, ReasonTargetingMatch, variant.Value, nil
 		}
 	}
-	defaultVariant, ok := f.Variants[f.DefaultVariant]
-	if !ok {
+	if defaultVariant == nil {
 		return "", ReasonError, nil, errors.New(ErrorParse)
 	}
-	return f.DefaultVariant, ReasonStatic, defaultVariant.Value, nil
+	return defaultVariant.Name, ReasonStatic, defaultVariant.Value, nil
 }
