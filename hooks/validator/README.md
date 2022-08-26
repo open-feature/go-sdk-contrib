@@ -1,8 +1,5 @@
 # Validator Hook
 
-![Experimental](https://img.shields.io/badge/experimental-breaking%20changes%20allowed-yellow)
-![Alpha](https://img.shields.io/badge/alpha-release-red)
-
 The `validator hook` taps into the `After` lifecycle event to validate the result of flag evaluations.
 
 The hook defines a `validator` interface with function
