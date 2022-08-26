@@ -12,7 +12,7 @@ Flag configurations are stored as JSON strings, with one configuration per flag 
     "defaultVariant":"not-yellow",
     "variants": [
         {
-			"name": "yellow-with-key",
+	    "name": "yellow-with-key",
             "targetingKey":"user",
             "criteria": [
                 {
@@ -21,8 +21,8 @@ Flag configurations are stored as JSON strings, with one configuration per flag 
             ],
             "value":true
         },
-		{
-			"name": "yellow",
+	{
+	    "name": "yellow",
             "targetingKey":"",
             "criteria": [
                 {
@@ -32,12 +32,12 @@ Flag configurations are stored as JSON strings, with one configuration per flag 
             "value":true
         },
         {
-			"name": "not-yellow",
+	    "name": "not-yellow",
             "targetingKey":"",
             "criteria": [],
             "value":false
         }
-	]
+    ]
 }
 ```
 
