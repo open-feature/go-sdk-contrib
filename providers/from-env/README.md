@@ -69,7 +69,6 @@ func main() {
 				"color": "yellow",
 			},
 		},
-		openfeature.EvaluationOptions{},
 	)
 	fmt.Println(res, err)
 
@@ -82,7 +81,6 @@ func main() {
 		},
 		TargetingKey: "user",
 	},
-	openfeature.EvaluationOptions{},
 	)
 	fmt.Println(res, err)
 
@@ -94,7 +92,6 @@ func main() {
 				"color": "not yellow",
 			},
 		},
-		openfeature.EvaluationOptions{},
 	)
 	fmt.Println(res, err)
 }
