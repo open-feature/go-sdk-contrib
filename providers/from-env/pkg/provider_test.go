@@ -131,7 +131,7 @@ func TestBoolFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.BooleanEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
+			res := p.BooleanEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext)
 			if res.Value != test.expectedValue {
 				t.Errorf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 				t.FailNow()
@@ -245,7 +245,7 @@ func TestStringFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.StringEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
+			res := p.StringEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext)
 			if res.Value != test.expectedValue {
 				t.Errorf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 				t.FailNow()
@@ -359,7 +359,7 @@ func TestFloatFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.FloatEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
+			res := p.FloatEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext)
 			if res.Value != test.expectedValue {
 				t.Errorf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 				t.FailNow()
@@ -473,7 +473,7 @@ func TestIntFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.IntEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
+			res := p.IntEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext)
 			fmt.Println(res)
 			if res.Value != test.expectedValue {
 				t.Errorf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
@@ -573,7 +573,7 @@ func TestObjectFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.ObjectEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
+			res := p.ObjectEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext)
 			if !reflect.DeepEqual(res.Value, test.expectedValue) {
 				t.Errorf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 				t.FailNow()

@@ -32,7 +32,7 @@ func (p *FromEnvProvider) Hooks() []openfeature.Hook {
 }
 
 // BooleanEvaluation returns a boolean flag
-func (p *FromEnvProvider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx openfeature.EvaluationContext, _ openfeature.EvaluationOptions) openfeature.BoolResolutionDetail {
+func (p *FromEnvProvider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx openfeature.EvaluationContext) openfeature.BoolResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(bool)
 	if !ok {
@@ -52,7 +52,7 @@ func (p *FromEnvProvider) BooleanEvaluation(flagKey string, defaultValue bool, e
 }
 
 // StringEvaluation returns a string flag
-func (p *FromEnvProvider) StringEvaluation(flagKey string, defaultValue string, evalCtx openfeature.EvaluationContext, _ openfeature.EvaluationOptions) openfeature.StringResolutionDetail {
+func (p *FromEnvProvider) StringEvaluation(flagKey string, defaultValue string, evalCtx openfeature.EvaluationContext) openfeature.StringResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(string)
 	if !ok {
@@ -72,7 +72,7 @@ func (p *FromEnvProvider) StringEvaluation(flagKey string, defaultValue string, 
 }
 
 // IntEvaluation returns an int flag
-func (p *FromEnvProvider) IntEvaluation(flagKey string, defaultValue int64, evalCtx openfeature.EvaluationContext, _ openfeature.EvaluationOptions) openfeature.IntResolutionDetail {
+func (p *FromEnvProvider) IntEvaluation(flagKey string, defaultValue int64, evalCtx openfeature.EvaluationContext) openfeature.IntResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(float64)
 	if !ok {
@@ -92,7 +92,7 @@ func (p *FromEnvProvider) IntEvaluation(flagKey string, defaultValue int64, eval
 }
 
 // FloatEvaluation returns a float flag
-func (p *FromEnvProvider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx openfeature.EvaluationContext, _ openfeature.EvaluationOptions) openfeature.FloatResolutionDetail {
+func (p *FromEnvProvider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx openfeature.EvaluationContext) openfeature.FloatResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(float64)
 	if !ok {
@@ -112,7 +112,7 @@ func (p *FromEnvProvider) FloatEvaluation(flagKey string, defaultValue float64, 
 }
 
 // ObjectEvaluation returns an object flag
-func (p *FromEnvProvider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx openfeature.EvaluationContext, _ openfeature.EvaluationOptions) openfeature.ResolutionDetail {
+func (p *FromEnvProvider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx openfeature.EvaluationContext) openfeature.ResolutionDetail {
 	return p.resolveFlag(flagKey, defaultValue, evalCtx)
 }
 
