@@ -186,7 +186,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			Service: mock,
 		}
 
-		res := provider.BooleanEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
+		res := provider.BooleanEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
 
 		if res.ErrorCode != test.response.ErrorCode {
 			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
@@ -276,7 +276,7 @@ func TestStringEvaluation(t *testing.T) {
 			Service: mock,
 		}
 
-		res := provider.StringEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
+		res := provider.StringEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
 
 		if res.ErrorCode != test.response.ErrorCode {
 			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
@@ -366,7 +366,7 @@ func TestFloatEvaluation(t *testing.T) {
 			Service: mock,
 		}
 
-		res := provider.FloatEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
+		res := provider.FloatEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
 
 		if res.ErrorCode != test.response.ErrorCode {
 			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
@@ -456,7 +456,7 @@ func TestIntEvaluation(t *testing.T) {
 			Service: mock,
 		}
 
-		res := provider.IntEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
+		res := provider.IntEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
 
 		if res.ErrorCode != test.response.ErrorCode {
 			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
@@ -551,7 +551,7 @@ func TestObjectEvaluation(t *testing.T) {
 			Service: mock,
 		}
 
-		res := provider.ObjectEvaluation(test.flagKey, test.defaultValue, test.evalCtx, of.EvaluationOptions{})
+		res := provider.ObjectEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
 
 		if res.ErrorCode != test.response.ErrorCode {
 			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
