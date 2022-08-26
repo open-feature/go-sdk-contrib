@@ -7,11 +7,11 @@
 
 ## Setup
 To use flagd with the [OpenFeature SDK](https://github.com/open-feature/golang-sdk) set the provider to the `openfeature` global singleton as shown below (using default values which align with those of `flagd`)
-```
+```go
 openfeature.SetProvider(flagd.NewProvider())
 ```  
 You may also provide additional options to configure the provider client
-```
+```go
 flagd.WithService(HTTP | HTTPS | GRPC)  // defaults to http 
 flagd.WithHost(string)                  // defaults to localhost
 flagd.WithPort(uint16)                  // defaults to 8013
@@ -19,7 +19,7 @@ flagd.FromEnv()                         // sets the provider configuration from 
 flagd.WithSocketPath(string)            // no default, when set a unix socket connection is used (only available for GRPC)
 ```
 for example:
-```
+```go
 package main
 
 import (
