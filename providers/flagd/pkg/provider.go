@@ -47,7 +47,6 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
 		// values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration: &ProviderConfiguration{},
-			SocketPath:      "",
 	}
 	for _, opt := range opts {
 		opt(provider)
@@ -75,11 +74,6 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
-// WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
-func WithSocketPath(socketPath string) ProviderOption {
-	return func(s *Provider) {
-		s.providerConfiguration.SocketPath = socketPath
-	}
 func (p *Provider) applyDefaults() {
 	if p.providerConfiguration.Host == "" {
 		p.providerConfiguration.Host = "localhost"
@@ -89,6 +83,13 @@ func (p *Provider) applyDefaults() {
 	}
 	if p.providerConfiguration.ServiceName == 0 {
 		p.providerConfiguration.ServiceName = HTTP
+	}
+}
+
+// WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
+func WithSocketPath(socketPath string) ProviderOption {
+	return func(s *Provider) {
+		s.providerConfiguration.SocketPath = socketPath
 	}
 }
 
