@@ -6,9 +6,9 @@ import (
 	"os"
 )
 
-type EnvFetch struct{}
+type envFetch struct{}
 
-func (ef *EnvFetch) FetchStoredFlag(key string) (StoredFlag, error) {
+func (ef *envFetch) fetchStoredFlag(key string) (StoredFlag, error) {
 	v := StoredFlag{}
 	if val := os.Getenv(key); val != "" {
 		if err := json.Unmarshal([]byte(val), &v); err != nil {

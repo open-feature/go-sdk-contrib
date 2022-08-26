@@ -128,7 +128,7 @@ func TestBoolFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.Provider{}
+			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.BooleanEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
@@ -242,7 +242,7 @@ func TestStringFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.Provider{}
+			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.StringEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
@@ -356,7 +356,7 @@ func TestFloatFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.Provider{}
+			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.FloatEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
@@ -470,7 +470,7 @@ func TestIntFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.Provider{}
+			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.IntEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})
@@ -570,7 +570,7 @@ func TestObjectFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.Provider{}
+			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.ObjectEvaluation(test.flagKey, test.defaultValue, test.EvaluationContext, openfeature.EvaluationOptions{})

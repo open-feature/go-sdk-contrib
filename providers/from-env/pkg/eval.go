@@ -22,7 +22,7 @@ type Criteria struct {
 	Value interface{} `json:"value"`
 }
 
-func (f *StoredFlag) Evaluate(evalCtx openfeature.EvaluationContext) (string, string, interface{}, error) {
+func (f *StoredFlag) evaluate(evalCtx openfeature.EvaluationContext) (string, string, interface{}, error) {
 	for name, variant := range f.Variants {
 		if variant.TargetingKey != "" && variant.TargetingKey != evalCtx.TargetingKey {
 			continue
