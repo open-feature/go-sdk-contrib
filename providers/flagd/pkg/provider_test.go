@@ -2,6 +2,7 @@ package flagd_test
 
 import (
 	"errors"
+	"fmt"
 	reflect "reflect"
 	"testing"
 
@@ -14,11 +15,15 @@ import (
 )
 
 type TestConstructorArgs struct {
-	name    string
-	port    uint16
-	host    string
-	service flagd.ServiceType
-	options []flagd.ProviderOption
+	name       string
+	port       uint16
+	host       string
+	service    flagd.ServiceType
+	options    []flagd.ProviderOption
+	env        bool
+	envPort    uint16
+	envHost    string
+	envService flagd.ServiceType
 }
 
 func TestNewProvider(t *testing.T) {
@@ -65,44 +70,87 @@ func TestNewProvider(t *testing.T) {
 				flagd.WithHost("not localhost"),
 			},
 		},
+		{
+			name:    "from env - maintain default port preventing overwrite",
+			port:    8013,
+			host:    "not localhost",
+			service: flagd.HTTPS,
+			options: []flagd.ProviderOption{
+				flagd.WithPort(8013), //matched default
+				flagd.FromEnv(),
+			},
+			env:        true,
+			envService: flagd.HTTPS,
+			envPort:    1,
+			envHost:    "not localhost",
+		},
+		{
+			name:    "from env - maintain default port with explicit overwrite",
+			port:    8013,
+			host:    "not localhost",
+			service: flagd.HTTPS,
+			options: []flagd.ProviderOption{
+				flagd.FromEnv(),
+				flagd.WithPort(8013), //matched default
+			},
+			env:        true,
+			envService: flagd.HTTPS,
+			envPort:    1,
+			envHost:    "not localhost",
+		},
 	}
 
 	for _, test := range tests {
+		if test.env {
+			t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.envPort))
+			if test.envService == flagd.HTTP {
+				t.Setenv("FLAGD_SERVICE_PROVIDER", "http")
+			}
+			if test.envService == flagd.HTTPS {
+				t.Setenv("FLAGD_SERVICE_PROVIDER", "https")
+			}
+			if test.envService == flagd.GRPC {
+				t.Setenv("FLAGD_SERVICE_PROVIDER", "grpc")
+			}
+			t.Setenv("FLAGD_HOST", test.envHost)
+		}
 		svc := flagd.NewProvider(test.options...)
 		if svc == nil {
-			t.Error("received nil service from NewProvider")
-			t.FailNow()
+			t.Fatalf("%s received nil service from NewProvider", test.name)
 		}
 		metadata := svc.Metadata()
 		if metadata.Name != "flagd" {
 			t.Errorf(
-				"received unexpected metadata from NewProvider, expected %s got %s",
+				"%s received unexpected metadata from NewProvider, expected %s got %s",
+				test.name,
 				"flagd",
 				metadata.Name,
 			)
 		}
 		config := svc.Configuration()
 		if config == nil {
-			t.Error("config is nil")
-			t.FailNow()
+			t.Fatal("config is nil")
 		}
 		if config.Host != test.host {
 			t.Errorf(
-				"received unexpected ProviderConfiguration.Host from NewProvider, expected %s got %s",
+				"%s received unexpected ProviderConfiguration.Host from NewProvider, expected %s got %s",
+				test.name,
 				test.host,
 				config.Host,
 			)
 		}
 		if config.Port != test.port {
 			t.Errorf(
-				"received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				"%s received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				test.name,
 				test.port,
 				config.Port,
 			)
 		}
 		if config.ServiceName != test.service {
 			t.Errorf(
-				"received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				"%s received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+				test.name,
 				test.service,
 				config.ServiceName,
 			)
@@ -539,8 +587,7 @@ func TestObjectEvaluation(t *testing.T) {
 		if test.response.Value != nil {
 			f, err := structpb.NewStruct(test.response.Value.(map[string]interface{}))
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockOut.Value = f
 		}

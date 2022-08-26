@@ -160,7 +160,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		if test.customErr != "" {
 			st, ok := status.FromError(test.mockErr)
 			if !ok {
-				t.Errorf("%s: malformed error status received, cannot attach custom properties", test.name)
+				t.Fatalf("%s: malformed error status received, cannot attach custom properties", test.name)
 			}
 			stWD, err := st.WithDetails(&schemaV1.ErrorResponse{
 				ErrorCode: test.customErr,
@@ -175,8 +175,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockIn.Context = f
 		}
@@ -364,8 +363,7 @@ func TestServiceResolveFloat(t *testing.T) {
 		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockIn.Context = f
 		}
@@ -553,8 +551,7 @@ func TestServiceResolveInt(t *testing.T) {
 		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockIn.Context = f
 		}
@@ -741,8 +738,7 @@ func TestServiceResolveString(t *testing.T) {
 		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockIn.Context = f
 		}
@@ -927,8 +923,7 @@ func TestServiceResolveObject(t *testing.T) {
 		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
 			f, err := service.FormatAsStructpb(test.evCtx)
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockIn.Context = f
 		}
@@ -936,8 +931,7 @@ func TestServiceResolveObject(t *testing.T) {
 		if test.outValue != nil {
 			f, err := structpb.NewStruct(test.outValue)
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockOut.Value = f
 		}

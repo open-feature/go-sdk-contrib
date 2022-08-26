@@ -16,7 +16,7 @@ Run the following command to setup the go workspace.
 make workspace-init
 ```  
 Additional workspace commands:
-```
+```go
 make workspace-update           // sync go.work with current modules
 make test                       // test all go modules
 make lint                       // lint all go modules
