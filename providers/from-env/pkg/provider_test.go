@@ -35,8 +35,9 @@ func TestBoolFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: map[string]fromEnv.Variant{
-					"yellow-with-extras": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        false,
 						Criteria: []fromEnv.Criteria{
@@ -50,7 +51,8 @@ func TestBoolFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"yellow": {
+					{
+						Name:         "yellow",
 						TargetingKey: "",
 						Value:        true,
 						Criteria: []fromEnv.Criteria{
@@ -60,7 +62,8 @@ func TestBoolFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"not-yellow": {
+					{
+						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        false,
 						Criteria: []fromEnv.Criteria{
@@ -87,8 +90,9 @@ func TestBoolFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
-				Variants: map[string]fromEnv.Variant{
-					"default": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "default",
 						TargetingKey: "",
 						Value:        "false",
 						Criteria:     []fromEnv.Criteria{},
@@ -110,8 +114,90 @@ func TestBoolFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-default",
-				Variants: map[string]fromEnv.Variant{
-					"default": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "default",
+						TargetingKey: "",
+						Value:        false,
+						Criteria: []fromEnv.Criteria{
+							{
+								Key:   "color",
+								Value: "not yellow",
+							},
+						},
+					},
+				},
+			},
+		},
+		"hit default value": {
+			flagKey:           "MY_BOOL_FLAG",
+			defaultValue:      false,
+			expectedValue:     true,
+			expectedReason:    fromEnv.ReasonStatic,
+			expectedVariant:   "default",
+			expectedErrorCode: "",
+			EvaluationContext: openfeature.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"color": "yellow",
+				},
+			},
+			flagValue: fromEnv.StoredFlag{
+				DefaultVariant: "default",
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "default",
+						TargetingKey: "",
+						Value:        true,
+						Criteria: []fromEnv.Criteria{
+							{
+								Key:   "color",
+								Value: "not yellow",
+							},
+						},
+					},
+				},
+			},
+		},
+		"targeting key match": {
+			flagKey:           "MY_BOOL_FLAG",
+			defaultValue:      true,
+			expectedValue:     true,
+			expectedReason:    fromEnv.ReasonTargetingMatch,
+			expectedVariant:   "targeting_key",
+			expectedErrorCode: "",
+			EvaluationContext: openfeature.EvaluationContext{
+				Attributes: map[string]interface{}{
+					"color": "yellow",
+				},
+				TargetingKey: "user1",
+			},
+			flagValue: fromEnv.StoredFlag{
+				DefaultVariant: "default",
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "targeting_key_2",
+						TargetingKey: "user2",
+						Value:        true,
+						Criteria: []fromEnv.Criteria{
+							{
+								Key:   "color",
+								Value: "yellow",
+							},
+						},
+					},
+					{
+						Name:         "targeting_key",
+						TargetingKey: "user1",
+						Value:        true,
+						Criteria: []fromEnv.Criteria{
+							{
+								Key:   "color",
+								Value: "yellow",
+							},
+						},
+					},
+					{
+						Name:         "default",
 						TargetingKey: "",
 						Value:        false,
 						Criteria: []fromEnv.Criteria{
@@ -177,8 +263,9 @@ func TestStringFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: map[string]fromEnv.Variant{
-					"yellow-with-extras": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        "not yellow",
 						Criteria: []fromEnv.Criteria{
@@ -192,7 +279,8 @@ func TestStringFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"yellow": {
+					{
+						Name:         "yellow",
 						TargetingKey: "",
 						Value:        "yellow",
 						Criteria: []fromEnv.Criteria{
@@ -202,7 +290,8 @@ func TestStringFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"not-yellow": {
+					{
+						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        "not yellow",
 						Criteria: []fromEnv.Criteria{
@@ -229,8 +318,9 @@ func TestStringFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
-				Variants: map[string]fromEnv.Variant{
-					"default": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "default",
 						TargetingKey: "",
 						Value:        true,
 						Criteria:     []fromEnv.Criteria{},
@@ -291,8 +381,9 @@ func TestFloatFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: map[string]fromEnv.Variant{
-					"yellow-with-extras": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        100,
 						Criteria: []fromEnv.Criteria{
@@ -306,7 +397,8 @@ func TestFloatFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"yellow": {
+					{
+						Name:         "yellow",
 						TargetingKey: "",
 						Value:        10,
 						Criteria: []fromEnv.Criteria{
@@ -316,7 +408,8 @@ func TestFloatFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"not-yellow": {
+					{
+						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        100,
 						Criteria: []fromEnv.Criteria{
@@ -343,8 +436,9 @@ func TestFloatFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
-				Variants: map[string]fromEnv.Variant{
-					"default": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "default",
 						TargetingKey: "",
 						Value:        "10",
 						Criteria:     []fromEnv.Criteria{},
@@ -405,8 +499,9 @@ func TestIntFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: map[string]fromEnv.Variant{
-					"yellow-with-extras": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        100,
 						Criteria: []fromEnv.Criteria{
@@ -420,7 +515,8 @@ func TestIntFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"yellow": {
+					{
+						Name:         "yellow",
 						TargetingKey: "",
 						Value:        10,
 						Criteria: []fromEnv.Criteria{
@@ -430,7 +526,8 @@ func TestIntFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"not-yellow": {
+					{
+						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        100,
 						Criteria: []fromEnv.Criteria{
@@ -457,8 +554,9 @@ func TestIntFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
-				Variants: map[string]fromEnv.Variant{
-					"default": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "default",
 						TargetingKey: "",
 						Value:        "10",
 						Criteria:     []fromEnv.Criteria{},
@@ -524,8 +622,9 @@ func TestObjectFromEnv(t *testing.T) {
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: map[string]fromEnv.Variant{
-					"yellow-with-extras": {
+				Variants: []fromEnv.Variant{
+					{
+						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value: map[string]interface{}{
 							"key": "value3",
@@ -541,7 +640,8 @@ func TestObjectFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"yellow": {
+					{
+						Name:         "yellow",
 						TargetingKey: "",
 						Value: map[string]interface{}{
 							"key": "value2",
@@ -553,7 +653,8 @@ func TestObjectFromEnv(t *testing.T) {
 							},
 						},
 					},
-					"not-yellow": {
+					{
+						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        100,
 						Criteria: []fromEnv.Criteria{

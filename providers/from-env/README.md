@@ -10,8 +10,9 @@ Flag configurations are stored as JSON strings, with one configuration per flag 
 ```json
 {
     "defaultVariant":"not-yellow",
-    "variants": {
-        "yellow": {
+    "variants": [
+        {
+			"name": "yellow-with-key",
             "targetingKey":"user",
             "criteria": [
                 {
@@ -20,12 +21,23 @@ Flag configurations are stored as JSON strings, with one configuration per flag 
             ],
             "value":true
         },
-        "not-yellow": {
-            "targetingKey":"user",
+		{
+			"name": "yellow",
+            "targetingKey":"",
+            "criteria": [
+                {
+                    "color":"yellow"
+                }
+            ],
+            "value":true
+        },
+        {
+			"name": "not-yellow",
+            "targetingKey":"",
             "criteria": [],
             "value":false
         }
-    }
+	]
 }
 ```
 
@@ -61,6 +73,19 @@ func main() {
 	)
 	fmt.Println(res, err)
 
+	res, err := client.BooleanValueDetails(
+	"AM_I_YELLOW",
+	false,
+	openfeature.EvaluationContext{
+		Attributes: map[string]interface{}{
+			"color": "yellow",
+		},
+		TargetingKey: "user",
+	},
+	openfeature.EvaluationOptions{},
+	)
+	fmt.Println(res, err)
+
 	res, err = client.StringValueDetails(
 		"AM_I_YELLOW",
 		"i am a default value",
@@ -77,6 +102,7 @@ func main() {
 Console output:
 ```
 {AM_I_YELLOW 0 {true  TARGETING_MATCH yellow}} <nil>
+{AM_I_YELLOW 0 {true  TARGETING_MATCH yellow-with-key}} <nil>
 {AM_I_YELLOW 1 {i am a default value   }} evaluate the flag: TYPE_MISMATCH
 ```
 
