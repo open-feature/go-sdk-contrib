@@ -1,12 +1,12 @@
-package hex_test
+package regex_test
 
 import (
-	"github.com/open-feature/golang-sdk-contrib/hooks/validator/pkg/hex"
+	"github.com/open-feature/golang-sdk-contrib/hooks/validator/pkg/regex"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"testing"
 )
 
-func TestValidator_IsValid(t *testing.T) {
+func TestValidator_Hex(t *testing.T) {
 	tests := map[string]struct {
 		flagEvaluationDetails of.EvaluationDetails
 		expectedErr           bool
@@ -79,9 +79,12 @@ func TestValidator_IsValid(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			validator := hex.Validator{}
+			validator, err := regex.Hex()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			err := validator.IsValid(tt.flagEvaluationDetails)
+			err = validator.IsValid(tt.flagEvaluationDetails)
 			if err != nil {
 				if !tt.expectedErr {
 					t.Errorf("didn't expect error, got: %v", err)
