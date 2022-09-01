@@ -27,12 +27,12 @@ type Hook struct {
 	wg    *sync.WaitGroup
 }
 
+// mutex wrapper is used to prevent colliding keys from overwriting each other / closing a partially completed span
 type mutexWrapper struct {
 	mu *sync.Mutex
-	ss *storedSpan
+	ss *storedSpan // ss has been set as a pointer so it can be set to nil during cleanup
 }
 type storedSpan struct {
-	ctx    context.Context
 	cancel func()
 	span   trace.Span
 }
@@ -66,7 +66,6 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 		attribute.String(ProviderName, hookContext.ProviderMetadata().Name),
 	)
 	h.spans[key].ss = &storedSpan{
-		ctx:    ctx,
 		cancel: cancel,
 		span:   span,
 	}
