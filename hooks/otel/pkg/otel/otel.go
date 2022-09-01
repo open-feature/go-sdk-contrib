@@ -60,7 +60,7 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 	}
 	h.spans[key].mu.Lock()
 	h.wg.Add(1)
-	ctx, span := otel.Tracer(traceName).Start(h.ctx, key)
+	ctx, span := otel.GetTracerProvider().Tracer(traceName).Start(h.ctx, key)
 	ctx, cancel := context.WithCancel(ctx)
 	span.SetAttributes(
 		attribute.String(FlagKey, hookContext.FlagKey()),
@@ -76,7 +76,6 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 	// or from the closing of the parent context outside the scope of the hook
 	go func() {
 		<-ctx.Done()
-		span.End()
 		h.spans[key].ss = nil
 		h.spans[key].mu.Unlock()
 		h.wg.Done()
@@ -132,11 +131,20 @@ func (h *Hook) Error(hookContext of.HookContext, err error, hookHints of.HookHin
 	if ok {
 		mw.ss.span.RecordError(err)
 		mw.ss.span.SetStatus(codes.Error, err.Error())
+		mw.ss.cancel()
 	}
 }
 
 // Finally this method is unused for this hook, spans are closed via context
-func (h Hook) Finally(hookContext of.HookContext, hookHints of.HookHints) {}
+func (h Hook) Finally(hookContext of.HookContext, hookHints of.HookHints) {
+	key := fmt.Sprintf("%s.%s", hookContext.ClientMetadata().Name(), hookContext.FlagKey())
+	mw, ok := h.spans[key]
+	if ok {
+		mw.ss.span.End()
+		mw.ss.cancel()
+	}
+
+}
 
 func (h *Hook) setup() {
 	if h.wg == nil {
