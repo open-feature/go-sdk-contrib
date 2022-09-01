@@ -60,18 +60,12 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 	h.spans[key].mu.Lock()
 	h.wg.Add(1)
 	ctx, span := otel.Tracer("Flag Evaluation").Start(h.ctx, key)
-	h.handleNewSpan(ctx, span, hookContext, key)
-	evCtx := hookContext.EvaluationContext()
-	return &evCtx, nil
-}
-
-// this function has been abstracted to allow for testing functions to hook into the span functionality
-func (h *Hook) handleNewSpan(ctx context.Context, span trace.Span, hookContext of.HookContext, key string) {
 	ctx, cancel := context.WithCancel(ctx)
 	span.SetAttributes(
 		attribute.String(FlagKey, hookContext.FlagKey()),
 		attribute.String(ProviderName, hookContext.ProviderMetadata().Name),
 	)
+	fmt.Println(span)
 	h.spans[key].ss = &storedSpan{
 		cancel: cancel,
 		span:   span,
@@ -86,6 +80,8 @@ func (h *Hook) handleNewSpan(ctx context.Context, span trace.Span, hookContext o
 		h.spans[key].mu.Unlock()
 		h.wg.Done()
 	}()
+	evCtx := hookContext.EvaluationContext()
+	return &evCtx, nil
 }
 
 // After sets the EvaluatedVariant and EvaluatedValue on the evaluation specific span

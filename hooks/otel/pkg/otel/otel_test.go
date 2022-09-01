@@ -9,8 +9,9 @@ import (
 )
 
 func TestOtelHookMethods(t *testing.T) {
-	otelHook := Hook{}
+
 	t.Run("Before should start a new span", func(t *testing.T) {
+		otelHook := Hook{}
 		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
 			t.Fatal("before hook did not create a new span")
@@ -18,6 +19,11 @@ func TestOtelHookMethods(t *testing.T) {
 	})
 
 	t.Run("After hook should trigger the span to close with no error", func(t *testing.T) {
+		otelHook := Hook{}
+		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+		if len(otelHook.spans) != 1 {
+			t.Fatal("before hook did not create a new span")
+		}
 		err := otelHook.After(openfeature.HookContext{}, openfeature.EvaluationDetails{
 			FlagKey:  "testKey",
 			FlagType: openfeature.Boolean,
