@@ -10,6 +10,9 @@ import (
 	"github.com/open-feature/golang-sdk/pkg/openfeature"
 )
 
+// this line will fail linting if this provider is no longer compatible with the openfeature sdk
+var _ openfeature.FeatureProvider = &fromEnv.FromEnvProvider{}
+
 func TestBoolFromEnv(t *testing.T) {
 	tests := map[string]struct {
 		flagKey           string
@@ -18,21 +21,19 @@ func TestBoolFromEnv(t *testing.T) {
 		expectedReason    string
 		expectedVariant   string
 		expectedErrorCode string
-		EvaluationContext openfeature.EvaluationContext
+		EvaluationContext map[string]interface{}
 		flagValue         fromEnv.StoredFlag
 	}{
 		"bool happy path": {
 			flagKey:           "MY_BOOL_FLAG",
 			defaultValue:      false,
 			expectedValue:     true,
-			expectedReason:    fromEnv.ReasonTargetingMatch,
+			expectedReason:    openfeature.TARGETING_MATCH,
 			expectedVariant:   "yellow",
 			expectedErrorCode: "",
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
-			},
+			EvaluationContext: map[string]interface{}{
+				"color":                  "yellow",
+				openfeature.TargetingKey: "user1"},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
 				Variants: []fromEnv.Variant{
@@ -80,13 +81,11 @@ func TestBoolFromEnv(t *testing.T) {
 			flagKey:           "MY_BOOL_FLAG",
 			defaultValue:      true,
 			expectedValue:     true,
-			expectedReason:    fromEnv.ReasonError,
+			expectedReason:    openfeature.ERROR,
 			expectedVariant:   "",
 			expectedErrorCode: fromEnv.ErrorTypeMismatch,
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
@@ -104,13 +103,11 @@ func TestBoolFromEnv(t *testing.T) {
 			flagKey:           "MY_BOOL_FLAG",
 			defaultValue:      true,
 			expectedValue:     true,
-			expectedReason:    fromEnv.ReasonError,
+			expectedReason:    openfeature.ERROR,
 			expectedVariant:   "",
 			expectedErrorCode: fromEnv.ErrorParse,
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-default",
@@ -136,10 +133,8 @@ func TestBoolFromEnv(t *testing.T) {
 			expectedReason:    fromEnv.ReasonStatic,
 			expectedVariant:   "default",
 			expectedErrorCode: "",
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
@@ -162,14 +157,12 @@ func TestBoolFromEnv(t *testing.T) {
 			flagKey:           "MY_BOOL_FLAG",
 			defaultValue:      true,
 			expectedValue:     true,
-			expectedReason:    fromEnv.ReasonTargetingMatch,
+			expectedReason:    openfeature.TARGETING_MATCH,
 			expectedVariant:   "targeting_key",
 			expectedErrorCode: "",
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
-				TargetingKey: "user1",
+			EvaluationContext: map[string]interface{}{
+				"color":                  "yellow",
+				openfeature.TargetingKey: "user1",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
@@ -246,20 +239,18 @@ func TestStringFromEnv(t *testing.T) {
 		expectedReason    string
 		expectedVariant   string
 		expectedErrorCode string
-		EvaluationContext openfeature.EvaluationContext
+		EvaluationContext map[string]interface{}
 		flagValue         fromEnv.StoredFlag
 	}{
 		"string happy path": {
 			flagKey:           "MY_STRING_FLAG",
 			defaultValue:      "default value",
 			expectedValue:     "yellow",
-			expectedReason:    fromEnv.ReasonTargetingMatch,
+			expectedReason:    openfeature.TARGETING_MATCH,
 			expectedVariant:   "yellow",
 			expectedErrorCode: "",
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
@@ -308,13 +299,11 @@ func TestStringFromEnv(t *testing.T) {
 			flagKey:           "MY_STRING_FLAG",
 			defaultValue:      "default value",
 			expectedValue:     "default value",
-			expectedReason:    fromEnv.ReasonError,
+			expectedReason:    openfeature.ERROR,
 			expectedVariant:   "",
 			expectedErrorCode: fromEnv.ErrorTypeMismatch,
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
@@ -364,20 +353,18 @@ func TestFloatFromEnv(t *testing.T) {
 		expectedReason    string
 		expectedVariant   string
 		expectedErrorCode string
-		EvaluationContext openfeature.EvaluationContext
+		EvaluationContext map[string]interface{}
 		flagValue         fromEnv.StoredFlag
 	}{
 		"string happy path": {
 			flagKey:           "MY_FLOAT_FLAG",
 			defaultValue:      1,
 			expectedValue:     10,
-			expectedReason:    fromEnv.ReasonTargetingMatch,
+			expectedReason:    openfeature.TARGETING_MATCH,
 			expectedVariant:   "yellow",
 			expectedErrorCode: "",
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
@@ -426,13 +413,11 @@ func TestFloatFromEnv(t *testing.T) {
 			flagKey:           "MY_FLOAT_FLAG",
 			defaultValue:      1,
 			expectedValue:     1,
-			expectedReason:    fromEnv.ReasonError,
+			expectedReason:    openfeature.ERROR,
 			expectedVariant:   "",
 			expectedErrorCode: fromEnv.ErrorTypeMismatch,
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
@@ -482,20 +467,18 @@ func TestIntFromEnv(t *testing.T) {
 		expectedReason    string
 		expectedVariant   string
 		expectedErrorCode string
-		EvaluationContext openfeature.EvaluationContext
+		EvaluationContext map[string]interface{}
 		flagValue         fromEnv.StoredFlag
 	}{
 		"int happy path": {
 			flagKey:           "MY_INT_FLAG",
 			defaultValue:      1,
 			expectedValue:     10,
-			expectedReason:    fromEnv.ReasonTargetingMatch,
+			expectedReason:    openfeature.TARGETING_MATCH,
 			expectedVariant:   "yellow",
 			expectedErrorCode: "",
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
@@ -544,13 +527,11 @@ func TestIntFromEnv(t *testing.T) {
 			flagKey:           "MY_INT_FLAG",
 			defaultValue:      1,
 			expectedValue:     1,
-			expectedReason:    fromEnv.ReasonError,
+			expectedReason:    openfeature.ERROR,
 			expectedVariant:   "",
 			expectedErrorCode: fromEnv.ErrorTypeMismatch,
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "default",
@@ -601,7 +582,7 @@ func TestObjectFromEnv(t *testing.T) {
 		expectedReason    string
 		expectedVariant   string
 		expectedErrorCode string
-		EvaluationContext openfeature.EvaluationContext
+		EvaluationContext map[string]interface{}
 		flagValue         fromEnv.StoredFlag
 	}{
 		"object happy path": {
@@ -612,13 +593,11 @@ func TestObjectFromEnv(t *testing.T) {
 			expectedValue: map[string]interface{}{
 				"key": "value2",
 			},
-			expectedReason:    fromEnv.ReasonTargetingMatch,
+			expectedReason:    openfeature.TARGETING_MATCH,
 			expectedVariant:   "yellow",
 			expectedErrorCode: "",
-			EvaluationContext: openfeature.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"color": "yellow",
-				},
+			EvaluationContext: map[string]interface{}{
+				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
