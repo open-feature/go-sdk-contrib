@@ -45,13 +45,11 @@ func TestNewGRPCService(t *testing.T) {
 	for _, test := range tests {
 		svc := service.NewGRPCService(test.options...)
 		if svc == nil {
-			t.Error("received nil service from NewGRPCService")
-			t.FailNow()
+			t.Fatal("received nil service from NewGRPCService")
 		}
 		config := svc.Client.Configuration()
 		if config == nil {
-			t.Error("config is nil")
-			t.FailNow()
+			t.Fatal("config is nil")
 		}
 		if config.Host != test.host {
 			t.Errorf(

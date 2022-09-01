@@ -1,10 +1,14 @@
 package flagd
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service"
 	GRPCService "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
 	HTTPService "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	log "github.com/sirupsen/logrus"
 )
 
 type Provider struct {
@@ -24,33 +28,25 @@ type ServiceType int
 
 const (
 	// HTTP argument for use in WithService, this is the default value
-	HTTP ServiceType = iota
+	HTTP ServiceType = iota + 1
 	// HTTPS argument for use in WithService, overrides the default value of http
 	HTTPS
 	// GRPC argument for use in WithService, overrides the default value of http
 	GRPC
 )
 
-// Hooks flagd provider does not have any hooks, returns empty slice
-func (p *Provider) Hooks() []of.Hook {
-	return []of.Hook{}
-}
-
 type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
-		providerConfiguration: &ProviderConfiguration{
-			ServiceName:     HTTP,
-			Port:            8013,
-			Host:            "localhost",
-			CertificatePath: "",
-			SocketPath:      "",
-		},
+		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
+		// values (default values are then set after the options are run via applyDefaults())
+		providerConfiguration: &ProviderConfiguration{},
 	}
 	for _, opt := range opts {
 		opt(provider)
 	}
+	provider.applyDefaults()
 	if provider.providerConfiguration.ServiceName == GRPC {
 		provider.Service = GRPCService.NewGRPCService(
 			GRPCService.WithPort(provider.providerConfiguration.Port),
@@ -73,10 +69,67 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
+func (p *Provider) applyDefaults() {
+	if p.providerConfiguration.Host == "" {
+		p.providerConfiguration.Host = "localhost"
+	}
+	if p.providerConfiguration.Port == 0 {
+		p.providerConfiguration.Port = 8013
+	}
+	if p.providerConfiguration.ServiceName == 0 {
+		p.providerConfiguration.ServiceName = HTTP
+	}
+}
+
 // WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
 func WithSocketPath(socketPath string) ProviderOption {
 	return func(s *Provider) {
 		s.providerConfiguration.SocketPath = socketPath
+	}
+}
+
+// FromEnv sets the provider configuration from environemnt variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH
+func FromEnv() ProviderOption {
+	return func(p *Provider) {
+
+		if p.providerConfiguration.Port == 0 {
+			portS := os.Getenv("FLAGD_PORT")
+			if portS != "" {
+				port, err := strconv.Atoi(portS)
+				if err != nil {
+					log.Error("invalid env config for FLAGD_PORT provided, using default value")
+				} else {
+					p.providerConfiguration.Port = uint16(port)
+				}
+			}
+		}
+
+		if p.providerConfiguration.ServiceName == 0 {
+			serviceS := os.Getenv("FLAGD_SERVICE_PROVIDER")
+			switch serviceS {
+			case "http":
+				p.providerConfiguration.ServiceName = HTTP
+			case "https":
+				p.providerConfiguration.ServiceName = HTTPS
+			case "grpc":
+				p.providerConfiguration.ServiceName = GRPC
+			}
+		}
+
+		if p.providerConfiguration.CertificatePath == "" {
+			certificatePath := os.Getenv("FLAGD_SERVER_CERT_PATH")
+			if certificatePath != "" {
+				p.providerConfiguration.CertificatePath = certificatePath
+			}
+		}
+
+		if p.providerConfiguration.Host == "" {
+			host := os.Getenv("FLAGD_HOST")
+			if host != "" {
+				p.providerConfiguration.Host = host
+			}
+		}
+
 	}
 }
 
@@ -108,6 +161,11 @@ func WithService(service ServiceType) ProviderOption {
 	}
 }
 
+// Hooks flagd provider does not have any hooks, returns empty slice
+func (p *Provider) Hooks() []of.Hook {
+	return []of.Hook{}
+}
+
 // Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
 func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
@@ -120,7 +178,7 @@ func (p *Provider) Configuration() *ProviderConfiguration {
 	return p.providerConfiguration
 }
 
-func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.BoolResolutionDetail {
+func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx of.EvaluationContext) of.BoolResolutionDetail {
 	res, err := p.Service.ResolveBoolean(flagKey, evalCtx)
 	if err != nil {
 		return of.BoolResolutionDetail{
@@ -143,7 +201,7 @@ func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx 
 	}
 }
 
-func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.StringResolutionDetail {
+func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx of.EvaluationContext) of.StringResolutionDetail {
 	res, err := p.Service.ResolveString(flagKey, evalCtx)
 	if err != nil {
 		return of.StringResolutionDetail{
@@ -166,7 +224,7 @@ func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx
 	}
 }
 
-func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.FloatResolutionDetail {
+func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext) of.FloatResolutionDetail {
 	res, err := p.Service.ResolveFloat(flagKey, evalCtx)
 	if err != nil {
 		return of.FloatResolutionDetail{
@@ -189,7 +247,7 @@ func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx
 	}
 }
 
-func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.IntResolutionDetail {
+func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.EvaluationContext) of.IntResolutionDetail {
 	res, err := p.Service.ResolveInt(flagKey, evalCtx)
 	if err != nil {
 		return of.IntResolutionDetail{
@@ -212,7 +270,7 @@ func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.
 	}
 }
 
-func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx of.EvaluationContext, options of.EvaluationOptions) of.ResolutionDetail {
+func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx of.EvaluationContext) of.ResolutionDetail {
 	res, err := p.Service.ResolveObject(flagKey, evalCtx)
 	if err != nil {
 		return of.ResolutionDetail{

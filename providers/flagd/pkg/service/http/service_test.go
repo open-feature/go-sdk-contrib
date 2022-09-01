@@ -571,8 +571,7 @@ func TestServiceResolveObject(t *testing.T) {
 		if test.outValue != nil {
 			f, err := structpb.NewStruct(test.outValue)
 			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				t.Fatal(err)
 			}
 			test.mockHttpResponseBody = schemaV1.ResolveObjectResponse{
 				Variant: "on",
