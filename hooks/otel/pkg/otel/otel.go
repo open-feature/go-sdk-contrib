@@ -19,6 +19,7 @@ const (
 	ProviderName     = "feature_flag.provider_name"
 	EvaluatedVariant = "feature_flag.evaluated_variant"
 	EvaluatedValue   = "feature_flag.evaluated_value"
+	traceName        = "github.com/open-feature/golang-sdk/pkg/openfeature"
 )
 
 type Hook struct {
@@ -59,7 +60,7 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 	}
 	h.spans[key].mu.Lock()
 	h.wg.Add(1)
-	ctx, span := otel.Tracer("Flag Evaluation").Start(h.ctx, key)
+	ctx, span := otel.Tracer(traceName).Start(h.ctx, key)
 	ctx, cancel := context.WithCancel(ctx)
 	span.SetAttributes(
 		attribute.String(FlagKey, hookContext.FlagKey()),
