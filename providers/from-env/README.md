@@ -1,7 +1,7 @@
 # Environment Variable JSON Flag Provider
 
 This repository contains a very simple environment variable based feature flag provider.  
-This provider uses a very simple JSON evaluation for matching a flag `Variant` to a provided `EvaluationContext`. Each flag `Variant` contains a slice of `Conditions`, if all `Conditions` match then the flags value is returned. Each `Variant` is evaluated starting at index 0, therefore the first matching `Variant` is returned. Each variant also has a `TargetingKey`, when set it must match the `TargetingKey` provided in the `EvaluationContext` for the `Variant` to be returned.  
+This provider uses a JSON evaluation for matching a flag `Variant` to a provided `EvaluationContext`. Each flag `Variant` contains a slice of `Conditions`, if all `Conditions` match then the flags value is returned. Each `Variant` is evaluated starting at index 0, therefore the first matching `Variant` is returned. Each variant also has a `TargetingKey`, when set it must match the `TargetingKey` provided in the `EvaluationContext` for the `Variant` to be returned.  
 
 
 ## Flag Configuration Structure. 
