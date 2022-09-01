@@ -60,6 +60,13 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 	h.spans[key].mu.Lock()
 	h.wg.Add(1)
 	ctx, span := otel.Tracer("Flag Evaluation").Start(h.ctx, key)
+	h.handleNewSpan(ctx, span, hookContext, key)
+	evCtx := hookContext.EvaluationContext()
+	return &evCtx, nil
+}
+
+// this function has been abstracted to allow for testing functions to hook into the span functionality
+func (h *Hook) handleNewSpan(ctx context.Context, span trace.Span, hookContext of.HookContext, key string) {
 	ctx, cancel := context.WithCancel(ctx)
 	span.SetAttributes(
 		attribute.String(FlagKey, hookContext.FlagKey()),
@@ -69,6 +76,9 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 		cancel: cancel,
 		span:   span,
 	}
+	// this goroutine cleans up the span, if the associated context is closed then the span is ended, the stored
+	// span data is removed and the resource is unlocked. This context close can come from either the cancel() method
+	// or from the closing of the parent context outside the scope of the hook
 	go func() {
 		<-ctx.Done()
 		span.End()
@@ -76,8 +86,6 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 		h.spans[key].mu.Unlock()
 		h.wg.Done()
 	}()
-	evCtx := hookContext.EvaluationContext()
-	return &evCtx, nil
 }
 
 // After sets the EvaluatedVariant and EvaluatedValue on the evaluation specific span
