@@ -179,22 +179,24 @@ func TestOtelHookMethods(t *testing.T) {
 		}
 		for _, att := range span.attributes {
 			switch att.Key {
-			case FlagKey:
+			case AttributeFlagKey:
 				if att.Value.AsString() != "my-bool-flag" {
 					t.Fatalf("unexpected flagKey value received: %s", att.Value.AsString())
 				}
-			case ProviderName:
+			case AttributeProviderName:
 				if att.Value.AsString() != "NoopProvider" {
 					t.Fatalf("unexpected ProviderName value received expected %s, got %s", "NoopProvider", att.Value.AsString())
 				}
-			case EvaluatedVariant:
+			case AttributeEvaluatedVariant:
 				if att.Value.AsString() != "default-variant" {
 					t.Fatalf("unexpected EvaluatedVariant value received expected %s, got %s", "default-variant", att.Value.AsString())
 				}
-			case EvaluatedValue:
+			case AttributeEvaluatedValue:
 				if att.Value.AsString() != `{"foo":"bar"}` {
 					t.Fatalf("unexpected EvaluatedVariant received, got %s", att.Value.AsString())
 				}
+			default:
+				t.Fatalf("unexpected span key received %s", att.Key)
 			}
 
 		}
