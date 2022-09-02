@@ -15,7 +15,7 @@ The following example demonstrates the use of the `OpenTelemetry hook` with the 
     "id":"37ea9ce3b8638962",
     "name":"test-client.my-bool-flag",
     "timestamp":1662116610661173,
-    "duration":100,s
+    "duration":100,
     "localEndpoint":{
         "serviceName":"hook-example"
     },
