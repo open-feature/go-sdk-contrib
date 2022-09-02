@@ -229,4 +229,66 @@ func TestOtelHookMethods(t *testing.T) {
 			t.Fatalf("unexpected errorString received, want %v, got %v", mySpan.errString, myError.Error())
 		}
 	})
+
+	t.Run("all values are being cast to string", func(t *testing.T) {
+		tests := map[string]struct {
+			value    interface{}
+			flagType openfeature.Type
+		}{
+			"bool": {
+				value:    true,
+				flagType: openfeature.Boolean,
+			},
+			"string": {
+				value:    "hello",
+				flagType: openfeature.String,
+			},
+			"int": {
+				value:    int64(1),
+				flagType: openfeature.Int,
+			},
+			"float": {
+				value:    float64(1.001),
+				flagType: openfeature.Float,
+			},
+			"object": {
+				value:    map[string]interface{}{"foo": "bar"},
+				flagType: openfeature.Object,
+			},
+		}
+		for name, test := range tests {
+			t.Run(name, func(t *testing.T) {
+				mySpan := spanMock{}
+				hook := Hook{
+					tracerClient: &tracerClientMock{
+						t: &tracerMock{
+							span: &mySpan,
+						},
+					},
+				}
+				hook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+				hook.After(openfeature.HookContext{}, openfeature.EvaluationDetails{
+					FlagType: test.flagType,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Value: test.value,
+					},
+				}, openfeature.HookHints{})
+				hook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
+				hook.Wait()
+				found := false
+				for _, att := range mySpan.attributes {
+					if att.Key == AttributeEvaluatedValue {
+						found = true
+						if att.Value.Type() != attribute.STRING {
+							t.Fatalf("unexpected value type received, expected string, got %v", att.Value.Type())
+						}
+					}
+				}
+				if !found {
+					t.Fatalf("%s not found in span", name)
+				}
+			})
+		}
+
+	})
 }
