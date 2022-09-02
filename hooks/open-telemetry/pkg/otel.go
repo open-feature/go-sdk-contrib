@@ -18,7 +18,7 @@ const (
 	ProviderName     = "feature_flag.provider_name"
 	EvaluatedVariant = "feature_flag.evaluated_variant"
 	EvaluatedValue   = "feature_flag.evaluated_value"
-	traceName        = "github.com/open-feature/golang-sdk-contrib/hooks/opentelemetry"
+	traceName        = "github.com/open-feature/golang-sdk-contrib/hooks/open-telemetry/pkg"
 )
 
 type Hook struct {
