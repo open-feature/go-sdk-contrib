@@ -2,7 +2,6 @@ package otel
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -34,7 +33,6 @@ func (s *spanMock) SetAttributes(kv ...attribute.KeyValue) {
 	s.attributes = append(s.attributes, kv...)
 }
 func (s *spanMock) End(...trace.SpanEndOption) {
-	fmt.Println("closing span")
 	s.closed = true
 }
 
@@ -49,7 +47,7 @@ func TestOtelHookMethods(t *testing.T) {
 			},
 		}
 		otelHook.tracerClient.tracer().Start(context.Background(), "test")
-		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
 			t.Fatal("before hook did not create a new span")
 		}
@@ -63,7 +61,7 @@ func TestOtelHookMethods(t *testing.T) {
 				},
 			},
 		}
-		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
 			t.Fatal("before hook did not create a new span")
 		}
@@ -86,7 +84,7 @@ func TestOtelHookMethods(t *testing.T) {
 			},
 		}
 		otelHook.WithContext(ctx)
-		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
 			t.Fatal("before hook did not create a new span")
 		}
@@ -112,13 +110,13 @@ func TestOtelHookMethods(t *testing.T) {
 		blocked := true
 
 		// Trigger the initial before hook, the empty context will always provide the same key
-		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
 			t.Fatal("before hook did not create a new span")
 		}
 		// this before hook should be blocked until the after hook for the locked resource has been run
 		go func() {
-			otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+			_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 			blocked = false
 		}()
 		time.Sleep(500 * time.Millisecond) // account for slow execution to ensure that the goroutine is blocked
@@ -157,7 +155,12 @@ func TestOtelHookMethods(t *testing.T) {
 		}
 		openfeature.AddHooks(&hook)
 		client := openfeature.NewClient("test-client")
-		fmt.Println(client.ObjectValue("my-bool-flag", map[string]interface{}{"foo": "bar"}, openfeature.EvaluationContext{}, openfeature.EvaluationOptions{}))
+		_, _ = client.ObjectValue(
+			"my-bool-flag",
+			map[string]interface{}{"foo": "bar"},
+			openfeature.EvaluationContext{},
+			openfeature.EvaluationOptions{},
+		)
 		hook.Wait()
 		if !span.closed {
 			t.Fatalf("span has not been closed")
