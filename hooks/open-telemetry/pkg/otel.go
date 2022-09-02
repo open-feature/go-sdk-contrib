@@ -19,7 +19,7 @@ const (
 	ProviderName     = "feature_flag.provider_name"
 	EvaluatedVariant = "feature_flag.evaluated_variant"
 	EvaluatedValue   = "feature_flag.evaluated_value"
-	traceName        = "github.com/open-feature/golang-sdk/pkg/openfeature"
+	traceName        = "github.com/open-feature/golang-sdk-contrib/hooks/opentelemetry"
 )
 
 type Hook struct {
@@ -66,12 +66,11 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 		attribute.String(FlagKey, hookContext.FlagKey()),
 		attribute.String(ProviderName, hookContext.ProviderMetadata().Name),
 	)
-	fmt.Println(span)
 	h.spans[key].ss = &storedSpan{
 		cancel: cancel,
 		span:   span,
 	}
-	// this goroutine cleans up the span, if the associated context is closed then the span is ended, the stored
+	// this goroutine cleans up the span, if the associated context is closed then the stored
 	// span data is removed and the resource is unlocked. This context close can come from either the cancel() method
 	// or from the closing of the parent context outside the scope of the hook
 	go func() {
@@ -119,8 +118,9 @@ func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.Evalua
 		mw.ss.span.SetAttributes(
 			attribute.String(EvaluatedValue, string(val)),
 		)
+	default:
+		return fmt.Errorf("unknown data type received: %d", flagEvaluationDetails.FlagType)
 	}
-	mw.ss.cancel()
 	return nil
 }
 
@@ -131,7 +131,6 @@ func (h *Hook) Error(hookContext of.HookContext, err error, hookHints of.HookHin
 	if ok {
 		mw.ss.span.RecordError(err)
 		mw.ss.span.SetStatus(codes.Error, err.Error())
-		mw.ss.cancel()
 	}
 }
 
@@ -143,7 +142,6 @@ func (h Hook) Finally(hookContext of.HookContext, hookHints of.HookHints) {
 		mw.ss.span.End()
 		mw.ss.cancel()
 	}
-
 }
 
 func (h *Hook) setup() {
