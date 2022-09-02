@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	of "github.com/open-feature/golang-sdk/pkg/openfeature"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -23,9 +22,10 @@ const (
 )
 
 type Hook struct {
-	spans map[string]*mutexWrapper
-	ctx   context.Context
-	wg    *sync.WaitGroup
+	spans        map[string]*mutexWrapper
+	ctx          context.Context
+	wg           *sync.WaitGroup
+	tracerClient tracerClientInterface
 }
 
 // mutex wrapper is used to prevent colliding keys from overwriting each other / closing a partially completed span
@@ -36,6 +36,12 @@ type mutexWrapper struct {
 type storedSpan struct {
 	cancel func()
 	span   trace.Span
+}
+
+func NewHook() *Hook {
+	return &Hook{
+		tracerClient: &tracerClient{},
+	}
 }
 
 // Wait blocks until all spans have been closed
@@ -60,7 +66,7 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 	}
 	h.spans[key].mu.Lock()
 	h.wg.Add(1)
-	ctx, span := otel.GetTracerProvider().Tracer(traceName).Start(h.ctx, key)
+	ctx, span := h.tracerClient.tracer().Start(h.ctx, key)
 	ctx, cancel := context.WithCancel(ctx)
 	span.SetAttributes(
 		attribute.String(FlagKey, hookContext.FlagKey()),
