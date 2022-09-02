@@ -2,52 +2,53 @@ package otel
 
 import (
 	"context"
-	"log"
-	"os"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/open-feature/golang-sdk/pkg/openfeature"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/zipkin"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
-func initTracer() (func(context.Context) error, error) {
-	var logger = log.New(os.Stderr, "zipkin-example", log.Ldate|log.Ltime|log.Llongfile)
-	exporter, err := zipkin.New(
-		"http://localhost:9411/api/v2/spans",
-		zipkin.WithLogger(logger),
-	)
-	if err != nil {
-		return nil, err
-	}
+type tracerClientMock struct {
+	t *tracerMock
+}
+type tracerMock struct {
+	trace.Tracer
+	span *spanMock
+}
+type spanMock struct {
+	trace.Span
+	attributes []attribute.KeyValue
+	closed     bool
+}
 
-	batcher := sdktrace.NewBatchSpanProcessor(exporter)
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(batcher),
-		sdktrace.WithResource(resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("zipkin-test"),
-		)),
-	)
-	otel.SetTracerProvider(tp)
-
-	return tp.Shutdown, nil
+func (t tracerClientMock) tracer() trace.Tracer {
+	return t.t
+}
+func (t tracerMock) Start(ctx context.Context, _ string, _ ...trace.SpanStartOption) (context.Context, trace.Span) {
+	return ctx, t.span
+}
+func (s *spanMock) SetAttributes(kv ...attribute.KeyValue) {
+	s.attributes = append(s.attributes, kv...)
+}
+func (s *spanMock) End(...trace.SpanEndOption) {
+	fmt.Println("closing span")
+	s.closed = true
 }
 
 func TestOtelHookMethods(t *testing.T) {
 
 	t.Run("Before should start a new span", func(t *testing.T) {
-		cleanup, err := initTracer()
-		if err != nil {
-			t.Fatal(err)
+		otelHook := Hook{
+			tracerClient: tracerClientMock{
+				t: &tracerMock{
+					span: &spanMock{},
+				},
+			},
 		}
-		defer cleanup(context.Background())
-		otelHook := Hook{}
+		otelHook.tracerClient.tracer().Start(context.Background(), "test")
 		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
 			t.Fatal("before hook did not create a new span")
@@ -55,22 +56,19 @@ func TestOtelHookMethods(t *testing.T) {
 	})
 
 	t.Run("Finally hook should trigger the span to close with no error", func(t *testing.T) {
-		cleanup, err := initTracer()
-		if err != nil {
-			t.Fatal(err)
+		otelHook := Hook{
+			tracerClient: &tracerClientMock{
+				t: &tracerMock{
+					span: &spanMock{},
+				},
+			},
 		}
-		defer cleanup(context.Background())
-		otelHook := Hook{}
 		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
 			t.Fatal("before hook did not create a new span")
 		}
 		otelHook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
 		otelHook.Wait()
-
-		if err != nil {
-			t.Fatal(err)
-		}
 		for _, x := range otelHook.spans {
 			if x.ss != nil {
 				t.Fatal("after hook did not trigger the closing of the span")
@@ -79,13 +77,14 @@ func TestOtelHookMethods(t *testing.T) {
 	})
 
 	t.Run("context cancellation should close an open span", func(t *testing.T) {
-		cleanup, err := initTracer()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer cleanup(context.Background())
 		ctx, cancel := context.WithCancel(context.Background())
-		otelHook := Hook{}
+		otelHook := Hook{
+			tracerClient: &tracerClientMock{
+				t: &tracerMock{
+					span: &spanMock{},
+				},
+			},
+		}
 		otelHook.WithContext(ctx)
 		otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
 		if len(otelHook.spans) != 1 {
@@ -103,12 +102,13 @@ func TestOtelHookMethods(t *testing.T) {
 	// if updates have been made causing the tests suite to hang, they will be within this test
 	// however, in most cases the reasons for the tests to hang will be caught by the above tests
 	t.Run("duplicate keys should be blocked from running concurrently", func(t *testing.T) {
-		cleanup, err := initTracer()
-		if err != nil {
-			t.Fatal(err)
+		otelHook := Hook{
+			tracerClient: &tracerClientMock{
+				t: &tracerMock{
+					span: &spanMock{},
+				},
+			},
 		}
-		defer cleanup(context.Background())
-		otelHook := Hook{}
 		blocked := true
 
 		// Trigger the initial before hook, the empty context will always provide the same key
@@ -143,6 +143,45 @@ func TestOtelHookMethods(t *testing.T) {
 			if x.ss != nil {
 				t.Fatal("stored span has not been cleaned up")
 			}
+		}
+	})
+
+	t.Run("ensure all attributes are correctly set on span and it is closed", func(t *testing.T) {
+		span := spanMock{}
+		hook := Hook{
+			tracerClient: &tracerClientMock{
+				t: &tracerMock{
+					span: &span,
+				},
+			},
+		}
+		openfeature.AddHooks(&hook)
+		client := openfeature.NewClient("test-client")
+		fmt.Println(client.ObjectValue("my-bool-flag", map[string]interface{}{"foo": "bar"}, openfeature.EvaluationContext{}, openfeature.EvaluationOptions{}))
+		hook.Wait()
+		if !span.closed {
+			t.Fatalf("span has not been closed")
+		}
+		for _, att := range span.attributes {
+			switch att.Key {
+			case FlagKey:
+				if att.Value.AsString() != "my-bool-flag" {
+					t.Fatalf("unexpected flagKey value received: %s", att.Value.AsString())
+				}
+			case ProviderName:
+				if att.Value.AsString() != "NoopProvider" {
+					t.Fatalf("unexpected ProviderName value received expected %s, got %s", "NoopProvider", att.Value.AsString())
+				}
+			case EvaluatedVariant:
+				if att.Value.AsString() != "default-variant" {
+					t.Fatalf("unexpected EvaluatedVariant value received expected %s, got %s", "default-variant", att.Value.AsString())
+				}
+			case EvaluatedValue:
+				if att.Value.AsString() != `{"foo":"bar"}` {
+					t.Fatalf("unexpected EvaluatedVariant received, got %s", att.Value.AsString())
+				}
+			}
+
 		}
 	})
 }
