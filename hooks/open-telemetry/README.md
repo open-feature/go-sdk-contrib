@@ -22,7 +22,6 @@ The following example demonstrates the use of the `OpenTelemetry hook` with the 
         "serviceName":"hook-example"
     },
     "tags":{
-        "feature_flag.evaluated_value":"{\"foo\":\"bar\"}",
         "feature_flag.evaluated_variant":"default-variant",
         "feature_flag.flag_key":"my-bool-flag",
         "feature_flag.provider_name":"NoopProvider",

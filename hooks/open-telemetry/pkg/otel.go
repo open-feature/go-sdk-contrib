@@ -101,29 +101,34 @@ func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.Evalua
 	if !ok {
 		return errors.New("no span stored for provided hook context")
 	}
-	attributes := []attribute.KeyValue{
-		attribute.String(AttributeEvaluatedVariant, flagEvaluationDetails.ResolutionDetail.Variant),
+	if flagEvaluationDetails.ResolutionDetail.Variant != "" {
+		mw.ss.span.SetAttributes(
+			attribute.String(AttributeEvaluatedVariant, flagEvaluationDetails.ResolutionDetail.Variant),
+		)
+		return nil
 	}
-	fmt.Println(flagEvaluationDetails)
+	var value string
 	switch flagEvaluationDetails.FlagType {
 	case of.Boolean:
-		attributes = append(attributes, attribute.Bool(AttributeEvaluatedValue, flagEvaluationDetails.Value.(bool)))
+		value = fmt.Sprintf("%T", flagEvaluationDetails.Value.(bool))
 	case of.String:
-		attributes = append(attributes, attribute.String(AttributeEvaluatedValue, flagEvaluationDetails.Value.(string)))
+		value = flagEvaluationDetails.Value.(string)
 	case of.Float:
-		attributes = append(attributes, attribute.Float64(AttributeEvaluatedValue, flagEvaluationDetails.Value.(float64)))
+		value = fmt.Sprintf("%64f", flagEvaluationDetails.Value.(float64))
 	case of.Int:
-		attributes = append(attributes, attribute.Int64(AttributeEvaluatedValue, flagEvaluationDetails.Value.(int64)))
+		value = fmt.Sprintf("%d", flagEvaluationDetails.Value.(int64))
 	case of.Object:
 		val, err := json.Marshal(flagEvaluationDetails.Value)
 		if err != nil {
 			return err
 		}
-		attributes = append(attributes, attribute.String(AttributeEvaluatedValue, string(val)))
+		value = string(val)
 	default:
 		return fmt.Errorf("unknown data type received: %d", flagEvaluationDetails.FlagType)
 	}
-	mw.ss.span.SetAttributes(attributes...)
+	mw.ss.span.SetAttributes(
+		attribute.String(AttributeEvaluatedValue, value),
+	)
 	return nil
 }
 

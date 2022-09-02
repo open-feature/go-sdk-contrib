@@ -177,6 +177,8 @@ func TestOtelHookMethods(t *testing.T) {
 		if !span.closed {
 			t.Fatalf("span has not been closed")
 		}
+		valuePresent := false
+		variantPreset := false
 		for _, att := range span.attributes {
 			switch att.Key {
 			case AttributeFlagKey:
@@ -188,17 +190,18 @@ func TestOtelHookMethods(t *testing.T) {
 					t.Fatalf("unexpected ProviderName value received expected %s, got %s", "NoopProvider", att.Value.AsString())
 				}
 			case AttributeEvaluatedVariant:
+				variantPreset = true
 				if att.Value.AsString() != "default-variant" {
 					t.Fatalf("unexpected EvaluatedVariant value received expected %s, got %s", "default-variant", att.Value.AsString())
 				}
 			case AttributeEvaluatedValue:
-				if att.Value.AsString() != `{"foo":"bar"}` {
-					t.Fatalf("unexpected EvaluatedVariant received, got %s", att.Value.AsString())
-				}
+				valuePresent = true
 			default:
 				t.Fatalf("unexpected span key received %s", att.Key)
 			}
-
+		}
+		if valuePresent && variantPreset {
+			t.Fatal("both AttributeEvaluatedVariant and AttributeEvaluatedValue are present in the span")
 		}
 	})
 
