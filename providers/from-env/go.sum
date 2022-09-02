@@ -1,0 +1,8 @@
+github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=
+github.com/open-feature/golang-sdk v0.0.0-20220823155625-745a58b85574 h1:lm+7qW88M3/ysu07QJCca2Dei8medeZi/Zspu2VcCuM=
+github.com/open-feature/golang-sdk v0.0.0-20220823155625-745a58b85574/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
+github.com/open-feature/golang-sdk v0.0.0-20220826131803-eb5bb27e4d8e h1:nOydvzQr+LlLvy/vxF2wbO7h114+J7Tp5/rfD+rRtWM=
+github.com/open-feature/golang-sdk v0.0.0-20220826131803-eb5bb27e4d8e/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
+github.com/open-feature/golang-sdk v0.0.0-20220831175213-b8383e148184 h1:I3eWhR+FCBsq462lwNB5USJ/evs40sOwlBSeUAYw+94=
+github.com/open-feature/golang-sdk v0.0.0-20220831175213-b8383e148184/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
+golang.org/x/text v0.3.7 h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=
