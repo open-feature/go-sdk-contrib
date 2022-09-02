@@ -6,9 +6,7 @@ spans attempting to reuse a currently active key will be blocked until the lock 
 
 By default, the hook uses an internal `context.Background()`, however a context can be provided to the hook using the 
 `hook.WithContext(context.Context)` method.
-
-
-
+To wait for all threads to finish processing, the `hook.Wait()` method will be used. This is managed by an internal `sync.WaitGroup{}`.
 ## Example
 The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature golang-sdk`. The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:
 ```json
@@ -17,7 +15,7 @@ The following example demonstrates the use of the `OpenTelemetry hook` with the 
     "id":"37ea9ce3b8638962",
     "name":"test-client.my-bool-flag",
     "timestamp":1662116610661173,
-    "duration":100,
+    "duration":100,s
     "localEndpoint":{
         "serviceName":"hook-example"
     },
