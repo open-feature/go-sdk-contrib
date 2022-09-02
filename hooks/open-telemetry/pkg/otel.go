@@ -14,11 +14,16 @@ import (
 )
 
 const (
-	FlagKey          = "feature_flag.flag_key"
-	ProviderName     = "feature_flag.provider_name"
-	EvaluatedVariant = "feature_flag.evaluated_variant"
-	EvaluatedValue   = "feature_flag.evaluated_value"
-	traceName        = "github.com/open-feature/golang-sdk-contrib/hooks/open-telemetry/pkg"
+	// AttributeFlagKey trace attribute name for the evaluated flag key
+	AttributeFlagKey = "feature_flag.flag_key"
+	// AttributeProviderName trace attribute name for the provider used for evaluation
+	AttributeProviderName = "feature_flag.provider_name"
+	// AttributeEvaluatedVariant trace attribute name for the variant returned from the flag evaluation
+	AttributeEvaluatedVariant = "feature_flag.evaluated_variant"
+	// AttributeEvaluatedValue trace attribute name for the value returned from the flag evaluation
+	AttributeEvaluatedValue = "feature_flag.evaluated_value"
+	// AttributeTraceName the name of the trace exported by the hook
+	AttributeTraceName = "github.com/open-feature/golang-sdk-contrib/hooks/open-telemetry/pkg"
 )
 
 type Hook struct {
@@ -70,8 +75,8 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 	ctx, span := h.tracerClient.tracer().Start(h.ctx, key)
 	ctx, cancel := context.WithCancel(ctx)
 	span.SetAttributes(
-		attribute.String(FlagKey, hookContext.FlagKey()),
-		attribute.String(ProviderName, hookContext.ProviderMetadata().Name),
+		attribute.String(AttributeFlagKey, hookContext.FlagKey()),
+		attribute.String(AttributeProviderName, hookContext.ProviderMetadata().Name),
 	)
 	h.spans[key].ss = &storedSpan{
 		cancel: cancel,
@@ -98,24 +103,24 @@ func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.Evalua
 		return errors.New("no span stored for provided hook context")
 	}
 	attributes := []attribute.KeyValue{
-		attribute.String(EvaluatedVariant, flagEvaluationDetails.ResolutionDetail.Variant),
+		attribute.String(AttributeEvaluatedVariant, flagEvaluationDetails.ResolutionDetail.Variant),
 	}
 	fmt.Println(flagEvaluationDetails)
 	switch flagEvaluationDetails.FlagType {
 	case of.Boolean:
-		attributes = append(attributes, attribute.Bool(EvaluatedValue, flagEvaluationDetails.Value.(bool)))
+		attributes = append(attributes, attribute.Bool(AttributeEvaluatedValue, flagEvaluationDetails.Value.(bool)))
 	case of.String:
-		attributes = append(attributes, attribute.String(EvaluatedValue, flagEvaluationDetails.Value.(string)))
+		attributes = append(attributes, attribute.String(AttributeEvaluatedValue, flagEvaluationDetails.Value.(string)))
 	case of.Float:
-		attributes = append(attributes, attribute.Float64(EvaluatedValue, flagEvaluationDetails.Value.(float64)))
+		attributes = append(attributes, attribute.Float64(AttributeEvaluatedValue, flagEvaluationDetails.Value.(float64)))
 	case of.Int:
-		attributes = append(attributes, attribute.Int64(EvaluatedValue, flagEvaluationDetails.Value.(int64)))
+		attributes = append(attributes, attribute.Int64(AttributeEvaluatedValue, flagEvaluationDetails.Value.(int64)))
 	case of.Object:
 		val, err := json.Marshal(flagEvaluationDetails.Value)
 		if err != nil {
 			return err
 		}
-		attributes = append(attributes, attribute.String(EvaluatedValue, string(val)))
+		attributes = append(attributes, attribute.String(AttributeEvaluatedValue, string(val)))
 	default:
 		return fmt.Errorf("unknown data type received: %d", flagEvaluationDetails.FlagType)
 	}

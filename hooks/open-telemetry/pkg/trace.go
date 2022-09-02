@@ -12,5 +12,5 @@ type tracerClientInterface interface {
 type tracerClient struct{}
 
 func (t *tracerClient) tracer() trace.Tracer {
-	return otel.GetTracerProvider().Tracer(traceName)
+	return otel.GetTracerProvider().Tracer(AttributeTraceName)
 }
