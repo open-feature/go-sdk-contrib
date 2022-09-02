@@ -1,6 +1,8 @@
 # OpenTelemetry Hook
 
-The `open telemetry hook` taps into the full hook lifecycle to write `spans` to the global `TracerProvider`.
+For this hook to function correctly a global `TracerProvider` must be set, an example of how to do this can be found below.
+
+The `open telemetry hook` taps into the full hook lifecycle to write `traces` to the global `TracerProvider`.
 To ensure thread safety a lock is generated for a given `span` key, constructed from the `OpenFeature client` name and `flagKey`, any 
 spans attempting to reuse a currently active key will be blocked until the lock becomes available.
 
