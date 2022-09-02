@@ -2,11 +2,13 @@ package otel
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/open-feature/golang-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -21,6 +23,9 @@ type spanMock struct {
 	trace.Span
 	attributes []attribute.KeyValue
 	closed     bool
+	err        error
+	code       codes.Code
+	errString  string
 }
 
 func (t tracerClientMock) tracer() trace.Tracer {
@@ -31,6 +36,13 @@ func (t tracerMock) Start(ctx context.Context, _ string, _ ...trace.SpanStartOpt
 }
 func (s *spanMock) SetAttributes(kv ...attribute.KeyValue) {
 	s.attributes = append(s.attributes, kv...)
+}
+func (s *spanMock) RecordError(err error, _ ...trace.EventOption) {
+	s.err = err
+}
+func (s *spanMock) SetStatus(code codes.Code, err string) {
+	s.code = code
+	s.errString = err
 }
 func (s *spanMock) End(...trace.SpanEndOption) {
 	s.closed = true
@@ -185,6 +197,31 @@ func TestOtelHookMethods(t *testing.T) {
 				}
 			}
 
+		}
+	})
+
+	t.Run("ensure Error method is behaving correctly", func(t *testing.T) {
+		mySpan := spanMock{}
+		myError := errors.New("my error")
+		hook := Hook{
+			spans: map[string]*mutexWrapper{
+				".": {
+					ss: &storedSpan{
+						span: &mySpan,
+					},
+				},
+			},
+		}
+
+		hook.Error(openfeature.HookContext{}, myError, openfeature.HookHints{})
+		if !errors.Is(myError, mySpan.err) {
+			t.Fatalf("unexpected error received, want %v, got %v", myError, mySpan.err)
+		}
+		if mySpan.code != codes.Error {
+			t.Fatalf("unexpected code received, want %v, got %v", codes.Error, mySpan.code)
+		}
+		if mySpan.errString != myError.Error() {
+			t.Fatalf("unexpected errorString received, want %v, got %v", mySpan.errString, myError.Error())
 		}
 	})
 }
