@@ -91,8 +91,7 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 		h.spans[key].mu.Unlock()
 		h.wg.Done()
 	}()
-	evCtx := hookContext.EvaluationContext()
-	return &evCtx, nil
+	return nil, nil
 }
 
 // After sets the EvaluatedVariant and EvaluatedValue on the evaluation specific span
