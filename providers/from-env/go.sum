@@ -5,4 +5,6 @@ github.com/open-feature/golang-sdk v0.0.0-20220826131803-eb5bb27e4d8e h1:nOydvzQ
 github.com/open-feature/golang-sdk v0.0.0-20220826131803-eb5bb27e4d8e/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
 github.com/open-feature/golang-sdk v0.0.0-20220831175213-b8383e148184 h1:I3eWhR+FCBsq462lwNB5USJ/evs40sOwlBSeUAYw+94=
 github.com/open-feature/golang-sdk v0.0.0-20220831175213-b8383e148184/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
+github.com/open-feature/golang-sdk v0.2.1-0.20220914084408-945bd96c8082 h1:zykZ9vePHuGKPL7zQE85IhEMehbHms2eRO1PwZ2MwCU=
+github.com/open-feature/golang-sdk v0.2.1-0.20220914084408-945bd96c8082/go.mod h1:AcHh6hParWb2KPnkLUII0a060E6byMdW/YSGvfeHiVQ=
 golang.org/x/text v0.3.7 h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=

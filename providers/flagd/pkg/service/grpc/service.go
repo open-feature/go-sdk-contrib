@@ -6,7 +6,6 @@ import (
 
 	flagdModels "github.com/open-feature/flagd/pkg/model"
 	providerModels "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/model"
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/status"
@@ -26,14 +25,14 @@ type GRPCService struct {
 }
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd ResolveBoolean rpc
-func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error) {
+func (s *GRPCService) ResolveBoolean(flagKey string, context map[string]interface{}) (*schemaV1.ResolveBooleanResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(providerModels.ConnectionErrorCode)
 	}
-	ctxF, err := FormatAsStructpb(context)
+	ctxF, err := structpb.NewStruct(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveBooleanResponse{
@@ -60,14 +59,14 @@ func (s *GRPCService) ResolveBoolean(flagKey string, context of.EvaluationContex
 }
 
 // ResolveString handles the flag evaluation response from the grpc flagd interface ResolveString rpc
-func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveStringResponse, error) {
+func (s *GRPCService) ResolveString(flagKey string, context map[string]interface{}) (*schemaV1.ResolveStringResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(providerModels.ConnectionErrorCode)
 	}
-	contextF, err := FormatAsStructpb(context)
+	contextF, err := structpb.NewStruct(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveStringResponse{
@@ -94,14 +93,14 @@ func (s *GRPCService) ResolveString(flagKey string, context of.EvaluationContext
 }
 
 // ResolveFloat handles the flag evaluation response from the grpc flagd interface ResolveFloat rpc
-func (s *GRPCService) ResolveFloat(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveFloatResponse, error) {
+func (s *GRPCService) ResolveFloat(flagKey string, context map[string]interface{}) (*schemaV1.ResolveFloatResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveFloatResponse{
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(providerModels.ConnectionErrorCode)
 	}
-	contextF, err := FormatAsStructpb(context)
+	contextF, err := structpb.NewStruct(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveFloatResponse{
@@ -127,15 +126,15 @@ func (s *GRPCService) ResolveFloat(flagKey string, context of.EvaluationContext)
 	return res, nil
 }
 
-// ResolveFloat handles the flag evaluation response from the grpc flagd interface ResolveNumber rpc
-func (s *GRPCService) ResolveInt(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveIntResponse, error) {
+// ResolveInt handles the flag evaluation response from the grpc flagd interface ResolveNumber rpc
+func (s *GRPCService) ResolveInt(flagKey string, context map[string]interface{}) (*schemaV1.ResolveIntResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveIntResponse{
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(providerModels.ConnectionErrorCode)
 	}
-	contextF, err := FormatAsStructpb(context)
+	contextF, err := structpb.NewStruct(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveIntResponse{
@@ -162,14 +161,14 @@ func (s *GRPCService) ResolveInt(flagKey string, context of.EvaluationContext) (
 }
 
 // ResolveObject handles the flag evaluation response from the grpc flagd interface ResolveObject rpc
-func (s *GRPCService) ResolveObject(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error) {
+func (s *GRPCService) ResolveObject(flagKey string, context map[string]interface{}) (*schemaV1.ResolveObjectResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: flagdModels.ErrorReason,
 		}, errors.New(providerModels.ConnectionErrorCode)
 	}
-	contextF, err := FormatAsStructpb(context)
+	contextF, err := structpb.NewStruct(context)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveObjectResponse{
@@ -204,12 +203,4 @@ func parseError(err error) (*schemaV1.ErrorResponse, bool) {
 	}
 	res, ok := details[0].(*schemaV1.ErrorResponse)
 	return res, ok
-}
-
-func FormatAsStructpb(evCtx of.EvaluationContext) (*structpb.Struct, error) {
-	if evCtx.TargetingKey != "" {
-		evCtx.Attributes["TargettingKey"] = evCtx.TargetingKey
-	}
-
-	return structpb.NewStruct(evCtx.Attributes)
 }
