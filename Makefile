@@ -16,8 +16,8 @@ lint:
 
 new-provider: 
 	mkdir ./providers/$(PROVIDER)
-	cd ./providers/$(PROVIDER) && go mod init github.com/open-feature/golang-sdk-contrib/providers/$(PROVIDER) && touch README.md
+	cd ./providers/$(PROVIDER) && go mod init github.com/open-feature/go-sdk-contrib/providers/$(PROVIDER) && touch README.md
 
 new-hook: 
 	mkdir ./hooks/$(HOOK)
-	cd ./hooks/$(HOOK) && go mod init github.com/open-feature/golang-sdk-contrib/hooks/$(HOOK) && touch README.md
+	cd ./hooks/$(HOOK) && go mod init github.com/open-feature/go-sdk-contrib/hooks/$(HOOK) && touch README.md

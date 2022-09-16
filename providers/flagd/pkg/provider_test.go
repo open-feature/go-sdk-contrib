@@ -8,8 +8,8 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
-	flagd "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg"
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	schemav1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )

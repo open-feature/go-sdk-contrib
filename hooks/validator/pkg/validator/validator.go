@@ -1,7 +1,7 @@
 package validator
 
 import (
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 type validator interface {

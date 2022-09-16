@@ -4,10 +4,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service"
-	GRPCService "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
-	HTTPService "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
+	GRPCService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/grpc"
+	HTTPService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/http"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
 )
 

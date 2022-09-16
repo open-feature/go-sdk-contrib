@@ -1,7 +1,7 @@
 package from_env
 
 import (
-	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 // FromEnvProvider implements the FeatureProvider interface and provides functions for evaluating flags

@@ -1,8 +1,8 @@
 package regex_test
 
 import (
-	"github.com/open-feature/golang-sdk-contrib/hooks/validator/pkg/regex"
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/regex"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"testing"
 )
 

@@ -3,7 +3,7 @@ package from_env
 import (
 	"errors"
 
-	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 type StoredFlag struct {
