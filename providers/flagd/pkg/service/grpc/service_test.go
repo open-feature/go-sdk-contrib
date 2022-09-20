@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
+	service "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/grpc"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/codes"
