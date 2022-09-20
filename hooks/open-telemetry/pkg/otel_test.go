@@ -266,10 +266,10 @@ func TestOtelHookMethods(t *testing.T) {
 						},
 					},
 				}
-				hook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-				hook.After(openfeature.HookContext{}, openfeature.EvaluationDetails{
+				_, _ = hook.Before(openfeature.HookContext{}, openfeature.HookHints{})
+				_ = hook.After(openfeature.HookContext{}, openfeature.EvaluationDetails{
 					FlagType: test.flagType,
-					ResolutionDetail: openfeature.ResolutionDetail{
+					InterfaceResolutionDetail: openfeature.InterfaceResolutionDetail{
 						Value: test.value,
 					},
 				}, openfeature.HookHints{})
