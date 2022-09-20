@@ -1,4 +1,4 @@
-# OpenFeature Golang Contributions
+# OpenFeature Go Contributions
 
 ![Experimental](https://img.shields.io/badge/experimental-breaking%20changes%20allowed-yellow)
 ![Alpha](https://img.shields.io/badge/alpha-release-red)
