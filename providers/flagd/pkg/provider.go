@@ -178,14 +178,13 @@ func (p *Provider) Configuration() *ProviderConfiguration {
 	return p.providerConfiguration
 }
 
-func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx of.EvaluationContext) of.BoolResolutionDetail {
+func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx map[string]interface{}) of.BoolResolutionDetail {
 	res, err := p.Service.ResolveBoolean(flagKey, evalCtx)
 	if err != nil {
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
 			ResolutionDetail: of.ResolutionDetail{
 				Reason:    res.Reason,
-				Value:     defaultValue,
 				Variant:   res.Variant,
 				ErrorCode: err.Error(),
 			},
@@ -195,20 +194,18 @@ func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx 
 		Value: res.Value,
 		ResolutionDetail: of.ResolutionDetail{
 			Reason:  res.Reason,
-			Value:   res.Value,
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx of.EvaluationContext) of.StringResolutionDetail {
+func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx map[string]interface{}) of.StringResolutionDetail {
 	res, err := p.Service.ResolveString(flagKey, evalCtx)
 	if err != nil {
 		return of.StringResolutionDetail{
 			Value: defaultValue,
 			ResolutionDetail: of.ResolutionDetail{
 				Reason:    res.Reason,
-				Value:     defaultValue,
 				Variant:   res.Variant,
 				ErrorCode: err.Error(),
 			},
@@ -218,20 +215,18 @@ func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx
 		Value: res.Value,
 		ResolutionDetail: of.ResolutionDetail{
 			Reason:  res.Reason,
-			Value:   res.Value,
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx of.EvaluationContext) of.FloatResolutionDetail {
+func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx map[string]interface{}) of.FloatResolutionDetail {
 	res, err := p.Service.ResolveFloat(flagKey, evalCtx)
 	if err != nil {
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ResolutionDetail: of.ResolutionDetail{
 				Reason:    res.Reason,
-				Value:     defaultValue,
 				Variant:   res.Variant,
 				ErrorCode: err.Error(),
 			},
@@ -241,20 +236,18 @@ func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx
 		Value: res.Value,
 		ResolutionDetail: of.ResolutionDetail{
 			Reason:  res.Reason,
-			Value:   res.Value,
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.EvaluationContext) of.IntResolutionDetail {
+func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx map[string]interface{}) of.IntResolutionDetail {
 	res, err := p.Service.ResolveInt(flagKey, evalCtx)
 	if err != nil {
 		return of.IntResolutionDetail{
 			Value: defaultValue,
 			ResolutionDetail: of.ResolutionDetail{
 				Reason:    res.Reason,
-				Value:     defaultValue,
 				Variant:   res.Variant,
 				ErrorCode: err.Error(),
 			},
@@ -264,25 +257,28 @@ func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx of.
 		Value: res.Value,
 		ResolutionDetail: of.ResolutionDetail{
 			Reason:  res.Reason,
-			Value:   res.Value,
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx of.EvaluationContext) of.ResolutionDetail {
+func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
 	res, err := p.Service.ResolveObject(flagKey, evalCtx)
 	if err != nil {
-		return of.ResolutionDetail{
-			Reason:    res.Reason,
-			Value:     defaultValue,
-			Variant:   res.Variant,
-			ErrorCode: err.Error(),
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ResolutionDetail: of.ResolutionDetail{
+				Reason:    res.Reason,
+				Variant:   res.Variant,
+				ErrorCode: err.Error(),
+			},
 		}
 	}
-	return of.ResolutionDetail{
-		Reason:  res.Reason,
-		Value:   res.Value,
-		Variant: res.Variant,
+	return of.InterfaceResolutionDetail{
+		Value: res.Value,
+		ResolutionDetail: of.ResolutionDetail{
+			Reason:  res.Reason,
+			Variant: res.Variant,
+		},
 	}
 }

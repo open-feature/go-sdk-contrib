@@ -38,14 +38,13 @@ func (p *FromEnvProvider) BooleanEvaluation(flagKey string, defaultValue bool, e
 			Value: defaultValue,
 			ResolutionDetail: openfeature.ResolutionDetail{
 				Reason:    openfeature.ERROR,
-				Value:     defaultValue,
 				ErrorCode: ErrorTypeMismatch,
 			},
 		}
 	}
 	return openfeature.BoolResolutionDetail{
 		Value:            v,
-		ResolutionDetail: res,
+		ResolutionDetail: res.ResolutionDetail,
 	}
 }
 
@@ -58,14 +57,13 @@ func (p *FromEnvProvider) StringEvaluation(flagKey string, defaultValue string, 
 			Value: defaultValue,
 			ResolutionDetail: openfeature.ResolutionDetail{
 				Reason:    openfeature.ERROR,
-				Value:     defaultValue,
 				ErrorCode: ErrorTypeMismatch,
 			},
 		}
 	}
 	return openfeature.StringResolutionDetail{
 		Value:            v,
-		ResolutionDetail: res,
+		ResolutionDetail: res.ResolutionDetail,
 	}
 }
 
@@ -78,14 +76,13 @@ func (p *FromEnvProvider) IntEvaluation(flagKey string, defaultValue int64, eval
 			Value: defaultValue,
 			ResolutionDetail: openfeature.ResolutionDetail{
 				Reason:    openfeature.ERROR,
-				Value:     defaultValue,
 				ErrorCode: ErrorTypeMismatch,
 			},
 		}
 	}
 	return openfeature.IntResolutionDetail{
 		Value:            int64(v),
-		ResolutionDetail: res,
+		ResolutionDetail: res.ResolutionDetail,
 	}
 }
 
@@ -98,42 +95,48 @@ func (p *FromEnvProvider) FloatEvaluation(flagKey string, defaultValue float64, 
 			Value: defaultValue,
 			ResolutionDetail: openfeature.ResolutionDetail{
 				Reason:    openfeature.ERROR,
-				Value:     defaultValue,
 				ErrorCode: ErrorTypeMismatch,
 			},
 		}
 	}
 	return openfeature.FloatResolutionDetail{
 		Value:            v,
-		ResolutionDetail: res,
+		ResolutionDetail: res.ResolutionDetail,
 	}
 }
 
 // ObjectEvaluation returns an object flag
-func (p *FromEnvProvider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx map[string]interface{}) openfeature.ResolutionDetail {
+func (p *FromEnvProvider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx map[string]interface{}) openfeature.InterfaceResolutionDetail {
 	return p.resolveFlag(flagKey, defaultValue, evalCtx)
 }
 
-func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue interface{}, evalCtx map[string]interface{}) openfeature.ResolutionDetail {
+func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue interface{}, evalCtx map[string]interface{}) openfeature.InterfaceResolutionDetail {
 	res, err := p.envFetch.fetchStoredFlag(flagKey)
 	if err != nil {
-		return openfeature.ResolutionDetail{
-			Reason:    openfeature.ERROR,
-			Value:     defaultValue,
-			ErrorCode: err.Error(),
+		return openfeature.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ResolutionDetail: openfeature.ResolutionDetail{
+				Reason:    openfeature.ERROR,
+				ErrorCode: err.Error(),
+			},
 		}
 	}
 	variant, reason, value, err := res.evaluate(evalCtx)
 	if err != nil {
-		return openfeature.ResolutionDetail{
-			Reason:    openfeature.ERROR,
-			Value:     defaultValue,
-			ErrorCode: err.Error(),
+		return openfeature.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ResolutionDetail: openfeature.ResolutionDetail{
+				Reason:    openfeature.ERROR,
+				ErrorCode: err.Error(),
+			},
 		}
 	}
-	return openfeature.ResolutionDetail{
-		Reason:  reason,
-		Variant: variant,
-		Value:   value,
+
+	return openfeature.InterfaceResolutionDetail{
+		Value: value,
+		ResolutionDetail: openfeature.ResolutionDetail{
+			Reason:  reason,
+			Variant: variant,
+		},
 	}
 }

@@ -165,7 +165,7 @@ type TestBooleanEvaluationArgs struct {
 	name         string
 	flagKey      string
 	defaultValue bool
-	evalCtx      of.EvaluationContext
+	evalCtx      map[string]interface{}
 
 	mockOut   *schemav1.ResolveBooleanResponse
 	mockError error
@@ -179,10 +179,8 @@ func TestBooleanEvaluation(t *testing.T) {
 			name:         "happy path",
 			flagKey:      "flag",
 			defaultValue: true,
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveBooleanResponse{
 				Value:   true,
@@ -193,7 +191,6 @@ func TestBooleanEvaluation(t *testing.T) {
 			response: of.BoolResolutionDetail{
 				Value: true,
 				ResolutionDetail: of.ResolutionDetail{
-					Value:   true,
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -203,10 +200,8 @@ func TestBooleanEvaluation(t *testing.T) {
 			name:         "error response",
 			flagKey:      "flag",
 			defaultValue: true,
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveBooleanResponse{
 				Reason: flagdModels.StaticReason,
@@ -215,7 +210,6 @@ func TestBooleanEvaluation(t *testing.T) {
 			response: of.BoolResolutionDetail{
 				Value: true,
 				ResolutionDetail: of.ResolutionDetail{
-					Value:     true,
 					Reason:    flagdModels.StaticReason,
 					ErrorCode: flagdModels.FlagNotFoundErrorCode,
 				},
@@ -255,7 +249,7 @@ type TestStringEvaluationArgs struct {
 	name         string
 	flagKey      string
 	defaultValue string
-	evalCtx      of.EvaluationContext
+	evalCtx      map[string]interface{}
 
 	mockOut   *schemav1.ResolveStringResponse
 	mockError error
@@ -269,10 +263,8 @@ func TestStringEvaluation(t *testing.T) {
 			name:         "happy path",
 			flagKey:      "flag",
 			defaultValue: "true",
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveStringResponse{
 				Value:   "true",
@@ -283,7 +275,6 @@ func TestStringEvaluation(t *testing.T) {
 			response: of.StringResolutionDetail{
 				Value: "true",
 				ResolutionDetail: of.ResolutionDetail{
-					Value:   true,
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -293,10 +284,8 @@ func TestStringEvaluation(t *testing.T) {
 			name:         "error response",
 			flagKey:      "flag",
 			defaultValue: "true",
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveStringResponse{
 				Reason: flagdModels.StaticReason,
@@ -305,7 +294,6 @@ func TestStringEvaluation(t *testing.T) {
 			response: of.StringResolutionDetail{
 				Value: "true",
 				ResolutionDetail: of.ResolutionDetail{
-					Value:     true,
 					Reason:    flagdModels.StaticReason,
 					ErrorCode: flagdModels.FlagNotFoundErrorCode,
 				},
@@ -345,7 +333,7 @@ type TestFloatEvaluationArgs struct {
 	name         string
 	flagKey      string
 	defaultValue float64
-	evalCtx      of.EvaluationContext
+	evalCtx      map[string]interface{}
 
 	mockOut   *schemav1.ResolveFloatResponse
 	mockError error
@@ -359,10 +347,8 @@ func TestFloatEvaluation(t *testing.T) {
 			name:         "happy path",
 			flagKey:      "flag",
 			defaultValue: float64(1),
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveFloatResponse{
 				Value:   1,
@@ -373,7 +359,6 @@ func TestFloatEvaluation(t *testing.T) {
 			response: of.FloatResolutionDetail{
 				Value: 1,
 				ResolutionDetail: of.ResolutionDetail{
-					Value:   true,
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -383,10 +368,8 @@ func TestFloatEvaluation(t *testing.T) {
 			name:         "error response",
 			flagKey:      "flag",
 			defaultValue: float64(1),
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveFloatResponse{
 				Reason: flagdModels.StaticReason,
@@ -395,7 +378,6 @@ func TestFloatEvaluation(t *testing.T) {
 			response: of.FloatResolutionDetail{
 				Value: 1,
 				ResolutionDetail: of.ResolutionDetail{
-					Value:     true,
 					Reason:    flagdModels.StaticReason,
 					ErrorCode: flagdModels.FlagNotFoundErrorCode,
 				},
@@ -435,7 +417,7 @@ type TestIntEvaluationArgs struct {
 	name         string
 	flagKey      string
 	defaultValue int64
-	evalCtx      of.EvaluationContext
+	evalCtx      map[string]interface{}
 
 	mockOut   *schemav1.ResolveIntResponse
 	mockError error
@@ -449,10 +431,8 @@ func TestIntEvaluation(t *testing.T) {
 			name:         "happy path",
 			flagKey:      "flag",
 			defaultValue: 1,
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveIntResponse{
 				Value:   1,
@@ -463,7 +443,6 @@ func TestIntEvaluation(t *testing.T) {
 			response: of.IntResolutionDetail{
 				Value: 1,
 				ResolutionDetail: of.ResolutionDetail{
-					Value:   true,
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -473,10 +452,8 @@ func TestIntEvaluation(t *testing.T) {
 			name:         "error response",
 			flagKey:      "flag",
 			defaultValue: 1,
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveIntResponse{
 				Reason: flagdModels.StaticReason,
@@ -485,7 +462,6 @@ func TestIntEvaluation(t *testing.T) {
 			response: of.IntResolutionDetail{
 				Value: 1,
 				ResolutionDetail: of.ResolutionDetail{
-					Value:     true,
 					Reason:    flagdModels.StaticReason,
 					ErrorCode: flagdModels.FlagNotFoundErrorCode,
 				},
@@ -525,12 +501,12 @@ type TestObjectEvaluationArgs struct {
 	name         string
 	flagKey      string
 	defaultValue map[string]interface{}
-	evalCtx      of.EvaluationContext
+	evalCtx      map[string]interface{}
 
 	mockOut   *schemav1.ResolveObjectResponse
 	mockError error
 
-	response of.ResolutionDetail
+	response of.InterfaceResolutionDetail
 }
 
 func TestObjectEvaluation(t *testing.T) {
@@ -541,39 +517,39 @@ func TestObjectEvaluation(t *testing.T) {
 			defaultValue: map[string]interface{}{
 				"ping": "pong",
 			},
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveObjectResponse{
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
 			mockError: nil,
-			response: of.ResolutionDetail{
+			response: of.InterfaceResolutionDetail{
 				Value: map[string]interface{}{
 					"this": "that",
 				},
-				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant: "on",
+					Reason:  flagdModels.StaticReason,
+				},
 			},
 		},
 		{
 			name:    "error response",
 			flagKey: "flag",
-			evalCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"food": "bars",
-				},
+			evalCtx: map[string]interface{}{
+				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveObjectResponse{
 				Reason: flagdModels.StaticReason,
 			},
 			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
-			response: of.ResolutionDetail{
-				Reason:    flagdModels.StaticReason,
-				ErrorCode: flagdModels.FlagNotFoundErrorCode,
+			response: of.InterfaceResolutionDetail{
+				ResolutionDetail: of.ResolutionDetail{
+					Reason:    flagdModels.StaticReason,
+					ErrorCode: flagdModels.FlagNotFoundErrorCode,
+				},
 			},
 		},
 	}

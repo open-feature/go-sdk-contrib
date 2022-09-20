@@ -8,7 +8,6 @@ import (
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
 	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/codes"
@@ -27,14 +26,12 @@ type TestServiceResolveBooleanArgs struct {
 	customErr string
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
 	outVariant string
 	outValue   bool
-
-	structFormatCheck bool
 }
 
 func TestServiceResolveBoolean(t *testing.T) {
@@ -52,10 +49,8 @@ func TestServiceResolveBoolean(t *testing.T) {
 			},
 			mockErr: nil,
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:     nil,
 			outReason:  models.StaticReason,
@@ -76,10 +71,8 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
 			flagKey:   "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CUSTOM_ERROR"),
 			outReason: models.ErrorReason,
@@ -98,10 +91,8 @@ func TestServiceResolveBoolean(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CONNECTION_ERROR"),
 			outReason: models.ErrorReason,
@@ -119,35 +110,11 @@ func TestServiceResolveBoolean(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
-		},
-		{
-			name: "formatStructAsPbFails",
-			mockIn: &schemaV1.ResolveBooleanRequest{
-				FlagKey: "flag",
-				Context: nil,
-			},
-			mockOut: &schemaV1.ResolveBooleanResponse{
-				Value:   true,
-				Variant: "on",
-				Reason:  models.StaticReason,
-			},
-			mockErr: nil,
-			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": make(chan error, 5),
-				},
-			},
-			outErr:            nil,
-			outReason:         models.ErrorReason,
-			structFormatCheck: true,
 		},
 	}
 
@@ -172,13 +139,11 @@ func TestServiceResolveBoolean(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
-			f, err := service.FormatAsStructpb(test.evCtx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			test.mockIn.Context = f
+		f, err := structpb.NewStruct(test.evCtx)
+		if err != nil {
+			t.Fatal(err)
 		}
+		test.mockIn.Context = f
 
 		mock.EXPECT().ResolveBoolean(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
@@ -214,7 +179,7 @@ type TestServiceResolveFloatArgs struct {
 	customErr string
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -239,11 +204,9 @@ func TestServiceResolveFloat(t *testing.T) {
 			},
 			mockErr: nil,
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				TargetingKey: "me",
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this":         "that",
+				"targetingKey": "me",
 			},
 			outErr:     nil,
 			outReason:  models.StaticReason,
@@ -264,10 +227,8 @@ func TestServiceResolveFloat(t *testing.T) {
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
 			flagKey:   "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CUSTOM_ERROR"),
 			outReason: models.ErrorReason,
@@ -286,10 +247,8 @@ func TestServiceResolveFloat(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CONNECTION_ERROR"),
 			outReason: models.ErrorReason,
@@ -307,35 +266,11 @@ func TestServiceResolveFloat(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
-		},
-		{
-			name: "formatStructAsPb Fails",
-			mockIn: &schemaV1.ResolveFloatRequest{
-				FlagKey: "flag",
-				Context: nil,
-			},
-			mockOut: &schemaV1.ResolveFloatResponse{
-				Value:   12,
-				Variant: "on",
-				Reason:  models.StaticReason,
-			},
-			mockErr: nil,
-			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": make(chan error, 5),
-				},
-			},
-			outErr:            nil,
-			outReason:         models.ErrorReason,
-			structFormatCheck: true,
 		},
 	}
 
@@ -360,13 +295,11 @@ func TestServiceResolveFloat(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
-			f, err := service.FormatAsStructpb(test.evCtx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			test.mockIn.Context = f
+		f, err := structpb.NewStruct(test.evCtx)
+		if err != nil {
+			t.Fatal(err)
 		}
+		test.mockIn.Context = f
 
 		mock.EXPECT().ResolveFloat(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
@@ -402,7 +335,7 @@ type TestServiceResolveIntArgs struct {
 	customErr string
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -427,11 +360,9 @@ func TestServiceResolveInt(t *testing.T) {
 			},
 			mockErr: nil,
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				TargetingKey: "me",
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this":         "that",
+				"targetingKey": "me",
 			},
 			outErr:     nil,
 			outReason:  models.StaticReason,
@@ -452,10 +383,8 @@ func TestServiceResolveInt(t *testing.T) {
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
 			flagKey:   "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CUSTOM_ERROR"),
 			outReason: models.ErrorReason,
@@ -474,10 +403,8 @@ func TestServiceResolveInt(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CONNECTION_ERROR"),
 			outReason: models.ErrorReason,
@@ -495,35 +422,11 @@ func TestServiceResolveInt(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
-		},
-		{
-			name: "formatStructAsPb Fails",
-			mockIn: &schemaV1.ResolveIntRequest{
-				FlagKey: "flag",
-				Context: nil,
-			},
-			mockOut: &schemaV1.ResolveIntResponse{
-				Value:   12,
-				Variant: "on",
-				Reason:  models.StaticReason,
-			},
-			mockErr: nil,
-			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": make(chan error, 5),
-				},
-			},
-			outErr:            nil,
-			outReason:         models.ErrorReason,
-			structFormatCheck: true,
 		},
 	}
 
@@ -548,13 +451,11 @@ func TestServiceResolveInt(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
-			f, err := service.FormatAsStructpb(test.evCtx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			test.mockIn.Context = f
+		f, err := structpb.NewStruct(test.evCtx)
+		if err != nil {
+			t.Fatal(err)
 		}
+		test.mockIn.Context = f
 
 		mock.EXPECT().ResolveInt(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
@@ -590,7 +491,7 @@ type TestServiceResolveStringArgs struct {
 	customErr string
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -615,10 +516,8 @@ func TestServiceResolveString(t *testing.T) {
 			},
 			mockErr: nil,
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:     nil,
 			outReason:  models.StaticReason,
@@ -639,10 +538,8 @@ func TestServiceResolveString(t *testing.T) {
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
 			flagKey:   "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CUSTOM_ERROR"),
 			outReason: models.ErrorReason,
@@ -661,10 +558,8 @@ func TestServiceResolveString(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CONNECTION_ERROR"),
 			outReason: models.ErrorReason,
@@ -682,35 +577,11 @@ func TestServiceResolveString(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
-		},
-		{
-			name: "formatStructAsPb Fails",
-			mockIn: &schemaV1.ResolveStringRequest{
-				FlagKey: "flag",
-				Context: nil,
-			},
-			mockOut: &schemaV1.ResolveStringResponse{
-				Value:   "ok",
-				Variant: "on",
-				Reason:  models.StaticReason,
-			},
-			mockErr: nil,
-			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": make(chan error, 5),
-				},
-			},
-			outErr:            nil,
-			outReason:         models.ErrorReason,
-			structFormatCheck: true,
 		},
 	}
 
@@ -735,13 +606,11 @@ func TestServiceResolveString(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
-			f, err := service.FormatAsStructpb(test.evCtx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			test.mockIn.Context = f
+		f, err := structpb.NewStruct(test.evCtx)
+		if err != nil {
+			t.Fatal(err)
 		}
+		test.mockIn.Context = f
 
 		mock.EXPECT().ResolveString(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
@@ -777,7 +646,7 @@ type TestServiceResolveObjectArgs struct {
 	customErr string
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -801,10 +670,8 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			mockErr: nil,
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    nil,
 			outReason: models.StaticReason,
@@ -826,10 +693,8 @@ func TestServiceResolveObject(t *testing.T) {
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
 			flagKey:   "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CUSTOM_ERROR"),
 			outReason: models.ErrorReason,
@@ -847,10 +712,8 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New("CONNECTION_ERROR"),
 			outReason: models.ErrorReason,
@@ -867,35 +730,11 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": "that",
-				},
+			evCtx: map[string]interface{}{
+				"this": "that",
 			},
 			outErr:    errors.New(models.GeneralErrorCode),
 			outReason: models.ErrorReason,
-		},
-
-		{
-			name: "formatStructasPb fails",
-			mockIn: &schemaV1.ResolveObjectRequest{
-				FlagKey: "flag",
-				Context: nil,
-			},
-			mockOut: &schemaV1.ResolveObjectResponse{
-				Variant: "on",
-				Reason:  models.StaticReason,
-			},
-			mockErr: nil,
-			flagKey: "flag",
-			evCtx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"this": make(chan error, 5),
-				},
-			},
-			outErr:            nil,
-			outReason:         models.ErrorReason,
-			structFormatCheck: true,
 		},
 	}
 
@@ -920,13 +759,11 @@ func TestServiceResolveObject(t *testing.T) {
 			test.mockErr = stWD.Err()
 		}
 
-		if !reflect.DeepEqual(of.EvaluationContext{}, test.evCtx) && !test.structFormatCheck {
-			f, err := service.FormatAsStructpb(test.evCtx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			test.mockIn.Context = f
+		f, err := structpb.NewStruct(test.evCtx)
+		if err != nil {
+			t.Fatal(err)
 		}
+		test.mockIn.Context = f
 
 		if test.outValue != nil {
 			f, err := structpb.NewStruct(test.outValue)

@@ -13,7 +13,7 @@ func TestValidator_Hex(t *testing.T) {
 	}{
 		"#112233": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: "#112233",
 				},
 			},
@@ -21,7 +21,7 @@ func TestValidator_Hex(t *testing.T) {
 		},
 		"#123": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: "#123",
 				},
 			},
@@ -29,7 +29,7 @@ func TestValidator_Hex(t *testing.T) {
 		},
 		"#000233": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: "#000233",
 				},
 			},
@@ -37,7 +37,7 @@ func TestValidator_Hex(t *testing.T) {
 		},
 		"#023": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: "#023",
 				},
 			},
@@ -45,7 +45,7 @@ func TestValidator_Hex(t *testing.T) {
 		},
 		"invalid": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: "invalid",
 				},
 			},
@@ -53,7 +53,7 @@ func TestValidator_Hex(t *testing.T) {
 		},
 		"#abcd": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: "#abcd",
 				},
 			},
@@ -61,7 +61,7 @@ func TestValidator_Hex(t *testing.T) {
 		},
 		"#-12": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: "#-12",
 				},
 			},
@@ -69,7 +69,7 @@ func TestValidator_Hex(t *testing.T) {
 		},
 		"non string": {
 			flagEvaluationDetails: of.EvaluationDetails{
-				ResolutionDetail: of.ResolutionDetail{
+				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
 					Value: 3,
 				},
 			},
