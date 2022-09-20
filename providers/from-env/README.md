@@ -50,12 +50,12 @@ package main
 import (
 	"fmt"
 
-	fromEnv "github.com/open-feature/golang-sdk-contrib/providers/from-env/pkg"
-	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	fromEnv "github.com/open-feature/go-sdk-contrib/providers/from-env/pkg"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 func main() {
-	// register the provider against the golang-sdk
+	// register the provider against the go-sdk
 	openfeature.SetProvider(&fromEnv.Provider{})
 	// create a client from via the go-sdk
 	client := openfeature.NewClient("am-i-yellow-client")

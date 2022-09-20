@@ -13,7 +13,7 @@ There are, however, [ready to be used validators](#validators) that conform to t
 
 ## Setup
 
-Import the [OpenFeature SDK](https://github.com/open-feature/golang-sdk) and the validator.
+Import the [OpenFeature SDK](https://github.com/open-feature/go-sdk) and the validator.
 
 Create an instance of the validator hook struct (using the hex validator as an example):
 ```go
@@ -21,9 +21,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/open-feature/golang-sdk-contrib/hooks/validator/pkg/regex"
-	"github.com/open-feature/golang-sdk-contrib/hooks/validator/pkg/validator"
-	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/regex"
+	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/validator"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"log"
 )
 
@@ -57,9 +57,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/open-feature/golang-sdk-contrib/hooks/validator/pkg/regex"
-	"github.com/open-feature/golang-sdk-contrib/hooks/validator/pkg/validator"
-	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/regex"
+	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/validator"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"log"
 )
 

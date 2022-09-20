@@ -16,8 +16,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
-      GOPATH: /home/runner/work/open-feature/golang-sdk-contrib
-      GOBIN: /home/runner/work/open-feature/golang-sdk-contrib/bin
+      GOPATH: /home/runner/work/open-feature/go-sdk-contrib
+      GOBIN: /home/runner/work/open-feature/go-sdk-contrib/bin
     steps:
       - name: Install Go
         uses: actions/setup-go@v3

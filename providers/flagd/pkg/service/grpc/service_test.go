@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/grpc"
+	service "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/grpc"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/codes"
@@ -185,8 +185,6 @@ type TestServiceResolveFloatArgs struct {
 	outReason  string
 	outVariant string
 	outValue   float64
-
-	structFormatCheck bool
 }
 
 func TestServiceResolveFloat(t *testing.T) {
@@ -341,8 +339,6 @@ type TestServiceResolveIntArgs struct {
 	outReason  string
 	outVariant string
 	outValue   int64
-
-	structFormatCheck bool
 }
 
 func TestServiceResolveInt(t *testing.T) {
@@ -497,8 +493,6 @@ type TestServiceResolveStringArgs struct {
 	outReason  string
 	outVariant string
 	outValue   string
-
-	structFormatCheck bool
 }
 
 func TestServiceResolveString(t *testing.T) {
@@ -652,8 +646,6 @@ type TestServiceResolveObjectArgs struct {
 	outReason  string
 	outVariant string
 	outValue   map[string]interface{}
-
-	structFormatCheck bool
 }
 
 func TestServiceResolveObject(t *testing.T) {
