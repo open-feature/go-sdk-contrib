@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	models "github.com/open-feature/flagd/pkg/model"
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 )
@@ -36,7 +35,7 @@ type IntDecodeIntermediate struct {
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd flags/{flagKey}/resolve/boolean endpoint
-func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveBooleanResponse, error) {
+func (s *HTTPService) ResolveBoolean(flagKey string, context map[string]interface{}) (*schemaV1.ResolveBooleanResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/boolean", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveBooleanResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -49,7 +48,7 @@ func (s *HTTPService) ResolveBoolean(flagKey string, context of.EvaluationContex
 }
 
 // ResolveString handles the flag evaluation response from the flags/{flagKey}/resolve/string endpoint
-func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveStringResponse, error) {
+func (s *HTTPService) ResolveString(flagKey string, context map[string]interface{}) (*schemaV1.ResolveStringResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/string", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveStringResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -62,7 +61,7 @@ func (s *HTTPService) ResolveString(flagKey string, context of.EvaluationContext
 }
 
 // ResolveFloat handles the flag evaluation response from the flags/{flagKey}/resolve/float endpoint
-func (s *HTTPService) ResolveFloat(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveFloatResponse, error) {
+func (s *HTTPService) ResolveFloat(flagKey string, context map[string]interface{}) (*schemaV1.ResolveFloatResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/float", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveFloatResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -75,7 +74,7 @@ func (s *HTTPService) ResolveFloat(flagKey string, context of.EvaluationContext)
 }
 
 // ResolveInt handles the flag evaluation response from the flags/{flagKey}/resolve/int endpoint
-func (s *HTTPService) ResolveInt(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveIntResponse, error) {
+func (s *HTTPService) ResolveInt(flagKey string, context map[string]interface{}) (*schemaV1.ResolveIntResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/int", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	intermediate := IntDecodeIntermediate{}
 	err := s.FetchFlag(url, context, &intermediate)
@@ -98,7 +97,7 @@ func (s *HTTPService) ResolveInt(flagKey string, context of.EvaluationContext) (
 }
 
 // ResolveObject handles the flag evaluation response from the flags/{flagKey}/resolve/object endpoint
-func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext) (*schemaV1.ResolveObjectResponse, error) {
+func (s *HTTPService) ResolveObject(flagKey string, context map[string]interface{}) (*schemaV1.ResolveObjectResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d/flags/%s/resolve/object", s.HTTPServiceConfiguration.Protocol, s.HTTPServiceConfiguration.Host, s.HTTPServiceConfiguration.Port, flagKey)
 	resMess := schemaV1.ResolveObjectResponse{}
 	err := s.FetchFlag(url, context, &resMess)
@@ -112,8 +111,8 @@ func (s *HTTPService) ResolveObject(flagKey string, context of.EvaluationContext
 
 // FetchFlag handles the calling and parsing of the flag evaluation endpoints.
 // Argument p should be a pointer to a valid Resolve{type}Response struct for unmarshalling the response, e.g ResolveObjectResponse{}.
-func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interface{}) error {
-	body, err := json.Marshal(flattenContext(ctx))
+func (s *HTTPService) FetchFlag(url string, ctx map[string]interface{}, p interface{}) error {
+	body, err := json.Marshal(ctx)
 	if err != nil {
 		log.Error(err)
 		return errors.New(models.ParseErrorCode)
@@ -155,14 +154,4 @@ func (s *HTTPService) FetchFlag(url string, ctx of.EvaluationContext, p interfac
 	}
 
 	return errors.New(models.GeneralErrorCode)
-}
-
-func flattenContext(ctx of.EvaluationContext) map[string]interface{} {
-	if ctx.Attributes == nil {
-		ctx.Attributes = map[string]interface{}{}
-	}
-	if ctx.TargetingKey != "" {
-		ctx.Attributes["TargetingKey"] = ctx.TargetingKey
-	}
-	return ctx.Attributes
 }

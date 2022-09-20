@@ -11,8 +11,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	service "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/http"
 	"github.com/stretchr/testify/assert"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -31,7 +30,7 @@ type TestServiceResolveBooleanArgs struct {
 	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -148,7 +147,7 @@ type TestServiceResolveStringArgs struct {
 	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -265,7 +264,7 @@ type TestServiceResolveFloatArgs struct {
 	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -382,7 +381,7 @@ type TestServiceResolveIntArgs struct {
 	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -499,7 +498,7 @@ type TestServiceResolveObjectArgs struct {
 	httpServiceConfiguration service.HTTPServiceConfiguration
 
 	flagKey string
-	evCtx   of.EvaluationContext
+	evCtx   map[string]interface{}
 
 	outErr     error
 	outReason  string
@@ -620,7 +619,7 @@ type TestFetchFlagArgs struct {
 
 	body interface{}
 	url  string
-	ctx  of.EvaluationContext
+	ctx  map[string]interface{}
 	err  error
 }
 
@@ -632,8 +631,8 @@ func TestFetchFlag(t *testing.T) {
 				"food": "bars",
 			},
 			url: "GET/MY/FLAG",
-			ctx: of.EvaluationContext{
-				TargetingKey: "target",
+			ctx: map[string]interface{}{
+				"targetingKey": "target",
 			},
 			mockHttpResponseCode: 200,
 			err:                  nil,
@@ -642,10 +641,8 @@ func TestFetchFlag(t *testing.T) {
 			name: "200 response cannot unmarshal",
 			body: "string",
 			url:  "GET/MY/FLAG",
-			ctx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"con": "text",
-				},
+			ctx: map[string]interface{}{
+				"con": "text",
 			},
 			mockHttpResponseCode: 200,
 			err:                  errors.New(models.ParseErrorCode),
@@ -654,10 +651,8 @@ func TestFetchFlag(t *testing.T) {
 			name: "non 200 response cannot unmarshal",
 			body: "string",
 			url:  "GET/MY/FLAG",
-			ctx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"con": "text",
-				},
+			ctx: map[string]interface{}{
+				"con": "text",
 			},
 			mockHttpResponseCode: 400,
 			err:                  errors.New(models.ParseErrorCode),
@@ -668,10 +663,8 @@ func TestFetchFlag(t *testing.T) {
 				ErrorCode: models.FlagNotFoundErrorCode,
 			},
 			url: "GET/MY/FLAG",
-			ctx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"con": "text",
-				},
+			ctx: map[string]interface{}{
+				"con": "text",
 			},
 			mockHttpResponseCode: 404,
 			err:                  errors.New(models.FlagNotFoundErrorCode),
@@ -679,10 +672,8 @@ func TestFetchFlag(t *testing.T) {
 		{
 			name: "500 response",
 			url:  "GET/MY/FLAG",
-			ctx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"con": "text",
-				},
+			ctx: map[string]interface{}{
+				"con": "text",
 			},
 			mockHttpResponseCode: 500,
 			err:                  errors.New(models.GeneralErrorCode),
@@ -704,10 +695,8 @@ func TestFetchFlag(t *testing.T) {
 			url:                  "GET/MY/FLAG",
 			mockHttpResponseCode: 400,
 			err:                  errors.New(models.ParseErrorCode),
-			ctx: of.EvaluationContext{
-				Attributes: map[string]interface{}{
-					"will fail": make(chan error, 5),
-				},
+			ctx: map[string]interface{}{
+				"will fail": make(chan error, 5),
 			},
 		},
 	}

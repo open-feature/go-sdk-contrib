@@ -60,10 +60,15 @@ github.com/open-feature/golang-sdk v0.0.0-20220818092300-76a02cc8d58d h1:Mku0v+7
 github.com/open-feature/golang-sdk v0.0.0-20220818092300-76a02cc8d58d/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
 github.com/open-feature/golang-sdk v0.0.0-20220826131803-eb5bb27e4d8e h1:nOydvzQr+LlLvy/vxF2wbO7h114+J7Tp5/rfD+rRtWM=
 github.com/open-feature/golang-sdk v0.0.0-20220826131803-eb5bb27e4d8e/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
+<<<<<<< HEAD
+github.com/open-feature/golang-sdk v0.3.0 h1:uyd18UVj8qaORXdFl6f2ZABAoeszMidousUA5vUHdIo=
+github.com/open-feature/golang-sdk v0.3.0/go.mod h1:AcHh6hParWb2KPnkLUII0a060E6byMdW/YSGvfeHiVQ=
+=======
 github.com/open-feature/golang-sdk v0.2.0 h1:w6KYa75pp+ZZp+wpMWBNQhGtwyHt7TKTF/wLycEdclk=
 github.com/open-feature/golang-sdk v0.2.0/go.mod h1:AcHh6hParWb2KPnkLUII0a060E6byMdW/YSGvfeHiVQ=
 github.com/open-feature/golang-sdk v0.2.1-0.20220914084408-945bd96c8082 h1:zykZ9vePHuGKPL7zQE85IhEMehbHms2eRO1PwZ2MwCU=
 github.com/open-feature/golang-sdk v0.2.1-0.20220914084408-945bd96c8082/go.mod h1:AcHh6hParWb2KPnkLUII0a060E6byMdW/YSGvfeHiVQ=
+>>>>>>> 186a3504e48c5668dcf4ea439bb7ff0ea73fe13c
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=

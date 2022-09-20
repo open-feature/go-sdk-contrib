@@ -3,7 +3,7 @@ package http_service_test
 import (
 	"testing"
 
-	service "github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg/service/http"
+	service "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/http"
 )
 
 type TestConstructorArgs struct {

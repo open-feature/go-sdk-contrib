@@ -3,10 +3,10 @@
 ![Experimental](https://img.shields.io/badge/experimental-breaking%20changes%20allowed-yellow)
 ![Alpha](https://img.shields.io/badge/alpha-release-red)
 
-[Flagd](https://github.com/open-feature/flagd) is a simple command line tool for fetching and presenting feature flags to services. It is designed to conform to OpenFeature schema for flag definitions. This repository and package provides the client side code for interacting with it via the [OpenFeature SDK](https://github.com/open-feature/golang-sdk).
+[Flagd](https://github.com/open-feature/flagd) is a simple command line tool for fetching and presenting feature flags to services. It is designed to conform to OpenFeature schema for flag definitions. This repository and package provides the client side code for interacting with it via the [OpenFeature SDK](https://github.com/open-feature/go-sdk).
 
 ## Setup
-To use flagd with the [OpenFeature SDK](https://github.com/open-feature/golang-sdk) set the provider to the `openfeature` global singleton as shown below (using default values which align with those of `flagd`)
+To use flagd with the [OpenFeature SDK](https://github.com/open-feature/go-sdk) set the provider to the `openfeature` global singleton as shown below (using default values which align with those of `flagd`)
 ```go
 openfeature.SetProvider(flagd.NewProvider())
 ```  
@@ -23,8 +23,8 @@ for example:
 package main
 
 import (
-	"github.com/open-feature/golang-sdk-contrib/providers/flagd/pkg"
-   	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+   	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 func main() {
