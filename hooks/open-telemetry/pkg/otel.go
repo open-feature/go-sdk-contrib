@@ -110,7 +110,7 @@ func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.Evalua
 	var value string
 	switch flagEvaluationDetails.FlagType {
 	case of.Boolean:
-		value = fmt.Sprintf("%T", flagEvaluationDetails.Value.(bool))
+		value = fmt.Sprintf("%t", flagEvaluationDetails.Value.(bool))
 	case of.String:
 		value = flagEvaluationDetails.Value.(string)
 	case of.Float:
