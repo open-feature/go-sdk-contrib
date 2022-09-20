@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"

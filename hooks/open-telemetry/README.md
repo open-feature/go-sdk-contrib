@@ -25,7 +25,7 @@ The following example demonstrates the use of the `OpenTelemetry hook` with the 
         "feature_flag.evaluated_variant":"default-variant",
         "feature_flag.flag_key":"my-bool-flag",
         "feature_flag.provider_name":"NoopProvider",
-        "otel.library.name":"github.com/open-feature/golang-sdk-contrib/hooks/opentelemetry",
+        "otel.library.name":"github.com/open-feature/go-sdk-contrib/hooks/opentelemetry",
         "service.name":"hook-example"
     }
 }
@@ -42,8 +42,8 @@ import (
 	"os"
 	"os/signal"
 
-	otelHook "github.com/open-feature/golang-sdk-contrib/hooks/open-telemetry/pkg"
-	"github.com/open-feature/golang-sdk/pkg/openfeature"
+	otelHook "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry/pkg"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/sdk/resource"

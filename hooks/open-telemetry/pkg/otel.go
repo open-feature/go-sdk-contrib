@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	of "github.com/open-feature/golang-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -23,7 +23,7 @@ const (
 	// AttributeEvaluatedValue trace attribute name for the value returned from the flag evaluation
 	AttributeEvaluatedValue = "feature_flag.evaluated_value"
 	// AttributeTraceName the name of the trace exported by the hook
-	AttributeTraceName = "github.com/open-feature/golang-sdk-contrib/hooks/open-telemetry/pkg"
+	AttributeTraceName = "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry/pkg"
 )
 
 type Hook struct {
