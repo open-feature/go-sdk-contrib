@@ -90,7 +90,7 @@ func main() {
 	}
 	defer func() {
 		if err := shutdown(ctx); err != nil {
-			log.Fatal("failed to shutdown TracerProvider: %w", err)
+			log.Fatalf("failed to shutdown TracerProvider: %w", err)
 		}
 	}()
 
