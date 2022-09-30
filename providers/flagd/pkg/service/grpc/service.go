@@ -1,11 +1,11 @@
 package grpc_service
 
 import (
-	ctx "context"
-	"errors"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/model"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	"golang.org/x/net/context"
 
 	flagdModels "github.com/open-feature/flagd/pkg/model"
-	providerModels "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/model"
 	log "github.com/sirupsen/logrus"
 	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/status"
@@ -25,57 +25,57 @@ type GRPCService struct {
 }
 
 // ResolveBoolean handles the flag evaluation response from the grpc flagd ResolveBoolean rpc
-func (s *GRPCService) ResolveBoolean(flagKey string, context map[string]interface{}) (*schemaV1.ResolveBooleanResponse, error) {
+func (s *GRPCService) ResolveBoolean(ctx context.Context, flagKey string, evalCtx map[string]interface{}) (*schemaV1.ResolveBooleanResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveBooleanResponse{
-			Reason: flagdModels.ErrorReason,
-		}, errors.New(providerModels.ConnectionErrorCode)
+			Reason: string(of.ErrorReason),
+		}, of.NewProviderNotReadyResolutionError("connection not made")
 	}
-	ctxF, err := structpb.NewStruct(context)
+	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveBooleanResponse{
-			Reason: flagdModels.ErrorReason,
-		}, errors.New(flagdModels.ParseErrorCode)
+			Reason: string(of.ErrorReason),
+		}, of.NewParseErrorResolutionError(err.Error())
 	}
-	res, err := client.ResolveBoolean(ctx.Background(), &schemaV1.ResolveBooleanRequest{
+	res, err := client.ResolveBoolean(ctx, &schemaV1.ResolveBooleanRequest{
 		FlagKey: flagKey,
-		Context: ctxF,
+		Context: evalCtxF,
 	})
 	if err != nil {
 		res, ok := parseError(err)
 		if !ok {
 			log.Error(err)
 			return &schemaV1.ResolveBooleanResponse{
-				Reason: flagdModels.ErrorReason,
-			}, errors.New(flagdModels.GeneralErrorCode)
+				Reason: string(of.ErrorReason),
+			}, of.NewGeneralResolutionError(err.Error())
 		}
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: res.Reason,
-		}, errors.New(res.ErrorCode)
+		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
 	}
 	return res, nil
 }
 
 // ResolveString handles the flag evaluation response from the grpc flagd interface ResolveString rpc
-func (s *GRPCService) ResolveString(flagKey string, context map[string]interface{}) (*schemaV1.ResolveStringResponse, error) {
+func (s *GRPCService) ResolveString(ctx context.Context, flagKey string, evalCtx map[string]interface{}) (*schemaV1.ResolveStringResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(providerModels.ConnectionErrorCode)
+		}, of.NewProviderNotReadyResolutionError("connection not made")
 	}
-	contextF, err := structpb.NewStruct(context)
+	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveStringResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(flagdModels.ParseErrorCode)
+		}, of.NewParseErrorResolutionError(err.Error())
 	}
-	res, err := client.ResolveString(ctx.Background(), &schemaV1.ResolveStringRequest{
+	res, err := client.ResolveString(ctx, &schemaV1.ResolveStringRequest{
 		FlagKey: flagKey,
-		Context: contextF,
+		Context: evalCtxF,
 	})
 	if err != nil {
 		res, ok := parseError(err)
@@ -83,33 +83,33 @@ func (s *GRPCService) ResolveString(flagKey string, context map[string]interface
 			log.Error(err)
 			return &schemaV1.ResolveStringResponse{
 				Reason: flagdModels.ErrorReason,
-			}, errors.New(flagdModels.GeneralErrorCode)
+			}, of.NewGeneralResolutionError(err.Error())
 		}
 		return &schemaV1.ResolveStringResponse{
 			Reason: res.Reason,
-		}, errors.New(res.ErrorCode)
+		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
 	}
 	return res, nil
 }
 
 // ResolveFloat handles the flag evaluation response from the grpc flagd interface ResolveFloat rpc
-func (s *GRPCService) ResolveFloat(flagKey string, context map[string]interface{}) (*schemaV1.ResolveFloatResponse, error) {
+func (s *GRPCService) ResolveFloat(ctx context.Context, flagKey string, evalCtx map[string]interface{}) (*schemaV1.ResolveFloatResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveFloatResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(providerModels.ConnectionErrorCode)
+		}, of.NewProviderNotReadyResolutionError("connection not made")
 	}
-	contextF, err := structpb.NewStruct(context)
+	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveFloatResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(flagdModels.ParseErrorCode)
+		}, of.NewParseErrorResolutionError(err.Error())
 	}
-	res, err := client.ResolveFloat(ctx.Background(), &schemaV1.ResolveFloatRequest{
+	res, err := client.ResolveFloat(ctx, &schemaV1.ResolveFloatRequest{
 		FlagKey: flagKey,
-		Context: contextF,
+		Context: evalCtxF,
 	})
 	if err != nil {
 		res, ok := parseError(err)
@@ -117,33 +117,33 @@ func (s *GRPCService) ResolveFloat(flagKey string, context map[string]interface{
 			log.Error(err)
 			return &schemaV1.ResolveFloatResponse{
 				Reason: flagdModels.ErrorReason,
-			}, errors.New(flagdModels.GeneralErrorCode)
+			}, of.NewGeneralResolutionError(err.Error())
 		}
 		return &schemaV1.ResolveFloatResponse{
 			Reason: res.Reason,
-		}, errors.New(res.ErrorCode)
+		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
 	}
 	return res, nil
 }
 
 // ResolveInt handles the flag evaluation response from the grpc flagd interface ResolveNumber rpc
-func (s *GRPCService) ResolveInt(flagKey string, context map[string]interface{}) (*schemaV1.ResolveIntResponse, error) {
+func (s *GRPCService) ResolveInt(ctx context.Context, flagKey string, evalCtx map[string]interface{}) (*schemaV1.ResolveIntResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveIntResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(providerModels.ConnectionErrorCode)
+		}, of.NewProviderNotReadyResolutionError("connection not made")
 	}
-	contextF, err := structpb.NewStruct(context)
+	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveIntResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(flagdModels.ParseErrorCode)
+		}, of.NewParseErrorResolutionError(err.Error())
 	}
-	res, err := client.ResolveInt(ctx.Background(), &schemaV1.ResolveIntRequest{
+	res, err := client.ResolveInt(ctx, &schemaV1.ResolveIntRequest{
 		FlagKey: flagKey,
-		Context: contextF,
+		Context: evalCtxF,
 	})
 	if err != nil {
 		res, ok := parseError(err)
@@ -151,33 +151,33 @@ func (s *GRPCService) ResolveInt(flagKey string, context map[string]interface{})
 			log.Error(err)
 			return &schemaV1.ResolveIntResponse{
 				Reason: flagdModels.ErrorReason,
-			}, errors.New(flagdModels.GeneralErrorCode)
+			}, of.NewGeneralResolutionError(err.Error())
 		}
 		return &schemaV1.ResolveIntResponse{
 			Reason: res.Reason,
-		}, errors.New(res.ErrorCode)
+		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
 	}
 	return res, nil
 }
 
 // ResolveObject handles the flag evaluation response from the grpc flagd interface ResolveObject rpc
-func (s *GRPCService) ResolveObject(flagKey string, context map[string]interface{}) (*schemaV1.ResolveObjectResponse, error) {
+func (s *GRPCService) ResolveObject(ctx context.Context, flagKey string, evalCtx map[string]interface{}) (*schemaV1.ResolveObjectResponse, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(providerModels.ConnectionErrorCode)
+		}, of.NewProviderNotReadyResolutionError("connection not made")
 	}
-	contextF, err := structpb.NewStruct(context)
+	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		log.Error(err)
 		return &schemaV1.ResolveObjectResponse{
 			Reason: flagdModels.ErrorReason,
-		}, errors.New(flagdModels.ParseErrorCode)
+		}, of.NewParseErrorResolutionError(err.Error())
 	}
-	res, err := client.ResolveObject(ctx.Background(), &schemaV1.ResolveObjectRequest{
+	res, err := client.ResolveObject(ctx, &schemaV1.ResolveObjectRequest{
 		FlagKey: flagKey,
-		Context: contextF,
+		Context: evalCtxF,
 	})
 	if err != nil {
 		res, ok := parseError(err)
@@ -185,11 +185,11 @@ func (s *GRPCService) ResolveObject(flagKey string, context map[string]interface
 			log.Error(err)
 			return &schemaV1.ResolveObjectResponse{
 				Reason: flagdModels.ErrorReason,
-			}, errors.New(flagdModels.GeneralErrorCode)
+			}, of.NewGeneralResolutionError(err.Error())
 		}
 		return &schemaV1.ResolveObjectResponse{
 			Reason: res.Reason,
-		}, errors.New(res.ErrorCode)
+		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
 	}
 	return res, nil
 }

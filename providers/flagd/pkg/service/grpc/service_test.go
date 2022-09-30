@@ -1,7 +1,9 @@
 package grpc_service_test
 
 import (
+	"context"
 	"errors"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"reflect"
 	"testing"
 
@@ -74,7 +76,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CUSTOM_ERROR"),
+			outErr:    of.NewGeneralResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -94,7 +96,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CONNECTION_ERROR"),
+			outErr:    of.NewProviderNotReadyResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -152,7 +154,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 				NilClient: test.nilClient,
 			},
 		}
-		res, err := srv.ResolveBoolean(test.flagKey, test.evCtx)
+		res, err := srv.ResolveBoolean(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -228,7 +230,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CUSTOM_ERROR"),
+			outErr:    of.NewGeneralResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -248,7 +250,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CONNECTION_ERROR"),
+			outErr:    of.NewProviderNotReadyResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -306,7 +308,7 @@ func TestServiceResolveFloat(t *testing.T) {
 				NilClient: test.nilClient,
 			},
 		}
-		res, err := srv.ResolveFloat(test.flagKey, test.evCtx)
+		res, err := srv.ResolveFloat(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -382,7 +384,7 @@ func TestServiceResolveInt(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CUSTOM_ERROR"),
+			outErr:    of.NewGeneralResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -402,7 +404,7 @@ func TestServiceResolveInt(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CONNECTION_ERROR"),
+			outErr:    of.NewProviderNotReadyResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -460,7 +462,7 @@ func TestServiceResolveInt(t *testing.T) {
 				NilClient: test.nilClient,
 			},
 		}
-		res, err := srv.ResolveInt(test.flagKey, test.evCtx)
+		res, err := srv.ResolveInt(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -535,7 +537,7 @@ func TestServiceResolveString(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CUSTOM_ERROR"),
+			outErr:    of.NewGeneralResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -555,7 +557,7 @@ func TestServiceResolveString(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CONNECTION_ERROR"),
+			outErr:    of.NewProviderNotReadyResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -613,7 +615,7 @@ func TestServiceResolveString(t *testing.T) {
 				NilClient: test.nilClient,
 			},
 		}
-		res, err := srv.ResolveString(test.flagKey, test.evCtx)
+		res, err := srv.ResolveString(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -688,7 +690,7 @@ func TestServiceResolveObject(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CUSTOM_ERROR"),
+			outErr:    of.NewGeneralResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -707,7 +709,7 @@ func TestServiceResolveObject(t *testing.T) {
 			evCtx: map[string]interface{}{
 				"this": "that",
 			},
-			outErr:    errors.New("CONNECTION_ERROR"),
+			outErr:    of.NewProviderNotReadyResolutionError(""),
 			outReason: models.ErrorReason,
 		},
 		{
@@ -772,7 +774,7 @@ func TestServiceResolveObject(t *testing.T) {
 				NilClient: test.nilClient,
 			},
 		}
-		res, err := srv.ResolveObject(test.flagKey, test.evCtx)
+		res, err := srv.ResolveObject(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}

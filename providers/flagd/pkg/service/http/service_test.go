@@ -2,8 +2,10 @@ package http_service_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"io"
 	"net/http"
 	"reflect"
@@ -79,7 +81,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New("CUSTOM ERROR MESSAGE"),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 		{
 			name:                 "non 200",
@@ -94,7 +96,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New(models.GeneralErrorCode),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 	}
 	ctrl := gomock.NewController(t)
@@ -106,7 +108,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mock.EXPECT().Request(test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
+		mock.EXPECT().Request(context.Background(), test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
 			&http.Response{
 				StatusCode: test.mockHttpResponseCode,
 				Body:       io.NopCloser(bytes.NewReader(bodyM)),
@@ -118,7 +120,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
-		res, err := srv.ResolveBoolean(test.flagKey, test.evCtx)
+		res, err := srv.ResolveBoolean(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -196,7 +198,7 @@ func TestServiceResolveString(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New("CUSTOM ERROR MESSAGE"),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 		{
 			name:                 "non 200",
@@ -211,7 +213,7 @@ func TestServiceResolveString(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New(models.GeneralErrorCode),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 	}
 	ctrl := gomock.NewController(t)
@@ -223,7 +225,7 @@ func TestServiceResolveString(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mock.EXPECT().Request(test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
+		mock.EXPECT().Request(context.Background(), test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
 			&http.Response{
 				StatusCode: test.mockHttpResponseCode,
 				Body:       io.NopCloser(bytes.NewReader(bodyM)),
@@ -235,7 +237,7 @@ func TestServiceResolveString(t *testing.T) {
 			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
-		res, err := srv.ResolveString(test.flagKey, test.evCtx)
+		res, err := srv.ResolveString(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -313,7 +315,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New("CUSTOM ERROR MESSAGE"),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 		{
 			name:                 "non 200",
@@ -328,7 +330,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New(models.GeneralErrorCode),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 	}
 	ctrl := gomock.NewController(t)
@@ -340,7 +342,7 @@ func TestServiceResolveFloat(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mock.EXPECT().Request(test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
+		mock.EXPECT().Request(context.Background(), test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
 			&http.Response{
 				StatusCode: test.mockHttpResponseCode,
 				Body:       io.NopCloser(bytes.NewReader(bodyM)),
@@ -352,7 +354,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
-		res, err := srv.ResolveFloat(test.flagKey, test.evCtx)
+		res, err := srv.ResolveFloat(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -430,7 +432,7 @@ func TestServiceResolveInt(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New("CUSTOM ERROR MESSAGE"),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 		{
 			name:                 "non 200",
@@ -445,7 +447,7 @@ func TestServiceResolveInt(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New(models.GeneralErrorCode),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 	}
 	ctrl := gomock.NewController(t)
@@ -457,7 +459,7 @@ func TestServiceResolveInt(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mock.EXPECT().Request(test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
+		mock.EXPECT().Request(context.Background(), test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
 			&http.Response{
 				StatusCode: test.mockHttpResponseCode,
 				Body:       io.NopCloser(bytes.NewReader(bodyM)),
@@ -469,7 +471,7 @@ func TestServiceResolveInt(t *testing.T) {
 			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
-		res, err := srv.ResolveInt(test.flagKey, test.evCtx)
+		res, err := srv.ResolveInt(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -544,7 +546,7 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New("CUSTOM ERROR MESSAGE"),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 		{
 			name:                 "non 200",
@@ -559,7 +561,7 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			flagKey:   "flag",
 			outReason: models.ErrorReason,
-			outErr:    errors.New(models.GeneralErrorCode),
+			outErr:    errors.New(string(of.GeneralCode)),
 		},
 	}
 	ctrl := gomock.NewController(t)
@@ -582,7 +584,7 @@ func TestServiceResolveObject(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		mock.EXPECT().Request(test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
+		mock.EXPECT().Request(context.Background(), test.mockMethod, test.mockUrl, gomock.Any()).AnyTimes().Return(
 			&http.Response{
 				StatusCode: test.mockHttpResponseCode,
 				Body:       io.NopCloser(bytes.NewReader(bodyM)),
@@ -594,7 +596,7 @@ func TestServiceResolveObject(t *testing.T) {
 			HTTPServiceConfiguration: &test.httpServiceConfiguration,
 		}
 
-		res, err := srv.ResolveObject(test.flagKey, test.evCtx)
+		res, err := srv.ResolveObject(context.Background(), test.flagKey, test.evCtx)
 		if test.outErr != nil && !assert.EqualError(t, err, test.outErr.Error()) {
 			t.Errorf("%s: unexpected error received, expected %v, got %v", test.name, test.outErr, err)
 		}
@@ -714,7 +716,7 @@ func TestFetchFlag(t *testing.T) {
 			StatusCode: test.mockHttpResponseCode,
 			Body:       io.NopCloser(bytes.NewReader(bodyM)),
 		}
-		mock.EXPECT().Request(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(
+		mock.EXPECT().Request(context.Background(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(
 			&http.Response{
 				StatusCode: test.mockHttpResponseCode,
 				Body:       io.NopCloser(bytes.NewReader(bodyM)),
@@ -725,7 +727,7 @@ func TestFetchFlag(t *testing.T) {
 			Client: mock,
 		}
 		target := map[string]interface{}{}
-		err = svc.FetchFlag(test.url, test.ctx, &target)
+		err = svc.FetchFlag(context.Background(), test.url, test.ctx, &target)
 
 		if test.err != nil && !assert.EqualError(t, err, test.err.Error()) {
 			t.Errorf("%s: unexpected value for error expected %v received %v", test.name, test.err, err)

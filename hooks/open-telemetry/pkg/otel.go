@@ -95,7 +95,7 @@ func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.E
 }
 
 // After sets the EvaluatedVariant and EvaluatedValue on the evaluation specific span
-func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.EvaluationDetails, hookHints of.HookHints) error {
+func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.InterfaceEvaluationDetails, hookHints of.HookHints) error {
 	key := fmt.Sprintf("%s.%s", hookContext.ClientMetadata().Name(), hookContext.FlagKey())
 	mw, ok := h.spans[key]
 	if !ok {

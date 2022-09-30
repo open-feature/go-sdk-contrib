@@ -1,7 +1,7 @@
 package flagd_test
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	reflect "reflect"
 	"testing"
@@ -190,7 +190,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			mockError: nil,
 			response: of.BoolResolutionDetail{
 				Value: true,
-				ResolutionDetail: of.ResolutionDetail{
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -206,12 +206,12 @@ func TestBooleanEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveBooleanResponse{
 				Reason: flagdModels.StaticReason,
 			},
-			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
+			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.BoolResolutionDetail{
 				Value: true,
-				ResolutionDetail: of.ResolutionDetail{
-					Reason:    flagdModels.StaticReason,
-					ErrorCode: flagdModels.FlagNotFoundErrorCode,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:          flagdModels.StaticReason,
+					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
 		},
@@ -222,16 +222,16 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveBoolean(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		mock.EXPECT().ResolveBoolean(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := flagd.Provider{
 			Service: mock,
 		}
 
-		res := provider.BooleanEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
+		res := provider.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ErrorCode != test.response.ErrorCode {
-			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
+		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
 		}
 		if res.Variant != test.response.Variant {
 			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
@@ -274,7 +274,7 @@ func TestStringEvaluation(t *testing.T) {
 			mockError: nil,
 			response: of.StringResolutionDetail{
 				Value: "true",
-				ResolutionDetail: of.ResolutionDetail{
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -290,12 +290,12 @@ func TestStringEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveStringResponse{
 				Reason: flagdModels.StaticReason,
 			},
-			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
+			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.StringResolutionDetail{
 				Value: "true",
-				ResolutionDetail: of.ResolutionDetail{
-					Reason:    flagdModels.StaticReason,
-					ErrorCode: flagdModels.FlagNotFoundErrorCode,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:          flagdModels.StaticReason,
+					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
 		},
@@ -306,16 +306,16 @@ func TestStringEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveString(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		mock.EXPECT().ResolveString(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := flagd.Provider{
 			Service: mock,
 		}
 
-		res := provider.StringEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
+		res := provider.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ErrorCode != test.response.ErrorCode {
-			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
+		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
 		}
 		if res.Variant != test.response.Variant {
 			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
@@ -358,7 +358,7 @@ func TestFloatEvaluation(t *testing.T) {
 			mockError: nil,
 			response: of.FloatResolutionDetail{
 				Value: 1,
-				ResolutionDetail: of.ResolutionDetail{
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -374,12 +374,12 @@ func TestFloatEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveFloatResponse{
 				Reason: flagdModels.StaticReason,
 			},
-			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
+			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.FloatResolutionDetail{
 				Value: 1,
-				ResolutionDetail: of.ResolutionDetail{
-					Reason:    flagdModels.StaticReason,
-					ErrorCode: flagdModels.FlagNotFoundErrorCode,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:          flagdModels.StaticReason,
+					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
 		},
@@ -390,16 +390,16 @@ func TestFloatEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveFloat(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		mock.EXPECT().ResolveFloat(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := flagd.Provider{
 			Service: mock,
 		}
 
-		res := provider.FloatEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
+		res := provider.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ErrorCode != test.response.ErrorCode {
-			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
+		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
 		}
 		if res.Variant != test.response.Variant {
 			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
@@ -442,7 +442,7 @@ func TestIntEvaluation(t *testing.T) {
 			mockError: nil,
 			response: of.IntResolutionDetail{
 				Value: 1,
-				ResolutionDetail: of.ResolutionDetail{
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -458,12 +458,12 @@ func TestIntEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveIntResponse{
 				Reason: flagdModels.StaticReason,
 			},
-			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
+			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.IntResolutionDetail{
 				Value: 1,
-				ResolutionDetail: of.ResolutionDetail{
-					Reason:    flagdModels.StaticReason,
-					ErrorCode: flagdModels.FlagNotFoundErrorCode,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:          flagdModels.StaticReason,
+					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
 		},
@@ -474,16 +474,16 @@ func TestIntEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveInt(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		mock.EXPECT().ResolveInt(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := flagd.Provider{
 			Service: mock,
 		}
 
-		res := provider.IntEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
+		res := provider.IntEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ErrorCode != test.response.ErrorCode {
-			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
+		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
 		}
 		if res.Variant != test.response.Variant {
 			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
@@ -529,7 +529,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Value: map[string]interface{}{
 					"this": "that",
 				},
-				ResolutionDetail: of.ResolutionDetail{
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
 					Reason:  flagdModels.StaticReason,
 				},
@@ -544,11 +544,11 @@ func TestObjectEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveObjectResponse{
 				Reason: flagdModels.StaticReason,
 			},
-			mockError: errors.New(flagdModels.FlagNotFoundErrorCode),
+			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.InterfaceResolutionDetail{
-				ResolutionDetail: of.ResolutionDetail{
-					Reason:    flagdModels.StaticReason,
-					ErrorCode: flagdModels.FlagNotFoundErrorCode,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:          flagdModels.StaticReason,
+					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
 		},
@@ -568,16 +568,16 @@ func TestObjectEvaluation(t *testing.T) {
 			test.mockOut.Value = f
 		}
 
-		mock.EXPECT().ResolveObject(test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		mock.EXPECT().ResolveObject(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := flagd.Provider{
 			Service: mock,
 		}
 
-		res := provider.ObjectEvaluation(test.flagKey, test.defaultValue, test.evalCtx)
+		res := provider.ObjectEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ErrorCode != test.response.ErrorCode {
-			t.Errorf("%s: unexpected ErrorCode received, expected %v, got %v", test.name, test.response.ErrorCode, res.ErrorCode)
+		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
 		}
 		if res.Variant != test.response.Variant {
 			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)

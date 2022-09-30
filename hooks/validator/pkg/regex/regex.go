@@ -22,7 +22,7 @@ func NewValidator(regularExpression string) (Validator, error) {
 }
 
 // IsValid returns an error if the flag evaluation details value isn't a hex color
-func (v Validator) IsValid(flagEvaluationDetails of.EvaluationDetails) error {
+func (v Validator) IsValid(flagEvaluationDetails of.InterfaceEvaluationDetails) error {
 	s, ok := flagEvaluationDetails.Value.(string)
 	if !ok {
 		return errors.New("flag value isn't of type string")

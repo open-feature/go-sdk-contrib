@@ -1,6 +1,8 @@
 package flagd
 
 import (
+	"context"
+	"errors"
 	"os"
 	"strconv"
 
@@ -178,106 +180,146 @@ func (p *Provider) Configuration() *ProviderConfiguration {
 	return p.providerConfiguration
 }
 
-func (p *Provider) BooleanEvaluation(flagKey string, defaultValue bool, evalCtx map[string]interface{}) of.BoolResolutionDetail {
-	res, err := p.Service.ResolveBoolean(flagKey, evalCtx)
+func (p *Provider) BooleanEvaluation(
+	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
+) of.BoolResolutionDetail {
+	res, err := p.Service.ResolveBoolean(ctx, flagKey, evalCtx)
 	if err != nil {
+		var e of.ResolutionError
+		if !errors.As(err, &e) {
+			e = of.NewGeneralResolutionError(err.Error())
+		}
+
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
-			ResolutionDetail: of.ResolutionDetail{
-				Reason:    res.Reason,
-				Variant:   res.Variant,
-				ErrorCode: err.Error(),
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: e,
+				Reason:          of.Reason(res.Reason),
+				Variant:         res.Variant,
 			},
 		}
 	}
+
 	return of.BoolResolutionDetail{
 		Value: res.Value,
-		ResolutionDetail: of.ResolutionDetail{
-			Reason:  res.Reason,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) StringEvaluation(flagKey string, defaultValue string, evalCtx map[string]interface{}) of.StringResolutionDetail {
-	res, err := p.Service.ResolveString(flagKey, evalCtx)
+func (p *Provider) StringEvaluation(
+	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
+) of.StringResolutionDetail {
+	res, err := p.Service.ResolveString(ctx, flagKey, evalCtx)
 	if err != nil {
+		var e of.ResolutionError
+		if !errors.As(err, &e) {
+			e = of.NewGeneralResolutionError(err.Error())
+		}
+
 		return of.StringResolutionDetail{
 			Value: defaultValue,
-			ResolutionDetail: of.ResolutionDetail{
-				Reason:    res.Reason,
-				Variant:   res.Variant,
-				ErrorCode: err.Error(),
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: e,
+				Reason:          of.Reason(res.Reason),
+				Variant:         res.Variant,
 			},
 		}
 	}
+
 	return of.StringResolutionDetail{
 		Value: res.Value,
-		ResolutionDetail: of.ResolutionDetail{
-			Reason:  res.Reason,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) FloatEvaluation(flagKey string, defaultValue float64, evalCtx map[string]interface{}) of.FloatResolutionDetail {
-	res, err := p.Service.ResolveFloat(flagKey, evalCtx)
+func (p *Provider) FloatEvaluation(
+	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
+) of.FloatResolutionDetail {
+	res, err := p.Service.ResolveFloat(ctx, flagKey, evalCtx)
 	if err != nil {
+		var e of.ResolutionError
+		if !errors.As(err, &e) {
+			e = of.NewGeneralResolutionError(err.Error())
+		}
+
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
-			ResolutionDetail: of.ResolutionDetail{
-				Reason:    res.Reason,
-				Variant:   res.Variant,
-				ErrorCode: err.Error(),
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: e,
+				Reason:          of.Reason(res.Reason),
+				Variant:         res.Variant,
 			},
 		}
 	}
+
 	return of.FloatResolutionDetail{
 		Value: res.Value,
-		ResolutionDetail: of.ResolutionDetail{
-			Reason:  res.Reason,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) IntEvaluation(flagKey string, defaultValue int64, evalCtx map[string]interface{}) of.IntResolutionDetail {
-	res, err := p.Service.ResolveInt(flagKey, evalCtx)
+func (p *Provider) IntEvaluation(
+	ctx context.Context, flagKey string, defaultValue int64, evalCtx of.FlattenedContext,
+) of.IntResolutionDetail {
+	res, err := p.Service.ResolveInt(ctx, flagKey, evalCtx)
 	if err != nil {
+		var e of.ResolutionError
+		if !errors.As(err, &e) {
+			e = of.NewGeneralResolutionError(err.Error())
+		}
+
 		return of.IntResolutionDetail{
 			Value: defaultValue,
-			ResolutionDetail: of.ResolutionDetail{
-				Reason:    res.Reason,
-				Variant:   res.Variant,
-				ErrorCode: err.Error(),
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: e,
+				Reason:          of.Reason(res.Reason),
+				Variant:         res.Variant,
 			},
 		}
 	}
+
 	return of.IntResolutionDetail{
 		Value: res.Value,
-		ResolutionDetail: of.ResolutionDetail{
-			Reason:  res.Reason,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
 }
 
-func (p *Provider) ObjectEvaluation(flagKey string, defaultValue interface{}, evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
-	res, err := p.Service.ResolveObject(flagKey, evalCtx)
+func (p *Provider) ObjectEvaluation(
+	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
+) of.InterfaceResolutionDetail {
+	res, err := p.Service.ResolveObject(ctx, flagKey, evalCtx)
 	if err != nil {
+		var e of.ResolutionError
+		if !errors.As(err, &e) {
+			e = of.NewGeneralResolutionError(err.Error())
+		}
+
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
-			ResolutionDetail: of.ResolutionDetail{
-				Reason:    res.Reason,
-				Variant:   res.Variant,
-				ErrorCode: err.Error(),
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: e,
+				Reason:          of.Reason(res.Reason),
+				Variant:         res.Variant,
 			},
 		}
 	}
+
 	return of.InterfaceResolutionDetail{
 		Value: res.Value,
-		ResolutionDetail: of.ResolutionDetail{
-			Reason:  res.Reason,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}

@@ -5,6 +5,7 @@
 package flagd_test
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -35,76 +36,76 @@ func (m *MockIService) EXPECT() *MockIServiceMockRecorder {
 }
 
 // ResolveBoolean mocks base method.
-func (m *MockIService) ResolveBoolean(arg0 string, arg1 map[string]interface{}) (*schemav1.ResolveBooleanResponse, error) {
+func (m *MockIService) ResolveBoolean(arg0 context.Context, arg1 string, arg2 map[string]interface{}) (*schemav1.ResolveBooleanResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveBoolean", arg0, arg1)
+	ret := m.ctrl.Call(m, "ResolveBoolean", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*schemav1.ResolveBooleanResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResolveBoolean indicates an expected call of ResolveBoolean.
-func (mr *MockIServiceMockRecorder) ResolveBoolean(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockIServiceMockRecorder) ResolveBoolean(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveBoolean", reflect.TypeOf((*MockIService)(nil).ResolveBoolean), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveBoolean", reflect.TypeOf((*MockIService)(nil).ResolveBoolean), arg0, arg1, arg2)
 }
 
 // ResolveFloat mocks base method.
-func (m *MockIService) ResolveFloat(arg0 string, arg1 map[string]interface{}) (*schemav1.ResolveFloatResponse, error) {
+func (m *MockIService) ResolveFloat(arg0 context.Context, arg1 string, arg2 map[string]interface{}) (*schemav1.ResolveFloatResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveFloat", arg0, arg1)
+	ret := m.ctrl.Call(m, "ResolveFloat", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*schemav1.ResolveFloatResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResolveFloat indicates an expected call of ResolveFloat.
-func (mr *MockIServiceMockRecorder) ResolveFloat(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockIServiceMockRecorder) ResolveFloat(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveFloat", reflect.TypeOf((*MockIService)(nil).ResolveFloat), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveFloat", reflect.TypeOf((*MockIService)(nil).ResolveFloat), arg0, arg1, arg2)
 }
 
 // ResolveInt mocks base method.
-func (m *MockIService) ResolveInt(arg0 string, arg1 map[string]interface{}) (*schemav1.ResolveIntResponse, error) {
+func (m *MockIService) ResolveInt(arg0 context.Context, arg1 string, arg2 map[string]interface{}) (*schemav1.ResolveIntResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveInt", arg0, arg1)
+	ret := m.ctrl.Call(m, "ResolveInt", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*schemav1.ResolveIntResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResolveInt indicates an expected call of ResolveInt.
-func (mr *MockIServiceMockRecorder) ResolveInt(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockIServiceMockRecorder) ResolveInt(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveInt", reflect.TypeOf((*MockIService)(nil).ResolveInt), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveInt", reflect.TypeOf((*MockIService)(nil).ResolveInt), arg0, arg1, arg2)
 }
 
 // ResolveObject mocks base method.
-func (m *MockIService) ResolveObject(arg0 string, arg1 map[string]interface{}) (*schemav1.ResolveObjectResponse, error) {
+func (m *MockIService) ResolveObject(arg0 context.Context, arg1 string, arg2 map[string]interface{}) (*schemav1.ResolveObjectResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveObject", arg0, arg1)
+	ret := m.ctrl.Call(m, "ResolveObject", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*schemav1.ResolveObjectResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResolveObject indicates an expected call of ResolveObject.
-func (mr *MockIServiceMockRecorder) ResolveObject(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockIServiceMockRecorder) ResolveObject(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveObject", reflect.TypeOf((*MockIService)(nil).ResolveObject), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveObject", reflect.TypeOf((*MockIService)(nil).ResolveObject), arg0, arg1, arg2)
 }
 
 // ResolveString mocks base method.
-func (m *MockIService) ResolveString(arg0 string, arg1 map[string]interface{}) (*schemav1.ResolveStringResponse, error) {
+func (m *MockIService) ResolveString(arg0 context.Context, arg1 string, arg2 map[string]interface{}) (*schemav1.ResolveStringResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveString", arg0, arg1)
+	ret := m.ctrl.Call(m, "ResolveString", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*schemav1.ResolveStringResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResolveString indicates an expected call of ResolveString.
-func (mr *MockIServiceMockRecorder) ResolveString(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockIServiceMockRecorder) ResolveString(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveString", reflect.TypeOf((*MockIService)(nil).ResolveString), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveString", reflect.TypeOf((*MockIService)(nil).ResolveString), arg0, arg1, arg2)
 }

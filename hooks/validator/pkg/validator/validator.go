@@ -5,7 +5,7 @@ import (
 )
 
 type validator interface {
-	IsValid(flagEvaluationDetails of.EvaluationDetails) error
+	IsValid(flagEvaluationDetails of.InterfaceEvaluationDetails) error
 }
 
 // Hook validates the flag evaluation details After flag resolution
@@ -17,7 +17,7 @@ func (h Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.Ev
 	return nil, nil
 }
 
-func (h Hook) After(hookContext of.HookContext, flagEvaluationDetails of.EvaluationDetails, hookHints of.HookHints) error {
+func (h Hook) After(hookContext of.HookContext, flagEvaluationDetails of.InterfaceEvaluationDetails, hookHints of.HookHints) error {
 	err := h.Validator.IsValid(flagEvaluationDetails)
 	if err != nil {
 		return err
