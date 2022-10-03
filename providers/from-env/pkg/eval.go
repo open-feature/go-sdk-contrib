@@ -1,8 +1,6 @@
 package from_env
 
 import (
-	"errors"
-
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
@@ -23,13 +21,13 @@ type Criteria struct {
 	Value interface{} `json:"value"`
 }
 
-func (f *StoredFlag) evaluate(evalCtx map[string]interface{}) (string, string, interface{}, error) {
+func (f *StoredFlag) evaluate(evalCtx map[string]interface{}) (string, openfeature.Reason, interface{}, error) {
 	var defaultVariant *Variant
 	for _, variant := range f.Variants {
 		if variant.Name == f.DefaultVariant {
 			defaultVariant = &variant
 		}
-		if variant.TargetingKey != "" && variant.TargetingKey != evalCtx[openfeature.TargetingKey] {
+		if variant.TargetingKey != "" && variant.TargetingKey != evalCtx["targetingKey"] {
 			continue
 		}
 		match := true
@@ -41,11 +39,11 @@ func (f *StoredFlag) evaluate(evalCtx map[string]interface{}) (string, string, i
 			}
 		}
 		if match {
-			return variant.Name, openfeature.TARGETING_MATCH, variant.Value, nil
+			return variant.Name, openfeature.TargetingMatchReason, variant.Value, nil
 		}
 	}
 	if defaultVariant == nil {
-		return "", openfeature.ERROR, nil, errors.New(ErrorParse)
+		return "", openfeature.ErrorReason, nil, openfeature.NewParseErrorResolutionError("")
 	}
-	return defaultVariant.Name, ReasonStatic, defaultVariant.Value, nil
+	return defaultVariant.Name, openfeature.DefaultReason, defaultVariant.Value, nil
 }

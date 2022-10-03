@@ -168,10 +168,10 @@ func TestOtelHookMethods(t *testing.T) {
 		openfeature.AddHooks(&hook)
 		client := openfeature.NewClient("test-client")
 		_, _ = client.ObjectValue(
+			context.Background(),
 			"my-bool-flag",
 			map[string]interface{}{"foo": "bar"},
 			openfeature.EvaluationContext{},
-			openfeature.EvaluationOptions{},
 		)
 		hook.Wait()
 		if !span.closed {
@@ -267,10 +267,10 @@ func TestOtelHookMethods(t *testing.T) {
 					},
 				}
 				_, _ = hook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-				_ = hook.After(openfeature.HookContext{}, openfeature.EvaluationDetails{
-					FlagType: test.flagType,
-					InterfaceResolutionDetail: openfeature.InterfaceResolutionDetail{
-						Value: test.value,
+				_ = hook.After(openfeature.HookContext{}, openfeature.InterfaceEvaluationDetails{
+					Value: test.value,
+					EvaluationDetails: openfeature.EvaluationDetails{
+						FlagType: test.flagType,
 					},
 				}, openfeature.HookHints{})
 				hook.Finally(openfeature.HookContext{}, openfeature.HookHints{})

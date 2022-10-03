@@ -8,70 +8,54 @@ import (
 
 func TestValidator_Hex(t *testing.T) {
 	tests := map[string]struct {
-		flagEvaluationDetails of.EvaluationDetails
+		flagEvaluationDetails of.InterfaceEvaluationDetails
 		expectedErr           bool
 	}{
 		"#112233": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: "#112233",
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: "#112233",
 			},
 			expectedErr: false,
 		},
 		"#123": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: "#123",
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: "#123",
 			},
 			expectedErr: false,
 		},
 		"#000233": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: "#000233",
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: "#000233",
 			},
 			expectedErr: false,
 		},
 		"#023": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: "#023",
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: "#023",
 			},
 			expectedErr: false,
 		},
 		"invalid": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: "invalid",
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: "invalid",
 			},
 			expectedErr: true,
 		},
 		"#abcd": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: "#abcd",
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: "#abcd",
 			},
 			expectedErr: true,
 		},
 		"#-12": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: "#-12",
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: "#-12",
 			},
 			expectedErr: true,
 		},
 		"non string": {
-			flagEvaluationDetails: of.EvaluationDetails{
-				InterfaceResolutionDetail: of.InterfaceResolutionDetail{
-					Value: 3,
-				},
+			flagEvaluationDetails: of.InterfaceEvaluationDetails{
+				Value: 3,
 			},
 			expectedErr: true,
 		},

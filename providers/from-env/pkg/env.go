@@ -2,7 +2,7 @@ package from_env
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"os"
 )
 
@@ -12,9 +12,9 @@ func (ef *envFetch) fetchStoredFlag(key string) (StoredFlag, error) {
 	v := StoredFlag{}
 	if val := os.Getenv(key); val != "" {
 		if err := json.Unmarshal([]byte(val), &v); err != nil {
-			return v, errors.New(ErrorParse)
+			return v, openfeature.NewParseErrorResolutionError(err.Error())
 		}
 		return v, nil
 	}
-	return v, errors.New(ErrorFlagNotFound)
+	return v, openfeature.NewFlagNotFoundResolutionError("")
 }
