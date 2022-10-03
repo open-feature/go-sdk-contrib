@@ -1,12 +1,6 @@
+github.com/go-logr/logr v1.2.3 h1:2DntVwHkVopvECVRSlL5PSo9eG+cAkDCuckLubN+rq0=
+github.com/go-logr/logr v1.2.3/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=
-github.com/open-feature/go-sdk v0.4.0 h1:4MC58EBEqsZRPrBfjywTEZXlgiD7lFQVSz0XIJQIRLM=
-github.com/open-feature/go-sdk v0.4.0/go.mod h1:rLTOsXIC5wJ/5iVZ0LOTz3/ahJmzxhzWcJTS81AaSqM=
-github.com/open-feature/go-sdk v0.0.0-20220823155625-745a58b85574 h1:lm+7qW88M3/ysu07QJCca2Dei8medeZi/Zspu2VcCuM=
-github.com/open-feature/go-sdk v0.0.0-20220823155625-745a58b85574/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
-github.com/open-feature/go-sdk v0.0.0-20220826131803-eb5bb27e4d8e h1:nOydvzQr+LlLvy/vxF2wbO7h114+J7Tp5/rfD+rRtWM=
-github.com/open-feature/go-sdk v0.0.0-20220826131803-eb5bb27e4d8e/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
-github.com/open-feature/go-sdk v0.0.0-20220831175213-b8383e148184 h1:I3eWhR+FCBsq462lwNB5USJ/evs40sOwlBSeUAYw+94=
-github.com/open-feature/go-sdk v0.0.0-20220831175213-b8383e148184/go.mod h1:h/XkTu6cvpYQ1Mhw2Hs1c93duGgp4c+MbwTKFu16BGM=
-github.com/open-feature/go-sdk v0.2.1-0.20220914084408-945bd96c8082 h1:zykZ9vePHuGKPL7zQE85IhEMehbHms2eRO1PwZ2MwCU=
-github.com/open-feature/go-sdk v0.2.1-0.20220914084408-945bd96c8082/go.mod h1:AcHh6hParWb2KPnkLUII0a060E6byMdW/YSGvfeHiVQ=
+github.com/open-feature/go-sdk v0.5.0 h1:1Y3TYoiZn8yhez9SS6VkS0n9WTfIDst1QDGV92WWHeE=
+github.com/open-feature/go-sdk v0.5.0/go.mod h1:5yoSk6QrkAHXKQW9pD+ejxOx3uXUqJwoHmwEK4hlZvk=
 golang.org/x/text v0.3.7 h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=
