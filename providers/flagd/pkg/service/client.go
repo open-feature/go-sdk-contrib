@@ -1,13 +1,15 @@
 package service
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 
-	log "github.com/sirupsen/logrus"
 	schemaConnectV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1/schemav1connect"
 )
 
@@ -21,36 +23,48 @@ type Client struct {
 	ServiceConfiguration *ServiceConfiguration
 }
 
+// mock target
+type ClientMockTarget interface {
+	schemaConnectV1.ServiceClient
+}
+
 // Instance returns an instance of schemaConnectV1.ServiceClient
-func (s *Client) Instance() schemaConnectV1.ServiceClient {
-	if s.client == nil {
-		var err error
-		var address string
-
-		// Handle certificate
-		tlsConfig, err := loadTLSConfig(s.ServiceConfiguration.CertificatePath)
-		if err != nil {
-			log.Errorf("connect - fail to load tls credentials: %v", err)
+func (c *Client) Instance() schemaConnectV1.ServiceClient {
+	if c.client == nil {
+		var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
+		var tlsConfig *tls.Config
+		var url string = fmt.Sprintf("http://%s:%d", c.ServiceConfiguration.Host, c.ServiceConfiguration.Port)
+		// socket
+		if c.ServiceConfiguration.SocketPath != "" {
+			dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", c.ServiceConfiguration.SocketPath)
+			}
+		}
+		// cert
+		if c.ServiceConfiguration.CertificatePath != "" {
+			url = fmt.Sprintf("https://%s:%d", c.ServiceConfiguration.Host, c.ServiceConfiguration.Port)
+			caCert, err := os.ReadFile(c.ServiceConfiguration.CertificatePath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			tlsConfig = &tls.Config{
+				RootCAs: caCertPool,
+			}
 		}
 
-		// Handle unix socket
-		if s.ServiceConfiguration.SocketPath != "" {
-			address = fmt.Sprintf("passthrough:///unix://%s", s.ServiceConfiguration.SocketPath)
-		} else {
-			address = fmt.Sprintf("%s:%d", s.ServiceConfiguration.Host, s.ServiceConfiguration.Port)
-		}
-
-		t := &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
-		s.client = schemaConnectV1.NewServiceClient(
+		c.client = schemaConnectV1.NewServiceClient(
 			&http.Client{
-				Transport: t,
+				Transport: &http.Transport{
+					TLSClientConfig: tlsConfig,
+					DialContext:     dialContext,
+				},
 			},
-			address,
+			url,
 		)
 	}
-	return s.client
+	return c.client
 }
 
 // Configuration returns the current GRPCServiceConfiguration for the client

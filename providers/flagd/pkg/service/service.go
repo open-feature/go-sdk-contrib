@@ -1,8 +1,10 @@
 package service
 
 import (
+	"errors"
+
 	"github.com/bufbuild/connect-go"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/model"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
 
@@ -22,8 +24,9 @@ type ServiceConfiguration struct {
 // Service handles the client side  interface for the flagd server
 type Service struct {
 	Client iClient
-	Config *ServiceConfiguration
 }
+
+const ConnectionError = "connection not made"
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
 func (s *Service) ResolveBoolean(ctx context.Context, flagKey string, evalCtx map[string]interface{}) (*schemaV1.ResolveBooleanResponse, error) {
@@ -31,7 +34,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, flagKey string, evalCtx ma
 	if client == nil {
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: string(of.ErrorReason),
-		}, of.NewProviderNotReadyResolutionError("connection not made")
+		}, of.NewProviderNotReadyResolutionError(ConnectionError)
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
@@ -45,16 +48,9 @@ func (s *Service) ResolveBoolean(ctx context.Context, flagKey string, evalCtx ma
 		Context: evalCtxF,
 	}))
 	if err != nil {
-		res, ok := parseError(err)
-		if !ok {
-			log.Error(err)
-			return &schemaV1.ResolveBooleanResponse{
-				Reason: string(of.ErrorReason),
-			}, of.NewGeneralResolutionError(err.Error())
-		}
 		return &schemaV1.ResolveBooleanResponse{
-			Reason: res.Reason,
-		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
+			Reason: string(of.ErrorReason),
+		}, errors.New(handleError(err))
 	}
 	return res.Msg, nil
 }
@@ -65,7 +61,7 @@ func (s *Service) ResolveString(ctx context.Context, flagKey string, evalCtx map
 	if client == nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: flagdModels.ErrorReason,
-		}, of.NewProviderNotReadyResolutionError("connection not made")
+		}, of.NewProviderNotReadyResolutionError(ConnectionError)
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
@@ -79,16 +75,9 @@ func (s *Service) ResolveString(ctx context.Context, flagKey string, evalCtx map
 		Context: evalCtxF,
 	}))
 	if err != nil {
-		res, ok := parseError(err)
-		if !ok {
-			log.Error(err)
-			return &schemaV1.ResolveStringResponse{
-				Reason: flagdModels.ErrorReason,
-			}, of.NewGeneralResolutionError(err.Error())
-		}
 		return &schemaV1.ResolveStringResponse{
-			Reason: res.Reason,
-		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
+			Reason: string(of.ErrorReason),
+		}, errors.New(handleError(err))
 	}
 	return res.Msg, nil
 }
@@ -99,7 +88,7 @@ func (s *Service) ResolveFloat(ctx context.Context, flagKey string, evalCtx map[
 	if client == nil {
 		return &schemaV1.ResolveFloatResponse{
 			Reason: flagdModels.ErrorReason,
-		}, of.NewProviderNotReadyResolutionError("connection not made")
+		}, of.NewProviderNotReadyResolutionError(ConnectionError)
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
@@ -113,16 +102,9 @@ func (s *Service) ResolveFloat(ctx context.Context, flagKey string, evalCtx map[
 		Context: evalCtxF,
 	}))
 	if err != nil {
-		res, ok := parseError(err)
-		if !ok {
-			log.Error(err)
-			return &schemaV1.ResolveFloatResponse{
-				Reason: flagdModels.ErrorReason,
-			}, of.NewGeneralResolutionError(err.Error())
-		}
 		return &schemaV1.ResolveFloatResponse{
-			Reason: res.Reason,
-		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
+			Reason: string(of.ErrorReason),
+		}, errors.New(handleError(err))
 	}
 	return res.Msg, nil
 }
@@ -133,7 +115,7 @@ func (s *Service) ResolveInt(ctx context.Context, flagKey string, evalCtx map[st
 	if client == nil {
 		return &schemaV1.ResolveIntResponse{
 			Reason: flagdModels.ErrorReason,
-		}, of.NewProviderNotReadyResolutionError("connection not made")
+		}, of.NewProviderNotReadyResolutionError(ConnectionError)
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
@@ -147,16 +129,9 @@ func (s *Service) ResolveInt(ctx context.Context, flagKey string, evalCtx map[st
 		Context: evalCtxF,
 	}))
 	if err != nil {
-		res, ok := parseError(err)
-		if !ok {
-			log.Error(err)
-			return &schemaV1.ResolveIntResponse{
-				Reason: flagdModels.ErrorReason,
-			}, of.NewGeneralResolutionError(err.Error())
-		}
 		return &schemaV1.ResolveIntResponse{
-			Reason: res.Reason,
-		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
+			Reason: string(of.ErrorReason),
+		}, errors.New(handleError(err))
 	}
 	return res.Msg, nil
 }
@@ -167,7 +142,7 @@ func (s *Service) ResolveObject(ctx context.Context, flagKey string, evalCtx map
 	if client == nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: flagdModels.ErrorReason,
-		}, of.NewProviderNotReadyResolutionError("connection not made")
+		}, of.NewProviderNotReadyResolutionError(ConnectionError)
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
@@ -181,16 +156,25 @@ func (s *Service) ResolveObject(ctx context.Context, flagKey string, evalCtx map
 		Context: evalCtxF,
 	}))
 	if err != nil {
-		res, ok := parseError(err)
-		if !ok {
-			log.Error(err)
-			return &schemaV1.ResolveObjectResponse{
-				Reason: flagdModels.ErrorReason,
-			}, of.NewGeneralResolutionError(err.Error())
-		}
 		return &schemaV1.ResolveObjectResponse{
-			Reason: res.Reason,
-		}, model.FlagdErrorCodeToResolutionError(res.ErrorCode, "")
+			Reason: string(of.ErrorReason),
+		}, errors.New(handleError(err))
 	}
 	return res.Msg, nil
+}
+
+func handleError(err error) string {
+	connectErr := &connect.Error{}
+	errors.As(err, &connectErr)
+	switch connectErr.Code() {
+	case connect.CodeUnavailable:
+		return ConnectionError
+	case connect.CodeNotFound:
+		return string(openfeature.FlagNotFoundCode)
+	case connect.CodeInvalidArgument:
+		return string(openfeature.TypeMismatchCode)
+	case connect.CodeDataLoss:
+		return string(openfeature.ParseErrorCode)
+	}
+	return string(openfeature.GeneralCode)
 }

@@ -10,7 +10,7 @@ import (
 	flagdModels "github.com/open-feature/flagd/pkg/model"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-	schemav1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
+	schemav1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 

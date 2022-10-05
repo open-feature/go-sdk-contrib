@@ -35,11 +35,13 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	}
 	provider.applyDefaults()
 	provider.Service = &service.Service{
-		Config: &service.ServiceConfiguration{
-			Host:            provider.providerConfiguration.Host,
-			Port:            provider.providerConfiguration.Port,
-			CertificatePath: provider.providerConfiguration.CertificatePath,
-			SocketPath:      provider.providerConfiguration.SocketPath,
+		Client: &service.Client{
+			ServiceConfiguration: &service.ServiceConfiguration{
+				Host:            provider.providerConfiguration.Host,
+				Port:            provider.providerConfiguration.Port,
+				CertificatePath: provider.providerConfiguration.CertificatePath,
+				SocketPath:      provider.providerConfiguration.SocketPath,
+			},
 		},
 	}
 
