@@ -12,7 +12,6 @@ openfeature.SetProvider(flagd.NewProvider())
 ```  
 You may also provide additional options to configure the provider client
 ```go
-flagd.WithService(HTTP | HTTPS | GRPC)  // defaults to http 
 flagd.WithHost(string)                  // defaults to localhost
 flagd.WithPort(uint16)                  // defaults to 8013
 flagd.FromEnv()                         // sets the provider configuration from environment variables
@@ -29,7 +28,6 @@ import (
 
 func main() {
     openfeature.SetProvider(flagd.NewProvider(
-        flagd.WithService(flagd.GRPC),
         flagd.WithHost("localhost"),
         flagd.WithPort(8000),
     ))
@@ -37,12 +35,12 @@ func main() {
 ```
 
 ### Using flagd.FromEnv()  
-By default the flagd provider will not read environment variables to set its own configuration, however, if the `flagd.FromEnv()` option is set as an argument for the `flagd.NewProvider()` method, then the following environment variables will be checked: `FLAGD_HOST`, `FLAGD_PORT`, `FLAGD_SERVICE_PROVIDER`, `FLAGD_SERVER_CERT_PATH`.
+By default the flagd provider will not read environment variables to set its own configuration, however, if the `flagd.FromEnv()` option is set as an argument for the `flagd.NewProvider()` method, then the following environment variables will be checked: `FLAGD_HOST`, `FLAGD_PORT`, `FLAGD_SERVER_CERT_PATH`.
 
 In the event that another configuration option is passed to the `flagd.NewProvider()` method, such as `flagd.WithPort(8013)` then this value will be prioritized over any existing environment variable configuration. This means that the priority order is as follows:
 1. Explicitly set configuration via `WithXXX` options
 1. Environment variable configuration values (if the `flagd.FromEnv()` option is set)
-1. Default values (service `HTTP`, host `localhost`, port `8013`)
+1. Default values (host `localhost`, port `8013`)
 
 ## License
 
