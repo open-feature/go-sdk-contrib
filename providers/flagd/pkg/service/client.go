@@ -23,11 +23,6 @@ type Client struct {
 	ServiceConfiguration *ServiceConfiguration
 }
 
-// mock target
-type ClientMockTarget interface {
-	schemaConnectV1.ServiceClient
-}
-
 // Instance returns an instance of schemaConnectV1.ServiceClient
 func (c *Client) Instance() schemaConnectV1.ServiceClient {
 	if c.client == nil {
