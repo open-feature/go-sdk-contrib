@@ -49,7 +49,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, flagKey string, evalCtx ma
 	if err != nil {
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, errors.New(handleError(err))
+		}, handleError(err)
 	}
 	return res.Msg, nil
 }
@@ -76,7 +76,7 @@ func (s *Service) ResolveString(ctx context.Context, flagKey string, evalCtx map
 	if err != nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, errors.New(handleError(err))
+		}, handleError(err)
 	}
 	return res.Msg, nil
 }
@@ -103,7 +103,7 @@ func (s *Service) ResolveFloat(ctx context.Context, flagKey string, evalCtx map[
 	if err != nil {
 		return &schemaV1.ResolveFloatResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, errors.New(handleError(err))
+		}, handleError(err)
 	}
 	return res.Msg, nil
 }
@@ -130,7 +130,7 @@ func (s *Service) ResolveInt(ctx context.Context, flagKey string, evalCtx map[st
 	if err != nil {
 		return &schemaV1.ResolveIntResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, errors.New(handleError(err))
+		}, handleError(err)
 	}
 	return res.Msg, nil
 }
@@ -157,23 +157,23 @@ func (s *Service) ResolveObject(ctx context.Context, flagKey string, evalCtx map
 	if err != nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, errors.New(handleError(err))
+		}, handleError(err)
 	}
 	return res.Msg, nil
 }
 
-func handleError(err error) string {
+func handleError(err error) openfeature.ResolutionError {
 	connectErr := &connect.Error{}
 	errors.As(err, &connectErr)
 	switch connectErr.Code() {
 	case connect.CodeUnavailable:
-		return ConnectionError
+		return openfeature.NewProviderNotReadyResolutionError(ConnectionError)
 	case connect.CodeNotFound:
-		return string(openfeature.FlagNotFoundCode)
+		return openfeature.NewFlagNotFoundResolutionError(err.Error())
 	case connect.CodeInvalidArgument:
-		return string(openfeature.TypeMismatchCode)
+		return openfeature.NewTypeMismatchResolutionError(err.Error())
 	case connect.CodeDataLoss:
-		return string(openfeature.ParseErrorCode)
+		return openfeature.NewParseErrorResolutionError(err.Error())
 	}
-	return string(openfeature.GeneralCode)
+	return openfeature.NewGeneralResolutionError(err.Error())
 }
