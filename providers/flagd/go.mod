@@ -8,8 +8,7 @@ require (
 	github.com/open-feature/go-sdk v0.5.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.0
-	go.buf.build/grpc/go/open-feature/flagd v1.4.4
-	go.buf.build/open-feature/flagd-connect/open-feature/flagd v1.1.3
+	go.buf.build/open-feature/flagd-connect/open-feature/flagd v1.1.4
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1

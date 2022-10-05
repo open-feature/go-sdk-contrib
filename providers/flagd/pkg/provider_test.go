@@ -15,103 +15,67 @@ import (
 )
 
 type TestConstructorArgs struct {
-	name       string
-	port       uint16
-	host       string
-	service    flagd.ServiceType
-	options    []flagd.ProviderOption
-	env        bool
-	envPort    uint16
-	envHost    string
-	envService flagd.ServiceType
+	name    string
+	port    uint16
+	host    string
+	options []flagd.ProviderOption
+	env     bool
+	envPort uint16
+	envHost string
 }
 
 func TestNewProvider(t *testing.T) {
 	tests := []TestConstructorArgs{
 		{
-			name:    "happy path",
-			port:    8013,
-			host:    "localhost",
-			service: flagd.HTTP,
+			name: "happy path",
+			port: 8013,
+			host: "localhost",
 		},
 		{
-			name:    "with service https",
-			port:    8013,
-			host:    "localhost",
-			service: flagd.HTTPS,
-			options: []flagd.ProviderOption{
-				flagd.WithService(flagd.HTTPS),
-			},
-		},
-		{
-			name:    "with service grpc",
-			port:    8013,
-			host:    "localhost",
-			service: flagd.GRPC,
-			options: []flagd.ProviderOption{
-				flagd.WithService(flagd.GRPC),
-			},
-		},
-		{
-			name:    "with port",
-			port:    1,
-			host:    "localhost",
-			service: flagd.HTTP,
+			name: "with port",
+			port: 1,
+			host: "localhost",
 			options: []flagd.ProviderOption{
 				flagd.WithPort(1),
 			},
 		},
 		{
-			name:    "with hostname",
-			port:    8013,
-			host:    "not localhost",
-			service: flagd.HTTP,
+			name: "with hostname",
+			port: 8013,
+			host: "not localhost",
 			options: []flagd.ProviderOption{
 				flagd.WithHost("not localhost"),
 			},
 		},
 		{
-			name:    "from env - maintain default port preventing overwrite",
-			port:    8013,
-			host:    "not localhost",
-			service: flagd.HTTPS,
+			name: "from env - maintain default port preventing overwrite",
+			port: 8013,
+			host: "not localhost",
 			options: []flagd.ProviderOption{
 				flagd.WithPort(8013), //matched default
 				flagd.FromEnv(),
 			},
-			env:        true,
-			envService: flagd.HTTPS,
-			envPort:    1,
-			envHost:    "not localhost",
+			env:     true,
+			envPort: 1,
+			envHost: "not localhost",
 		},
 		{
-			name:    "from env - maintain default port with explicit overwrite",
-			port:    8013,
-			host:    "not localhost",
-			service: flagd.HTTPS,
+			name: "from env - maintain default port with explicit overwrite",
+			port: 8013,
+			host: "not localhost",
 			options: []flagd.ProviderOption{
 				flagd.FromEnv(),
 				flagd.WithPort(8013), //matched default
 			},
-			env:        true,
-			envService: flagd.HTTPS,
-			envPort:    1,
-			envHost:    "not localhost",
+			env:     true,
+			envPort: 1,
+			envHost: "not localhost",
 		},
 	}
 
 	for _, test := range tests {
 		if test.env {
 			t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.envPort))
-			if test.envService == flagd.HTTP {
-				t.Setenv("FLAGD_SERVICE_PROVIDER", "http")
-			}
-			if test.envService == flagd.HTTPS {
-				t.Setenv("FLAGD_SERVICE_PROVIDER", "https")
-			}
-			if test.envService == flagd.GRPC {
-				t.Setenv("FLAGD_SERVICE_PROVIDER", "grpc")
-			}
 			t.Setenv("FLAGD_HOST", test.envHost)
 		}
 		svc := flagd.NewProvider(test.options...)
@@ -145,14 +109,6 @@ func TestNewProvider(t *testing.T) {
 				test.name,
 				test.port,
 				config.Port,
-			)
-		}
-		if config.ServiceName != test.service {
-			t.Errorf(
-				"%s received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
-				test.name,
-				test.service,
-				config.ServiceName,
 			)
 		}
 

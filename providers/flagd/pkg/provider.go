@@ -7,8 +7,6 @@ import (
 	"strconv"
 
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
-	GRPCService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/grpc"
-	HTTPService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/http"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,25 +15,12 @@ type Provider struct {
 	Service               service.IService
 	providerConfiguration *ProviderConfiguration
 }
-
 type ProviderConfiguration struct {
 	Port            uint16
 	Host            string
-	ServiceName     ServiceType
 	CertificatePath string
 	SocketPath      string
 }
-
-type ServiceType int
-
-const (
-	// HTTP argument for use in WithService, this is the default value
-	HTTP ServiceType = iota + 1
-	// HTTPS argument for use in WithService, overrides the default value of http
-	HTTPS
-	// GRPC argument for use in WithService, overrides the default value of http
-	GRPC
-)
 
 type ProviderOption func(*Provider)
 
@@ -49,25 +34,15 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 	provider.applyDefaults()
-	if provider.providerConfiguration.ServiceName == GRPC {
-		provider.Service = GRPCService.NewGRPCService(
-			GRPCService.WithPort(provider.providerConfiguration.Port),
-			GRPCService.WithHost(provider.providerConfiguration.Host),
-			GRPCService.WithCertificatePath(provider.providerConfiguration.CertificatePath),
-			GRPCService.WithSocketPath(provider.providerConfiguration.SocketPath),
-		)
-	} else if provider.providerConfiguration.ServiceName == HTTPS {
-		provider.Service = HTTPService.NewHTTPService(
-			HTTPService.WithPort(provider.providerConfiguration.Port),
-			HTTPService.WithHost(provider.providerConfiguration.Host),
-			HTTPService.WithProtocol(HTTPService.HTTPS),
-		)
-	} else {
-		provider.Service = HTTPService.NewHTTPService(
-			HTTPService.WithPort(provider.providerConfiguration.Port),
-			HTTPService.WithHost(provider.providerConfiguration.Host),
-		)
+	provider.Service = &service.Service{
+		Config: &service.ServiceConfiguration{
+			Host:            provider.providerConfiguration.Host,
+			Port:            provider.providerConfiguration.Port,
+			CertificatePath: provider.providerConfiguration.CertificatePath,
+			SocketPath:      provider.providerConfiguration.SocketPath,
+		},
 	}
+
 	return provider
 }
 
@@ -77,9 +52,6 @@ func (p *Provider) applyDefaults() {
 	}
 	if p.providerConfiguration.Port == 0 {
 		p.providerConfiguration.Port = 8013
-	}
-	if p.providerConfiguration.ServiceName == 0 {
-		p.providerConfiguration.ServiceName = HTTP
 	}
 }
 
@@ -103,18 +75,6 @@ func FromEnv() ProviderOption {
 				} else {
 					p.providerConfiguration.Port = uint16(port)
 				}
-			}
-		}
-
-		if p.providerConfiguration.ServiceName == 0 {
-			serviceS := os.Getenv("FLAGD_SERVICE_PROVIDER")
-			switch serviceS {
-			case "http":
-				p.providerConfiguration.ServiceName = HTTP
-			case "https":
-				p.providerConfiguration.ServiceName = HTTPS
-			case "grpc":
-				p.providerConfiguration.ServiceName = GRPC
 			}
 		}
 
@@ -153,13 +113,6 @@ func WithPort(port uint16) ProviderOption {
 func WithHost(host string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Host = host
-	}
-}
-
-// WithService specifies the type of the service. Takes argument of type ServiceType. Defaults to http
-func WithService(service ServiceType) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.ServiceName = service
 	}
 }
 
