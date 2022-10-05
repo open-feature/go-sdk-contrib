@@ -3,15 +3,16 @@ package grpc_service_test
 import (
 	"context"
 	"errors"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"reflect"
 	"testing"
+
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
 	service "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/grpc"
 	"github.com/stretchr/testify/assert"
-	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
+	schemaV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -47,7 +48,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockOut: &schemaV1.ResolveBooleanResponse{
 				Value:   true,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			flagKey: "flag",
@@ -55,7 +56,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 				"this": "that",
 			},
 			outErr:     nil,
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outValue:   true,
 			outVariant: "on",
 		},
@@ -68,7 +69,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockOut: &schemaV1.ResolveBooleanResponse{
 				Value:   true,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
@@ -89,7 +90,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockOut: &schemaV1.ResolveBooleanResponse{
 				Value:   true,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -108,7 +109,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockOut: &schemaV1.ResolveBooleanResponse{
 				Value:   true,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -147,7 +148,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 		}
 		test.mockIn.Context = f
 
-		mock.EXPECT().ResolveBoolean(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
+		mock.EXPECT(gomock.Any(), test.mockIn).AnyTimes().Return(test.mockOut, test.mockErr)
 		srv := service.GRPCService{
 			Client: &MockClient{
 				Client:    mock,
@@ -200,7 +201,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			mockOut: &schemaV1.ResolveFloatResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			flagKey: "flag",
@@ -209,7 +210,7 @@ func TestServiceResolveFloat(t *testing.T) {
 				"targetingKey": "me",
 			},
 			outErr:     nil,
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outValue:   12,
 			outVariant: "on",
 		},
@@ -222,7 +223,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			mockOut: &schemaV1.ResolveFloatResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
@@ -243,7 +244,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			mockOut: &schemaV1.ResolveFloatResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -262,7 +263,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			mockOut: &schemaV1.ResolveFloatResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -354,7 +355,7 @@ func TestServiceResolveInt(t *testing.T) {
 			mockOut: &schemaV1.ResolveIntResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			flagKey: "flag",
@@ -363,7 +364,7 @@ func TestServiceResolveInt(t *testing.T) {
 				"targetingKey": "me",
 			},
 			outErr:     nil,
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outValue:   12,
 			outVariant: "on",
 		},
@@ -376,7 +377,7 @@ func TestServiceResolveInt(t *testing.T) {
 			mockOut: &schemaV1.ResolveIntResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
@@ -397,7 +398,7 @@ func TestServiceResolveInt(t *testing.T) {
 			mockOut: &schemaV1.ResolveIntResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -416,7 +417,7 @@ func TestServiceResolveInt(t *testing.T) {
 			mockOut: &schemaV1.ResolveIntResponse{
 				Value:   12,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -508,7 +509,7 @@ func TestServiceResolveString(t *testing.T) {
 			mockOut: &schemaV1.ResolveStringResponse{
 				Value:   "ok",
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			flagKey: "flag",
@@ -516,7 +517,7 @@ func TestServiceResolveString(t *testing.T) {
 				"this": "that",
 			},
 			outErr:     nil,
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outValue:   "ok",
 			outVariant: "on",
 		},
@@ -529,7 +530,7 @@ func TestServiceResolveString(t *testing.T) {
 			mockOut: &schemaV1.ResolveStringResponse{
 				Value:   "ok",
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
@@ -550,7 +551,7 @@ func TestServiceResolveString(t *testing.T) {
 			mockOut: &schemaV1.ResolveStringResponse{
 				Value:   "ok",
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -569,7 +570,7 @@ func TestServiceResolveString(t *testing.T) {
 			mockOut: &schemaV1.ResolveStringResponse{
 				Value:   "ok",
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -660,7 +661,7 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			mockOut: &schemaV1.ResolveObjectResponse{
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			flagKey: "flag",
@@ -668,7 +669,7 @@ func TestServiceResolveObject(t *testing.T) {
 				"this": "that",
 			},
 			outErr:    nil,
-			outReason: models.StaticReason,
+			outReason: models.DefaultReason,
 			outValue: map[string]interface{}{
 				"food": "bars",
 			},
@@ -682,7 +683,7 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			mockOut: &schemaV1.ResolveObjectResponse{
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr:   status.Error(codes.NotFound, "custom message"),
 			customErr: "CUSTOM_ERROR",
@@ -702,7 +703,7 @@ func TestServiceResolveObject(t *testing.T) {
 			nilClient: true,
 			mockOut: &schemaV1.ResolveObjectResponse{
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",
@@ -720,7 +721,7 @@ func TestServiceResolveObject(t *testing.T) {
 			},
 			mockOut: &schemaV1.ResolveObjectResponse{
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: status.Error(codes.NotFound, "custom message"),
 			flagKey: "flag",

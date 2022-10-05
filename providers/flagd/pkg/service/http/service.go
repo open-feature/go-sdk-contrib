@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/model"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"io"
 	"strconv"
 
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/model"
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
+
 	log "github.com/sirupsen/logrus"
-	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
+	schemaV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 )
 
 type HTTPServiceConfiguration struct {

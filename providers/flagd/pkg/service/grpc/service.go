@@ -7,7 +7,7 @@ import (
 
 	flagdModels "github.com/open-feature/flagd/pkg/model"
 	log "github.com/sirupsen/logrus"
-	schemaV1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
+	schemaV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )

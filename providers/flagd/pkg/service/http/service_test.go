@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"io"
 	"net/http"
 	"reflect"
 	"testing"
+
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 
 	"github.com/golang/mock/gomock"
 	models "github.com/open-feature/flagd/pkg/model"
@@ -50,7 +51,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockHttpResponseBody: schemaV1.ResolveBooleanResponse{
 				Value:   true,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
@@ -61,7 +62,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			flagKey:    "flag",
 			outValue:   true,
 			outVariant: "on",
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outErr:     nil,
 		},
 		{
@@ -70,7 +71,7 @@ func TestServiceResolveBoolean(t *testing.T) {
 			mockUrl:              "http://localhost:8013/flags/flag/resolve/boolean",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
-				Reason:    models.StaticReason,
+				Reason:    models.DefaultReason,
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
@@ -167,7 +168,7 @@ func TestServiceResolveString(t *testing.T) {
 			mockHttpResponseBody: schemaV1.ResolveStringResponse{
 				Value:   "value",
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
@@ -178,7 +179,7 @@ func TestServiceResolveString(t *testing.T) {
 			flagKey:    "flag",
 			outValue:   "value",
 			outVariant: "on",
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outErr:     nil,
 		},
 		{
@@ -187,7 +188,7 @@ func TestServiceResolveString(t *testing.T) {
 			mockUrl:              "http://localhost:8013/flags/flag/resolve/string",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
-				Reason:    models.StaticReason,
+				Reason:    models.DefaultReason,
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
@@ -284,7 +285,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			mockHttpResponseBody: schemaV1.ResolveFloatResponse{
 				Value:   32,
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
@@ -295,7 +296,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			flagKey:    "flag",
 			outValue:   32,
 			outVariant: "on",
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outErr:     nil,
 		},
 		{
@@ -304,7 +305,7 @@ func TestServiceResolveFloat(t *testing.T) {
 			mockUrl:              "http://localhost:8013/flags/flag/resolve/float",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
-				Reason:    models.StaticReason,
+				Reason:    models.DefaultReason,
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
@@ -401,7 +402,7 @@ func TestServiceResolveInt(t *testing.T) {
 			mockHttpResponseBody: service.IntDecodeIntermediate{
 				Value:   "32",
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 			},
 			mockErr: nil,
 			httpServiceConfiguration: service.HTTPServiceConfiguration{
@@ -412,7 +413,7 @@ func TestServiceResolveInt(t *testing.T) {
 			flagKey:    "flag",
 			outValue:   32,
 			outVariant: "on",
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outErr:     nil,
 		},
 		{
@@ -421,7 +422,7 @@ func TestServiceResolveInt(t *testing.T) {
 			mockUrl:              "http://localhost:8013/flags/flag/resolve/int",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
-				Reason:    models.StaticReason,
+				Reason:    models.DefaultReason,
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
@@ -526,7 +527,7 @@ func TestServiceResolveObject(t *testing.T) {
 				"food": "bars",
 			},
 			outVariant: "on",
-			outReason:  models.StaticReason,
+			outReason:  models.DefaultReason,
 			outErr:     nil,
 		},
 		{
@@ -535,7 +536,7 @@ func TestServiceResolveObject(t *testing.T) {
 			mockUrl:              "http://localhost:8013/flags/flag/resolve/object",
 			mockHttpResponseCode: http.StatusBadRequest,
 			mockHttpResponseBody: schemaV1.ErrorResponse{
-				Reason:    models.StaticReason,
+				Reason:    models.DefaultReason,
 				ErrorCode: "CUSTOM ERROR MESSAGE",
 			},
 			mockErr: nil,
@@ -576,7 +577,7 @@ func TestServiceResolveObject(t *testing.T) {
 			}
 			test.mockHttpResponseBody = schemaV1.ResolveObjectResponse{
 				Variant: "on",
-				Reason:  models.StaticReason,
+				Reason:  models.DefaultReason,
 				Value:   f,
 			}
 		}

@@ -185,14 +185,14 @@ func TestBooleanEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveBooleanResponse{
 				Value:   true,
 				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				Reason:  flagdModels.DefaultReason,
 			},
 			mockError: nil,
 			response: of.BoolResolutionDetail{
 				Value: true,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
-					Reason:  flagdModels.StaticReason,
+					Reason:  flagdModels.DefaultReason,
 				},
 			},
 		},
@@ -204,13 +204,13 @@ func TestBooleanEvaluation(t *testing.T) {
 				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveBooleanResponse{
-				Reason: flagdModels.StaticReason,
+				Reason: flagdModels.DefaultReason,
 			},
 			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.BoolResolutionDetail{
 				Value: true,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:          flagdModels.StaticReason,
+					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
@@ -269,14 +269,14 @@ func TestStringEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveStringResponse{
 				Value:   "true",
 				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				Reason:  flagdModels.DefaultReason,
 			},
 			mockError: nil,
 			response: of.StringResolutionDetail{
 				Value: "true",
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
-					Reason:  flagdModels.StaticReason,
+					Reason:  flagdModels.DefaultReason,
 				},
 			},
 		},
@@ -288,13 +288,13 @@ func TestStringEvaluation(t *testing.T) {
 				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveStringResponse{
-				Reason: flagdModels.StaticReason,
+				Reason: flagdModels.DefaultReason,
 			},
 			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.StringResolutionDetail{
 				Value: "true",
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:          flagdModels.StaticReason,
+					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
@@ -353,14 +353,14 @@ func TestFloatEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveFloatResponse{
 				Value:   1,
 				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				Reason:  flagdModels.DefaultReason,
 			},
 			mockError: nil,
 			response: of.FloatResolutionDetail{
 				Value: 1,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
-					Reason:  flagdModels.StaticReason,
+					Reason:  flagdModels.DefaultReason,
 				},
 			},
 		},
@@ -372,13 +372,13 @@ func TestFloatEvaluation(t *testing.T) {
 				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveFloatResponse{
-				Reason: flagdModels.StaticReason,
+				Reason: flagdModels.DefaultReason,
 			},
 			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.FloatResolutionDetail{
 				Value: 1,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:          flagdModels.StaticReason,
+					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
@@ -437,14 +437,14 @@ func TestIntEvaluation(t *testing.T) {
 			mockOut: &schemav1.ResolveIntResponse{
 				Value:   1,
 				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				Reason:  flagdModels.DefaultReason,
 			},
 			mockError: nil,
 			response: of.IntResolutionDetail{
 				Value: 1,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
-					Reason:  flagdModels.StaticReason,
+					Reason:  flagdModels.DefaultReason,
 				},
 			},
 		},
@@ -456,13 +456,13 @@ func TestIntEvaluation(t *testing.T) {
 				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveIntResponse{
-				Reason: flagdModels.StaticReason,
+				Reason: flagdModels.DefaultReason,
 			},
 			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.IntResolutionDetail{
 				Value: 1,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:          flagdModels.StaticReason,
+					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
@@ -522,7 +522,7 @@ func TestObjectEvaluation(t *testing.T) {
 			},
 			mockOut: &schemav1.ResolveObjectResponse{
 				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				Reason:  flagdModels.DefaultReason,
 			},
 			mockError: nil,
 			response: of.InterfaceResolutionDetail{
@@ -531,7 +531,7 @@ func TestObjectEvaluation(t *testing.T) {
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Variant: "on",
-					Reason:  flagdModels.StaticReason,
+					Reason:  flagdModels.DefaultReason,
 				},
 			},
 		},
@@ -542,12 +542,12 @@ func TestObjectEvaluation(t *testing.T) {
 				"food": "bars",
 			},
 			mockOut: &schemav1.ResolveObjectResponse{
-				Reason: flagdModels.StaticReason,
+				Reason: flagdModels.DefaultReason,
 			},
 			mockError: of.NewFlagNotFoundResolutionError(""),
 			response: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:          flagdModels.StaticReason,
+					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
 			},
