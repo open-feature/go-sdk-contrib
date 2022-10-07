@@ -64,34 +64,36 @@ func main() {
 	res, err := client.BooleanValueDetails(
 		"AM_I_YELLOW",
 		false,
-		openfeature.EvaluationContext{
-			Attributes: map[string]interface{}{
+		openfeature.NewEvaluationContext(
+			"",
+			map[string]interface{}{
 				"color": "yellow",
 			},
-		},
+		),
 	)
 	fmt.Println(res, err)
 
 	res, err := client.BooleanValueDetails(
-	"AM_I_YELLOW",
-	false,
-	openfeature.EvaluationContext{
-		Attributes: map[string]interface{}{
-			"color": "yellow",
-		},
-		TargetingKey: "user",
-	},
+        "AM_I_YELLOW",
+        false,
+        openfeature.NewEvaluationContext(
+            "user",
+            map[string]interface{}{
+                "color": "yellow",
+            },
+        ),
 	)
 	fmt.Println(res, err)
 
 	res, err = client.StringValueDetails(
 		"AM_I_YELLOW",
 		"i am a default value",
-		openfeature.EvaluationContext{
-			Attributes: map[string]interface{}{
+		openfeature.NewEvaluationContext(
+			"",
+			map[string]interface{}{
 				"color": "not yellow",
 			},
-		},
+		),
 	)
 	fmt.Println(res, err)
 }

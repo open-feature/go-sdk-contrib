@@ -39,9 +39,8 @@ func main() {
 Use the validator hook (on invocation as an example):
 ```go
 client := openfeature.NewClient("foo")
-evalOptions := openfeature.NewEvaluationOptions([]openfeature.Hook{v}, openfeature.HookHints{})
 value, err := client.
-    StringValueDetails("blue", "#0000FF", openfeature.EvaluationContext{}, evalOptions)
+    StringValueDetails("blue", "#0000FF", openfeature.EvaluationContext{}, openfeature.WithHooks(v))
 if err != nil {
     fmt.Println("err:", err)
 }
@@ -71,10 +70,9 @@ func main() {
 	}
 	v := validator.Hook{Validator: hexValidator}
 	client := openfeature.NewClient("foo")
-	evalOptions := openfeature.NewEvaluationOptions([]openfeature.Hook{v}, openfeature.HookHints{})
 
 	result, err := client.
-		StringValueDetails("blue", "invalidhex", openfeature.EvaluationContext{}, evalOptions)
+		StringValueDetails("blue", "invalidhex", openfeature.EvaluationContext{}, openfeature.WithHooks(v))
 	if err != nil {
 		fmt.Println("err:", err)
 	}

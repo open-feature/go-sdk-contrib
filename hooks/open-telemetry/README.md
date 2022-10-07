@@ -105,7 +105,6 @@ func main() {
 			"foo": "bar",
 		},
 		openfeature.EvaluationContext{},
-		openfeature.EvaluationOptions{},
 	)
 }
 
