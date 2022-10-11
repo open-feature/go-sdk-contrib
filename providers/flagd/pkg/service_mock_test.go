@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	schemav1 "go.buf.build/grpc/go/open-feature/flagd/schema/v1"
+	schemav1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 )
 
 // MockIService is a mock of IService interface.
