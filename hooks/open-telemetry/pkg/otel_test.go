@@ -139,10 +139,9 @@ func TestOtelHookMethods(t *testing.T) {
 		// unlock the resource and ensure that the previously blocked goroutine can now complete
 		otelHook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
 
-		ticker := time.NewTicker(500 * time.Millisecond)
 		select {
 		case <-blockedC:
-		case <-ticker.C:
+		case <-time.After(500 * time.Millisecond):
 			t.Fatal("blocked goroutine has not been unblocked by the release of the lock")
 		}
 
