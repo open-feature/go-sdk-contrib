@@ -66,22 +66,3 @@ func (c *Client) Instance() schemaConnectV1.ServiceClient {
 func (s *Client) Configuration() *ServiceConfiguration {
 	return s.ServiceConfiguration
 }
-
-func loadTLSConfig(serverCertPath string) (*tls.Config, error) {
-	if serverCertPath == "" {
-		return nil, nil
-	}
-	pemServerCA, err := os.ReadFile(serverCertPath)
-	if err != nil {
-		return nil, err
-	}
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(pemServerCA) {
-		return nil, fmt.Errorf("failed to add server CA's certificate")
-	}
-
-	return &tls.Config{
-		RootCAs: certPool,
-	}, nil
-}
