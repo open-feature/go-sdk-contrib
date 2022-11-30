@@ -2,10 +2,11 @@ package service
 
 import (
 	"errors"
-
 	"github.com/bufbuild/connect-go"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"sync"
 
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
@@ -22,7 +23,17 @@ type ServiceConfiguration struct {
 
 // Service handles the client side  interface for the flagd server
 type Service struct {
-	Client iClient
+	rwMx        *sync.RWMutex
+	streamAlive bool
+	Client      iClient
+}
+
+func NewService(client iClient) *Service {
+	return &Service{
+		rwMx:        &sync.RWMutex{},
+		streamAlive: false,
+		Client:      client,
+	}
 }
 
 const ConnectionError = "connection not made"
@@ -176,4 +187,42 @@ func handleError(err error) openfeature.ResolutionError {
 		return openfeature.NewParseErrorResolutionError(err.Error())
 	}
 	return openfeature.NewGeneralResolutionError(err.Error())
+}
+
+// EventStream emits received events on the given channel
+func (s *Service) EventStream(ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, errorChan chan<- error) {
+	client := s.Client.Instance()
+	if client == nil {
+		errorChan <- openfeature.NewProviderNotReadyResolutionError(ConnectionError)
+		return
+	}
+
+	stream, err := client.EventStream(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	s.rwMx.Lock()
+	s.streamAlive = true
+	s.rwMx.Unlock()
+
+	for stream.Receive() {
+		eventChan <- stream.Msg()
+	}
+	s.rwMx.Lock()
+	s.streamAlive = false
+	s.rwMx.Unlock()
+
+	if err := stream.Err(); err != nil {
+		errorChan <- err
+		return
+	}
+	close(eventChan)
+}
+
+func (s *Service) IsEventStreamAlive() bool {
+	s.rwMx.RLock()
+	defer s.rwMx.RUnlock()
+
+	return s.streamAlive
 }

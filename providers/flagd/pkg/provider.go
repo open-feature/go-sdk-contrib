@@ -3,6 +3,12 @@ package flagd
 import (
 	"context"
 	"errors"
+	"fmt"
+	flagdModels "github.com/open-feature/flagd/pkg/model"
+	flagdService "github.com/open-feature/flagd/pkg/service"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
+	schemaV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 	"os"
 	"strconv"
 
@@ -12,7 +18,9 @@ import (
 )
 
 type Provider struct {
+	ctx                   context.Context
 	Service               service.IService
+	Cache                 Cache
 	providerConfiguration *ProviderConfiguration
 }
 type ProviderConfiguration struct {
@@ -26,24 +34,30 @@ type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
 	provider := &Provider{
+		ctx: context.Background(),
 		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
 		// values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration: &ProviderConfiguration{},
+		Cache:                 cache.NewInMemory(),
 	}
 	for _, opt := range opts {
 		opt(provider)
 	}
 	provider.applyDefaults()
-	provider.Service = &service.Service{
-		Client: &service.Client{
-			ServiceConfiguration: &service.ServiceConfiguration{
-				Host:            provider.providerConfiguration.Host,
-				Port:            provider.providerConfiguration.Port,
-				CertificatePath: provider.providerConfiguration.CertificatePath,
-				SocketPath:      provider.providerConfiguration.SocketPath,
-			},
+	provider.Service = service.NewService(&service.Client{
+		ServiceConfiguration: &service.ServiceConfiguration{
+			Host:            provider.providerConfiguration.Host,
+			Port:            provider.providerConfiguration.Port,
+			CertificatePath: provider.providerConfiguration.CertificatePath,
+			SocketPath:      provider.providerConfiguration.SocketPath,
 		},
-	}
+	})
+
+	go func() {
+		if err := provider.handleEvents(provider.ctx); err != nil {
+			log.Error(fmt.Errorf("handle events: %w", err))
+		}
+	}()
 
 	return provider
 }
@@ -118,6 +132,27 @@ func WithHost(host string) ProviderOption {
 	}
 }
 
+// WithoutCache disables caching
+func WithoutCache() ProviderOption {
+	return func(p *Provider) {
+		p.Cache = nil
+	}
+}
+
+// WithCustomCache applies a custom cache implementation
+func WithCustomCache(cacheImplementation Cache) ProviderOption {
+	return func(p *Provider) {
+		p.Cache = cacheImplementation
+	}
+}
+
+// WithContext supplies the given context to the event stream
+func WithContext(ctx context.Context) ProviderOption {
+	return func(p *Provider) {
+		p.ctx = ctx
+	}
+}
+
 // Hooks flagd provider does not have any hooks, returns empty slice
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
@@ -138,6 +173,19 @@ func (p *Provider) Configuration() *ProviderConfiguration {
 func (p *Provider) BooleanEvaluation(
 	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
 ) of.BoolResolutionDetail {
+	if p.isCacheAvailable() {
+		fromCache, err := p.Cache.Get(ctx, flagKey)
+		if err != nil {
+			log.Errorf("get from cache: %v", err)
+		} else {
+			res, ok := fromCache.(of.BoolResolutionDetail)
+			if ok {
+				res.Reason = constant.ReasonCached
+				return res
+			}
+		}
+	}
+
 	res, err := p.Service.ResolveBoolean(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
@@ -155,18 +203,39 @@ func (p *Provider) BooleanEvaluation(
 		}
 	}
 
-	return of.BoolResolutionDetail{
+	resDetail := of.BoolResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
+
+	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
+		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
+			log.Errorf("set to cache: %v", err)
+		}
+	}
+
+	return resDetail
 }
 
 func (p *Provider) StringEvaluation(
 	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
 ) of.StringResolutionDetail {
+	if p.isCacheAvailable() {
+		fromCache, err := p.Cache.Get(ctx, flagKey)
+		if err != nil {
+			log.Errorf("get from cache: %v", err)
+		} else {
+			res, ok := fromCache.(of.StringResolutionDetail)
+			if ok {
+				res.Reason = constant.ReasonCached
+				return res
+			}
+		}
+	}
+
 	res, err := p.Service.ResolveString(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
@@ -184,18 +253,39 @@ func (p *Provider) StringEvaluation(
 		}
 	}
 
-	return of.StringResolutionDetail{
+	resDetail := of.StringResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
+
+	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
+		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
+			log.Errorf("set to cache: %v", err)
+		}
+	}
+
+	return resDetail
 }
 
 func (p *Provider) FloatEvaluation(
 	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
 ) of.FloatResolutionDetail {
+	if p.isCacheAvailable() {
+		fromCache, err := p.Cache.Get(ctx, flagKey)
+		if err != nil {
+			log.Errorf("get from cache: %v", err)
+		} else {
+			res, ok := fromCache.(of.FloatResolutionDetail)
+			if ok {
+				res.Reason = constant.ReasonCached
+				return res
+			}
+		}
+	}
+
 	res, err := p.Service.ResolveFloat(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
@@ -213,18 +303,39 @@ func (p *Provider) FloatEvaluation(
 		}
 	}
 
-	return of.FloatResolutionDetail{
+	resDetail := of.FloatResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
+
+	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
+		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
+			log.Errorf("set to cache: %v", err)
+		}
+	}
+
+	return resDetail
 }
 
 func (p *Provider) IntEvaluation(
 	ctx context.Context, flagKey string, defaultValue int64, evalCtx of.FlattenedContext,
 ) of.IntResolutionDetail {
+	if p.isCacheAvailable() {
+		fromCache, err := p.Cache.Get(ctx, flagKey)
+		if err != nil {
+			log.Errorf("get from cache: %v", err)
+		} else {
+			res, ok := fromCache.(of.IntResolutionDetail)
+			if ok {
+				res.Reason = constant.ReasonCached
+				return res
+			}
+		}
+	}
+
 	res, err := p.Service.ResolveInt(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
@@ -242,18 +353,39 @@ func (p *Provider) IntEvaluation(
 		}
 	}
 
-	return of.IntResolutionDetail{
+	resDetail := of.IntResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
+
+	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
+		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
+			log.Errorf("set to cache: %v", err)
+		}
+	}
+
+	return resDetail
 }
 
 func (p *Provider) ObjectEvaluation(
 	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
 ) of.InterfaceResolutionDetail {
+	if p.isCacheAvailable() {
+		fromCache, err := p.Cache.Get(ctx, flagKey)
+		if err != nil {
+			log.Errorf("get from cache: %v", err)
+		} else {
+			res, ok := fromCache.(of.InterfaceResolutionDetail)
+			if ok {
+				res.Reason = constant.ReasonCached
+				return res
+			}
+		}
+	}
+
 	res, err := p.Service.ResolveObject(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
@@ -271,11 +403,84 @@ func (p *Provider) ObjectEvaluation(
 		}
 	}
 
-	return of.InterfaceResolutionDetail{
+	resDetail := of.InterfaceResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:  of.Reason(res.Reason),
 			Variant: res.Variant,
 		},
 	}
+
+	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
+		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
+			log.Errorf("set to cache: %v", err)
+		}
+	}
+
+	return resDetail
+}
+
+func (p *Provider) isCacheAvailable() bool {
+	return p.Cache != nil && p.Service.IsEventStreamAlive()
+}
+
+func (p *Provider) handleEvents(ctx context.Context) error {
+	eventChan := make(chan *schemaV1.EventStreamResponse)
+	errChan := make(chan error)
+
+	go p.Service.EventStream(ctx, eventChan, errChan)
+
+	for {
+		select {
+		case event, ok := <-eventChan:
+			if !ok {
+				if p.Cache != nil {
+					if err := p.Cache.DeleteAll(ctx); err != nil {
+						log.Errorf("delete all from cache: %v", err)
+					}
+				}
+				return nil
+			}
+
+			switch event.Type {
+			case string(flagdService.ConfigurationChange):
+				if err := p.handleConfigurationChangeEvent(ctx, event); err != nil {
+					log.Errorf("handle configuration change event: %v", err)
+				}
+			}
+		case err := <-errChan:
+			if p.Cache != nil {
+				if err := p.Cache.DeleteAll(ctx); err != nil {
+					log.Errorf("delete all from cache: %v", err)
+				}
+			}
+			return err
+		}
+	}
+}
+
+func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *schemaV1.EventStreamResponse) error {
+	if p.Cache == nil {
+		return nil
+	}
+
+	if event.Data == nil {
+		return errors.New("no data in event")
+	}
+
+	flagKeyVal, ok := event.Data.AsMap()["flagKey"]
+	if !ok {
+		return errors.New("no flagKey field in event data")
+	}
+
+	flagKey, ok := flagKeyVal.(string)
+	if !ok {
+		return errors.New("flagKey is not a string")
+	}
+
+	if err := p.Cache.Delete(ctx, flagKey); err != nil {
+		return fmt.Errorf("delete flag from cache: %w", err)
+	}
+
+	return nil
 }
