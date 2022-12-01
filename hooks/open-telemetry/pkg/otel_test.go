@@ -3,13 +3,12 @@ package otel
 import (
 	"context"
 	"errors"
-	"testing"
-	"time"
-
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"testing"
+	"time"
 )
 
 type tracerClientMock struct {
@@ -119,7 +118,7 @@ func TestOtelHookMethods(t *testing.T) {
 				},
 			},
 		}
-		blocked := true
+		blockedC := make(chan struct{})
 
 		// Trigger the initial before hook, the empty context will always provide the same key
 		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
@@ -129,20 +128,20 @@ func TestOtelHookMethods(t *testing.T) {
 		// this before hook should be blocked until the after hook for the locked resource has been run
 		go func() {
 			_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-			blocked = false
+			blockedC <- struct{}{}
 		}()
-		time.Sleep(500 * time.Millisecond) // account for slow execution to ensure that the goroutine is blocked
-		if !blocked {
+		select {
+		case <-blockedC:
 			t.Fatal("duplicate keys are not being blocked")
+		default:
 		}
 
 		// unlock the resource and ensure that the previously blocked goroutine can now complete
 		otelHook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
 
-		// account for slow execution time to ensure that goroutine is no longer blocked
-		// (cannot use the .Wait method in this example) as the after method has not yet been called for the blocked goroutine
-		time.Sleep(500 * time.Millisecond)
-		if blocked {
+		select {
+		case <-blockedC:
+		case <-time.After(500 * time.Millisecond):
 			t.Fatal("blocked goroutine has not been unblocked by the release of the lock")
 		}
 
