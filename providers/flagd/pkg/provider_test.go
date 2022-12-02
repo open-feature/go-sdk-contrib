@@ -14,22 +14,22 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type TestConstructorArgs struct {
-	name    string
-	port    uint16
-	host    string
-	options []flagd.ProviderOption
-	env     bool
-	envPort uint16
-	envHost string
-}
-
 func TestNewProvider(t *testing.T) {
-	tests := []TestConstructorArgs{
+	tests := []struct {
+		name           string
+		port           uint16
+		host           string
+		options        []flagd.ProviderOption
+		env            bool
+		envPort        uint16
+		envHost        string
+		cachingEnabled bool
+	}{
 		{
-			name: "happy path",
-			port: 8013,
-			host: "localhost",
+			name:           "happy path",
+			port:           8013,
+			host:           "localhost",
+			cachingEnabled: true,
 		},
 		{
 			name: "with port",
@@ -38,6 +38,7 @@ func TestNewProvider(t *testing.T) {
 			options: []flagd.ProviderOption{
 				flagd.WithPort(1),
 			},
+			cachingEnabled: true,
 		},
 		{
 			name: "with hostname",
@@ -46,6 +47,7 @@ func TestNewProvider(t *testing.T) {
 			options: []flagd.ProviderOption{
 				flagd.WithHost("not localhost"),
 			},
+			cachingEnabled: true,
 		},
 		{
 			name: "from env - maintain default port preventing overwrite",
@@ -55,9 +57,10 @@ func TestNewProvider(t *testing.T) {
 				flagd.WithPort(8013), //matched default
 				flagd.FromEnv(),
 			},
-			env:     true,
-			envPort: 1,
-			envHost: "not localhost",
+			env:            true,
+			envPort:        1,
+			envHost:        "not localhost",
+			cachingEnabled: true,
 		},
 		{
 			name: "from env - maintain default port with explicit overwrite",
@@ -67,70 +70,69 @@ func TestNewProvider(t *testing.T) {
 				flagd.FromEnv(),
 				flagd.WithPort(8013), //matched default
 			},
-			env:     true,
-			envPort: 1,
-			envHost: "not localhost",
+			env:            true,
+			envPort:        1,
+			envHost:        "not localhost",
+			cachingEnabled: true,
 		},
 	}
 
 	for _, test := range tests {
-		if test.env {
-			t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.envPort))
-			t.Setenv("FLAGD_HOST", test.envHost)
-		}
-		svc := flagd.NewProvider(test.options...)
-		if svc == nil {
-			t.Fatalf("%s received nil service from NewProvider", test.name)
-		}
-		metadata := svc.Metadata()
-		if metadata.Name != "flagd" {
-			t.Errorf(
-				"%s received unexpected metadata from NewProvider, expected %s got %s",
-				test.name,
-				"flagd",
-				metadata.Name,
-			)
-		}
-		config := svc.Configuration()
-		if config == nil {
-			t.Fatal("config is nil")
-		}
-		if config.Host != test.host {
-			t.Errorf(
-				"%s received unexpected ProviderConfiguration.Host from NewProvider, expected %s got %s",
-				test.name,
-				test.host,
-				config.Host,
-			)
-		}
-		if config.Port != test.port {
-			t.Errorf(
-				"%s received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
-				test.name,
-				test.port,
-				config.Port,
-			)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			if test.env {
+				t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.envPort))
+				t.Setenv("FLAGD_HOST", test.envHost)
+			}
+			svc := flagd.NewProvider(test.options...)
+			if svc == nil {
+				t.Fatal("received nil service from NewProvider")
+			}
+			metadata := svc.Metadata()
+			if metadata.Name != "flagd" {
+				t.Errorf(
+					"received unexpected metadata from NewProvider, expected %s got %s",
+					"flagd",
+					metadata.Name,
+				)
+			}
+			config := svc.Configuration()
+			if config == nil {
+				t.Fatal("config is nil")
+			}
+			if config.Host != test.host {
+				t.Errorf(
+					"received unexpected ProviderConfiguration.Host from NewProvider, expected %s got %s",
+					test.host,
+					config.Host,
+				)
+			}
+			if config.Port != test.port {
+				t.Errorf(
+					"received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
+					test.port,
+					config.Port,
+				)
+			}
 
-		// this line will fail linting if this provider is no longer compatible with the openfeature sdk
-		var _ of.FeatureProvider = svc
+			// this line will fail linting if this provider is no longer compatible with the openfeature sdk
+			var _ of.FeatureProvider = svc
+		})
+
 	}
 }
 
-type TestBooleanEvaluationArgs struct {
-	name         string
-	flagKey      string
-	defaultValue bool
-	evalCtx      map[string]interface{}
-
-	mockOut   *schemav1.ResolveBooleanResponse
-	mockError error
-
-	response of.BoolResolutionDetail
-}
-
 func TestBooleanEvaluation(t *testing.T) {
-	tests := []TestBooleanEvaluationArgs{
+	tests := []struct {
+		name         string
+		flagKey      string
+		defaultValue bool
+		evalCtx      map[string]interface{}
+
+		mockOut   *schemav1.ResolveBooleanResponse
+		mockError error
+
+		response of.BoolResolutionDetail
+	}{
 		{
 			name:         "happy path",
 			flagKey:      "flag",
@@ -177,44 +179,46 @@ func TestBooleanEvaluation(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveBoolean(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		t.Run(test.name, func(t *testing.T) {
+			mock := NewMockIService(ctrl)
+			ctx := context.Background()
+			mock.EXPECT().ResolveBoolean(ctx, test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+			mock.EXPECT().IsEventStreamAlive().Return(true).AnyTimes()
 
-		provider := flagd.Provider{
-			Service: mock,
-		}
+			provider := flagd.Provider{
+				Service: mock,
+			}
 
-		res := provider.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
+			res := provider.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
-			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
-		}
-		if res.Variant != test.response.Variant {
-			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
-		}
-		if res.Value != test.response.Value {
-			t.Errorf("%s: unexpected Value received, expected %v, got %v", test.name, test.response.Value, res.Value)
-		}
-		if res.Reason != test.response.Reason {
-			t.Errorf("%s: unexpected Reason received, expected %v, got %v", test.name, test.response.Reason, res.Reason)
-		}
+			if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+				t.Errorf("unexpected ResolutionError received, expected %v, got %v", test.response.ResolutionError.Error(), res.ResolutionError.Error())
+			}
+			if res.Variant != test.response.Variant {
+				t.Errorf("unexpected Variant received, expected %v, got %v", test.response.Variant, res.Variant)
+			}
+			if res.Value != test.response.Value {
+				t.Errorf("unexpected Value received, expected %v, got %v", test.response.Value, res.Value)
+			}
+			if res.Reason != test.response.Reason {
+				t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
+			}
+		})
 	}
 }
 
-type TestStringEvaluationArgs struct {
-	name         string
-	flagKey      string
-	defaultValue string
-	evalCtx      map[string]interface{}
-
-	mockOut   *schemav1.ResolveStringResponse
-	mockError error
-
-	response of.StringResolutionDetail
-}
-
 func TestStringEvaluation(t *testing.T) {
-	tests := []TestStringEvaluationArgs{
+	tests := []struct {
+		name         string
+		flagKey      string
+		defaultValue string
+		evalCtx      map[string]interface{}
+
+		mockOut   *schemav1.ResolveStringResponse
+		mockError error
+
+		response of.StringResolutionDetail
+	}{
 		{
 			name:         "happy path",
 			flagKey:      "flag",
@@ -261,44 +265,44 @@ func TestStringEvaluation(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveString(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		t.Run(test.name, func(t *testing.T) {
+			mock := NewMockIService(ctrl)
+			mock.EXPECT().ResolveString(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
-		provider := flagd.Provider{
-			Service: mock,
-		}
+			provider := flagd.Provider{
+				Service: mock,
+			}
 
-		res := provider.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
+			res := provider.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
-			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
-		}
-		if res.Variant != test.response.Variant {
-			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
-		}
-		if res.Value != test.response.Value {
-			t.Errorf("%s: unexpected Value received, expected %v, got %v", test.name, test.response.Value, res.Value)
-		}
-		if res.Reason != test.response.Reason {
-			t.Errorf("%s: unexpected Reason received, expected %v, got %v", test.name, test.response.Reason, res.Reason)
-		}
+			if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+				t.Errorf("unexpected ResolutionError received, expected %v, got %v", test.response.ResolutionError.Error(), res.ResolutionError.Error())
+			}
+			if res.Variant != test.response.Variant {
+				t.Errorf("unexpected Variant received, expected %v, got %v", test.response.Variant, res.Variant)
+			}
+			if res.Value != test.response.Value {
+				t.Errorf("unexpected Value received, expected %v, got %v", test.response.Value, res.Value)
+			}
+			if res.Reason != test.response.Reason {
+				t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
+			}
+		})
 	}
 }
 
-type TestFloatEvaluationArgs struct {
-	name         string
-	flagKey      string
-	defaultValue float64
-	evalCtx      map[string]interface{}
-
-	mockOut   *schemav1.ResolveFloatResponse
-	mockError error
-
-	response of.FloatResolutionDetail
-}
-
 func TestFloatEvaluation(t *testing.T) {
-	tests := []TestFloatEvaluationArgs{
+	tests := []struct {
+		name         string
+		flagKey      string
+		defaultValue float64
+		evalCtx      map[string]interface{}
+
+		mockOut   *schemav1.ResolveFloatResponse
+		mockError error
+
+		response of.FloatResolutionDetail
+	}{
 		{
 			name:         "happy path",
 			flagKey:      "flag",
@@ -345,44 +349,44 @@ func TestFloatEvaluation(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveFloat(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		t.Run(test.name, func(t *testing.T) {
+			mock := NewMockIService(ctrl)
+			mock.EXPECT().ResolveFloat(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
-		provider := flagd.Provider{
-			Service: mock,
-		}
+			provider := flagd.Provider{
+				Service: mock,
+			}
 
-		res := provider.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
+			res := provider.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
-		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
-			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
-		}
-		if res.Variant != test.response.Variant {
-			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
-		}
-		if res.Value != test.response.Value {
-			t.Errorf("%s: unexpected Value received, expected %v, got %v", test.name, test.response.Value, res.Value)
-		}
-		if res.Reason != test.response.Reason {
-			t.Errorf("%s: unexpected Reason received, expected %v, got %v", test.name, test.response.Reason, res.Reason)
-		}
+			if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
+				t.Errorf("unexpected ResolutionError received, expected %v, got %v", test.response.ResolutionError.Error(), res.ResolutionError.Error())
+			}
+			if res.Variant != test.response.Variant {
+				t.Errorf("unexpected Variant received, expected %v, got %v", test.response.Variant, res.Variant)
+			}
+			if res.Value != test.response.Value {
+				t.Errorf("unexpected Value received, expected %v, got %v", test.response.Value, res.Value)
+			}
+			if res.Reason != test.response.Reason {
+				t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
+			}
+		})
 	}
 }
 
-type TestIntEvaluationArgs struct {
-	name         string
-	flagKey      string
-	defaultValue int64
-	evalCtx      map[string]interface{}
-
-	mockOut   *schemav1.ResolveIntResponse
-	mockError error
-
-	response of.IntResolutionDetail
-}
-
 func TestIntEvaluation(t *testing.T) {
-	tests := []TestIntEvaluationArgs{
+	tests := []struct {
+		name         string
+		flagKey      string
+		defaultValue int64
+		evalCtx      map[string]interface{}
+
+		mockOut   *schemav1.ResolveIntResponse
+		mockError error
+
+		response of.IntResolutionDetail
+	}{
 		{
 			name:         "happy path",
 			flagKey:      "flag",
@@ -439,34 +443,32 @@ func TestIntEvaluation(t *testing.T) {
 		res := provider.IntEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
 		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
-			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
+			t.Errorf("unexpected ResolutionError received, expected %v, got %v", test.response.ResolutionError.Error(), res.ResolutionError.Error())
 		}
 		if res.Variant != test.response.Variant {
-			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
+			t.Errorf("unexpected Variant received, expected %v, got %v", test.response.Variant, res.Variant)
 		}
 		if res.Value != test.response.Value {
-			t.Errorf("%s: unexpected Value received, expected %v, got %v", test.name, test.response.Value, res.Value)
+			t.Errorf("unexpected Value received, expected %v, got %v", test.response.Value, res.Value)
 		}
 		if res.Reason != test.response.Reason {
-			t.Errorf("%s: unexpected Reason received, expected %v, got %v", test.name, test.response.Reason, res.Reason)
+			t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
 		}
 	}
 }
 
-type TestObjectEvaluationArgs struct {
-	name         string
-	flagKey      string
-	defaultValue map[string]interface{}
-	evalCtx      map[string]interface{}
-
-	mockOut   *schemav1.ResolveObjectResponse
-	mockError error
-
-	response of.InterfaceResolutionDetail
-}
-
 func TestObjectEvaluation(t *testing.T) {
-	tests := []TestObjectEvaluationArgs{
+	tests := []struct {
+		name         string
+		flagKey      string
+		defaultValue map[string]interface{}
+		evalCtx      map[string]interface{}
+
+		mockOut   *schemav1.ResolveObjectResponse
+		mockError error
+
+		response of.InterfaceResolutionDetail
+	}{
 		{
 			name:    "happy path",
 			flagKey: "flag",
@@ -533,16 +535,16 @@ func TestObjectEvaluation(t *testing.T) {
 		res := provider.ObjectEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
 
 		if res.ResolutionError.Error() != test.response.ResolutionError.Error() {
-			t.Errorf("%s: unexpected ResolutionError received, expected %v, got %v", test.name, test.response.ResolutionError.Error(), res.ResolutionError.Error())
+			t.Errorf("unexpected ResolutionError received, expected %v, got %v", test.response.ResolutionError.Error(), res.ResolutionError.Error())
 		}
 		if res.Variant != test.response.Variant {
-			t.Errorf("%s: unexpected Variant received, expected %v, got %v", test.name, test.response.Variant, res.Variant)
+			t.Errorf("unexpected Variant received, expected %v, got %v", test.response.Variant, res.Variant)
 		}
 		if res.Value != nil && test.mockOut.Value != nil && !reflect.DeepEqual(res.Value.(*structpb.Struct).AsMap(), test.response.Value.(map[string]interface{})) {
-			t.Errorf("%s: unexpected Value received, expected %v, got %v", test.name, test.response.Value, res.Value)
+			t.Errorf("unexpected Value received, expected %v, got %v", test.response.Value, res.Value)
 		}
 		if res.Reason != test.response.Reason {
-			t.Errorf("%s: unexpected Reason received, expected %v, got %v", test.name, test.response.Reason, res.Reason)
+			t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
 		}
 	}
 }

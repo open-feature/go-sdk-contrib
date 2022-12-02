@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	lru "github.com/hashicorp/golang-lru/v2"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
 	flagdService "github.com/open-feature/flagd/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
@@ -17,10 +18,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const defaultLRUCacheSize int = 1000
+
 type Provider struct {
 	ctx                   context.Context
 	Service               service.IService
-	Cache                 Cache
+	cacheEnabled          bool
+	booleanCache          Cache[string, of.BoolResolutionDetail]
+	stringCache           Cache[string, of.StringResolutionDetail]
+	floatCache            Cache[string, of.FloatResolutionDetail]
+	intCache              Cache[string, of.IntResolutionDetail]
+	interfaceCache        Cache[string, of.InterfaceResolutionDetail]
 	providerConfiguration *ProviderConfiguration
 }
 type ProviderConfiguration struct {
@@ -38,8 +46,8 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
 		// values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration: &ProviderConfiguration{},
-		Cache:                 cache.NewInMemory(),
 	}
+	WithLRUCache(defaultLRUCacheSize)(provider)
 	for _, opt := range opts {
 		opt(provider)
 	}
@@ -78,34 +86,33 @@ func WithSocketPath(socketPath string) ProviderOption {
 	}
 }
 
-// FromEnv sets the provider configuration from environemnt variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH
+// FromEnv sets the provider configuration from environment variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH & FLAGD_CACHING_DISABLED
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
 
-		if p.providerConfiguration.Port == 0 {
-			portS := os.Getenv("FLAGD_PORT")
-			if portS != "" {
-				port, err := strconv.Atoi(portS)
-				if err != nil {
-					log.Error("invalid env config for FLAGD_PORT provided, using default value")
-				} else {
-					p.providerConfiguration.Port = uint16(port)
-				}
+		portS := os.Getenv("FLAGD_PORT")
+		if portS != "" {
+			port, err := strconv.Atoi(portS)
+			if err != nil {
+				log.Error("invalid env config for FLAGD_PORT provided, using default value")
+			} else {
+				p.providerConfiguration.Port = uint16(port)
 			}
 		}
 
-		if p.providerConfiguration.CertificatePath == "" {
-			certificatePath := os.Getenv("FLAGD_SERVER_CERT_PATH")
-			if certificatePath != "" {
-				p.providerConfiguration.CertificatePath = certificatePath
-			}
+		certificatePath := os.Getenv("FLAGD_SERVER_CERT_PATH")
+		if certificatePath != "" {
+			p.providerConfiguration.CertificatePath = certificatePath
 		}
 
-		if p.providerConfiguration.Host == "" {
-			host := os.Getenv("FLAGD_HOST")
-			if host != "" {
-				p.providerConfiguration.Host = host
-			}
+		host := os.Getenv("FLAGD_HOST")
+		if host != "" {
+			p.providerConfiguration.Host = host
+		}
+
+		cachingDisabled := os.Getenv("FLAGD_CACHING_DISABLED")
+		if cachingDisabled == "true" {
+			WithoutCache()(p)
 		}
 
 	}
@@ -135,18 +142,70 @@ func WithHost(host string) ProviderOption {
 // WithoutCache disables caching
 func WithoutCache() ProviderOption {
 	return func(p *Provider) {
-		p.Cache = nil
+		p.cacheEnabled = false
+		p.booleanCache = nil
+		p.stringCache = nil
+		p.floatCache = nil
+		p.interfaceCache = nil
+		p.intCache = nil
 	}
 }
 
-// WithCustomCache applies a custom cache implementation
-func WithCustomCache(cacheImplementation Cache) ProviderOption {
+// WithBasicInMemoryCache applies a basic in memory cache store (with no memory limits)
+func WithBasicInMemoryCache() ProviderOption {
 	return func(p *Provider) {
-		p.Cache = cacheImplementation
+		p.booleanCache = cache.NewInMemory[string, of.BoolResolutionDetail]()
+		p.intCache = cache.NewInMemory[string, of.IntResolutionDetail]()
+		p.stringCache = cache.NewInMemory[string, of.StringResolutionDetail]()
+		p.floatCache = cache.NewInMemory[string, of.FloatResolutionDetail]()
+		p.interfaceCache = cache.NewInMemory[string, of.InterfaceResolutionDetail]()
+
+		p.cacheEnabled = true
 	}
 }
 
-// WithContext supplies the given context to the event stream
+// WithLRUCache applies least recently used caching (github.com/hashicorp/golang-lru).
+// The provided size is the limit of the number of cached values for each type of flag. Once the limit is reached each
+// new entry replaces the least recently used entry.
+func WithLRUCache(size int) ProviderOption {
+	return func(p *Provider) {
+		boolCache, err := lru.New[string, of.BoolResolutionDetail](size)
+		if err != nil {
+			log.Errorf("init boolean cache: %v", err)
+			return
+		}
+		p.booleanCache = boolCache
+		stringCache, err := lru.New[string, of.StringResolutionDetail](size)
+		if err != nil {
+			log.Errorf("init string cache: %v", err)
+			return
+		}
+		p.stringCache = stringCache
+		intCache, err := lru.New[string, of.IntResolutionDetail](size)
+		if err != nil {
+			log.Errorf("init int cache: %v", err)
+			return
+		}
+		p.intCache = intCache
+		floatCache, err := lru.New[string, of.FloatResolutionDetail](size)
+		if err != nil {
+			log.Errorf("init float cache: %v", err)
+			return
+		}
+		p.floatCache = floatCache
+		interfaceCache, err := lru.New[string, of.InterfaceResolutionDetail](size)
+		if err != nil {
+			log.Errorf("init interface cache: %v", err)
+			return
+		}
+		p.interfaceCache = interfaceCache
+
+		p.cacheEnabled = true
+	}
+}
+
+// WithContext supplies the given context to the event stream. Not to be confused with the context used in individual
+// flag evaluation requests.
 func WithContext(ctx context.Context) ProviderOption {
 	return func(p *Provider) {
 		p.ctx = ctx
@@ -174,15 +233,10 @@ func (p *Provider) BooleanEvaluation(
 	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
 ) of.BoolResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, err := p.Cache.Get(ctx, flagKey)
-		if err != nil {
-			log.Errorf("get from cache: %v", err)
-		} else {
-			res, ok := fromCache.(of.BoolResolutionDetail)
-			if ok {
-				res.Reason = constant.ReasonCached
-				return res
-			}
+		fromCache, ok := p.booleanCache.Get(flagKey)
+		if ok {
+			fromCache.Reason = constant.ReasonCached
+			return fromCache
 		}
 	}
 
@@ -212,9 +266,7 @@ func (p *Provider) BooleanEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
-			log.Errorf("set to cache: %v", err)
-		}
+		p.booleanCache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -224,15 +276,10 @@ func (p *Provider) StringEvaluation(
 	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
 ) of.StringResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, err := p.Cache.Get(ctx, flagKey)
-		if err != nil {
-			log.Errorf("get from cache: %v", err)
-		} else {
-			res, ok := fromCache.(of.StringResolutionDetail)
-			if ok {
-				res.Reason = constant.ReasonCached
-				return res
-			}
+		fromCache, ok := p.stringCache.Get(flagKey)
+		if ok {
+			fromCache.Reason = constant.ReasonCached
+			return fromCache
 		}
 	}
 
@@ -262,9 +309,7 @@ func (p *Provider) StringEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
-			log.Errorf("set to cache: %v", err)
-		}
+		p.stringCache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -274,15 +319,10 @@ func (p *Provider) FloatEvaluation(
 	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
 ) of.FloatResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, err := p.Cache.Get(ctx, flagKey)
-		if err != nil {
-			log.Errorf("get from cache: %v", err)
-		} else {
-			res, ok := fromCache.(of.FloatResolutionDetail)
-			if ok {
-				res.Reason = constant.ReasonCached
-				return res
-			}
+		fromCache, ok := p.floatCache.Get(flagKey)
+		if ok {
+			fromCache.Reason = constant.ReasonCached
+			return fromCache
 		}
 	}
 
@@ -312,9 +352,7 @@ func (p *Provider) FloatEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
-			log.Errorf("set to cache: %v", err)
-		}
+		p.floatCache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -324,15 +362,10 @@ func (p *Provider) IntEvaluation(
 	ctx context.Context, flagKey string, defaultValue int64, evalCtx of.FlattenedContext,
 ) of.IntResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, err := p.Cache.Get(ctx, flagKey)
-		if err != nil {
-			log.Errorf("get from cache: %v", err)
-		} else {
-			res, ok := fromCache.(of.IntResolutionDetail)
-			if ok {
-				res.Reason = constant.ReasonCached
-				return res
-			}
+		fromCache, ok := p.intCache.Get(flagKey)
+		if ok {
+			fromCache.Reason = constant.ReasonCached
+			return fromCache
 		}
 	}
 
@@ -362,9 +395,7 @@ func (p *Provider) IntEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
-			log.Errorf("set to cache: %v", err)
-		}
+		p.intCache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -374,15 +405,10 @@ func (p *Provider) ObjectEvaluation(
 	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
 ) of.InterfaceResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, err := p.Cache.Get(ctx, flagKey)
-		if err != nil {
-			log.Errorf("get from cache: %v", err)
-		} else {
-			res, ok := fromCache.(of.InterfaceResolutionDetail)
-			if ok {
-				res.Reason = constant.ReasonCached
-				return res
-			}
+		fromCache, ok := p.interfaceCache.Get(flagKey)
+		if ok {
+			fromCache.Reason = constant.ReasonCached
+			return fromCache
 		}
 	}
 
@@ -412,16 +438,14 @@ func (p *Provider) ObjectEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		if err := p.Cache.Set(ctx, flagKey, resDetail); err != nil {
-			log.Errorf("set to cache: %v", err)
-		}
+		p.interfaceCache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
 }
 
 func (p *Provider) isCacheAvailable() bool {
-	return p.Cache != nil && p.Service.IsEventStreamAlive()
+	return p.cacheEnabled && p.Service.IsEventStreamAlive()
 }
 
 func (p *Provider) handleEvents(ctx context.Context) error {
@@ -434,10 +458,8 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 		select {
 		case event, ok := <-eventChan:
 			if !ok {
-				if p.Cache != nil {
-					if err := p.Cache.DeleteAll(ctx); err != nil {
-						log.Errorf("delete all from cache: %v", err)
-					}
+				if p.cacheEnabled { // disable cache
+					WithoutCache()(p)
 				}
 				return nil
 			}
@@ -449,10 +471,8 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 				}
 			}
 		case err := <-errChan:
-			if p.Cache != nil {
-				if err := p.Cache.DeleteAll(ctx); err != nil {
-					log.Errorf("delete all from cache: %v", err)
-				}
+			if p.cacheEnabled { // disable cache
+				WithoutCache()(p)
 			}
 			return err
 		}
@@ -460,7 +480,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 }
 
 func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *schemaV1.EventStreamResponse) error {
-	if p.Cache == nil {
+	if !p.cacheEnabled {
 		return nil
 	}
 
@@ -478,9 +498,12 @@ func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *sc
 		return errors.New("flagKey is not a string")
 	}
 
-	if err := p.Cache.Delete(ctx, flagKey); err != nil {
-		return fmt.Errorf("delete flag from cache: %w", err)
-	}
+	// TODO: consider sending the flag type in the configuration change event
+	p.booleanCache.Remove(flagKey)
+	p.intCache.Remove(flagKey)
+	p.floatCache.Remove(flagKey)
+	p.interfaceCache.Remove(flagKey)
+	p.stringCache.Remove(flagKey)
 
 	return nil
 }

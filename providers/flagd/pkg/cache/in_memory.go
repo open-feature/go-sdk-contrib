@@ -1,50 +1,50 @@
 package cache
 
 import (
-	"context"
 	"sync"
 )
 
-type InMemory struct {
-	values map[string]interface{}
+type InMemory[K comparable, V any] struct {
+	values map[K]V
 	rwMux  *sync.RWMutex
 }
 
-func NewInMemory() *InMemory {
-	return &InMemory{
-		values: make(map[string]interface{}),
+func NewInMemory[K comparable, V any]() *InMemory[K, V] {
+	return &InMemory[K, V]{
+		values: make(map[K]V),
 		rwMux:  &sync.RWMutex{},
 	}
 }
 
-func (m *InMemory) Set(ctx context.Context, flagKey string, value interface{}) error {
+func (m *InMemory[K, V]) Add(flagKey K, value V) (evicted bool) {
 	m.rwMux.Lock()
 	defer m.rwMux.Unlock()
 	m.values[flagKey] = value
 
-	return nil
+	return false
 }
 
-func (m *InMemory) Get(ctx context.Context, flagKey string) (interface{}, error) {
+func (m *InMemory[K, V]) Get(flagKey K) (value V, ok bool) {
 	m.rwMux.RLock()
 	defer m.rwMux.RUnlock()
 
-	return m.values[flagKey], nil
+	val, ok := m.values[flagKey]
+
+	return val, ok
 }
 
-func (m *InMemory) Delete(ctx context.Context, flagKey string) error {
+func (m *InMemory[K, V]) Remove(flagKey K) (present bool) {
 	m.rwMux.Lock()
 	defer m.rwMux.Unlock()
 
+	_, ok := m.values[flagKey]
 	delete(m.values, flagKey)
-	return nil
+	return ok
 }
 
-func (m *InMemory) DeleteAll(ctx context.Context) error {
+func (m *InMemory[K, V]) Purge() {
 	m.rwMux.Lock()
 	defer m.rwMux.Unlock()
 
-	m.values = make(map[string]interface{})
-
-	return nil
+	m.values = make(map[K]V)
 }
