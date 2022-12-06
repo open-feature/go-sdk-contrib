@@ -10,7 +10,7 @@ require (
 	github.com/open-feature/flagd v0.2.2
 	github.com/open-feature/go-sdk v1.0.0
 	github.com/sirupsen/logrus v1.9.0
-	go.buf.build/open-feature/flagd-connect/open-feature/flagd v1.1.4
+	go.buf.build/open-feature/flagd-connect/open-feature/flagd v1.1.18
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af
 	google.golang.org/protobuf v1.28.1
 )
