@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	schemaConnectV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1/schemav1connect"
+	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/bufbuild/connect-go/schema/v1/schemav1connect"
 )
 
 type iClient interface {

@@ -7,9 +7,9 @@ import (
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
 
+	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
 	log "github.com/sirupsen/logrus"
-	schemaV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
