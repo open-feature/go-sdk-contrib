@@ -6,6 +6,10 @@
 [Flagd](https://github.com/open-feature/flagd) is a simple command line tool for fetching and presenting feature flags to services. It is designed to conform to OpenFeature schema for flag definitions. This repository and package provides the client side code for interacting with it via the [OpenFeature SDK](https://github.com/open-feature/go-sdk).
 
 ## Setup
+Using remote buf packages requires a one-time registry configuration:
+```shell
+export GOPRIVATE=buf.build/gen/go
+```
 To use flagd with the [OpenFeature SDK](https://github.com/open-feature/go-sdk) set the provider to the `openfeature` global singleton as shown below (using default values which align with those of `flagd`)
 ```go
 openfeature.SetProvider(flagd.NewProvider())
