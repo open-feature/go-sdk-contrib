@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	gomock "github.com/golang/mock/gomock"
+	schemav1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 )
 
 // MockIService is a mock of IService interface.

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	schemaV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 )
 
 type IService interface {
