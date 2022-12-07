@@ -49,32 +49,6 @@ func TestNewProvider(t *testing.T) {
 			},
 			cachingEnabled: true,
 		},
-		{
-			name: "from env - maintain default port preventing overwrite",
-			port: 8013,
-			host: "not localhost",
-			options: []flagd.ProviderOption{
-				flagd.WithPort(8013), //matched default
-				flagd.FromEnv(),
-			},
-			env:            true,
-			envPort:        1,
-			envHost:        "not localhost",
-			cachingEnabled: true,
-		},
-		{
-			name: "from env - maintain default port with explicit overwrite",
-			port: 8013,
-			host: "not localhost",
-			options: []flagd.ProviderOption{
-				flagd.FromEnv(),
-				flagd.WithPort(8013), //matched default
-			},
-			env:            true,
-			envPort:        1,
-			envHost:        "not localhost",
-			cachingEnabled: true,
-		},
 	}
 
 	for _, test := range tests {

@@ -21,15 +21,16 @@ import (
 const defaultLRUCacheSize int = 1000
 
 type Provider struct {
-	ctx                   context.Context
-	Service               service.IService
-	cacheEnabled          bool
-	booleanCache          Cache[string, of.BoolResolutionDetail]
-	stringCache           Cache[string, of.StringResolutionDetail]
-	floatCache            Cache[string, of.FloatResolutionDetail]
-	intCache              Cache[string, of.IntResolutionDetail]
-	interfaceCache        Cache[string, of.InterfaceResolutionDetail]
-	providerConfiguration *ProviderConfiguration
+	ctx                              context.Context
+	Service                          service.IService
+	cacheEnabled                     bool
+	booleanCache                     Cache[string, of.BoolResolutionDetail]
+	stringCache                      Cache[string, of.StringResolutionDetail]
+	floatCache                       Cache[string, of.FloatResolutionDetail]
+	intCache                         Cache[string, of.IntResolutionDetail]
+	interfaceCache                   Cache[string, of.InterfaceResolutionDetail]
+	providerConfiguration            *ProviderConfiguration
+	eventStreamConnectionMaxAttempts int
 }
 type ProviderConfiguration struct {
 	Port            uint16
@@ -45,7 +46,8 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		ctx: context.Background(),
 		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
 		// values (default values are then set after the options are run via applyDefaults())
-		providerConfiguration: &ProviderConfiguration{},
+		providerConfiguration:            &ProviderConfiguration{},
+		eventStreamConnectionMaxAttempts: 5,
 	}
 	WithLRUCache(defaultLRUCacheSize)(provider)
 	for _, opt := range opts {
@@ -59,7 +61,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			CertificatePath: provider.providerConfiguration.CertificatePath,
 			SocketPath:      provider.providerConfiguration.SocketPath,
 		},
-	})
+	}, nil)
 
 	go func() {
 		if err := provider.handleEvents(provider.ctx); err != nil {
@@ -209,6 +211,14 @@ func WithLRUCache(size int) ProviderOption {
 func WithContext(ctx context.Context) ProviderOption {
 	return func(p *Provider) {
 		p.ctx = ctx
+	}
+}
+
+// WithEventStreamConnectionMaxAttempts sets the maximum number of attempts to connect to flagd's event stream.
+// On successful connection the attempts are reset.
+func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
+	return func(p *Provider) {
+		p.eventStreamConnectionMaxAttempts = i
 	}
 }
 
@@ -452,7 +462,9 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 	eventChan := make(chan *schemaV1.EventStreamResponse)
 	errChan := make(chan error)
 
-	go p.Service.EventStream(ctx, eventChan, errChan)
+	go func() {
+		p.Service.EventStream(ctx, eventChan, p.eventStreamConnectionMaxAttempts, errChan)
+	}()
 
 	for {
 		select {
@@ -469,6 +481,8 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 				if err := p.handleConfigurationChangeEvent(ctx, event); err != nil {
 					log.Errorf("handle configuration change event: %v", err)
 				}
+			case string(flagdService.ProviderReady): // signals that a new connection has been made
+				p.purgeCache() // in case events were missed while the connection was down
 			}
 		case err := <-errChan:
 			if p.cacheEnabled { // disable cache
@@ -506,4 +520,12 @@ func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *sc
 	p.stringCache.Remove(flagKey)
 
 	return nil
+}
+
+func (p *Provider) purgeCache() {
+	p.booleanCache.Purge()
+	p.intCache.Purge()
+	p.floatCache.Purge()
+	p.interfaceCache.Purge()
+	p.stringCache.Purge()
 }

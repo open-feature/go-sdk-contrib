@@ -36,15 +36,15 @@ func (m *MockIService) EXPECT() *MockIServiceMockRecorder {
 }
 
 // EventStream mocks base method.
-func (m *MockIService) EventStream(ctx context.Context, eventChan chan<- *schemav1.EventStreamResponse, errorChan chan<- error) {
+func (m *MockIService) EventStream(ctx context.Context, eventChan chan<- *schemav1.EventStreamResponse, maxAttempts int, errChan chan<- error) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "EventStream", ctx, eventChan, errorChan)
+	m.ctrl.Call(m, "EventStream", ctx, eventChan, maxAttempts, errChan)
 }
 
 // EventStream indicates an expected call of EventStream.
-func (mr *MockIServiceMockRecorder) EventStream(ctx, eventChan, errorChan interface{}) *gomock.Call {
+func (mr *MockIServiceMockRecorder) EventStream(ctx, eventChan, maxAttempts, errChan interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EventStream", reflect.TypeOf((*MockIService)(nil).EventStream), ctx, eventChan, errorChan)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EventStream", reflect.TypeOf((*MockIService)(nil).EventStream), ctx, eventChan, maxAttempts, errChan)
 }
 
 // IsEventStreamAlive mocks base method.
