@@ -5,7 +5,6 @@ import (
 	"github.com/bufbuild/connect-go"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"sync"
 	"time"
 
@@ -228,7 +227,7 @@ func (s *Service) eventStream(
 		return attempt + 1, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
 	}
 
-	stream, err := client.EventStream(ctx, connect.NewRequest(&emptypb.Empty{}))
+	stream, err := client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
 	if err != nil {
 		return attempt + 1, err
 	}

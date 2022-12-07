@@ -1,6 +1,7 @@
 package flagd_test
 
 import (
+	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -9,7 +10,6 @@ import (
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-	schemav1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
 	"testing"
 )
 

@@ -1,6 +1,7 @@
 package flagd
 
 import (
+	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
 	"errors"
 	"fmt"
@@ -9,13 +10,11 @@ import (
 	flagdService "github.com/open-feature/flagd/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
-	schemaV1 "go.buf.build/open-feature/flagd-connect/open-feature/flagd/schema/v1"
-	"os"
-	"strconv"
-
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"strconv"
 )
 
 const defaultLRUCacheSize int = 1000
