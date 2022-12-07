@@ -209,7 +209,7 @@ func (s *Service) EventStream(
 		}
 		if err != nil && i <= maxAttempts {
 			delay = 2 * delay
-			log.Infof("connection to event stream failed, sleeping %v", delay)
+			log.Warningf("connection to event stream failed, sleeping %v", delay)
 			time.Sleep(delay)
 		}
 	}
