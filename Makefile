@@ -7,7 +7,7 @@ workspace-init:
 workspace-update:
 	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module);)
 
-test: workspace-init
+test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
 
 lint: 
