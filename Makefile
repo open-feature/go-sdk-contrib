@@ -7,8 +7,8 @@ workspace-init:
 workspace-update:
 	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module);)
 
-test:
-	$(foreach module, $(ALL_GO_MOD_DIRS), go test -race $(module)/...;)
+test: 
+	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
 
 lint:
 	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@latest
