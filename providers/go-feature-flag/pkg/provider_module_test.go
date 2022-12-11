@@ -1,60 +1,20 @@
 package gofeatureflag_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
+	ffclient "github.com/thomaspoignant/go-feature-flag"
+	"github.com/thomaspoignant/go-feature-flag/retriever/fileretriever"
+	"log"
 	"os"
-	"strings"
 	"testing"
+	"time"
 )
 
-type mockClient struct{}
-
-func (m *mockClient) Do(req *http.Request) (*http.Response, error) {
-	mockPath := "../testutils/mock_responses/%s.json"
-	flagName := strings.Replace(strings.Replace(req.URL.Path, "/v1/feature/", "", -1), "/eval", "", -1)
-	content, err := os.ReadFile(fmt.Sprintf(mockPath, flagName))
-	if err != nil {
-		content, _ = os.ReadFile(fmt.Sprintf(mockPath, "flag_not_found"))
-	}
-	body := io.NopCloser(bytes.NewReader(content))
-	return &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       body,
-	}, nil
-}
-
-func defaultEvaluationCtx() of.EvaluationContext {
-	return of.NewEvaluationContext(
-		"d45e303a-38c2-11ed-a261-0242ac120002",
-		map[string]interface{}{
-			"email":        "john.doe@gofeatureflag.org",
-			"firstname":    "john",
-			"lastname":     "doe",
-			"anonymous":    false,
-			"professional": true,
-			"rate":         3.14,
-			"age":          30,
-			"admin":        true,
-			"company_info": map[string]interface{}{
-				"name": "my_company",
-				"size": 120,
-			},
-			"labels": []string{
-				"pro", "beta",
-			},
-		},
-	)
-}
-
-func TestProvider_BooleanEvaluation(t *testing.T) {
+func TestProvider_module_BooleanEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue bool
@@ -99,7 +59,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 					FlagKey:  "disabled_bool",
 					FlagType: of.Boolean,
 					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "defaultSdk",
+						Variant:      "SdkDefault",
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
@@ -149,76 +109,19 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "should return custom reason if returned by relay proxy",
-			args: args{
-				flag:         "unknown_reason",
-				defaultValue: false,
-				evalCtx:      defaultEvaluationCtx(),
-			},
-			want: of.BooleanEvaluationDetails{
-				Value: true,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "unknown_reason",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "True",
-						Reason:       "CUSTOM_REASON",
-						ErrorCode:    "",
-						ErrorMessage: "",
-					},
-				},
-			},
-		},
-		{
-			name: "should return error if no targeting key",
-			args: args{
-				flag:         "bool_targeting_match",
-				defaultValue: false,
-				evalCtx:      of.EvaluationContext{},
-			},
-			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "bool_targeting_match",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TargetingKeyMissingCode,
-						ErrorMessage: "no targetingKey provided in the evaluation context",
-					},
-				},
-			},
-		},
-		{
-			name: "should return an error if invalid json body",
-			args: args{
-				flag:         "invalid_json_body",
-				defaultValue: false,
-				evalCtx:      defaultEvaluationCtx(),
-			},
-			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "invalid_json_body",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.ParseErrorCode,
-						ErrorMessage: "impossible to parse response for flag invalid_json_body: {\n  \"trackEvents\": true,\n  \"variationType\": \"True\",\n  \"failed\": false,\n  \"version\": 0,\n  \"reason\": \"TARGETING_MATCH\",\n  \"errorCode\": \"\",\n  \"value\": true\n",
-					},
-				},
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:            "https://gofeatureflag.org/",
-				HTTPClient:          &mockClient{},
-				GOFeatureFlagConfig: nil,
-			}
-			provider, err := gofeatureflag.NewProvider(options)
+			provider, err := gofeatureflag.NewProvider(gofeatureflag.ProviderOptions{
+				GOFeatureFlagConfig: &ffclient.Config{
+					PollingInterval: 10 * time.Second,
+					Logger:          log.New(os.Stdout, "", 0),
+					Context:         context.Background(),
+					Retriever: &fileretriever.Retriever{
+						Path: "../testutils/module/flags.yaml",
+					},
+				},
+			})
 			assert.NoError(t, err)
 			of.SetProvider(provider)
 			client := of.NewClient("test-app")
@@ -237,7 +140,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 	}
 }
 
-func TestProvider_StringEvaluation(t *testing.T) {
+func TestProvider_module_StringEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue string
@@ -282,7 +185,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 					FlagKey:  "disabled_string",
 					FlagType: of.String,
 					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "defaultSdk",
+						Variant:      "SdkDefault",
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
@@ -335,12 +238,16 @@ func TestProvider_StringEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:            "https://gofeatureflag.org/",
-				HTTPClient:          &mockClient{},
-				GOFeatureFlagConfig: nil,
-			}
-			provider, err := gofeatureflag.NewProvider(options)
+			provider, err := gofeatureflag.NewProvider(gofeatureflag.ProviderOptions{
+				GOFeatureFlagConfig: &ffclient.Config{
+					PollingInterval: 10 * time.Second,
+					Logger:          log.New(os.Stdout, "", 0),
+					Context:         context.Background(),
+					Retriever: &fileretriever.Retriever{
+						Path: "../testutils/module/flags.yaml",
+					},
+				},
+			})
 			assert.NoError(t, err)
 			of.SetProvider(provider)
 			client := of.NewClient("test-app")
@@ -359,7 +266,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 	}
 }
 
-func TestProvider_FloatEvaluation(t *testing.T) {
+func TestProvider_module_FloatEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue float64
@@ -404,7 +311,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 					FlagKey:  "disabled_float",
 					FlagType: of.Float,
 					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "defaultSdk",
+						Variant:      "SdkDefault",
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
@@ -457,12 +364,16 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:            "https://gofeatureflag.org/",
-				HTTPClient:          &mockClient{},
-				GOFeatureFlagConfig: nil,
-			}
-			provider, err := gofeatureflag.NewProvider(options)
+			provider, err := gofeatureflag.NewProvider(gofeatureflag.ProviderOptions{
+				GOFeatureFlagConfig: &ffclient.Config{
+					PollingInterval: 10 * time.Second,
+					Logger:          log.New(os.Stdout, "", 0),
+					Context:         context.Background(),
+					Retriever: &fileretriever.Retriever{
+						Path: "../testutils/module/flags.yaml",
+					},
+				},
+			})
 			assert.NoError(t, err)
 			of.SetProvider(provider)
 			client := of.NewClient("test-app")
@@ -481,7 +392,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 	}
 }
 
-func TestProvider_IntEvaluation(t *testing.T) {
+func TestProvider_module_IntEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue int64
@@ -526,7 +437,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 					FlagKey:  "disabled_int",
 					FlagType: of.Int,
 					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "defaultSdk",
+						Variant:      "SdkDefault",
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
@@ -579,12 +490,16 @@ func TestProvider_IntEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:            "https://gofeatureflag.org/",
-				HTTPClient:          &mockClient{},
-				GOFeatureFlagConfig: nil,
-			}
-			provider, err := gofeatureflag.NewProvider(options)
+			provider, err := gofeatureflag.NewProvider(gofeatureflag.ProviderOptions{
+				GOFeatureFlagConfig: &ffclient.Config{
+					PollingInterval: 10 * time.Second,
+					Logger:          log.New(os.Stdout, "", 0),
+					Context:         context.Background(),
+					Retriever: &fileretriever.Retriever{
+						Path: "../testutils/module/flags.yaml",
+					},
+				},
+			})
 			assert.NoError(t, err)
 			of.SetProvider(provider)
 			client := of.NewClient("test-app")
@@ -603,7 +518,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 	}
 }
 
-func TestProvider_ObjectEvaluation(t *testing.T) {
+func TestProvider_module_ObjectEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue interface{}
@@ -626,8 +541,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 					"test":  "test1",
 					"test2": false,
 					"test3": 123.3,
-					"test4": float64(1),
-					"test5": nil,
+					"test4": 1,
 				},
 				EvaluationDetails: of.EvaluationDetails{
 					FlagKey:  "object_key",
@@ -644,17 +558,17 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 		{
 			name: "should use interface default value if the flag is disabled",
 			args: args{
-				flag:         "disabled_int",
+				flag:         "disabled_interface",
 				defaultValue: nil,
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.InterfaceEvaluationDetails{
 				Value: nil,
 				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "disabled_int",
+					FlagKey:  "disabled_interface",
 					FlagType: of.Object,
 					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "defaultSdk",
+						Variant:      "SdkDefault",
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
@@ -686,19 +600,23 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:            "https://gofeatureflag.org/",
-				HTTPClient:          &mockClient{},
-				GOFeatureFlagConfig: nil,
-			}
-			provider, err := gofeatureflag.NewProvider(options)
+			provider, err := gofeatureflag.NewProvider(gofeatureflag.ProviderOptions{
+				GOFeatureFlagConfig: &ffclient.Config{
+					PollingInterval: 10 * time.Second,
+					Logger:          log.New(os.Stdout, "", 0),
+					Context:         context.Background(),
+					Retriever: &fileretriever.Retriever{
+						Path: "../testutils/module/flags.yaml",
+					},
+				},
+			})
 			assert.NoError(t, err)
 			of.SetProvider(provider)
 			client := of.NewClient("test-app")
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
-				require.Error(t, err)
+				assert.Error(t, err)
 				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
 				assert.Equal(t, want, err.Error())
 			} else {

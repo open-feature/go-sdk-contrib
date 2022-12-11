@@ -1,0 +1,76 @@
+bool_targeting_match:
+  true: true
+  false: false
+  default: false
+  percentage: 100
+
+disabled_bool:
+  true: true
+  false: false
+  default: false
+  percentage: 100
+  disable: true
+
+string_key:
+  true: "CC0000"
+  false: "CC0001"
+  default: "CC0002"
+  percentage: 100
+
+disabled_string:
+  true: "CC0000"
+  false: "CC0001"
+  default: "CC0002"
+  percentage: 100
+  disable: true
+
+double_key:
+  true: 100.25
+  false: 101.25
+  default: 103.25
+  percentage: 100
+
+disabled_float:
+  true: 100.25
+  false: 101.25
+  default: 103.25
+  percentage: 100
+  disable: true
+
+integer_key:
+  true: 100
+  false: 101
+  default: 103
+  percentage: 100
+
+disabled_int:
+  true: 100
+  false: 101
+  default: 103
+  percentage: 100
+  disable: true
+
+object_key:
+  percentage: 100
+  true:
+    test:  test1
+    test2: false
+    test3: 123.3
+    test4: 1
+  false:
+    test:  "false"
+  default:
+    test: "default"
+
+disabled_interface:
+  percentage: 100
+  true:
+    test: test1
+    test2: false
+    test3: 123.3
+    test4: 1
+  false:
+    test: "false"
+  default:
+    test: "default"
+  disable: true
