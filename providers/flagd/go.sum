@@ -1,8 +1,12 @@
 buf.build/gen/go/grpc-ecosystem/grpc-gateway/protocolbuffers/go v1.28.1-20220906183531-bc28b723cd77.4/go.mod h1:92ejKVTiuvnKoAtRlpJpIxKfloI935DDqhs0NCRx+KM=
 buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.3.1-20221205151127-0e915b34a38d.1 h1:s6bC29cqHwPDm2pp/lqCVsQMDX5uzAxarOADicGVcus=
 buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.3.1-20221205151127-0e915b34a38d.1/go.mod h1:eiAc8SWAbn/NE/Y9uHbiEJGOsYRqZ+UXEY5zxNRBXNY=
+buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.3.1-20221220163034-c4307ef9935e.1 h1:rg3XlJZslzklvzSRNp8bdoc/+/72x//9uDT7A4ztp+Y=
+buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.3.1-20221220163034-c4307ef9935e.1/go.mod h1:hccc+NDM3yJjtVBarGnvPAUIDOcLneIEfywA+VvcuB4=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.28.1-20221205151127-0e915b34a38d.4 h1:gxSva6bWmj5ce90pR/v0tSoFupWbEs47UpnCBCUls30=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.28.1-20221205151127-0e915b34a38d.4/go.mod h1:+Bnrjo56uVn/aBcLWchTveR8UeCj+KSJN4fE0xSmBNc=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.28.1-20221220163034-c4307ef9935e.4 h1:2vympnjb41f3dPVuLnDu91rk4HcG/vs4xUFenjJSRn8=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.28.1-20221220163034-c4307ef9935e.4/go.mod h1:+Bnrjo56uVn/aBcLWchTveR8UeCj+KSJN4fE0xSmBNc=
 github.com/bufbuild/connect-go v1.3.1 h1:doJP6Q8Ypg6haUT2IAZJPWHUN9rAUp+F9MfK7yhu1zs=
 github.com/bufbuild/connect-go v1.3.1/go.mod h1:9iNvh/NOsfhNBUH5CtvXeVUskQO1xsrEviH7ZArwZ3I=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
