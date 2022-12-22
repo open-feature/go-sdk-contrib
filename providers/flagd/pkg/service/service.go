@@ -2,10 +2,11 @@ package service
 
 import (
 	"errors"
-
 	"github.com/bufbuild/connect-go"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
+	"sync"
+	"time"
 
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
@@ -22,7 +23,23 @@ type ServiceConfiguration struct {
 
 // Service handles the client side  interface for the flagd server
 type Service struct {
-	Client iClient
+	rwMx           *sync.RWMutex
+	streamAlive    bool
+	Client         iClient
+	baseRetryDelay time.Duration
+}
+
+func NewService(client iClient, baseStreamRetryDelay *time.Duration) *Service {
+	if baseStreamRetryDelay == nil {
+		scnd := time.Second
+		baseStreamRetryDelay = &scnd
+	}
+	return &Service{
+		rwMx:           &sync.RWMutex{},
+		streamAlive:    false,
+		Client:         client,
+		baseRetryDelay: *baseStreamRetryDelay,
+	}
 }
 
 const ConnectionError = "connection not made"
@@ -176,4 +193,68 @@ func handleError(err error) openfeature.ResolutionError {
 		return openfeature.NewParseErrorResolutionError(err.Error())
 	}
 	return openfeature.NewGeneralResolutionError(err.Error())
+}
+
+// EventStream emits received events on the given channel
+func (s *Service) EventStream(
+	ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, maxAttempts int, errChan chan<- error,
+) {
+	delay := s.baseRetryDelay
+	var err error
+	for i := 1; i <= maxAttempts; i++ {
+		log.Infof("attempt %d at connecting to event stream", i)
+		i, err = s.eventStream(ctx, eventChan, i, maxAttempts)
+		if i == 1 {
+			delay = s.baseRetryDelay // reset delay if the connection was successful before failing
+		}
+		if err != nil && i <= maxAttempts {
+			delay = 2 * delay
+			log.Warningf("connection to event stream failed, sleeping %v", delay)
+			time.Sleep(delay)
+		}
+	}
+
+	if err != nil {
+		errChan <- err
+	}
+}
+
+func (s *Service) eventStream(
+	ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, attempt, maxAttempts int,
+) (int, error) {
+	client := s.Client.Instance()
+	if client == nil {
+		return attempt + 1, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
+	}
+
+	stream, err := client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
+	if err != nil {
+		return attempt + 1, err
+	}
+	log.Info("connected to event stream")
+	s.rwMx.Lock()
+	s.streamAlive = true
+	s.rwMx.Unlock()
+	attempt = 0 // reset attempts on successful connection
+
+	for stream.Receive() {
+		eventChan <- stream.Msg()
+	}
+	s.rwMx.Lock()
+	s.streamAlive = false
+	s.rwMx.Unlock()
+
+	if err := stream.Err(); err != nil {
+		return attempt + 1, err
+	}
+	close(eventChan)
+
+	return attempt + 1, nil
+}
+
+func (s *Service) IsEventStreamAlive() bool {
+	s.rwMx.RLock()
+	defer s.rwMx.RUnlock()
+
+	return s.streamAlive
 }

@@ -12,4 +12,9 @@ type IService interface {
 	ResolveFloat(context.Context, string, map[string]interface{}) (*schemaV1.ResolveFloatResponse, error)
 	ResolveInt(context.Context, string, map[string]interface{}) (*schemaV1.ResolveIntResponse, error)
 	ResolveObject(context.Context, string, map[string]interface{}) (*schemaV1.ResolveObjectResponse, error)
+	EventStream(
+		ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse,
+		maxAttempts int, errChan chan<- error,
+	)
+	IsEventStreamAlive() bool
 }

@@ -35,6 +35,32 @@ func (m *MockIService) EXPECT() *MockIServiceMockRecorder {
 	return m.recorder
 }
 
+// EventStream mocks base method.
+func (m *MockIService) EventStream(ctx context.Context, eventChan chan<- *schemav1.EventStreamResponse, maxAttempts int, errChan chan<- error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "EventStream", ctx, eventChan, maxAttempts, errChan)
+}
+
+// EventStream indicates an expected call of EventStream.
+func (mr *MockIServiceMockRecorder) EventStream(ctx, eventChan, maxAttempts, errChan interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EventStream", reflect.TypeOf((*MockIService)(nil).EventStream), ctx, eventChan, maxAttempts, errChan)
+}
+
+// IsEventStreamAlive mocks base method.
+func (m *MockIService) IsEventStreamAlive() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsEventStreamAlive")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsEventStreamAlive indicates an expected call of IsEventStreamAlive.
+func (mr *MockIServiceMockRecorder) IsEventStreamAlive() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsEventStreamAlive", reflect.TypeOf((*MockIService)(nil).IsEventStreamAlive))
+}
+
 // ResolveBoolean mocks base method.
 func (m *MockIService) ResolveBoolean(arg0 context.Context, arg1 string, arg2 map[string]interface{}) (*schemav1.ResolveBooleanResponse, error) {
 	m.ctrl.T.Helper()
