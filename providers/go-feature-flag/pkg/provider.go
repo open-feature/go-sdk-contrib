@@ -139,7 +139,7 @@ func genericEvaluation[T model.JsonType](provider *Provider, ctx context.Context
 }
 
 // evaluateLocally is using the GO Feature Flag module to evaluate your flag.
-// it means that you don't need any rela proxy to make it works.
+// it means that you don't need any relay proxy to make it work.
 func evaluateLocally[T model.JsonType](provider *Provider, goffRequestBody model.EvalFlagRequest, flagName string, defaultValue T) model.GenericResolutionDetail[T] {
 	// Construct user
 	userBuilder := ffuser.NewUserBuilder(goffRequestBody.User.Key)
