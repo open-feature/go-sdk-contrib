@@ -480,17 +480,19 @@ func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *sc
 		return errors.New("no data in event")
 	}
 
-	flagKeyVal, ok := event.Data.AsMap()["flagKey"]
+	flagsVal, ok := event.Data.AsMap()["flags"]
 	if !ok {
-		return errors.New("no flagKey field in event data")
+		return errors.New("no flags field in event data")
 	}
 
-	flagKey, ok := flagKeyVal.(string)
+	flags, ok := flagsVal.(map[string]interface{})
 	if !ok {
-		return errors.New("flagKey is not a string")
+		return errors.New("flags isn't a map")
 	}
 
-	p.cache.Remove(flagKey)
+	for flagKey, _ := range flags {
+		p.cache.Remove(flagKey)
+	}
 
 	return nil
 }
