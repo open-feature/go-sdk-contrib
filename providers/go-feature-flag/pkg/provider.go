@@ -9,7 +9,7 @@ import (
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	client "github.com/thomaspoignant/go-feature-flag"
 	"github.com/thomaspoignant/go-feature-flag/ffuser"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -287,7 +287,7 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 			},
 		}
 	}
-	responseStr, err := ioutil.ReadAll(response.Body)
+	responseStr, err := io.ReadAll(response.Body)
 	if err != nil {
 		return model.GenericResolutionDetail[T]{
 			Value: defaultValue,
