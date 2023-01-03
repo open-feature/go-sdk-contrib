@@ -276,6 +276,8 @@ github.com/open-feature/flagd v0.2.8-0.20221221122807-af6f133688b5 h1:oTg9T2yH7Y
 github.com/open-feature/flagd v0.2.8-0.20221221122807-af6f133688b5/go.mod h1:xvovz/Y6PP1t8sq/d5qNXUi/VTWEsDYCXxTj6B6XoAI=
 github.com/open-feature/go-sdk v1.0.0 h1:JHZogkaccRFxpCY7gskBqjgQjd7YdyedBZmH7ZY82C0=
 github.com/open-feature/go-sdk v1.0.0/go.mod h1:Ub7Bu2yjBFieDMQJZXoOV+x6Mhn9pudxG1CR7zsHBUg=
+github.com/open-feature/go-sdk v1.0.1 h1:gT2rUJxmqO4jh1CYGPBfyEySi9woXsP9B773y8Y/iAo=
+github.com/open-feature/go-sdk v1.0.1/go.mod h1:Ub7Bu2yjBFieDMQJZXoOV+x6Mhn9pudxG1CR7zsHBUg=
 github.com/open-feature/open-feature-operator v0.2.20 h1:c/jMPtIts9g5CyrjUK5YuMFHwqLJTDBiAkvjuY+hsko=
 github.com/open-feature/open-feature-operator v0.2.20/go.mod h1:xwo07+Z0r/ri7mh1XTt/oBolCZZCNPfIKEFuoPncut8=
 github.com/open-feature/schemas v0.0.0-20221123004631-302d0fa1f813 h1:jcf+dYt/EL5kMYrftpzdk4t6iscQKzVo8IIvAkAV+MI=

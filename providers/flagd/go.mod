@@ -10,7 +10,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/open-feature/flagd v0.2.8-0.20221221122807-af6f133688b5
-	github.com/open-feature/go-sdk v1.0.0
+	github.com/open-feature/go-sdk v1.0.1
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/net v0.2.0
 	google.golang.org/protobuf v1.28.1
