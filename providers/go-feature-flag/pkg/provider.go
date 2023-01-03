@@ -311,7 +311,6 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 				},
 			}
 		}
-		fmt.Println(err)
 		return model.GenericResolutionDetail[T]{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
