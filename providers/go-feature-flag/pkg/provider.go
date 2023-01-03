@@ -55,7 +55,7 @@ func NewProvider(options ProviderOptions) (*Provider, error) {
 	}
 
 	if options.Endpoint == "" {
-		return nil, fmt.Errorf("invalid provider options, invalid endpoint value: %s", options.Endpoint)
+		return nil, fmt.Errorf("invalid provider options, empty endpoint value")
 	}
 
 	httpClient := options.HTTPClient
