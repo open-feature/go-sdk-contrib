@@ -4,7 +4,7 @@ import ffclient "github.com/thomaspoignant/go-feature-flag"
 
 // ProviderOptions is the struct containing the provider options you can
 // use while initializing GO Feature Flag.
-// To have a valid configuration you need to have at Endpoint or GOFeatureFlagConfig to be set.
+// To have a valid configuration you need to have an Endpoint or GOFeatureFlagConfig set.
 type ProviderOptions struct {
 	// Endpoint contains the DNS of your GO Feature Flag relay proxy (ex: http://localhost:1031)
 	Endpoint string
