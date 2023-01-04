@@ -60,13 +60,13 @@ The provider attempts to establish a connection to flagd's event stream (up to 5
 
 On invocation of a flag evaluation (if caching is available) an attempt is made to retrieve the entry from cache, if found the flag is returned with reason `CACHED`.
 
-By default, the provider is configured to use LRU caching with up to 1000 entries per type of flag.
+By default, the provider is configured to use LRU caching with up to 1000 entries.
 
 ### Configuration
 
 #### [Least recently used (LRU) caching](https://github.com/hashicorp/golang-lru)
 
-Configure the provider with this caching implementation to set a maximum number, n, of entries of each type (boolean/string/int/float/object) of flag. Once the limit is reached each new entry replaces the least recently used entry.
+Configure the provider with this caching implementation to set a maximum number, n, of entries. Once the limit is reached each new entry replaces the least recently used entry.
 
 ```go
 flagd.WithLRUCache(n)

@@ -23,11 +23,7 @@ type Provider struct {
 	ctx                              context.Context
 	Service                          service.IService
 	cacheEnabled                     bool
-	booleanCache                     Cache[string, of.BoolResolutionDetail]
-	stringCache                      Cache[string, of.StringResolutionDetail]
-	floatCache                       Cache[string, of.FloatResolutionDetail]
-	intCache                         Cache[string, of.IntResolutionDetail]
-	interfaceCache                   Cache[string, of.InterfaceResolutionDetail]
+	cache                            Cache[string, interface{}]
 	providerConfiguration            *ProviderConfiguration
 	eventStreamConnectionMaxAttempts int
 }
@@ -144,62 +140,30 @@ func WithHost(host string) ProviderOption {
 func WithoutCache() ProviderOption {
 	return func(p *Provider) {
 		p.cacheEnabled = false
-		p.booleanCache = nil
-		p.stringCache = nil
-		p.floatCache = nil
-		p.interfaceCache = nil
-		p.intCache = nil
+		p.cache = nil
 	}
 }
 
 // WithBasicInMemoryCache applies a basic in memory cache store (with no memory limits)
 func WithBasicInMemoryCache() ProviderOption {
 	return func(p *Provider) {
-		p.booleanCache = cache.NewInMemory[string, of.BoolResolutionDetail]()
-		p.intCache = cache.NewInMemory[string, of.IntResolutionDetail]()
-		p.stringCache = cache.NewInMemory[string, of.StringResolutionDetail]()
-		p.floatCache = cache.NewInMemory[string, of.FloatResolutionDetail]()
-		p.interfaceCache = cache.NewInMemory[string, of.InterfaceResolutionDetail]()
+		p.cache = cache.NewInMemory[string, interface{}]()
 
 		p.cacheEnabled = true
 	}
 }
 
 // WithLRUCache applies least recently used caching (github.com/hashicorp/golang-lru).
-// The provided size is the limit of the number of cached values for each type of flag. Once the limit is reached each
-// new entry replaces the least recently used entry.
+// The provided size is the limit of the number of cached values. Once the limit is reached each new entry replaces the
+// least recently used entry.
 func WithLRUCache(size int) ProviderOption {
 	return func(p *Provider) {
-		boolCache, err := lru.New[string, of.BoolResolutionDetail](size)
+		c, err := lru.New[string, interface{}](size)
 		if err != nil {
-			log.Errorf("init boolean cache: %v", err)
+			log.Errorf("init cache: %v", err)
 			return
 		}
-		p.booleanCache = boolCache
-		stringCache, err := lru.New[string, of.StringResolutionDetail](size)
-		if err != nil {
-			log.Errorf("init string cache: %v", err)
-			return
-		}
-		p.stringCache = stringCache
-		intCache, err := lru.New[string, of.IntResolutionDetail](size)
-		if err != nil {
-			log.Errorf("init int cache: %v", err)
-			return
-		}
-		p.intCache = intCache
-		floatCache, err := lru.New[string, of.FloatResolutionDetail](size)
-		if err != nil {
-			log.Errorf("init float cache: %v", err)
-			return
-		}
-		p.floatCache = floatCache
-		interfaceCache, err := lru.New[string, of.InterfaceResolutionDetail](size)
-		if err != nil {
-			log.Errorf("init interface cache: %v", err)
-			return
-		}
-		p.interfaceCache = interfaceCache
+		p.cache = c
 
 		p.cacheEnabled = true
 	}
@@ -242,10 +206,13 @@ func (p *Provider) BooleanEvaluation(
 	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
 ) of.BoolResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, ok := p.booleanCache.Get(flagKey)
+		fromCache, ok := p.cache.Get(flagKey)
 		if ok {
-			fromCache.Reason = constant.ReasonCached
-			return fromCache
+			fromCacheResDetail, ok := fromCache.(of.BoolResolutionDetail)
+			if ok {
+				fromCacheResDetail.Reason = constant.ReasonCached
+				return fromCacheResDetail
+			}
 		}
 	}
 
@@ -275,7 +242,7 @@ func (p *Provider) BooleanEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.booleanCache.Add(flagKey, resDetail)
+		p.cache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -285,10 +252,13 @@ func (p *Provider) StringEvaluation(
 	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
 ) of.StringResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, ok := p.stringCache.Get(flagKey)
+		fromCache, ok := p.cache.Get(flagKey)
 		if ok {
-			fromCache.Reason = constant.ReasonCached
-			return fromCache
+			fromCacheResDetail, ok := fromCache.(of.StringResolutionDetail)
+			if ok {
+				fromCacheResDetail.Reason = constant.ReasonCached
+				return fromCacheResDetail
+			}
 		}
 	}
 
@@ -318,7 +288,7 @@ func (p *Provider) StringEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.stringCache.Add(flagKey, resDetail)
+		p.cache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -328,10 +298,13 @@ func (p *Provider) FloatEvaluation(
 	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
 ) of.FloatResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, ok := p.floatCache.Get(flagKey)
+		fromCache, ok := p.cache.Get(flagKey)
 		if ok {
-			fromCache.Reason = constant.ReasonCached
-			return fromCache
+			fromCacheResDetail, ok := fromCache.(of.FloatResolutionDetail)
+			if ok {
+				fromCacheResDetail.Reason = constant.ReasonCached
+				return fromCacheResDetail
+			}
 		}
 	}
 
@@ -361,7 +334,7 @@ func (p *Provider) FloatEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.floatCache.Add(flagKey, resDetail)
+		p.cache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -371,10 +344,13 @@ func (p *Provider) IntEvaluation(
 	ctx context.Context, flagKey string, defaultValue int64, evalCtx of.FlattenedContext,
 ) of.IntResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, ok := p.intCache.Get(flagKey)
+		fromCache, ok := p.cache.Get(flagKey)
 		if ok {
-			fromCache.Reason = constant.ReasonCached
-			return fromCache
+			fromCacheResDetail, ok := fromCache.(of.IntResolutionDetail)
+			if ok {
+				fromCacheResDetail.Reason = constant.ReasonCached
+				return fromCacheResDetail
+			}
 		}
 	}
 
@@ -404,7 +380,7 @@ func (p *Provider) IntEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.intCache.Add(flagKey, resDetail)
+		p.cache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -414,10 +390,13 @@ func (p *Provider) ObjectEvaluation(
 	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
 ) of.InterfaceResolutionDetail {
 	if p.isCacheAvailable() {
-		fromCache, ok := p.interfaceCache.Get(flagKey)
+		fromCache, ok := p.cache.Get(flagKey)
 		if ok {
-			fromCache.Reason = constant.ReasonCached
-			return fromCache
+			fromCacheResDetail, ok := fromCache.(of.InterfaceResolutionDetail)
+			if ok {
+				fromCacheResDetail.Reason = constant.ReasonCached
+				return fromCacheResDetail
+			}
 		}
 	}
 
@@ -447,7 +426,7 @@ func (p *Provider) ObjectEvaluation(
 	}
 
 	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.interfaceCache.Add(flagKey, resDetail)
+		p.cache.Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -481,7 +460,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 					log.Errorf("handle configuration change event: %v", err)
 				}
 			case string(flagdService.ProviderReady): // signals that a new connection has been made
-				p.purgeCache() // in case events were missed while the connection was down
+				p.cache.Purge() // in case events were missed while the connection was down
 			}
 		case err := <-errChan:
 			if p.cacheEnabled { // disable cache
@@ -511,20 +490,7 @@ func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *sc
 		return errors.New("flagKey is not a string")
 	}
 
-	// TODO: consider sending the flag type in the configuration change event
-	p.booleanCache.Remove(flagKey)
-	p.intCache.Remove(flagKey)
-	p.floatCache.Remove(flagKey)
-	p.interfaceCache.Remove(flagKey)
-	p.stringCache.Remove(flagKey)
+	p.cache.Remove(flagKey)
 
 	return nil
-}
-
-func (p *Provider) purgeCache() {
-	p.booleanCache.Purge()
-	p.intCache.Purge()
-	p.floatCache.Purge()
-	p.interfaceCache.Purge()
-	p.stringCache.Purge()
 }
