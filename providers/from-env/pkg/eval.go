@@ -6,7 +6,7 @@ import (
 
 type StoredFlag struct {
 	DefaultVariant string    `json:"defaultVariant"`
-	Variants       []Variant `json:"variant"`
+	Variants       []Variant `json:"variants"`
 }
 
 type Variant struct {
@@ -25,7 +25,8 @@ func (f *StoredFlag) evaluate(evalCtx map[string]interface{}) (string, openfeatu
 	var defaultVariant *Variant
 	for _, variant := range f.Variants {
 		if variant.Name == f.DefaultVariant {
-			defaultVariant = &variant
+			v := variant
+			defaultVariant = &v
 		}
 		if variant.TargetingKey != "" && variant.TargetingKey != evalCtx["targetingKey"] {
 			continue
