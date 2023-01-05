@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	// AttributeFlagKey trace attribute name for the evaluated flag key
+	// AttributeFlagKey trace attribute name for the evaluated flag key :D
 	AttributeFlagKey = "feature_flag.flag_key"
 	// AttributeProviderName trace attribute name for the provider used for evaluation
 	AttributeProviderName = "feature_flag.provider_name"
