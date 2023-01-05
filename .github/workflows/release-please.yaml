@@ -4,7 +4,6 @@ on:
       - main
 
 env:
-  REGISTRY: ghcr.io
   DEFAULT_GO_VERSION: 1.19.3
 
 name: Run Release Please
