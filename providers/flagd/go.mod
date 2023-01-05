@@ -5,7 +5,7 @@ go 1.18
 require (
 	buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.3.1-20221205151127-0e915b34a38d.1
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.28.1-20221205151127-0e915b34a38d.4
-	github.com/bufbuild/connect-go v1.3.1
+	github.com/bufbuild/connect-go v1.4.1
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.1
