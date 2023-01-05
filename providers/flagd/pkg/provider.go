@@ -460,7 +460,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 					log.Errorf("handle configuration change event: %v", err)
 				}
 			case string(flagdService.ProviderReady): // signals that a new connection has been made
-				p.cache.Purge() // in case events were missed while the connection was down
+				p.handleProviderReadyEvent()
 			}
 		case err := <-errChan:
 			if p.cacheEnabled { // disable cache
@@ -493,4 +493,12 @@ func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *sc
 	p.cache.Remove(flagKey)
 
 	return nil
+}
+
+func (p *Provider) handleProviderReadyEvent() {
+	if !p.cacheEnabled {
+		return
+	}
+
+	p.cache.Purge() // in case events were missed while the connection was down
 }
