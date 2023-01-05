@@ -18,7 +18,7 @@ jobs:
           token: ${{secrets.GITHUB_TOKEN}}
           default-branch: main
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
+      releases_created: ${{ steps.release.outputs.releases_created }}
       release_tag_name: ${{ steps.release.outputs.tag_name }}
 
   go-release:
@@ -31,14 +31,14 @@ jobs:
         with:
           ref: ${{ needs.release-please.outputs.release_tag_name }}
 
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ env.DEFAULT_GO_VERSION }}
+      # - name: Set up Go
+      #   uses: actions/setup-go@v3
+      #   with:
+      #     go-version: ${{ env.DEFAULT_GO_VERSION }}
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
-        with:
-          args: release --rm-dist
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Run GoReleaser
+      #   uses: goreleaser/goreleaser-action@v3
+      #   with:
+      #     args: release --rm-dist
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
