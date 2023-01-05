@@ -490,7 +490,7 @@ func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *sc
 		return errors.New("flags isn't a map")
 	}
 
-	for flagKey, _ := range flags {
+	for flagKey := range flags {
 		p.cache.Remove(flagKey)
 	}
 
