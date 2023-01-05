@@ -17,11 +17,11 @@ make workspace-init
 ```  
 Additional workspace commands:
 ```go
-make workspace-update           // sync go.work with current modules
-make test                       // test all go modules
-make lint                       // lint all go modules
-make PROVIDER=NAME new-provider // create and setup new provider directory
-make HOOK=NAME new-hook         // create and setup new hook directory
+make workspace-update               // sync go.work with current modules
+make test                           // test all go modules
+make lint                           // lint all go modules
+make MODULE_NAME=NAME new-provider  // create and setup new provider directory
+make MODULE_NAME=NAME new-hook      // create and setup new hook directory
 ```
 
 ## License

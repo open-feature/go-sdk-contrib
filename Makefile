@@ -1,4 +1,5 @@
 ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | sort)
+MODULE_TYPE ?= provider
 
 workspace-init:
 	go work init
@@ -14,10 +15,16 @@ lint:
 	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run --deadline=3m --timeout=3m $(module)/...;)
 
-new-provider: 
-	mkdir ./providers/$(PROVIDER)
-	cd ./providers/$(PROVIDER) && go mod init github.com/open-feature/go-sdk-contrib/providers/$(PROVIDER) && touch README.md
+new-provider:
+	mkdir ./providers/$(MODULE_NAME)
+	cd ./providers/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/providers/$(MODULE_NAME) && touch README.md
+	$(MAKE) append-to-release-please MODULE_TYPE=provider MODULE_NAME=$(MODULE_NAME)
 
 new-hook: 
-	mkdir ./hooks/$(HOOK)
-	cd ./hooks/$(HOOK) && go mod init github.com/open-feature/go-sdk-contrib/hooks/$(HOOK) && touch README.md
+	mkdir ./hooks/$(MODULE_NAME)
+	cd ./hooks/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/hooks/$(MODULE_NAME) && touch README.md
+	$(MAKE) append-to-release-please MODULE_TYPE=hook MODULE_NAME=$(MODULE_NAME)
+
+append-to-release-please:
+	jq '.packages += {"${MODULE_TYPE}/${MODULE_NAME}": {"release-type":"go","prerelease":true,"bump-minor-pre-major":true,"bump-patch-for-minor-pre-major":true,"versioning":"default","extra-files": []}}' release-please-config.json > tmp.json
+	mv tmp.json release-please-config.json
