@@ -8,7 +8,7 @@ type validator interface {
 	IsValid(flagEvaluationDetails of.InterfaceEvaluationDetails) error
 }
 
-// Hook validates the flag evaluation details After flag resolution
+// Hook validates the flag evaluation details After flag resolution.
 type Hook struct {
 	Validator validator
 }
