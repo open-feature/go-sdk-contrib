@@ -1,5 +1,5 @@
 ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | sort)
-MODULE_TYPE ?= provider
+MODULE_TYPE ?= providers
 
 workspace-init:
 	go work init
@@ -23,8 +23,8 @@ new-provider:
 new-hook: 
 	mkdir ./hooks/$(MODULE_NAME)
 	cd ./hooks/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/hooks/$(MODULE_NAME) && touch README.md
-	$(MAKE) append-to-release-please MODULE_TYPE=hook MODULE_NAME=$(MODULE_NAME)
+	$(MAKE) append-to-release-please MODULE_TYPE=hooks MODULE_NAME=$(MODULE_NAME)
 
 append-to-release-please:
-	jq '.packages += {"${MODULE_TYPE}/${MODULE_NAME}": {"release-type":"go","prerelease":true,"bump-minor-pre-major":true,"bump-patch-for-minor-pre-major":true,"versioning":"default","extra-files": []}}' release-please-config.json > tmp.json
+	jq '.packages += {"${MODULE_TYPE}/${MODULE_NAME}": {"release-type":"go","prerelease":true,"package-name":"${MODULE_TYPE}/${MODULE_NAME}","bump-minor-pre-major":true,"bump-patch-for-minor-pre-major":true,"versioning":"default","extra-files": []}}' release-please-config.json > tmp.json
 	mv tmp.json release-please-config.json
