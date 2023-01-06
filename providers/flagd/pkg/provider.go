@@ -26,6 +26,7 @@ type Provider struct {
 	cache                            Cache[string, interface{}]
 	providerConfiguration            *ProviderConfiguration
 	eventStreamConnectionMaxAttempts int
+	isReady                          chan struct{}
 }
 type ProviderConfiguration struct {
 	Port            uint16
@@ -43,6 +44,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		// values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration:            &ProviderConfiguration{},
 		eventStreamConnectionMaxAttempts: 5,
+		isReady:                          make(chan struct{}),
 	}
 	WithLRUCache(defaultLRUCacheSize)(provider)
 	for _, opt := range opts {
@@ -496,9 +498,21 @@ func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *sc
 }
 
 func (p *Provider) handleProviderReadyEvent() {
+	select {
+	case <-p.isReady:
+		// avoids panic from closing already closed channel
+	default:
+		close(p.isReady)
+	}
+
 	if !p.cacheEnabled {
 		return
 	}
 
 	p.cache.Purge() // in case events were missed while the connection was down
+}
+
+// IsReady returns a non-blocking channel if the provider has received the provider_ready event from flagd
+func (p *Provider) IsReady() <-chan struct{} {
+	return p.isReady
 }
