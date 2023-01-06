@@ -1,0 +1,47 @@
+{
+    "monorepo-tags": true,
+    "tag-separator": "/",
+    "bootstrap-sha": "4d6cb816ed912084c598767636324aa9a2866bdd",
+    "packages": {
+        "hooks/open-telemetry": {
+            "release-type": "go",
+            "package-name": "hooks/open-telemetry",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
+        },
+        "hooks/validator": {
+            "release-type": "go",
+            "package-name": "hooks/validator",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
+        },
+        "providers/flagd": {
+            "release-type": "go",
+            "package-name": "providers/flagd",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
+        },
+        "providers/from-env": {
+            "release-type": "go",
+            "package-name": "providers/from-env",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
+        },
+        "providers/go-feature-flag": {
+            "release-type": "go",
+            "package-name": "providers/go-feature-flag",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
+        }
+    }
+}
