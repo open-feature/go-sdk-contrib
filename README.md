@@ -21,9 +21,10 @@ Additional workspace commands:
 make workspace-update               // sync go.work with current modules
 make test                           // test all go modules
 make lint                           // lint all go modules
-make MODULE_NAME=NAME new-provider  // create and setup new provider directory (requires [jq](https://stedolan.github.io/jq/download/))
-make MODULE_NAME=NAME new-hook      // create and setup new hook directory (requires [jq](https://stedolan.github.io/jq/download/))
+make MODULE_NAME=NAME new-provider  // create and setup new provider directory (requires jq)
+make MODULE_NAME=NAME new-hook      // create and setup new hook directory (requires jq)
 ```
+> [jq documentation](https://stedolan.github.io/jq/download/)
 
 ## Releases
 
