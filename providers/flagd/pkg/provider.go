@@ -459,7 +459,10 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 			switch event.Type {
 			case string(flagdService.ConfigurationChange):
 				if err := p.handleConfigurationChangeEvent(ctx, event); err != nil {
-					log.Errorf("handle configuration change event: %v", err)
+					// Purge the cache if we fail to handle the configuration change event
+					p.cache.Purge()
+
+					log.Warningf("handle configuration change event: %v", err)
 				}
 			case string(flagdService.ProviderReady): // signals that a new connection has been made
 				p.handleProviderReadyEvent()
