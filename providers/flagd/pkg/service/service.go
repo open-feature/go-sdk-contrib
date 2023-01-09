@@ -203,7 +203,7 @@ func (s *Service) EventStream(
 	var err error
 	for i := 1; i <= maxAttempts; i++ {
 		log.Infof("attempt %d at connecting to event stream", i)
-		i, err = s.eventStream(ctx, eventChan, i, maxAttempts)
+		i, err = s.eventStream(ctx, eventChan, i)
 		if i == 1 {
 			delay = s.baseRetryDelay // reset delay if the connection was successful before failing
 		}
@@ -220,8 +220,7 @@ func (s *Service) EventStream(
 }
 
 func (s *Service) eventStream(
-	ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, attempt, maxAttempts int,
-) (int, error) {
+	ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, attempt int) (int, error) {
 	client := s.Client.Instance()
 	if client == nil {
 		return attempt + 1, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
