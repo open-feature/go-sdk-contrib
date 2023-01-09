@@ -26,7 +26,7 @@ func TestHookMethods(t *testing.T) {
 		otel.SetTracerProvider(tp)
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
 		hook := otelHook.NewHook(ctx)
-		hook.After(
+		err := hook.After(
 			openfeature.NewHookContext(
 				flagKey,
 				openfeature.String,
@@ -53,6 +53,9 @@ func TestHookMethods(t *testing.T) {
 				map[string]interface{}{},
 			),
 		)
+		if err != nil {
+			t.Error(err)
+		}
 		span.End()
 		spans := exp.GetSpans()
 		if len(spans) != 1 {
