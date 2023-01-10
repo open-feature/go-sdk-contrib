@@ -473,7 +473,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 			}
 			return err
 		case <-ctx.Done():
-			log.Info("Stop event handling with context done.")
+			log.Info("stop event handling with context done")
 
 			return nil
 		}
