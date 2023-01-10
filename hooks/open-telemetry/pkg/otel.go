@@ -3,7 +3,7 @@ package otel
 import (
 	"context"
 
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -17,6 +17,7 @@ const (
 
 type Hook struct {
 	ctx context.Context
+	openfeature.UnimplementedHook
 }
 
 // NewHook return a reference to a new instance of the OpenTelemetry Hook
@@ -26,13 +27,8 @@ func NewHook(ctx context.Context) *Hook {
 	}
 }
 
-// Before method is unused for this hook
-func (h *Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.EvaluationContext, error) {
-	return nil, nil
-}
-
 // After sets the feature_flag event and associated attributes on the span stored in the context
-func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.InterfaceEvaluationDetails, hookHints of.HookHints) error {
+func (h *Hook) After(hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
 	if h.ctx == nil {
 		// if no context is set trace.SpanFromContext will return a noop span
 		return nil
@@ -48,7 +44,7 @@ func (h *Hook) After(hookContext of.HookContext, flagEvaluationDetails of.Interf
 }
 
 // Error records the given error against the span and sets the span to an error status
-func (h *Hook) Error(hookContext of.HookContext, err error, hookHints of.HookHints) {
+func (h *Hook) Error(hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
 	if h.ctx == nil {
 		// if no context is set trace.SpanFromContext will return a noop span
 		return
@@ -56,6 +52,3 @@ func (h *Hook) Error(hookContext of.HookContext, err error, hookHints of.HookHin
 	span := trace.SpanFromContext(h.ctx)
 	span.RecordError(err)
 }
-
-// Finally this method is unused for this hook
-func (h Hook) Finally(hookContext of.HookContext, hookHints of.HookHints) {}
