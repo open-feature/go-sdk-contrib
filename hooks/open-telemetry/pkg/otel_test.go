@@ -61,7 +61,13 @@ func TestHookMethods(t *testing.T) {
 		if len(spans) != 1 {
 			t.Errorf("expected 1 span, got %d", len(spans))
 		}
-		for _, attr := range spans[0].Attributes {
+		if len(spans[0].Events) != 1 {
+			t.Errorf("expected 1 event, got %d", len(spans[0].Events))
+		}
+		if spans[0].Events[0].Name != otelHook.EventName {
+			t.Errorf("unexpected event name: %s", spans[0].Events[0].Name)
+		}
+		for _, attr := range spans[0].Events[0].Attributes {
 			switch attr.Key {
 			case otelHook.EventPropertyFlagKey:
 				if attr.Value.AsString() != flagKey {
@@ -78,12 +84,6 @@ func TestHookMethods(t *testing.T) {
 			default:
 				t.Errorf("unexpected attribute key: %s", attr.Key)
 			}
-		}
-		if len(spans[0].Events) != 1 {
-			t.Errorf("expected 1 event, got %d", len(spans[0].Events))
-		}
-		if spans[0].Events[0].Name != otelHook.EventName {
-			t.Errorf("unexpected event name: %s", spans[0].Events[0].Name)
 		}
 	})
 
