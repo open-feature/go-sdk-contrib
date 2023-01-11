@@ -1,15 +1,15 @@
-package flagd_test
+package flagd
 
 import (
 	"context"
 	"fmt"
+	"github.com/golang/mock/gomock"
 	reflect "reflect"
 	"testing"
 
 	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
-	gomock "github.com/golang/mock/gomock"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -19,7 +19,7 @@ func TestNewProvider(t *testing.T) {
 		name           string
 		port           uint16
 		host           string
-		options        []flagd.ProviderOption
+		options        []ProviderOption
 		env            bool
 		envPort        uint16
 		envHost        string
@@ -35,8 +35,8 @@ func TestNewProvider(t *testing.T) {
 			name: "with port",
 			port: 1,
 			host: "localhost",
-			options: []flagd.ProviderOption{
-				flagd.WithPort(1),
+			options: []ProviderOption{
+				WithPort(1),
 			},
 			cachingEnabled: true,
 		},
@@ -44,8 +44,8 @@ func TestNewProvider(t *testing.T) {
 			name: "with hostname",
 			port: 8013,
 			host: "not localhost",
-			options: []flagd.ProviderOption{
-				flagd.WithHost("not localhost"),
+			options: []ProviderOption{
+				WithHost("not localhost"),
 			},
 			cachingEnabled: true,
 		},
@@ -57,7 +57,7 @@ func TestNewProvider(t *testing.T) {
 				t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.envPort))
 				t.Setenv("FLAGD_HOST", test.envHost)
 			}
-			svc := flagd.NewProvider(test.options...)
+			svc := NewProvider(test.options...)
 			if svc == nil {
 				t.Fatal("received nil service from NewProvider")
 			}
@@ -154,13 +154,13 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mock := NewMockIService(ctrl)
+			svcMock := mock.NewMockIService(ctrl)
 			ctx := context.Background()
-			mock.EXPECT().ResolveBoolean(ctx, test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
-			mock.EXPECT().IsEventStreamAlive().Return(true).AnyTimes()
+			svcMock.EXPECT().ResolveBoolean(ctx, test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+			svcMock.EXPECT().IsEventStreamAlive().Return(true).AnyTimes()
 
-			provider := flagd.Provider{
-				Service: mock,
+			provider := Provider{
+				service: svcMock,
 			}
 
 			res := provider.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -240,11 +240,11 @@ func TestStringEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mock := NewMockIService(ctrl)
-			mock.EXPECT().ResolveString(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+			svcMock := mock.NewMockIService(ctrl)
+			svcMock.EXPECT().ResolveString(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
-			provider := flagd.Provider{
-				Service: mock,
+			provider := Provider{
+				service: svcMock,
 			}
 
 			res := provider.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -324,11 +324,11 @@ func TestFloatEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mock := NewMockIService(ctrl)
-			mock.EXPECT().ResolveFloat(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+			svcMock := mock.NewMockIService(ctrl)
+			svcMock.EXPECT().ResolveFloat(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
-			provider := flagd.Provider{
-				Service: mock,
+			provider := Provider{
+				service: svcMock,
 			}
 
 			res := provider.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -407,11 +407,11 @@ func TestIntEvaluation(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := NewMockIService(ctrl)
-		mock.EXPECT().ResolveInt(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		svcMock := mock.NewMockIService(ctrl)
+		svcMock.EXPECT().ResolveInt(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
-		provider := flagd.Provider{
-			Service: mock,
+		provider := Provider{
+			service: svcMock,
 		}
 
 		res := provider.IntEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -490,7 +490,7 @@ func TestObjectEvaluation(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-		mock := NewMockIService(ctrl)
+		svcMock := mock.NewMockIService(ctrl)
 
 		if test.response.Value != nil {
 			f, err := structpb.NewStruct(test.response.Value.(map[string]interface{}))
@@ -500,10 +500,10 @@ func TestObjectEvaluation(t *testing.T) {
 			test.mockOut.Value = f
 		}
 
-		mock.EXPECT().ResolveObject(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
+		svcMock.EXPECT().ResolveObject(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
-		provider := flagd.Provider{
-			Service: mock,
+		provider := Provider{
+			service: svcMock,
 		}
 
 		res := provider.ObjectEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
