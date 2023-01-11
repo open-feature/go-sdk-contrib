@@ -9,27 +9,26 @@ A `context.Context` containing a `span` must be passed to the hook `NewHook` met
 The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:
 ```json
 {
-	"traceId":"c75779e26ac14ceb1a468748f70dd8fc",
-	"id":"f6d29da19a8cfb49",
+{
+	"traceId":"ac4464e6387c552b4b55ab3d19bf64f9",
+	"id":"f677ca41dbfd6bfe",
 	"name":"run",
-	"timestamp":1673366347527781,
-	"duration":42,
+	"timestamp":1673431556236064,
+	"duration":45,
 	"localEndpoint":{
 		"serviceName":"hook-example"
-	},
-	"annotations":[
-		{
-			"timestamp":1673366347527822,
-			"value":"feature_flag"
+		},
+		"annotations":[
+			{
+				"timestamp":1673431556236107,
+				"value":"feature_flag: {\"feature_flag.key\":\"my-bool-flag\",\"feature_flag.provider_name\":\"NoopProvider\",\"feature_flag.variant\":\"default-variant\"}"
+			}
+		],
+		"tags":{
+			"otel.library.name":"test-tracer",
+			"service.name":"hook-example"
 		}
-	],
-	"tags":{
-		"feature_flag.key":"my-bool-flag",
-		"feature_flag.provider_name":"NoopProvider",
-		"feature_flag.variant":"default-variant",
-		"otel.library.name":"test-tracer",
-		"service.name":"hook-example"
-	}
+}
 }       
 ```
 
@@ -43,7 +42,7 @@ import (
 	"os"
 	"os/signal"
 
-	otelHook "github.com/james-milligan-2/go-sdk-contrib/hooks/open-telemetry/pkg"
+	otelHook "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry/pkg"
 
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel"

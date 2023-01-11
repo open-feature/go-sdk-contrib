@@ -34,12 +34,11 @@ func (h *Hook) After(hookContext openfeature.HookContext, flagEvaluationDetails 
 		return nil
 	}
 	span := trace.SpanFromContext(h.ctx)
-	span.SetAttributes(
+	span.AddEvent(EventName, trace.WithAttributes(
 		attribute.String(EventPropertyFlagKey, hookContext.FlagKey()),
 		attribute.String(EventPropertyProviderName, hookContext.ProviderMetadata().Name),
 		attribute.String(EventPropertyVariant, flagEvaluationDetails.Variant),
-	)
-	span.AddEvent(EventName)
+	))
 	return nil
 }
 
