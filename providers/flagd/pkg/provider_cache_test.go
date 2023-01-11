@@ -847,7 +847,9 @@ func TestCacheInvalidation(t *testing.T) {
 					ctx := context.Background()
 					mockSvc := mock.NewMockIService(ctrl)
 
-					provider := &Provider{service: mockSvc, isReady: make(chan struct{})}
+					provider := &Provider{
+						ctx: context.Background(), service: mockSvc, isReady: make(chan struct{}),
+					}
 					cacheImplementation.apply(provider)
 
 					readyChan := make(chan struct{})
