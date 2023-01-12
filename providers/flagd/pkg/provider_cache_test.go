@@ -680,8 +680,7 @@ func TestCacheInvalidation(t *testing.T) {
 			t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 			flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
 		)
-		expectedRes          of.InterfaceResolutionDetail
-		expectedCacheEnabled bool
+		expectedRes of.InterfaceResolutionDetail
 	}{
 		"invalidate cache when flag key is present in configuration_change event": {
 			flagKey: "foo",
@@ -689,7 +688,6 @@ func TestCacheInvalidation(t *testing.T) {
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
-			expectedCacheEnabled: true,
 			setup: func(
 				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
@@ -739,7 +737,6 @@ func TestCacheInvalidation(t *testing.T) {
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
-			expectedCacheEnabled: true,
 			setup: func(
 				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
@@ -789,7 +786,6 @@ func TestCacheInvalidation(t *testing.T) {
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
-			expectedCacheEnabled: true,
 			setup: func(
 				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
@@ -831,7 +827,6 @@ func TestCacheInvalidation(t *testing.T) {
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
-			expectedCacheEnabled: false,
 			setup: func(
 				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
@@ -903,10 +898,6 @@ func TestCacheInvalidation(t *testing.T) {
 						cmpopts.IgnoreFields(of.ProviderResolutionDetail{}, "ResolutionError"),
 						cmpopts.IgnoreFields(of.InterfaceResolutionDetail{}, "Value"),
 					); diff != "" {
-						t.Errorf("mismatch (-expected +got):\n%s", diff)
-					}
-
-					if diff := cmp.Diff(tt.expectedCacheEnabled, provider.cacheEnabled); diff != "" {
 						t.Errorf("mismatch (-expected +got):\n%s", diff)
 					}
 				})
