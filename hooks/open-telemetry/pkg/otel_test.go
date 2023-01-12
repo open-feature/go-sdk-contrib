@@ -111,4 +111,44 @@ func TestHookMethods(t *testing.T) {
 		}
 	})
 
+	t.Run("a nil context should not cause a panic", func(t *testing.T) {
+		flagKey := "flag-key"
+		providerName := "provider-name"
+		variant := "variant"
+		hook := otelHook.NewHook(nil)
+
+		err := hook.After(
+			openfeature.NewHookContext(
+				flagKey,
+				openfeature.String,
+				"default",
+				openfeature.ClientMetadata{},
+				openfeature.Metadata{
+					Name: providerName,
+				},
+				openfeature.NewEvaluationContext(
+					"test-targeting-key",
+					map[string]interface{}{
+						"this": "that",
+					},
+				),
+			),
+			openfeature.InterfaceEvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant: variant,
+					},
+				},
+			},
+			openfeature.NewHookHints(
+				map[string]interface{}{},
+			),
+		)
+		if err != nil {
+			t.Error(err)
+		}
+
+		hook.Error(openfeature.HookContext{}, err, openfeature.HookHints{})
+	})
+
 }

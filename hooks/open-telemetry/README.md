@@ -9,7 +9,6 @@ A `context.Context` containing a `span` must be passed to the hook `NewHook` met
 The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:
 ```json
 {
-{
 	"traceId":"ac4464e6387c552b4b55ab3d19bf64f9",
 	"id":"f677ca41dbfd6bfe",
 	"name":"run",
@@ -29,7 +28,6 @@ The following example demonstrates the use of the `OpenTelemetry hook` with the 
 			"service.name":"hook-example"
 		}
 }
-}       
 ```
 
 ```go

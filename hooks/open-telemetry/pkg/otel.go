@@ -29,10 +29,6 @@ func NewHook(ctx context.Context) *Hook {
 
 // After sets the feature_flag event and associated attributes on the span stored in the context
 func (h *Hook) After(hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
-	if h.ctx == nil {
-		// if no context is set trace.SpanFromContext will return a noop span
-		return nil
-	}
 	span := trace.SpanFromContext(h.ctx)
 	span.AddEvent(EventName, trace.WithAttributes(
 		attribute.String(EventPropertyFlagKey, hookContext.FlagKey()),
@@ -44,10 +40,6 @@ func (h *Hook) After(hookContext openfeature.HookContext, flagEvaluationDetails 
 
 // Error records the given error against the span and sets the span to an error status
 func (h *Hook) Error(hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
-	if h.ctx == nil {
-		// if no context is set trace.SpanFromContext will return a noop span
-		return
-	}
 	span := trace.SpanFromContext(h.ctx)
 	span.RecordError(err)
 }
