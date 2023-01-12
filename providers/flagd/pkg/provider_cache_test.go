@@ -3,6 +3,7 @@ package flagd
 import (
 	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -679,7 +680,8 @@ func TestCacheInvalidation(t *testing.T) {
 			t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 			flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
 		)
-		expectedRes of.InterfaceResolutionDetail
+		expectedRes          of.InterfaceResolutionDetail
+		expectedCacheEnabled bool
 	}{
 		"invalidate cache when flag key is present in configuration_change event": {
 			flagKey: "foo",
@@ -687,6 +689,7 @@ func TestCacheInvalidation(t *testing.T) {
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
+			expectedCacheEnabled: true,
 			setup: func(
 				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
@@ -736,6 +739,7 @@ func TestCacheInvalidation(t *testing.T) {
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
+			expectedCacheEnabled: true,
 			setup: func(
 				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
@@ -785,6 +789,7 @@ func TestCacheInvalidation(t *testing.T) {
 				Variant: "on",
 				Reason:  flagdModels.StaticReason,
 			},
+			expectedCacheEnabled: true,
 			setup: func(
 				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
 				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
@@ -811,6 +816,41 @@ func TestCacheInvalidation(t *testing.T) {
 					if err := provider.handleEvents(provider.ctx); err != nil {
 						t.Error(fmt.Errorf("handle events: %w", err))
 					}
+				}()
+			},
+			expectedRes: of.InterfaceResolutionDetail{
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:  flagdModels.StaticReason,
+					Variant: "on",
+				},
+			},
+		},
+		"disable cache if event handler sends error on channel": {
+			flagKey: "foo",
+			mockOut: &schemav1.ResolveObjectResponse{
+				Variant: "on",
+				Reason:  flagdModels.StaticReason,
+			},
+			expectedCacheEnabled: false,
+			setup: func(
+				t *testing.T, ctx context.Context, provider *Provider, mockSvc *mock.MockIService,
+				flagKey string, mockOut *schemav1.ResolveObjectResponse, ready chan<- struct{},
+			) {
+				mockSvc.EXPECT().ResolveObject(gomock.Any(), flagKey, gomock.Any()).Return(mockOut, nil).Times(2)
+				mockSvc.EXPECT().IsEventStreamAlive().Return(true).AnyTimes()
+				mockSvc.EXPECT().EventStream(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(_ context.Context, eventChan chan<- *schemav1.EventStreamResponse, _ int, errChan chan<- error) {
+
+						provider.ObjectEvaluation(ctx, flagKey, "", of.FlattenedContext{}) // store flag in cache
+						errChan <- errors.New("forced error")
+
+					})
+
+				go func() {
+					if err := provider.handleEvents(provider.ctx); err == nil {
+						t.Error(errors.New("expected error, got nil"))
+					}
+					ready <- struct{}{}
 				}()
 			},
 			expectedRes: of.InterfaceResolutionDetail{
@@ -863,6 +903,10 @@ func TestCacheInvalidation(t *testing.T) {
 						cmpopts.IgnoreFields(of.ProviderResolutionDetail{}, "ResolutionError"),
 						cmpopts.IgnoreFields(of.InterfaceResolutionDetail{}, "Value"),
 					); diff != "" {
+						t.Errorf("mismatch (-expected +got):\n%s", diff)
+					}
+
+					if diff := cmp.Diff(tt.expectedCacheEnabled, provider.cacheEnabled); diff != "" {
 						t.Errorf("mismatch (-expected +got):\n%s", diff)
 					}
 				})
