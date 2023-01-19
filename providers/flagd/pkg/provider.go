@@ -21,7 +21,7 @@ const defaultLRUCacheSize int = 1000
 
 type Provider struct {
 	ctx                              context.Context
-	Service                          service.IService
+	service                          service.IService
 	cacheEnabled                     bool
 	cache                            Cache[string, interface{}]
 	providerConfiguration            *ProviderConfiguration
@@ -47,11 +47,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		isReady:                          make(chan struct{}),
 	}
 	WithLRUCache(defaultLRUCacheSize)(provider)
-	for _, opt := range opts {
-		opt(provider)
-	}
-	provider.applyDefaults()
-	provider.Service = service.NewService(&service.Client{
+	provider.service = service.NewService(&service.Client{
 		ServiceConfiguration: &service.ServiceConfiguration{
 			Host:            provider.providerConfiguration.Host,
 			Port:            provider.providerConfiguration.Port,
@@ -59,6 +55,10 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			SocketPath:      provider.providerConfiguration.SocketPath,
 		},
 	}, nil)
+	for _, opt := range opts {
+		opt(provider)
+	}
+	provider.applyDefaults()
 
 	go func() {
 		if err := provider.handleEvents(provider.ctx); err != nil {
@@ -218,7 +218,7 @@ func (p *Provider) BooleanEvaluation(
 		}
 	}
 
-	res, err := p.Service.ResolveBoolean(ctx, flagKey, evalCtx)
+	res, err := p.service.ResolveBoolean(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
 		if !errors.As(err, &e) {
@@ -264,7 +264,7 @@ func (p *Provider) StringEvaluation(
 		}
 	}
 
-	res, err := p.Service.ResolveString(ctx, flagKey, evalCtx)
+	res, err := p.service.ResolveString(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
 		if !errors.As(err, &e) {
@@ -310,7 +310,7 @@ func (p *Provider) FloatEvaluation(
 		}
 	}
 
-	res, err := p.Service.ResolveFloat(ctx, flagKey, evalCtx)
+	res, err := p.service.ResolveFloat(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
 		if !errors.As(err, &e) {
@@ -356,7 +356,7 @@ func (p *Provider) IntEvaluation(
 		}
 	}
 
-	res, err := p.Service.ResolveInt(ctx, flagKey, evalCtx)
+	res, err := p.service.ResolveInt(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
 		if !errors.As(err, &e) {
@@ -402,7 +402,7 @@ func (p *Provider) ObjectEvaluation(
 		}
 	}
 
-	res, err := p.Service.ResolveObject(ctx, flagKey, evalCtx)
+	res, err := p.service.ResolveObject(ctx, flagKey, evalCtx)
 	if err != nil {
 		var e of.ResolutionError
 		if !errors.As(err, &e) {
@@ -435,7 +435,7 @@ func (p *Provider) ObjectEvaluation(
 }
 
 func (p *Provider) isCacheAvailable() bool {
-	return p.cacheEnabled && p.Service.IsEventStreamAlive()
+	return p.cacheEnabled && p.service.IsEventStreamAlive()
 }
 
 func (p *Provider) handleEvents(ctx context.Context) error {
@@ -443,7 +443,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 	errChan := make(chan error)
 
 	go func() {
-		p.Service.EventStream(ctx, eventChan, p.eventStreamConnectionMaxAttempts, errChan)
+		p.service.EventStream(ctx, eventChan, p.eventStreamConnectionMaxAttempts, errChan)
 	}()
 
 	for {
