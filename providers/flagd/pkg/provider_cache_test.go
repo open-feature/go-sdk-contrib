@@ -5,11 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
 	flagdService "github.com/open-feature/flagd/pkg/service"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
@@ -884,6 +886,7 @@ func TestCacheInvalidation(t *testing.T) {
 
 					provider := &Provider{
 						ctx: context.Background(), service: mockSvc, isReady: make(chan struct{}),
+						logger: logr.New(logger.Logger{}),
 					}
 					cacheImplementation.apply(provider)
 
