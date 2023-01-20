@@ -2,7 +2,10 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"github.com/bufbuild/connect-go"
+	"github.com/go-logr/logr"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
 	"sync"
@@ -10,7 +13,6 @@ import (
 
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -27,9 +29,10 @@ type Service struct {
 	streamAlive    bool
 	Client         iClient
 	baseRetryDelay time.Duration
+	logger         logr.Logger
 }
 
-func NewService(client iClient, baseStreamRetryDelay *time.Duration) *Service {
+func NewService(client iClient, logger logr.Logger, baseStreamRetryDelay *time.Duration) *Service {
 	if baseStreamRetryDelay == nil {
 		scnd := time.Second
 		baseStreamRetryDelay = &scnd
@@ -39,6 +42,7 @@ func NewService(client iClient, baseStreamRetryDelay *time.Duration) *Service {
 		streamAlive:    false,
 		Client:         client,
 		baseRetryDelay: *baseStreamRetryDelay,
+		logger:         logger,
 	}
 }
 
@@ -54,7 +58,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, flagKey string, evalCtx ma
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err, "struct from evaluation context")
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: string(openfeature.ErrorReason),
 		}, openfeature.NewParseErrorResolutionError(err.Error())
@@ -81,7 +85,7 @@ func (s *Service) ResolveString(ctx context.Context, flagKey string, evalCtx map
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err, "struct from evaluation context")
 		return &schemaV1.ResolveStringResponse{
 			Reason: flagdModels.ErrorReason,
 		}, openfeature.NewParseErrorResolutionError(err.Error())
@@ -108,7 +112,7 @@ func (s *Service) ResolveFloat(ctx context.Context, flagKey string, evalCtx map[
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err, "struct from evaluation context")
 		return &schemaV1.ResolveFloatResponse{
 			Reason: flagdModels.ErrorReason,
 		}, openfeature.NewParseErrorResolutionError(err.Error())
@@ -135,7 +139,7 @@ func (s *Service) ResolveInt(ctx context.Context, flagKey string, evalCtx map[st
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err, "struct from evaluation context")
 		return &schemaV1.ResolveIntResponse{
 			Reason: flagdModels.ErrorReason,
 		}, openfeature.NewParseErrorResolutionError(err.Error())
@@ -162,7 +166,7 @@ func (s *Service) ResolveObject(ctx context.Context, flagKey string, evalCtx map
 	}
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err, "struct from evaluation context")
 		return &schemaV1.ResolveObjectResponse{
 			Reason: flagdModels.ErrorReason,
 		}, openfeature.NewParseErrorResolutionError(err.Error())
@@ -202,14 +206,14 @@ func (s *Service) EventStream(
 	delay := s.baseRetryDelay
 	var err error
 	for i := 1; i <= maxAttempts; i++ {
-		log.Infof("attempt %d at connecting to event stream", i)
+		s.logger.V(logger.Debug).Info("attempt at connection to event stream", "attempt", i)
 		i, err = s.eventStream(ctx, eventChan, i)
 		if i == 1 {
 			delay = s.baseRetryDelay // reset delay if the connection was successful before failing
 		}
 		if err != nil && i <= maxAttempts {
 			delay = 2 * delay
-			log.Warningf("connection to event stream failed, sleeping %v", delay)
+			s.logger.V(logger.Warn).Info(fmt.Sprintf("connection to event stream failed, sleeping %v", delay))
 			time.Sleep(delay)
 		}
 	}
@@ -230,7 +234,8 @@ func (s *Service) eventStream(
 	if err != nil {
 		return attempt + 1, err
 	}
-	log.Info("connected to event stream")
+
+	s.logger.V(logger.Info).Info("connected to event stream")
 	s.rwMx.Lock()
 	s.streamAlive = true
 	s.rwMx.Unlock()

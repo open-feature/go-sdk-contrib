@@ -4,15 +4,15 @@ import (
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
 	"errors"
-	"fmt"
+	"github.com/go-logr/logr"
 	lru "github.com/hashicorp/golang-lru/v2"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
 	flagdService "github.com/open-feature/flagd/pkg/service"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 )
@@ -27,6 +27,7 @@ type Provider struct {
 	providerConfiguration            *ProviderConfiguration
 	eventStreamConnectionMaxAttempts int
 	isReady                          chan struct{}
+	logger                           logr.Logger
 }
 type ProviderConfiguration struct {
 	Port            uint16
@@ -45,8 +46,13 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		providerConfiguration:            &ProviderConfiguration{},
 		eventStreamConnectionMaxAttempts: 5,
 		isReady:                          make(chan struct{}),
+		logger:                           logr.New(logger.Logger{}),
 	}
 	WithLRUCache(defaultLRUCacheSize)(provider)
+	for _, opt := range opts {
+		opt(provider)
+	}
+	provider.applyDefaults()
 	provider.service = service.NewService(&service.Client{
 		ServiceConfiguration: &service.ServiceConfiguration{
 			Host:            provider.providerConfiguration.Host,
@@ -54,15 +60,11 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			CertificatePath: provider.providerConfiguration.CertificatePath,
 			SocketPath:      provider.providerConfiguration.SocketPath,
 		},
-	}, nil)
-	for _, opt := range opts {
-		opt(provider)
-	}
-	provider.applyDefaults()
+	}, provider.logger, nil)
 
 	go func() {
 		if err := provider.handleEvents(provider.ctx); err != nil {
-			log.Error(fmt.Errorf("handle events: %w", err))
+			provider.logger.Error(err, "handle events")
 		}
 	}()
 
@@ -93,7 +95,7 @@ func FromEnv() ProviderOption {
 		if portS != "" {
 			port, err := strconv.Atoi(portS)
 			if err != nil {
-				log.Error("invalid env config for FLAGD_PORT provided, using default value")
+				p.logger.Error(err, "invalid env config for FLAGD_PORT provided, using default value")
 			} else {
 				p.providerConfiguration.Port = uint16(port)
 			}
@@ -162,7 +164,7 @@ func WithLRUCache(size int) ProviderOption {
 	return func(p *Provider) {
 		c, err := lru.New[string, interface{}](size)
 		if err != nil {
-			log.Errorf("init cache: %v", err)
+			p.logger.Error(err, "init lru cache")
 			return
 		}
 		p.cache = c
@@ -184,6 +186,13 @@ func WithContext(ctx context.Context) ProviderOption {
 func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
 	return func(p *Provider) {
 		p.eventStreamConnectionMaxAttempts = i
+	}
+}
+
+// WithLogger sets the logger used by the provider.
+func WithLogger(l logr.Logger) ProviderOption {
+	return func(p *Provider) {
+		p.logger = l
 	}
 }
 
@@ -462,7 +471,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 					// Purge the cache if we fail to handle the configuration change event
 					p.cache.Purge()
 
-					log.Warningf("handle configuration change event: %v", err)
+					p.logger.V(logger.Warn).Info("handle configuration change event", "err", err)
 				}
 			case string(flagdService.ProviderReady): // signals that a new connection has been made
 				p.handleProviderReadyEvent()
@@ -473,7 +482,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 			}
 			return err
 		case <-ctx.Done():
-			log.Info("stop event handling with context done")
+			p.logger.V(logger.Info).Info("stop event handling with context done")
 
 			return nil
 		}
