@@ -23,6 +23,7 @@ flagd.WithSocketPath(string)            // no default, when set a unix socket co
 flagd.WithoutCache()                    // disables caching of flag evaluations
 flagd.WithLRUCache(1000)                // enables LRU caching (see configuring caching section)
 flagd.WithBasicInMemoryCache()          // enables basic in memory cache (see configuring caching section)
+flagd.WithLogger(logger)                // sets a custom logger (see logging section)
 ```
 for example:
 ```go
@@ -85,6 +86,25 @@ flagd.WithBasicInMemoryCache()
 ```go
 flagd.WithoutCache()
 ```
+
+## Logging
+
+If not configured, logging falls back to the standard Go log package at error level only.
+
+In order to avoid coupling to any particular logging implementation, the provider uses the structured logging [logr](https://github.com/go-logr/logr)
+API. This allows integration to any package that implements the layer between their logger and this API.
+Thankfully, there is already [integration implementations](https://github.com/go-logr/logr#implementations-non-exhaustive)
+for many of the popular logger packages.
+
+```go
+var l logr.Logger
+l = integratedlogr.New() // replace with your chosen integrator
+
+provider := flagd.NewProvider(flagd.WithLogger(l)) // set the provider's logger
+```
+
+[logr](https://github.com/go-logr/logr) uses incremental verbosity levels (akin to named levels but in integer form).
+The provider logs `warning` at level `0`, `info` at level `1` and `debug` at level `2`. Errors are always logged.
 
 ## License
 

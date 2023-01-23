@@ -6,12 +6,12 @@ require (
 	buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.3.1-20221205151127-0e915b34a38d.1
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.28.1-20221205151127-0e915b34a38d.4
 	github.com/bufbuild/connect-go v1.4.1
+	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/open-feature/flagd v0.2.8-0.20221221122807-af6f133688b5
 	github.com/open-feature/go-sdk v1.0.1
-	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/net v0.2.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -20,7 +20,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/diegoholiveira/jsonlogic/v3 v3.2.6 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.1.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
