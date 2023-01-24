@@ -6,6 +6,7 @@ The project includes:
 
 - [Providers](./providers)
 - [Hooks](./hooks)
+- [Tests](./tests)
 
 ## Environment
 
