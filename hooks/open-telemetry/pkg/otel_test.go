@@ -115,7 +115,7 @@ func TestHookMethods(t *testing.T) {
 		flagKey := "flag-key"
 		providerName := "provider-name"
 		variant := "variant"
-		hook := otelHook.NewHook(nil)
+		hook := otelHook.NewHook(context.Background())
 
 		err := hook.After(
 			openfeature.NewHookContext(
