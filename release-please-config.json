@@ -42,6 +42,14 @@
             "bump-patch-for-minor-pre-major": true,
             "versioning": "default",
             "extra-files": []
+        },
+        "tests/flagd": {
+            "release-type": "go",
+            "package-name": "tests/flagd",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
         }
     }
 }
