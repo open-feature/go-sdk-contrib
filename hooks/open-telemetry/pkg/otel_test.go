@@ -1,293 +1,154 @@
-package otel
+package otel_test
 
 import (
 	"context"
 	"errors"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	"testing"
-	"time"
+
+	otelHook "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry/pkg"
+	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 )
 
-type tracerClientMock struct {
-	t *tracerMock
-}
-type tracerMock struct {
-	trace.Tracer
-	span *spanMock
-}
-type spanMock struct {
-	trace.Span
-	attributes []attribute.KeyValue
-	closed     bool
-	err        error
-	code       codes.Code
-	errString  string
-}
+func TestHookMethods(t *testing.T) {
 
-func (t tracerClientMock) tracer() trace.Tracer {
-	return t.t
-}
-func (t tracerMock) Start(ctx context.Context, _ string, _ ...trace.SpanStartOption) (context.Context, trace.Span) {
-	return ctx, t.span
-}
-func (s *spanMock) SetAttributes(kv ...attribute.KeyValue) {
-	s.attributes = append(s.attributes, kv...)
-}
-func (s *spanMock) RecordError(err error, _ ...trace.EventOption) {
-	s.err = err
-}
-func (s *spanMock) SetStatus(code codes.Code, err string) {
-	s.code = code
-	s.errString = err
-}
-func (s *spanMock) End(...trace.SpanEndOption) {
-	s.closed = true
-}
-
-func TestOtelHookMethods(t *testing.T) {
-
-	t.Run("Before should start a new span", func(t *testing.T) {
-		otelHook := Hook{
-			tracerClient: tracerClientMock{
-				t: &tracerMock{
-					span: &spanMock{},
-				},
-			},
-		}
-		otelHook.tracerClient.tracer().Start(context.Background(), "test")
-		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-		if len(otelHook.spans) != 1 {
-			t.Fatal("before hook did not create a new span")
-		}
-	})
-
-	t.Run("Finally hook should trigger the span to close with no error", func(t *testing.T) {
-		otelHook := Hook{
-			tracerClient: &tracerClientMock{
-				t: &tracerMock{
-					span: &spanMock{},
-				},
-			},
-		}
-		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-		if len(otelHook.spans) != 1 {
-			t.Fatal("before hook did not create a new span")
-		}
-		otelHook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
-		otelHook.Wait()
-		for _, x := range otelHook.spans {
-			if x.ss != nil {
-				t.Fatal("after hook did not trigger the closing of the span")
-			}
-		}
-	})
-
-	t.Run("context cancellation should close an open span", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		otelHook := Hook{
-			tracerClient: &tracerClientMock{
-				t: &tracerMock{
-					span: &spanMock{},
-				},
-			},
-		}
-		otelHook.WithContext(ctx)
-		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-		if len(otelHook.spans) != 1 {
-			t.Fatal("before hook did not create a new span")
-		}
-		cancel()
-		otelHook.Wait()
-		for _, x := range otelHook.spans {
-			if x.ss != nil {
-				t.Fatal("stored span has not been cleaned up")
-			}
-		}
-	})
-
-	// if updates have been made causing the tests suite to hang, they will be within this test
-	// however, in most cases the reasons for the tests to hang will be caught by the above tests
-	t.Run("duplicate keys should be blocked from running concurrently", func(t *testing.T) {
-		otelHook := Hook{
-			tracerClient: &tracerClientMock{
-				t: &tracerMock{
-					span: &spanMock{},
-				},
-			},
-		}
-		blockedC := make(chan struct{})
-
-		// Trigger the initial before hook, the empty context will always provide the same key
-		_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-		if len(otelHook.spans) != 1 {
-			t.Fatal("before hook did not create a new span")
-		}
-		// this before hook should be blocked until the after hook for the locked resource has been run
-		go func() {
-			_, _ = otelHook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-			blockedC <- struct{}{}
-		}()
-		select {
-		case <-blockedC:
-			t.Fatal("duplicate keys are not being blocked")
-		default:
-		}
-
-		// unlock the resource and ensure that the previously blocked goroutine can now complete
-		otelHook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
-
-		select {
-		case <-blockedC:
-		case <-time.After(500 * time.Millisecond):
-			t.Fatal("blocked goroutine has not been unblocked by the release of the lock")
-		}
-
-		// complete the final hooks lifecycle and ensure that it is being cleaned up
-		otelHook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
-		otelHook.Wait()
-		for _, x := range otelHook.spans {
-			if x.ss != nil {
-				t.Fatal("stored span has not been cleaned up")
-			}
-		}
-	})
-
-	t.Run("ensure all attributes are correctly set on span and it is closed", func(t *testing.T) {
-		span := spanMock{}
-		hook := Hook{
-			tracerClient: &tracerClientMock{
-				t: &tracerMock{
-					span: &span,
-				},
-			},
-		}
-		openfeature.AddHooks(&hook)
-		client := openfeature.NewClient("test-client")
-		_, _ = client.ObjectValue(
-			context.Background(),
-			"my-bool-flag",
-			map[string]interface{}{"foo": "bar"},
-			openfeature.EvaluationContext{},
+	t.Run("After hook should add feature_flag event as well as key, provider_name and variant attributes", func(t *testing.T) {
+		flagKey := "flag-key"
+		providerName := "provider-name"
+		variant := "variant"
+		exp := tracetest.NewInMemoryExporter()
+		tp := trace.NewTracerProvider(
+			trace.WithSyncer(exp),
 		)
-		hook.Wait()
-		if !span.closed {
-			t.Fatalf("span has not been closed")
-		}
-		valuePresent := false
-		variantPreset := false
-		for _, att := range span.attributes {
-			switch att.Key {
-			case AttributeFlagKey:
-				if att.Value.AsString() != "my-bool-flag" {
-					t.Fatalf("unexpected flagKey value received: %s", att.Value.AsString())
-				}
-			case AttributeProviderName:
-				if att.Value.AsString() != "NoopProvider" {
-					t.Fatalf("unexpected ProviderName value received expected %s, got %s", "NoopProvider", att.Value.AsString())
-				}
-			case AttributeEvaluatedVariant:
-				variantPreset = true
-				if att.Value.AsString() != "default-variant" {
-					t.Fatalf("unexpected EvaluatedVariant value received expected %s, got %s", "default-variant", att.Value.AsString())
-				}
-			case AttributeEvaluatedValue:
-				valuePresent = true
-			default:
-				t.Fatalf("unexpected span key received %s", att.Key)
-			}
-		}
-		if valuePresent && variantPreset {
-			t.Fatal("both AttributeEvaluatedVariant and AttributeEvaluatedValue are present in the span")
-		}
-	})
-
-	t.Run("ensure Error method is behaving correctly", func(t *testing.T) {
-		mySpan := spanMock{}
-		myError := errors.New("my error")
-		hook := Hook{
-			spans: map[string]*mutexWrapper{
-				".": {
-					ss: &storedSpan{
-						span: &mySpan,
+		otel.SetTracerProvider(tp)
+		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+		hook := otelHook.NewHook(ctx)
+		err := hook.After(
+			openfeature.NewHookContext(
+				flagKey,
+				openfeature.String,
+				"default",
+				openfeature.ClientMetadata{},
+				openfeature.Metadata{
+					Name: providerName,
+				},
+				openfeature.NewEvaluationContext(
+					"test-targeting-key",
+					map[string]interface{}{
+						"this": "that",
+					},
+				),
+			),
+			openfeature.InterfaceEvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant: variant,
 					},
 				},
 			},
+			openfeature.NewHookHints(
+				map[string]interface{}{},
+			),
+		)
+		if err != nil {
+			t.Error(err)
 		}
-
-		hook.Error(openfeature.HookContext{}, myError, openfeature.HookHints{})
-		if !errors.Is(myError, mySpan.err) {
-			t.Fatalf("unexpected error received, want %v, got %v", myError, mySpan.err)
+		span.End()
+		spans := exp.GetSpans()
+		if len(spans) != 1 {
+			t.Errorf("expected 1 span, got %d", len(spans))
 		}
-		if mySpan.code != codes.Error {
-			t.Fatalf("unexpected code received, want %v, got %v", codes.Error, mySpan.code)
+		if len(spans[0].Events) != 1 {
+			t.Errorf("expected 1 event, got %d", len(spans[0].Events))
 		}
-		if mySpan.errString != myError.Error() {
-			t.Fatalf("unexpected errorString received, want %v, got %v", mySpan.errString, myError.Error())
+		if spans[0].Events[0].Name != otelHook.EventName {
+			t.Errorf("unexpected event name: %s", spans[0].Events[0].Name)
+		}
+		for _, attr := range spans[0].Events[0].Attributes {
+			switch attr.Key {
+			case otelHook.EventPropertyFlagKey:
+				if attr.Value.AsString() != flagKey {
+					t.Errorf("unexpected feature_flag.key attribute value: %s", attr.Value.AsString())
+				}
+			case otelHook.EventPropertyProviderName:
+				if attr.Value.AsString() != providerName {
+					t.Errorf("unexpected feature_flag.provider_name attribute value: %s", attr.Value.AsString())
+				}
+			case otelHook.EventPropertyVariant:
+				if attr.Value.AsString() != variant {
+					t.Errorf("unexpected feature_flag.variant attribute value: %s", attr.Value.AsString())
+				}
+			default:
+				t.Errorf("unexpected attribute key: %s", attr.Key)
+			}
 		}
 	})
 
-	t.Run("all values are being cast to string", func(t *testing.T) {
-		tests := map[string]struct {
-			value    interface{}
-			flagType openfeature.Type
-		}{
-			"bool": {
-				value:    true,
-				flagType: openfeature.Boolean,
-			},
-			"string": {
-				value:    "hello",
-				flagType: openfeature.String,
-			},
-			"int": {
-				value:    int64(1),
-				flagType: openfeature.Int,
-			},
-			"float": {
-				value:    float64(1.001),
-				flagType: openfeature.Float,
-			},
-			"object": {
-				value:    map[string]interface{}{"foo": "bar"},
-				flagType: openfeature.Object,
-			},
+	t.Run("Error hook should record exception on span", func(t *testing.T) {
+		exp := tracetest.NewInMemoryExporter()
+		tp := trace.NewTracerProvider(
+			trace.WithSyncer(exp),
+		)
+		otel.SetTracerProvider(tp)
+		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+		hook := otelHook.NewHook(ctx)
+		err := errors.New("a terrible error")
+		hook.Error(openfeature.HookContext{}, err, openfeature.HookHints{})
+		span.End()
+
+		spans := exp.GetSpans()
+		if len(spans) != 1 {
+			t.Errorf("expected 1 span, got %d", len(spans))
 		}
-		for name, test := range tests {
-			t.Run(name, func(t *testing.T) {
-				mySpan := spanMock{}
-				hook := Hook{
-					tracerClient: &tracerClientMock{
-						t: &tracerMock{
-							span: &mySpan,
-						},
+		if len(spans[0].Events) != 1 {
+			t.Errorf("expected 1 event, got %d", len(spans[0].Events))
+		}
+		if spans[0].Events[0].Name != semconv.ExceptionEventName {
+			t.Errorf("unexpected event name: %s", spans[0].Events[0].Name)
+		}
+	})
+
+	t.Run("a nil context should not cause a panic", func(t *testing.T) {
+		flagKey := "flag-key"
+		providerName := "provider-name"
+		variant := "variant"
+		hook := otelHook.NewHook(context.Background())
+
+		err := hook.After(
+			openfeature.NewHookContext(
+				flagKey,
+				openfeature.String,
+				"default",
+				openfeature.ClientMetadata{},
+				openfeature.Metadata{
+					Name: providerName,
+				},
+				openfeature.NewEvaluationContext(
+					"test-targeting-key",
+					map[string]interface{}{
+						"this": "that",
 					},
-				}
-				_, _ = hook.Before(openfeature.HookContext{}, openfeature.HookHints{})
-				_ = hook.After(openfeature.HookContext{}, openfeature.InterfaceEvaluationDetails{
-					Value: test.value,
-					EvaluationDetails: openfeature.EvaluationDetails{
-						FlagType: test.flagType,
+				),
+			),
+			openfeature.InterfaceEvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant: variant,
 					},
-				}, openfeature.HookHints{})
-				hook.Finally(openfeature.HookContext{}, openfeature.HookHints{})
-				hook.Wait()
-				found := false
-				for _, att := range mySpan.attributes {
-					if att.Key == AttributeEvaluatedValue {
-						found = true
-						if att.Value.Type() != attribute.STRING {
-							t.Fatalf("unexpected value type received, expected string, got %v", att.Value.Type())
-						}
-					}
-				}
-				if !found {
-					t.Fatalf("%s not found in span", name)
-				}
-			})
+				},
+			},
+			openfeature.NewHookHints(
+				map[string]interface{}{},
+			),
+		)
+		if err != nil {
+			t.Error(err)
 		}
 
+		hook.Error(openfeature.HookContext{}, err, openfeature.HookHints{})
 	})
+
 }
