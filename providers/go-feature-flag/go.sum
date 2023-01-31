@@ -25,6 +25,8 @@ github.com/nikunjy/rules v1.0.1-0.20220920033320-71e8e569642c h1:984E5FSs5smzVlx
 github.com/nikunjy/rules v1.0.1-0.20220920033320-71e8e569642c/go.mod h1:Up4dDdLmEJoIttEZll8NtFuo6EmFrMxAwF0VRLcdlLU=
 github.com/open-feature/go-sdk v1.0.1 h1:gT2rUJxmqO4jh1CYGPBfyEySi9woXsP9B773y8Y/iAo=
 github.com/open-feature/go-sdk v1.0.1/go.mod h1:Ub7Bu2yjBFieDMQJZXoOV+x6Mhn9pudxG1CR7zsHBUg=
+github.com/open-feature/go-sdk v1.1.0 h1:JOOa0AleJFUvnWoF9KWdLqYosi5fDIRBDzPYZPr5qgM=
+github.com/open-feature/go-sdk v1.1.0/go.mod h1:R8QJmLdSHFaRdrWtwmp5bVK35Q+O/cEGtYaiy6NM6kc=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
