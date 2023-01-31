@@ -1,8 +1,8 @@
 {
-    "hooks/open-telemetry": "0.2.0",
+    "hooks/open-telemetry": "0.2.1",
     "hooks/validator": "0.1.1",
-    "providers/flagd": "0.1.4",
+    "providers/flagd": "0.1.5",
     "providers/from-env": "0.1.1",
-    "providers/go-feature-flag": "0.1.1",
+    "providers/go-feature-flag": "0.1.2",
     "tests/flagd": "1.0.1"
 }
