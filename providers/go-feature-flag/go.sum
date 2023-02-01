@@ -2,6 +2,8 @@ cloud.google.com/go v0.104.0 h1:gSmWO7DY1vOm0MVU6DNXM11BWHHsTUmsC5cv1fuW5X8=
 cloud.google.com/go/compute v1.7.0 h1:v/k9Eueb8aAJ0vZuxKMrgm6kPhCLZU9HxFU+AFDs9Uk=
 cloud.google.com/go/iam v0.3.0 h1:exkAomrVUuzx9kWFI1wm3KI0uoDeUFPB4kKGzx6x+Gc=
 cloud.google.com/go/storage v1.27.0 h1:YOO045NZI9RKfCj1c5A/ZtuuENUc8OAW+gHdGnDgyMQ=
+github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=
+github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20220911224424-aa1f1f12a846 h1:et5J11AOyUn9qwkIAF9kcxTxjTO8Z9oSmlOqH7MVSPo=
 github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20220911224424-aa1f1f12a846/go.mod h1:pSwJ0fSY5KhvocuWSx4fz3BA8OrA1bQn+K1Eli3BRwM=
 github.com/aws/aws-sdk-go v1.44.109 h1:+Na5JPeS0kiEHoBp5Umcuuf+IDqXqD0lXnM920E31YI=
@@ -23,6 +25,8 @@ github.com/googleapis/gax-go/v2 v2.5.1 h1:kBRZU0PSuI7PspsSb/ChWoVResUcwNVIdpB049
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
 github.com/nikunjy/rules v1.0.1-0.20220920033320-71e8e569642c h1:984E5FSs5smzVlxNcl9t9s8xgkrdXPgmLlpLoaK3/zI=
 github.com/nikunjy/rules v1.0.1-0.20220920033320-71e8e569642c/go.mod h1:Up4dDdLmEJoIttEZll8NtFuo6EmFrMxAwF0VRLcdlLU=
+github.com/nikunjy/rules v1.2.0 h1:5BhojNDpsHLgFlvVRT8e9wKIPcWehUf4nf+cOKlrRxc=
+github.com/nikunjy/rules v1.2.0/go.mod h1:Up4dDdLmEJoIttEZll8NtFuo6EmFrMxAwF0VRLcdlLU=
 github.com/open-feature/go-sdk v1.0.1 h1:gT2rUJxmqO4jh1CYGPBfyEySi9woXsP9B773y8Y/iAo=
 github.com/open-feature/go-sdk v1.0.1/go.mod h1:Ub7Bu2yjBFieDMQJZXoOV+x6Mhn9pudxG1CR7zsHBUg=
 github.com/open-feature/go-sdk v1.1.0 h1:JOOa0AleJFUvnWoF9KWdLqYosi5fDIRBDzPYZPr5qgM=
@@ -42,6 +46,8 @@ github.com/thomaspoignant/go-feature-flag v0.28.1 h1:JbMAjyCLLAKXWzlScd2lu3/zuJ0
 github.com/thomaspoignant/go-feature-flag v0.28.1/go.mod h1:MXobTPVseHQ5O1CbICuDE2JWulOn5JjL5SGdPjHKIKI=
 github.com/thomaspoignant/go-feature-flag v0.28.2 h1:+NGD3K6w6gnJZgREW+jseLWkawttbEQrPxEBJNUa8pM=
 github.com/thomaspoignant/go-feature-flag v0.28.2/go.mod h1:gM5Ur7YW6262Sp+ICkB0IlpMjNKmQmC6KvjzmwPv/nE=
+github.com/thomaspoignant/go-feature-flag v1.0.0 h1:yy1I+o59iIU81zHO37E9YXOhCL8lx3XIRORbBrEKJ3I=
+github.com/thomaspoignant/go-feature-flag v1.0.0/go.mod h1:7EVzKjQf+EdXmHGOUyhxwiVK1AXXWNYYPM/tezXEI6g=
 go.opencensus.io v0.23.0 h1:gqCw0LfLxScz8irSi8exQc7fyQ0fKQU/qnC/X8+V/1M=
 golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e h1:+WEEuIdZHnUeJJmEUjyYC2gfUMj69yZXw17EnHg/otA=
 golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e/go.mod h1:Kr81I6Kryrl9sr8s2FK3vxD90NdsKWRuOIl2O4CvYbA=
