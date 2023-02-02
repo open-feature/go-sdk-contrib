@@ -1,76 +1,134 @@
 bool_targeting_match:
-  true: true
-  false: false
-  default: false
-  percentage: 100
-
+  variations:
+    Default: false
+    "False": false
+    "True": true
+  targeting:
+    - query: email eq "john.doe@gofeatureflag.org"
+      variation: "True"
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
 disabled_bool:
-  true: true
-  false: false
-  default: false
-  percentage: 100
+  variations:
+    Default: false
+    "False": false
+    "True": true
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
   disable: true
-
-string_key:
-  true: "CC0000"
-  false: "CC0001"
-  default: "CC0002"
-  percentage: 100
-
-disabled_string:
-  true: "CC0000"
-  false: "CC0001"
-  default: "CC0002"
-  percentage: 100
-  disable: true
-
-double_key:
-  true: 100.25
-  false: 101.25
-  default: 103.25
-  percentage: 100
-
 disabled_float:
-  true: 100.25
-  false: 101.25
-  default: 103.25
-  percentage: 100
+  variations:
+    Default: 103.25
+    "False": 101.25
+    "True": 100.25
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
   disable: true
-
-integer_key:
-  true: 100
-  false: 101
-  default: 103
-  percentage: 100
-
 disabled_int:
-  true: 100
-  false: 101
-  default: 103
-  percentage: 100
+  variations:
+    Default: 103
+    "False": 101
+    "True": 100
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
   disable: true
-
-object_key:
-  percentage: 100
-  true:
-    test:  test1
-    test2: false
-    test3: 123.3
-    test4: 1
-  false:
-    test:  "false"
-  default:
-    test: "default"
-
 disabled_interface:
-  percentage: 100
-  true:
-    test: test1
-    test2: false
-    test3: 123.3
-    test4: 1
-  false:
-    test: "false"
-  default:
-    test: "default"
+  variations:
+    Default:
+      test: default
+    "False":
+      test: "false"
+    "True":
+      test: test1
+      test2: false
+      test3: 123.3
+      test4: 1
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
   disable: true
+disabled_string:
+  variations:
+    Default: CC0002
+    "False": CC0001
+    "True": CC0000
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
+  disable: true
+double_key:
+  variations:
+    Default: 103.25
+    "False": 101.25
+    "True": 100.25
+  targeting:
+    - query: email eq "john.doe@gofeatureflag.org"
+      variation: "True"
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
+integer_key:
+  variations:
+    Default: 103
+    "False": 101
+    "True": 100
+  targeting:
+    - query: email eq "john.doe@gofeatureflag.org"
+      variation: "True"
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
+object_key:
+  variations:
+    Default:
+      test: default
+    "False":
+      test: "false"
+    "True":
+      test: test1
+      test2: false
+      test3: 123.3
+      test4: 1
+  targeting:
+    - query: email eq "john.doe@gofeatureflag.org"
+      variation: "True"
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
+string_key:
+  variations:
+    Default: CC0002
+    "False": CC0001
+    "True": CC0000
+  targeting:
+    - query: email eq "john.doe@gofeatureflag.org"
+      variation: "True"
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
+string_key_with_version:
+  variations:
+    Default: CC0002
+    "False": CC0001
+    "True": CC0000
+  targeting:
+    - query: email eq "john.doe@gofeatureflag.org"
+      variation: "True"
+  defaultRule:
+    percentage:
+      "False": 0
+      "True": 100
