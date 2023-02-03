@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.2...providers/go-feature-flag/v0.1.3) (2023-02-03)
+
+
+### Features
+
+* Update provider to be compatible with GO Feature Flag v1.0.0 ([#102](https://github.com/open-feature/go-sdk-contrib/issues/102)) ([77bf37d](https://github.com/open-feature/go-sdk-contrib/commit/77bf37d50c3e41f7290c632db5ef352710949e49))
+
 ## [0.1.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.1...providers/go-feature-flag/v0.1.2) (2023-01-31)
 
 
