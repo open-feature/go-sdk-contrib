@@ -2,7 +2,7 @@
   "trackEvents": true,
   "variationType": "SdkDefault",
   "failed": true,
-  "version": 0,
+  "version": "",
   "reason": "ERROR",
   "errorCode": "FLAG_NOT_FOUND"
 }

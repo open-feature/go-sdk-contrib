@@ -205,7 +205,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 					ResolutionDetail: of.ResolutionDetail{
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.ParseErrorCode,
-						ErrorMessage: "impossible to parse response for flag invalid_json_body: {\n  \"trackEvents\": true,\n  \"variationType\": \"True\",\n  \"failed\": false,\n  \"version\": 0,\n  \"reason\": \"TARGETING_MATCH\",\n  \"errorCode\": \"\",\n  \"value\": true\n",
+						ErrorMessage: "impossible to parse response for flag invalid_json_body: {\n  \"trackEvents\": true,\n  \"variationType\": \"True\",\n  \"failed\": false,\n  \"version\": \"\",\n  \"reason\": \"TARGETING_MATCH\",\n  \"errorCode\": \"\",\n  \"value\": true\n",
 					},
 				},
 			},
