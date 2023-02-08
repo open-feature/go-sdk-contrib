@@ -10,7 +10,7 @@ on:
       - main
 env:
   # Default minimum version of Go to support.
-  DEFAULT_GO_VERSION: 1.18
+  DEFAULT_GO_VERSION: 1.19
 
 jobs:
   lint:
