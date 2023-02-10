@@ -12,8 +12,14 @@ import (
 	"time"
 )
 
+func InitializeEvaluationScenario(pOptions ...flagd.ProviderOption) func(*godog.ScenarioContext) {
+	providerOptions = pOptions
+
+	return initializeEvaluationScenario
+}
+
 // InitializeEvaluationScenario initializes the evaluation test scenario
-func InitializeEvaluationScenario(ctx *godog.ScenarioContext) {
+func initializeEvaluationScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a provider is registered with cache disabled$`, aProviderIsRegisteredWithCacheDisabled)
 
 	ctx.Step(`^a boolean flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aBooleanFlagWithKeyIsEvaluatedWithDefaultValue)
@@ -650,7 +656,9 @@ func theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWit
 }
 
 func aProviderIsRegisteredWithCacheDisabled(ctx context.Context) (context.Context, error) {
-	provider := flagd.NewProvider(flagd.WithPort(8013), flagd.WithoutCache())
+	pOptions := []flagd.ProviderOption{flagd.WithPort(8013), flagd.WithoutCache()}
+	pOptions = append(pOptions, providerOptions...)
+	provider := flagd.NewProvider(pOptions...)
 	openfeature.SetProvider(provider)
 	client := openfeature.NewClient("evaluation tests")
 

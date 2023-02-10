@@ -3,8 +3,11 @@ package integration
 import (
 	"context"
 	"errors"
+	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
+
+var providerOptions []flagd.ProviderOption
 
 // ctxStorageKey is the key used to pass test data across context.Context
 type ctxStorageKey struct{}
