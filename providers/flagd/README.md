@@ -20,6 +20,7 @@ flagd.WithHost(string)                  // defaults to localhost
 flagd.WithPort(uint16)                  // defaults to 8013
 flagd.FromEnv()                         // sets the provider configuration from environment variables
 flagd.WithSocketPath(string)            // no default, when set a unix socket connection is used (only available for GRPC)
+flagd.WithTLS(certPath string)          // default of false, if certPath is not given, system certs are used
 flagd.WithoutCache()                    // disables caching of flag evaluations
 flagd.WithLRUCache(1000)                // enables LRU caching (see configuring caching section)
 flagd.WithBasicInMemoryCache()          // enables basic in memory cache (see configuring caching section)
@@ -43,7 +44,16 @@ func main() {
 ```
 
 ### Using flagd.FromEnv()  
-By default the flagd provider will not read environment variables to set its own configuration, however, if the `flagd.FromEnv()` option is set as an argument for the `flagd.NewProvider()` method, then the following environment variables will be checked: `FLAGD_HOST`, `FLAGD_PORT`, `FLAGD_SERVER_CERT_PATH` & `FLAGD_CACHING_DISABLED`.
+By default the flagd provider will not read environment variables to set its own configuration, however, if the `flagd.FromEnv()` option is set as an argument for the `flagd.NewProvider()` method, then the following table of environment variables are applicable.
+
+| Option name     | Environment variable name | Type    | Default   |
+|-----------------|---------------------------| ------- |-----------|
+| host            | FLAGD_HOST                | string  | localhost |
+| port            | FLAGD_PORT                | number  | 8013      |
+| tls             | FLAGD_TLS                 | boolean | false     |
+| socketPath      | FLAGD_SOCKET_PATH         | string  |           |
+| certPath        | FLAGD_SERVER_CERT_PATH    | string  |           |
+| cachingDisabled | FLAGD_CACHING_DISABLED    | boolean | false     |
 
 In the event that another configuration option is passed to the `flagd.NewProvider()` method, such as `flagd.WithPort(8013)` then priority is decided by the order in which the options are passed to the constructor from lowest to highest priority.
 

@@ -17,7 +17,15 @@ import (
 	"strconv"
 )
 
-const defaultLRUCacheSize int = 1000
+const (
+	defaultLRUCacheSize                         int = 1000
+	flagdHostEnvironmentVariableName                = "FLAGD_HOST"
+	flagdPortEnvironmentVariableName                = "FLAGD_PORT"
+	flagdTLSEnvironmentVariableName                 = "FLAGD_TLS"
+	flagdSocketPathEnvironmentVariableName          = "FLAGD_SOCKET_PATH"
+	flagdServerCertPathEnvironmentVariableName      = "FLAGD_SERVER_CERT_PATH"
+	flagdCachingDisabledEnvironmentVariableName     = "FLAGD_CACHING_DISABLED"
+)
 
 type Provider struct {
 	ctx                              context.Context
@@ -34,6 +42,7 @@ type ProviderConfiguration struct {
 	Host            string
 	CertificatePath string
 	SocketPath      string
+	TLSEnabled      bool
 }
 
 type ProviderOption func(*Provider)
@@ -59,6 +68,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			Port:            provider.providerConfiguration.Port,
 			CertificatePath: provider.providerConfiguration.CertificatePath,
 			SocketPath:      provider.providerConfiguration.SocketPath,
+			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
 		},
 	}, provider.logger, nil)
 
@@ -90,8 +100,7 @@ func WithSocketPath(socketPath string) ProviderOption {
 // FromEnv sets the provider configuration from environment variables: FLAGD_HOST, FLAGD_PORT, FLAGD_SERVICE_PROVIDER, FLAGD_SERVER_CERT_PATH & FLAGD_CACHING_DISABLED
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
-
-		portS := os.Getenv("FLAGD_PORT")
+		portS := os.Getenv(flagdPortEnvironmentVariableName)
 		if portS != "" {
 			port, err := strconv.Atoi(portS)
 			if err != nil {
@@ -101,21 +110,25 @@ func FromEnv() ProviderOption {
 			}
 		}
 
-		certificatePath := os.Getenv("FLAGD_SERVER_CERT_PATH")
-		if certificatePath != "" {
-			p.providerConfiguration.CertificatePath = certificatePath
-		}
-
-		host := os.Getenv("FLAGD_HOST")
+		host := os.Getenv(flagdHostEnvironmentVariableName)
 		if host != "" {
 			p.providerConfiguration.Host = host
 		}
 
-		cachingDisabled := os.Getenv("FLAGD_CACHING_DISABLED")
+		socketPath := os.Getenv(flagdSocketPathEnvironmentVariableName)
+		if socketPath != "" {
+			p.providerConfiguration.SocketPath = socketPath
+		}
+
+		cachingDisabled := os.Getenv(flagdCachingDisabledEnvironmentVariableName)
 		if cachingDisabled == "true" {
 			WithoutCache()(p)
 		}
 
+		certificatePath := os.Getenv(flagdServerCertPathEnvironmentVariableName)
+		if certificatePath != "" || os.Getenv(flagdTLSEnvironmentVariableName) == "true" {
+			WithTLS(certificatePath)(p)
+		}
 	}
 }
 
@@ -193,6 +206,14 @@ func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
 func WithLogger(l logr.Logger) ProviderOption {
 	return func(p *Provider) {
 		p.logger = l
+	}
+}
+
+// WithTLS enables TLS. If certPath is not given, system certs are used.
+func WithTLS(certPath string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.TLSEnabled = true
+		p.providerConfiguration.CertificatePath = certPath
 	}
 }
 
