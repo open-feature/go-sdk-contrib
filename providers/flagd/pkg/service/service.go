@@ -21,6 +21,7 @@ type ServiceConfiguration struct {
 	Host            string
 	CertificatePath string
 	SocketPath      string
+	TLSEnabled      bool
 }
 
 // Service handles the client side  interface for the flagd server

@@ -1,6 +1,7 @@
 package service
 
 import (
+	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/bufbuild/connect-go/schema/v1/schemav1connect"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -9,8 +10,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-
-	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/bufbuild/connect-go/schema/v1/schemav1connect"
 )
 
 type iClient interface {
@@ -28,24 +27,27 @@ func (c *Client) Instance() schemaConnectV1.ServiceClient {
 	if c.client == nil {
 		var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
 		var tlsConfig *tls.Config
-		var url string = fmt.Sprintf("http://%s:%d", c.ServiceConfiguration.Host, c.ServiceConfiguration.Port)
+		url := fmt.Sprintf("http://%s:%d", c.ServiceConfiguration.Host, c.ServiceConfiguration.Port)
 		// socket
 		if c.ServiceConfiguration.SocketPath != "" {
 			dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 				return net.Dial("unix", c.ServiceConfiguration.SocketPath)
 			}
 		}
-		// cert
-		if c.ServiceConfiguration.CertificatePath != "" {
+		// tls
+		if c.ServiceConfiguration.TLSEnabled {
 			url = fmt.Sprintf("https://%s:%d", c.ServiceConfiguration.Host, c.ServiceConfiguration.Port)
-			caCert, err := os.ReadFile(c.ServiceConfiguration.CertificatePath)
-			if err != nil {
-				log.Fatal(err)
-			}
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM(caCert)
-			tlsConfig = &tls.Config{
-				RootCAs: caCertPool,
+			tlsConfig = &tls.Config{}
+			if c.ServiceConfiguration.CertificatePath != "" {
+				caCert, err := os.ReadFile(c.ServiceConfiguration.CertificatePath)
+				if err != nil {
+					log.Fatal(err)
+				}
+				caCertPool := x509.NewCertPool()
+				if !caCertPool.AppendCertsFromPEM(caCert) {
+					log.Fatal("failed to AppendCertsFromPEM")
+				}
+				tlsConfig.RootCAs = caCertPool
 			}
 		}
 
