@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/cucumber/godog"
 	"github.com/open-feature/flagd/pkg/eval"
+	"github.com/open-feature/flagd/pkg/model"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"os"
@@ -276,7 +277,7 @@ func aProviderIsRegisteredWithCacheEnabled(ctx context.Context) (context.Context
 }
 
 func copyFlags(flags eval.Flags) eval.Flags {
-	f := eval.Flags{Flags: map[string]eval.Flag{}}
+	f := eval.Flags{Flags: map[string]model.Flag{}}
 
 	for key, flag := range flags.Flags {
 		f.Flags[key] = flag
