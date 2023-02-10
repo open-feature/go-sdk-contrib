@@ -45,7 +45,10 @@ func (c *Client) Instance() schemaConnectV1.ServiceClient {
 				}
 				caCertPool := x509.NewCertPool()
 				if !caCertPool.AppendCertsFromPEM(caCert) {
-					log.Fatal("failed to AppendCertsFromPEM")
+					log.Fatalf(
+						"failed to AppendCertsFromPEM, certificate %s is malformed",
+						c.ServiceConfiguration.CertificatePath,
+					)
 				}
 				tlsConfig.RootCAs = caCertPool
 			}
