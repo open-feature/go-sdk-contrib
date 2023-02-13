@@ -20,7 +20,8 @@ var (
 )
 
 // InitializeCachingScenario initializes the caching test scenario
-func InitializeCachingScenario(flagConfigPath string) (func(*godog.ScenarioContext), error) {
+func InitializeCachingScenario(flagConfigPath string, pOptions ...flagd.ProviderOption) (func(*godog.ScenarioContext), error) {
+	providerOptions = pOptions
 	flagConfigurationPath = flagConfigPath
 	var err error
 	testingFlags, err = loadFlagConfiguration(flagConfigPath)
@@ -263,7 +264,9 @@ func resetState(ctx context.Context, sc *godog.Scenario) (context.Context, error
 }
 
 func aProviderIsRegisteredWithCacheEnabled(ctx context.Context) (context.Context, error) {
-	provider := flagd.NewProvider(flagd.WithPort(8013))
+	pOptions := []flagd.ProviderOption{flagd.WithPort(8013)}
+	pOptions = append(pOptions, providerOptions...)
+	provider := flagd.NewProvider(pOptions...)
 	openfeature.SetProvider(provider)
 	client := openfeature.NewClient("caching tests")
 
