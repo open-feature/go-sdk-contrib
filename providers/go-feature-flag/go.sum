@@ -31,6 +31,8 @@ github.com/open-feature/go-sdk v1.0.1 h1:gT2rUJxmqO4jh1CYGPBfyEySi9woXsP9B773y8Y
 github.com/open-feature/go-sdk v1.0.1/go.mod h1:Ub7Bu2yjBFieDMQJZXoOV+x6Mhn9pudxG1CR7zsHBUg=
 github.com/open-feature/go-sdk v1.1.0 h1:JOOa0AleJFUvnWoF9KWdLqYosi5fDIRBDzPYZPr5qgM=
 github.com/open-feature/go-sdk v1.1.0/go.mod h1:R8QJmLdSHFaRdrWtwmp5bVK35Q+O/cEGtYaiy6NM6kc=
+github.com/open-feature/go-sdk v1.2.0 h1:2xsUgNUUDITpryB9nFS43CI9gAF415I1He22Q1d4+Po=
+github.com/open-feature/go-sdk v1.2.0/go.mod h1:UQJJXUptk92An4F6so2Vd0iRo6EEZ+QGa7HVyQ/GPi0=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

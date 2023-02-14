@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
 go 1.18
 
 require (
-	github.com/open-feature/go-sdk v1.1.0
+	github.com/open-feature/go-sdk v1.2.0
 	github.com/stretchr/testify v1.8.1
 	github.com/thomaspoignant/go-feature-flag v1.0.0
 )
