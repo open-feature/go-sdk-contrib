@@ -50,6 +50,14 @@
             "bump-patch-for-minor-pre-major": true,
             "versioning": "default",
             "extra-files": []
+        },
+        "provider/flagsmith": {
+            "release-type": "go",
+            "package-name": "provider/flagsmith",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
         }
     }
 }
