@@ -1,8 +1,5 @@
 # Flagd Provider
 
-![Experimental](https://img.shields.io/badge/experimental-breaking%20changes%20allowed-yellow)
-![Alpha](https://img.shields.io/badge/alpha-release-red)
-
 [Flagd](https://github.com/open-feature/flagd) is a simple command line tool for fetching and presenting feature flags to services. It is designed to conform to OpenFeature schema for flag definitions. This repository and package provides the client side code for interacting with it via the [OpenFeature SDK](https://github.com/open-feature/go-sdk).
 
 ## Setup
@@ -44,16 +41,18 @@ func main() {
 ```
 
 ### Using flagd.FromEnv()  
-By default the flagd provider will not read environment variables to set its own configuration, however, if the `flagd.FromEnv()` option is set as an argument for the `flagd.NewProvider()` method, then the following table of environment variables are applicable.
+By default the flagd provider will read non-empty environment variables to set its own configuration with the lowest priority. Use the `flagd.FromEnv()` option as an argument for the `flagd.NewProvider()` method to give environment variables a higher priority.
 
-| Option name     | Environment variable name | Type    | Default   |
-|-----------------|---------------------------| ------- |-----------|
-| host            | FLAGD_HOST                | string  | localhost |
-| port            | FLAGD_PORT                | number  | 8013      |
-| tls             | FLAGD_TLS                 | boolean | false     |
-| socketPath      | FLAGD_SOCKET_PATH         | string  |           |
-| certPath        | FLAGD_SERVER_CERT_PATH    | string  |           |
-| cachingDisabled | FLAGD_CACHING_DISABLED    | boolean | false     |
+| Option name           | Environment variable name      | Type      | Options      | Default   |
+|-----------------------|--------------------------------|-----------|--------------|-----------|
+| host                  | FLAGD_HOST                     | string    |              | localhost |
+| port                  | FLAGD_PORT                     | number    |              | 8013      |
+| tls                   | FLAGD_TLS                      | boolean   |              | false     |
+| socketPath            | FLAGD_SOCKET_PATH              | string    |              |           |
+| certPath              | FLAGD_SERVER_CERT_PATH         | string    |              |           |
+| cache                 | FLAGD_CACHE                    | string    | lru,disabled | lru       |
+| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int       |              | 1000      |
+| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int       |              | 5         |
 
 In the event that another configuration option is passed to the `flagd.NewProvider()` method, such as `flagd.WithPort(8013)` then priority is decided by the order in which the options are passed to the constructor from lowest to highest priority.
 

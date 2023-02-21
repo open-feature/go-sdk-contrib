@@ -115,7 +115,11 @@ func FromEnv() ProviderOption {
 		if portS != "" {
 			port, err := strconv.Atoi(portS)
 			if err != nil {
-				p.logger.Error(err, fmt.Sprintf("invalid env config for %s provided, using default value", flagdPortEnvironmentVariableName))
+				p.logger.Error(err,
+					fmt.Sprintf(
+						"invalid env config for %s provided, using default value: %d",
+						flagdPortEnvironmentVariableName, defaultPort,
+					))
 			} else {
 				p.providerConfiguration.Port = uint16(port)
 			}
@@ -140,7 +144,10 @@ func FromEnv() ProviderOption {
 		if maxCacheSizeS != "" {
 			maxCacheSizeFromEnv, err := strconv.Atoi(maxCacheSizeS)
 			if err != nil {
-				p.logger.Error(err, fmt.Sprintf("invalid env config for %s provided, using default value", flagdMaxCacheSizeEnvironmentVariableName))
+				p.logger.Error(err,
+					fmt.Sprintf("invalid env config for %s provided, using default value: %d",
+						flagdMaxCacheSizeEnvironmentVariableName, defaultMaxCacheSize,
+					))
 			} else {
 				p.maxCacheSize = maxCacheSizeFromEnv
 			}
@@ -148,7 +155,10 @@ func FromEnv() ProviderOption {
 
 		if cacheValue := os.Getenv(flagdCacheEnvironmentVariableName); cacheValue != "" {
 			if ok := p.withCache(cacheValue); !ok {
-				p.logger.Error(fmt.Errorf("%s is invalid", cacheValue), fmt.Sprintf("invalid env config for %s provided, using default value", flagdCacheEnvironmentVariableName))
+				p.logger.Error(fmt.Errorf("%s is invalid", cacheValue),
+					fmt.Sprintf("invalid env config for %s provided, using default value: %s",
+						flagdCacheEnvironmentVariableName, defaultCache,
+					))
 			}
 		}
 
@@ -156,7 +166,9 @@ func FromEnv() ProviderOption {
 		if maxEventStreamRetriesS != "" {
 			maxEventStreamRetries, err := strconv.Atoi(maxEventStreamRetriesS)
 			if err != nil {
-				p.logger.Error(err, fmt.Sprintf("invalid env config for %s provided, using default value", flagdMaxEventStreamRetriesEnvironmentVariableName))
+				p.logger.Error(err,
+					fmt.Sprintf("invalid env config for %s provided, using default value: %d",
+						flagdMaxEventStreamRetriesEnvironmentVariableName, defaultMaxEventStreamRetries))
 			} else {
 				p.eventStreamConnectionMaxAttempts = maxEventStreamRetries
 			}
