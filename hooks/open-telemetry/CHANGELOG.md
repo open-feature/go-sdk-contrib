@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.1...hooks/open-telemetry/v0.2.2) (2023-02-21)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.2.0 ([#103](https://github.com/open-feature/go-sdk-contrib/issues/103)) ([eedb577](https://github.com/open-feature/go-sdk-contrib/commit/eedb577745fd98d5189132ebbaa8eb82bdf99dd8))
+
 ## [0.2.1](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.0...hooks/open-telemetry/v0.2.1) (2023-01-31)
 
 
