@@ -8,13 +8,20 @@ import (
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
+
 type Provider struct {
 	client *flagsmithClient.Client
+	usingBooleanConfigValue bool
 }
 
-func NewProvider(client *flagsmithClient.Client) *Provider {
+type ProviderOption func(*Provider)
+
+func NewProvider(client *flagsmithClient.Client, opts ...ProviderOption) *Provider {
 	provider := &Provider{
 		client: client,
+	}
+	for _, opt := range opts {
+		opt(provider)
 	}
 	return provider
 
@@ -111,13 +118,9 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 		}
 	}
 	if !flagObj.Enabled {
-		var e of.ResolutionError
-		e = of.NewGeneralResolutionError(err.Error())
-
 		return of.InterfaceResolutionDetail{
-			Value: defaultValue,
+			Value:  flagObj.Value,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
 				Reason:          of.DisabledReason,
 			},
 		}
@@ -132,6 +135,14 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 }
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+	if p.usingBooleanConfigValue {
+		value := !(res.ProviderResolutionDetail.Reason == of.DisabledReason)
+		return of.BoolResolutionDetail{
+			Value: value,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
 	value, ok := res.Value.(bool)
 	if !ok {
 		return of.BoolResolutionDetail{
@@ -219,4 +230,13 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	return p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 }
+
+// WithBooleanConfigValue configures the provider to use the result of isFeatureEnabled as the boolean value of the flag
+// i.e: if the flag is enabled, the value will be true, otherwise it will be false
+func WithUsingBooleanConfigValue() ProviderOption {
+	return func(p *Provider) {
+		p.usingBooleanConfigValue = true
+	}
+}
+
 
