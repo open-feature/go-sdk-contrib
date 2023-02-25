@@ -44,6 +44,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
+github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/thomaspoignant/go-feature-flag v0.28.1 h1:JbMAjyCLLAKXWzlScd2lu3/zuJ0nC0TEQh4gXVp2Gug=
 github.com/thomaspoignant/go-feature-flag v0.28.1/go.mod h1:MXobTPVseHQ5O1CbICuDE2JWulOn5JjL5SGdPjHKIKI=
 github.com/thomaspoignant/go-feature-flag v0.28.2 h1:+NGD3K6w6gnJZgREW+jseLWkawttbEQrPxEBJNUa8pM=
