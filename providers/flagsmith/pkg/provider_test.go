@@ -455,3 +455,148 @@ func TestFloatEvaluation(t *testing.T) {
 	}
 
 }
+
+
+func TestStringEvaluation(t *testing.T) {
+	identifier := "test_user"
+	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
+	defaultValue := "default_value"
+	expectedFlagValue := "some_value"
+	expectedValueIdentityOverride := "some_value_override"
+
+	traits := []*flagsmith.Trait{&trait}
+	tests := []struct {
+		name                string
+		flagKey             string
+		expectedValue      string
+		expectederrorString string
+		reason              of.Reason
+		expectedErrorCode   of.ErrorCode
+		evalCtx             map[string]interface{}
+	}{
+		{
+			name:                "Should resolve a valid flag with Static reason",
+			flagKey:             "string_flag",
+			expectedValue:       expectedFlagValue,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.StaticReason,
+		},
+		{
+			name:                "Should error if flag is of incorrect type",
+			flagKey:             "int_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "flagsmith: Value 100 is not a valid string",
+			reason:              of.ErrorReason,
+			expectedErrorCode:   of.TypeMismatchCode,
+		},
+		{
+			name:                "Should error if flag does not exists",
+			flagKey:             "flag_that_does_not_exists",
+			expectedValue:       defaultValue,
+			expectederrorString: "flagsmith: No feature found with name flag_that_does_not_exists",
+			reason:              of.ErrorReason,
+			expectedErrorCode:   of.FlagNotFoundCode,
+		},
+		{
+			name:                "Should resolve a valid flag with identifier and no traits",
+			flagKey:             "string_flag",
+			expectedValue:       expectedValueIdentityOverride,
+			expectederrorString: "",
+			reason:              of.TargetingMatchReason,
+			expectedErrorCode:   of.FlagNotFoundCode,
+			evalCtx: map[string]interface{}{
+				of.TargetingKey: identifier,
+			},
+		},
+		{
+			name:                "Should error if identifier is not a string",
+			flagKey:             "string_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "flagsmith: targeting key is not a string",
+			reason:              of.ErrorReason,
+			expectedErrorCode:   of.InvalidContextCode,
+			evalCtx: map[string]interface{}{
+				of.TargetingKey: map[string]interface{}{},
+			},
+		},
+		{
+			name:                "Should error if provided traits are not valid",
+			flagKey:             "string_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got map[string]interface {}",
+			reason:              of.ErrorReason,
+			expectedErrorCode:   of.InvalidContextCode,
+			evalCtx: map[string]interface{}{
+				of.TargetingKey: identifier,
+				"traits":        map[string]interface{}{},
+			},
+		},
+
+		{
+			name:                "Should resolve if provided traits are valid",
+			flagKey:             "string_flag",
+			expectedValue:       expectedValueIdentityOverride,
+			expectederrorString: "",
+			reason:              of.TargetingMatchReason,
+			expectedErrorCode:   of.InvalidContextCode,
+			evalCtx: map[string]interface{}{
+				of.TargetingKey: identifier,
+				"traits":        traits,
+			},
+		},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
+
+		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
+
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		_, err := io.WriteString(rw, FlagsJson)
+
+		assert.NoError(t, err)
+
+	})
+	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, identifier)
+	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, identifier)
+	mux.HandleFunc("/api/v1/identities/", func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
+
+		rawBody, err := io.ReadAll(req.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, []string{expectedRequestBodyWithoutTraits, expectedRequestBodyWithTraits}, string(rawBody))
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		_, err = io.WriteString(rw, IdentityResponseJson)
+
+		assert.NoError(t, err)
+
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := flagsmithClient.NewClient(EnvironmentAPIKey,
+		flagsmith.WithBaseURL(server.URL+"/api/v1/"))
+
+	provider := NewProvider(client)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			res := provider.StringEvaluation(context.Background(), test.flagKey, defaultValue, test.evalCtx)
+
+			assert.Equal(t, test.expectedValue, res.Value)
+			assert.Equal(t, test.reason, res.ProviderResolutionDetail.Reason)
+			if test.expectederrorString != "" {
+				resolutionDetails := res.ResolutionDetail()
+				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
+				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
+			}
+
+		})
+	}
+
+}
