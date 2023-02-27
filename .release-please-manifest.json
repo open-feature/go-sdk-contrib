@@ -4,5 +4,5 @@
     "providers/flagd": "0.1.9",
     "providers/from-env": "0.1.2",
     "providers/go-feature-flag": "0.1.4",
-    "tests/flagd": "1.2.0"
+    "tests/flagd": "1.2.1"
 }

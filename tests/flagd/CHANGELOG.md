@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.0...tests/flagd/v1.2.1) (2023-02-27)
+
+
+### Bug Fixes
+
+* only reset state if necessary ([#126](https://github.com/open-feature/go-sdk-contrib/issues/126)) ([51b1a83](https://github.com/open-feature/go-sdk-contrib/commit/51b1a83a93311c4b377574176f3f3ed04a7eabb1))
+
 ## [1.2.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.1.0...tests/flagd/v1.2.0) (2023-02-24)
 
 
