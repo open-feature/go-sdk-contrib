@@ -283,8 +283,13 @@ func sleepForMilliseconds(milliseconds int64) error {
 }
 
 func resetState(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
-	// initial flag configuration file already exists, no reset necessary
+	if flagConfigurationTargetFilePath == "" {
+		// nothing to reset
+		return ctx, nil
+	}
+
 	if _, err := os.Stat(flagConfigurationTargetFilePath); err == nil {
+		// initial flag configuration file already exists, no reset necessary
 		return ctx, nil
 	}
 
