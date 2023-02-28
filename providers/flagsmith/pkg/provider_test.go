@@ -13,185 +13,250 @@ import (
 	"testing"
 )
 
-
-// TODO: format the json
 const FlagsJson = `
 [
-{
-	"id": 1,
-	"feature": {
-		"id": 1,
-		"name": "string_flag",
-		"default_enabled": true,
-		"type": "STANDARD",
-		"project": 1
-	},
-	"feature_state_value": "some_value",
-	"enabled": true,
-	"environment": 1,
-	"identity": null,
-	"feature_segment": null
-},
-{
-	"id": 2,
-	"feature": {
-		"id": 2,
-		"name": "int_flag",
-		"default_enabled": true,
-		"type": "STANDARD",
-		"project": 1
-	},
-	"feature_state_value": 100,
-	"enabled": true,
-	"environment": 1,
-	"identity": null,
-	"feature_segment": null
-},
+    {
+        "id": 1,
+        "feature": {
+            "id": 1,
+            "name": "string_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": "some_value",
+        "enabled": true,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 11,
+        "feature": {
+            "id": 11,
+            "name": "disabled_string_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": "some_value",
+        "enabled": false,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 2,
+        "feature": {
+            "id": 2,
+            "name": "int_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": 100,
+        "enabled": true,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 21,
+        "feature": {
+            "id": 21,
+            "name": "disabled_int_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": 100,
+        "enabled": false,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 3,
+        "feature": {
+            "id": 3,
+            "name": "float_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": "100.1",
+        "enabled": true,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 31,
+        "feature": {
+            "id": 31,
+            "name": "disabled_float_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": "100.1",
+        "enabled": false,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 4,
+        "feature": {
+            "id": 4,
+            "name": "bool_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": true,
+        "enabled": true,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 41,
+        "feature": {
+            "id": 41,
+            "name": "disabled_bool_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": true,
+        "enabled": false,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 5,
+        "feature": {
+            "id": 4,
+            "name": "json_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": "{\"key\": \"value\"}",
+        "enabled": true,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    },
+    {
+        "id": 51,
+        "feature": {
+            "id": 51,
+            "name": "disabled_json_flag",
+            "default_enabled": true,
+            "type": "STANDARD",
+            "project": 1
+        },
+        "feature_state_value": "{\"key\": \"value\"}",
+        "enabled": false,
+        "environment": 1,
+        "identity": null,
+        "feature_segment": null
+    }
+]`
 
-{
-	"id": 3,
-	"feature": {
-		"id": 3,
-		"name": "float_flag",
-		"default_enabled": true,
-		"type": "STANDARD",
-		"project": 1
-	},
-	"feature_state_value": "100.1",
-	"enabled": true,
-	"environment": 1,
-	"identity": null,
-	"feature_segment": null
-},
-
-{
-	"id": 4,
-	"feature": {
-		"id": 4,
-		"name": "bool_flag",
-		"default_enabled": true,
-		"type": "STANDARD",
-		"project": 1
-	},
-	"feature_state_value": true,
-	"enabled": true,
-	"environment": 1,
-	"identity": null,
-	"feature_segment": null
-},
-
-{
-	"id": 5,
-	"feature": {
-		"id": 4,
-		"name": "json_flag",
-		"default_enabled": true,
-		"type": "STANDARD",
-		"project": 1
-	},
-	"feature_state_value": "{\"key\": \"value\"}",
-	"enabled": true,
-	"environment": 1,
-	"identity": null,
-	"feature_segment": null
-}
-
-]
-`
-const IdentityResponseJson = `
-{
-	"flags": [
-		{
-			"id": 100,
-			"feature": {
-				"id": 1,
-				"name": "string_flag",
-				"initial_value": null,
-				"default_enabled": false,
-				"type": "STANDARD",
-				"project": 1
-			},
-			"feature_state_value": "some_value_override",
-			"enabled": true,
-			"environment": 1,
-			"identity": null,
-			"feature_segment": null
-		},
-		{
-			"id": 101,
-			"feature": {
-				"id": 2,
-				"name": "int_flag",
-				"initial_value": null,
-				"default_enabled": false,
-				"type": "STANDARD",
-				"project": 1
-			},
-			"feature_state_value": 101,
-			"enabled": true,
-			"environment": 1,
-			"identity": null,
-			"feature_segment": null
-		},
-		{
-			"id": 102,
-			"feature": {
-				"id": 3,
-				"name": "float_flag",
-				"initial_value": null,
-				"default_enabled": false,
-				"type": "STANDARD",
-				"project": 1
-			},
-			"feature_state_value": "101.1",
-			"enabled": true,
-			"environment": 1,
-			"identity": null,
-			"feature_segment": null
-		},
-		{
-			"id": 103,
-			"feature": {
-				"id": 4,
-				"name": "bool_flag",
-				"initial_value": null,
-				"default_enabled": false,
-				"type": "STANDARD",
-				"project": 1
-			},
-			"feature_state_value": true,
-			"enabled": true,
-			"environment": 1,
-			"identity": null,
-			"feature_segment": null
-		},
-		{
-			"id": 104,
-			"feature": {
-				"id": 5,
-				"name": "json_flag",
-				"initial_value": null,
-				"default_enabled": false,
-				"type": "STANDARD",
-				"project": 1
-			},
-			"feature_state_value": "{\"key\": \"value_override\"}",
-			"enabled": true,
-			"environment": 1,
-			"identity": null,
-			"feature_segment": null
-		}
-	],
-	"traits": [
-		{
-			"trait_key": "foo",
-			"trait_value": "bar"
-		}
-	]
-}
-
-
-`
+const IdentityResponseJson = `{
+    "flags": [
+        {
+            "id": 100,
+            "feature": {
+                "id": 1,
+                "name": "string_flag",
+                "initial_value": null,
+                "default_enabled": false,
+                "type": "STANDARD",
+                "project": 1
+            },
+            "feature_state_value": "some_value_override",
+            "enabled": true,
+            "environment": 1,
+            "identity": null,
+            "feature_segment": null
+        },
+        {
+            "id": 101,
+            "feature": {
+                "id": 2,
+                "name": "int_flag",
+                "initial_value": null,
+                "default_enabled": false,
+                "type": "STANDARD",
+                "project": 1
+            },
+            "feature_state_value": 101,
+            "enabled": true,
+            "environment": 1,
+            "identity": null,
+            "feature_segment": null
+        },
+        {
+            "id": 102,
+            "feature": {
+                "id": 3,
+                "name": "float_flag",
+                "initial_value": null,
+                "default_enabled": false,
+                "type": "STANDARD",
+                "project": 1
+            },
+            "feature_state_value": "101.1",
+            "enabled": true,
+            "environment": 1,
+            "identity": null,
+            "feature_segment": null
+        },
+        {
+            "id": 103,
+            "feature": {
+                "id": 4,
+                "name": "bool_flag",
+                "initial_value": null,
+                "default_enabled": false,
+                "type": "STANDARD",
+                "project": 1
+            },
+            "feature_state_value": true,
+            "enabled": true,
+            "environment": 1,
+            "identity": null,
+            "feature_segment": null
+        },
+        {
+            "id": 104,
+            "feature": {
+                "id": 5,
+                "name": "json_flag",
+                "initial_value": null,
+                "default_enabled": false,
+                "type": "STANDARD",
+                "project": 1
+            },
+            "feature_state_value": "{\"key\": \"value_override\"}",
+            "enabled": true,
+            "environment": 1,
+            "identity": null,
+            "feature_segment": null
+        }
+    ],
+    "traits": [
+        {
+            "trait_key": "foo",
+            "trait_value": "bar"
+        }
+    ]
+}`
 
 const EnvironmentAPIKey = "API_KEY"
 
@@ -199,6 +264,8 @@ func TestIntEvaluation(t *testing.T) {
 	identifier := "test_user"
 	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := int64(2)
+	expectedValue := int64(100)
+	expectedValueIdentityOverride := int64(101)
 
 	traits := []*flagsmith.Trait{&trait}
 	tests := []struct {
@@ -213,10 +280,18 @@ func TestIntEvaluation(t *testing.T) {
 		{
 			name:                "Should resolve a valid flag with Static reason",
 			flagKey:             "int_flag",
-			expectedValue:       100,
+			expectedValue:       expectedValue,
 			expectederrorString: "",
 			expectedErrorCode:   "",
 			reason:              of.StaticReason,
+		},
+		{
+			name:                "Should resolve with default value when flag is disabled",
+			flagKey:             "disabled_int_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.DisabledReason,
 		},
 		{
 			name:                "Should error if flag is of incorrect type",
@@ -237,7 +312,7 @@ func TestIntEvaluation(t *testing.T) {
 		{
 			name:                "Should resolve a valid flag with identifier and no traits",
 			flagKey:             "int_flag",
-			expectedValue:       101,
+			expectedValue:       expectedValueIdentityOverride,
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
@@ -272,7 +347,7 @@ func TestIntEvaluation(t *testing.T) {
 		{
 			name:                "Should resolve if provided traits are valid",
 			flagKey:             "int_flag",
-			expectedValue:       101,
+			expectedValue:       expectedValueIdentityOverride,
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
@@ -359,6 +434,14 @@ func TestFloatEvaluation(t *testing.T) {
 			expectederrorString: "",
 			expectedErrorCode:   "",
 			reason:              of.StaticReason,
+		},
+		{
+			name:                "Should resolve with default value when flag is disabled",
+			flagKey:             "disabled_float_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.DisabledReason,
 		},
 		{
 			name:                "Should error if flag is of incorrect type",
@@ -501,6 +584,14 @@ func TestStringEvaluation(t *testing.T) {
 			expectederrorString: "",
 			expectedErrorCode:   "",
 			reason:              of.StaticReason,
+		},
+		{
+			name:                "Should resolve with default value when flag is disabled",
+			flagKey:             "disabled_string_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.DisabledReason,
 		},
 		{
 			name:                "Should error if flag is of incorrect type",
@@ -647,6 +738,14 @@ func TestBooleanEvaluation(t *testing.T) {
 			reason:              of.StaticReason,
 		},
 		{
+			name:                "Should resolve with default value when flag is disabled",
+			flagKey:             "disabled_bool_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.DisabledReason,
+		},
+		{
 			name:                "Should error if flag is of incorrect type",
 			flagKey:             "int_flag",
 			expectedValue:       defaultValue,
@@ -768,6 +867,7 @@ func TestBooleanEvaluation(t *testing.T) {
 func TestObjectEvaluation(t *testing.T) {
 	identifier := "test_user"
 	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
+
 	defaultValue := map[string]interface{}{"key1": "value1"}
 	expectedFlagValue := map[string]interface{}{"key": "value"}
 
@@ -791,6 +891,14 @@ func TestObjectEvaluation(t *testing.T) {
 			expectederrorString: "",
 			expectedErrorCode:   "",
 			reason:              of.StaticReason,
+		},
+		{
+			name:                "Should resolve with default value when flag is disabled",
+			flagKey:             "disabled_json_flag",
+			expectedValue:       defaultValue,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.DisabledReason,
 		},
 		{
 			name:                "Should error if flag is of incorrect type",

@@ -118,7 +118,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 	}
 	if !flagObj.Enabled {
 		return of.InterfaceResolutionDetail{
-			Value: flagObj.Value,
+			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Reason: of.DisabledReason,
 			},
@@ -134,8 +134,9 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 }
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+	resolutionDetails := res.ResolutionDetail()
 
-	if res.Error() != nil {
+	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason {
 		return of.BoolResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
@@ -168,8 +169,9 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 
 func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+	resolutionDetails := res.ResolutionDetail()
 
-	if res.Error() != nil {
+	if res.Error() != nil  || resolutionDetails.Reason == of.DisabledReason {
 		return of.StringResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
@@ -195,8 +197,9 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 
 func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+	resolutionDetails := res.ResolutionDetail()
 
-	if res.Error() != nil {
+	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason {
 		return of.FloatResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
@@ -237,7 +240,9 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
-	if res.Error() != nil {
+	resolutionDetails := res.ResolutionDetail()
+
+	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason{
 		return of.IntResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
