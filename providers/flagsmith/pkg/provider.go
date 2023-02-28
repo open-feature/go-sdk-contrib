@@ -2,15 +2,16 @@ package flagsmith
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"strconv"
 	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v2"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	"reflect"
+	"strconv"
 )
 
-
 type Provider struct {
-	client *flagsmithClient.Client
+	client                  *flagsmithClient.Client
 	usingBooleanConfigValue bool
 }
 
@@ -120,9 +121,9 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 	}
 	if !flagObj.Enabled {
 		return of.InterfaceResolutionDetail{
-			Value:  flagObj.Value,
+			Value: flagObj.Value,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason:          of.DisabledReason,
+				Reason: of.DisabledReason,
 			},
 		}
 	}
@@ -137,18 +138,17 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 
-	if res.Error()!= nil {
+	if res.Error() != nil {
 		return of.BoolResolutionDetail{
-			Value: defaultValue,
+			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
 		}
 	}
 
-
 	if p.usingBooleanConfigValue {
 		value := !(res.ProviderResolutionDetail.Reason == of.DisabledReason)
 		return of.BoolResolutionDetail{
-			Value: value,
+			Value:                    value,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
 		}
 	}
@@ -172,13 +172,12 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 
-	if res.Error()!= nil {
+	if res.Error() != nil {
 		return of.StringResolutionDetail{
-			Value: defaultValue,
+			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
 		}
 	}
-
 
 	value, ok := res.Value.(string)
 	if !ok {
@@ -192,7 +191,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	}
 
 	return of.StringResolutionDetail{
-		Value: value,
+		Value:                    value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
@@ -200,9 +199,9 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 
-	if res.Error()!= nil {
+	if res.Error() != nil {
 		return of.FloatResolutionDetail{
-			Value: defaultValue,
+			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
 		}
 	}
@@ -233,7 +232,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 	}
 
 	return of.FloatResolutionDetail{
-		Value: value,
+		Value:                    value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 
@@ -241,9 +240,9 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
-	if res.Error()!= nil {
+	if res.Error() != nil {
 		return of.IntResolutionDetail{
-			Value: defaultValue,
+			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
 		}
 	}
@@ -264,13 +263,48 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	// Convert the float64 back to integer
 	int64Value := int64(value)
 	return of.IntResolutionDetail{
-		Value: int64Value,
+		Value:                    int64Value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
 
+func typeOf(v interface{}) reflect.Type {
+	return reflect.TypeOf(v)
+}
+
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-	return p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+	resolutionDetails := res.ResolutionDetail()
+	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason {
+		return res
+	}
+	// Json/object are stored as string
+	valueAsString, ok := res.Value.(string)
+	if !ok {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid object", res.Value)),
+				Reason:          of.ErrorReason,
+			},
+		}
+	}
+	var value = defaultValue
+
+	err := json.Unmarshal([]byte(valueAsString), &value)
+	if err != nil {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid object", res.Value)),
+				Reason:          of.ErrorReason,
+			},
+		}
+	}
+	return of.InterfaceResolutionDetail{
+		Value:                    value,
+		ProviderResolutionDetail: res.ProviderResolutionDetail,
+	}
 }
 
 // WithBooleanConfigValue configures the provider to use the result of isFeatureEnabled as the boolean value of the flag
@@ -279,6 +313,5 @@ func WithUsingBooleanConfigValue() ProviderOption {
 	return func(p *Provider) {
 		p.usingBooleanConfigValue = true
 	}
+
 }
-
-
