@@ -13,14 +13,6 @@ import (
 	"testing"
 )
 
-var targetingKey = "123"
-var flagKey = "flag_key"
-var flag_one = flagsmithClient.Flag{
-	Enabled:     true,
-	Value:       true,
-	FeatureID:   1,
-	FeatureName: "flag_one",
-}
 
 // TODO: format the json
 const FlagsJson = `

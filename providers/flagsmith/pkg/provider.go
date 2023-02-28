@@ -6,7 +6,6 @@ import (
 	"fmt"
 	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v2"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-	"reflect"
 	"strconv"
 )
 
@@ -81,8 +80,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 		}
 		flags, err = p.client.GetIdentityFlags(targetKey, traits)
 		if err != nil {
-			var e of.ResolutionError
-			e = of.NewGeneralResolutionError(err.Error())
+			e := of.NewGeneralResolutionError(err.Error())
 			return of.InterfaceResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -95,8 +93,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 	} else {
 		flags, err = p.client.GetEnvironmentFlags()
 		if err != nil {
-			var e of.ResolutionError
-			e = of.NewGeneralResolutionError(err.Error())
+			e := of.NewGeneralResolutionError(err.Error())
 
 			return of.InterfaceResolutionDetail{
 				Value: defaultValue,
@@ -266,10 +263,6 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 		Value:                    int64Value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
-}
-
-func typeOf(v interface{}) reflect.Type {
-	return reflect.TypeOf(v)
 }
 
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
