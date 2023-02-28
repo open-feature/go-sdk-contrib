@@ -44,6 +44,7 @@ const TraitsKey = "traits"
 func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	var flags flagsmithClient.Flags
 	var err error
+
 	reason := of.StaticReason
 
 	_, targetKeyFound := evalCtx[of.TargetingKey]
@@ -135,6 +136,15 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 }
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+
+	if res.Error()!= nil {
+		return of.BoolResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
+
 	if p.usingBooleanConfigValue {
 		value := !(res.ProviderResolutionDetail.Reason == of.DisabledReason)
 		return of.BoolResolutionDetail{
@@ -148,7 +158,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError(""),
+				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid boolean", res.Value)),
 				Reason:          of.ErrorReason,
 			},
 		}
@@ -198,6 +208,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 	}
 
 	misMatachResolutionErr := of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid float", res.Value))
+
 	// We store floats as string
 	stringValue, ok := res.Value.(string)
 	if !ok {
