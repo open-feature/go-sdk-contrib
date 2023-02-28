@@ -43,5 +43,5 @@ We then initialize the [Flagsmith client](https://docs.flagsmith.com/clients/ser
 We initialize the Flagsmith provider with the client and an optional configuration option, and set the provider(`of.SetProvider()`)
 
 ### Options
-- WithUsingBooleanConfigValue: Determines whether to resolve a feature value as a boolean or use the isFeatureEnabled as the flag itself.
+- `WithUsingBooleanConfigValue`: Determines whether to resolve a feature value as a boolean or use the isFeatureEnabled as the flag itself.
 i.e: if the flag is enabled, the value will be true, otherwise it will be false
