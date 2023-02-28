@@ -32,6 +32,7 @@ func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }
 
+// Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
 func (provider *Provider) Metadata() of.Metadata {
 	return of.Metadata{
 		Name: "Flagsmith",
@@ -41,14 +42,17 @@ func (provider *Provider) Metadata() of.Metadata {
 const TraitsKey = "traits"
 
 func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-
 	var flags flagsmithClient.Flags
 	var err error
-	_, ok := evalCtx[of.TargetingKey]
-	if ok {
+	reason := of.StaticReason
+
+	_, targetKeyFound := evalCtx[of.TargetingKey]
+
+	if targetKeyFound {
+		reason = of.TargetingMatchReason
 		targetKey, ok := evalCtx[of.TargetingKey].(string)
 		if !ok {
-			e := of.NewInvalidContextResolutionError(fmt.Sprintf("targeting key: %s is not a string", of.TargetingKey))
+			e := of.NewInvalidContextResolutionError("flagsmith: targeting key is not a string")
 			return of.InterfaceResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -63,7 +67,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 		if ok {
 			traits, ok = userTraits.([]*flagsmithClient.Trait)
 			if !ok {
-				e := of.NewInvalidContextResolutionError(fmt.Sprintf("traits: expected type []*flagsmithClient.Trait, got %T", userTraits))
+				e := of.NewInvalidContextResolutionError(fmt.Sprintf("flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got %T", userTraits))
 				return of.InterfaceResolutionDetail{
 					Value: defaultValue,
 					ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -77,7 +81,6 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 		if err != nil {
 			var e of.ResolutionError
 			e = of.NewGeneralResolutionError(err.Error())
-
 			return of.InterfaceResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -104,11 +107,8 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 	}
 
 	flagObj, err := flags.GetFlag(flag)
-
 	if err != nil {
-		var e of.ResolutionError
-		e = of.NewGeneralResolutionError(err.Error())
-
+		e := of.NewFlagNotFoundResolutionError(err.Error())
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -128,7 +128,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 	return of.InterfaceResolutionDetail{
 		Value: flagObj.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason: of.TargetingMatchReason,
+			Reason: reason,
 		},
 	}
 
@@ -161,12 +161,21 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 
 func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+
+	if res.Error()!= nil {
+		return of.StringResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
+
 	value, ok := res.Value.(string)
 	if !ok {
 		return of.StringResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError(""),
+				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid string", res.Value)),
 				Reason:          of.ErrorReason,
 			},
 		}
@@ -180,22 +189,33 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 
 func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+
+	if res.Error()!= nil {
+		return of.FloatResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
+	misMatachResolutionErr := of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid float", res.Value))
+	// We store floats as string
 	stringValue, ok := res.Value.(string)
 	if !ok {
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError(""),
+				ResolutionError: misMatachResolutionErr,
 				Reason:          of.ErrorReason,
 			},
 		}
 	}
+	// Convert sting back to float64
 	value, err := strconv.ParseFloat(stringValue, 64)
 	if err != nil {
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError(""),
+				ResolutionError: misMatachResolutionErr,
 				Reason:          of.ErrorReason,
 			},
 		}
@@ -210,16 +230,27 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
+	if res.Error()!= nil {
+		return of.IntResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
+	// Because `encoding/json` uses float64 for JSON numbers
+	//ref: https://pkg.go.dev/encoding/json#Unmarshal
 	value, ok := res.Value.(float64)
 	if !ok {
 		return of.IntResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError(""),
+				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid int", res.Value)),
 				Reason:          of.ErrorReason,
 			},
 		}
 	}
+
+	// Convert the float64 back to integer
 	int64Value := int64(value)
 	return of.IntResolutionDetail{
 		Value: int64Value,
