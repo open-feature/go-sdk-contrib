@@ -643,13 +643,13 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	traits := []*flagsmith.Trait{&trait}
 	tests := []struct {
-		name                string
-		flagKey             string
-		expectedValue       bool
-		expectederrorString string
-		reason              of.Reason
-		expectedErrorCode   of.ErrorCode
-		evalCtx             map[string]interface{}
+		name                        string
+		flagKey                     string
+		expectedValue               bool
+		expectederrorString         string
+		reason                      of.Reason
+		expectedErrorCode           of.ErrorCode
+		evalCtx                     map[string]interface{}
 		WithUsingBooleanConfigValue bool
 	}{
 		{
@@ -669,12 +669,12 @@ func TestBooleanEvaluation(t *testing.T) {
 			reason:              of.DisabledReason,
 		},
 		{
-			name:                "Should resolve WithUsingBooleanConfigValue when flag is disabled",
-			flagKey:             "disabled_bool_flag",
-			expectedValue:       false,
-			expectederrorString: "",
-			expectedErrorCode:   "",
-			reason:              of.StaticReason,
+			name:                        "Should resolve WithUsingBooleanConfigValue when flag is disabled",
+			flagKey:                     "disabled_bool_flag",
+			expectedValue:               false,
+			expectederrorString:         "",
+			expectedErrorCode:           "",
+			reason:                      of.StaticReason,
 			WithUsingBooleanConfigValue: true,
 		},
 		{

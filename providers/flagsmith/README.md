@@ -34,13 +34,23 @@ import (
 
     // Start interacting with the client
 	Value, err := ofClient.BooleanValue(context.Background(), "bool_feature", defaultboolValue,  evalCtx)
+    ....
 
+    // With traits
+    trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
+    traits := []*flagsmith.Trait{&trait}
+
+	evalCtx := of.NewEvaluationContext(
+            "openfeature_user",
+            map[string]interface{}{
+                "traits": traits,
+            },
+        )
+	valueForIdentity, err := ofClient.BooleanValue(context.Background(), "bool_feature", defaultboolValue,  evalCtx)
     ...
 
 ```
-In the example above, we first import the necessary packages including the Flagsmith client, the OpenFeature SDK, and the Flagsmith provider.
-We then initialize the [Flagsmith client](https://docs.flagsmith.com/clients/server-side) with the `FLAGSMITH_ENVIRONMENT_KEY` environment variable.
-We initialize the Flagsmith provider with the client and an optional configuration option, and set the provider(`of.SetProvider()`)
+You can find the flagsmith client document [here](https://docs.flagsmith.com/clients/server-side)
 
 ### Options
 - `WithUsingBooleanConfigValue`: Determines whether to resolve a feature value as a boolean or use the isFeatureEnabled as the flag itself.

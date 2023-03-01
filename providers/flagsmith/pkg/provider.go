@@ -51,6 +51,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 
 	if targetKeyFound {
 		reason = of.TargetingMatchReason
+
 		targetKey, ok := evalCtx[of.TargetingKey].(string)
 		if !ok {
 			e := of.NewInvalidContextResolutionError("flagsmith: targeting key is not a string")
@@ -64,6 +65,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 
 		}
 		var traits []*flagsmithClient.Trait
+
 		userTraits, ok := evalCtx[TraitsKey]
 		if ok {
 			traits, ok = userTraits.([]*flagsmithClient.Trait)
@@ -78,6 +80,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 				}
 			}
 		}
+
 		flags, err = p.client.GetIdentityFlags(targetKey, traits)
 		if err != nil {
 			e := of.NewGeneralResolutionError(err.Error())
@@ -116,6 +119,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 			},
 		}
 	}
+
 	if !flagObj.Enabled {
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
@@ -124,6 +128,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 			},
 		}
 	}
+
 	return of.InterfaceResolutionDetail{
 		Value: flagObj.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -132,6 +137,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 	}
 
 }
+
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 	resolutionDetails := res.ResolutionDetail()
@@ -147,12 +153,13 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		// Value will be true if the flag is enabled, false otherwise
 		value := !(resolutionDetails.Reason == of.DisabledReason)
 		return of.BoolResolutionDetail{
-			Value:                    value,
+			Value: value,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Reason: of.StaticReason,
 			},
 		}
 	}
+
 	if resolutionDetails.Reason == of.DisabledReason {
 		return of.BoolResolutionDetail{
 			Value:                    defaultValue,
@@ -170,6 +177,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 			},
 		}
 	}
+
 	return of.BoolResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
@@ -180,7 +188,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 	resolutionDetails := res.ResolutionDetail()
 
-	if res.Error() != nil  || resolutionDetails.Reason == of.DisabledReason {
+	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason {
 		return of.StringResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
@@ -217,7 +225,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 
 	misMatachResolutionErr := of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid float", res.Value))
 
-	// We store floats as string
+	// Because We store floats as string
 	stringValue, ok := res.Value.(string)
 	if !ok {
 		return of.FloatResolutionDetail{
@@ -228,6 +236,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 			},
 		}
 	}
+
 	// Convert sting back to float64
 	value, err := strconv.ParseFloat(stringValue, 64)
 	if err != nil {
@@ -251,7 +260,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 	resolutionDetails := res.ResolutionDetail()
 
-	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason{
+	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason {
 		return of.IntResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
@@ -282,9 +291,11 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 	resolutionDetails := res.ResolutionDetail()
+
 	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason {
 		return res
 	}
+
 	// Json/object are stored as string
 	valueAsString, ok := res.Value.(string)
 	if !ok {
