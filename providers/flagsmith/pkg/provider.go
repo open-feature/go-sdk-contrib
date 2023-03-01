@@ -136,7 +136,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 	resolutionDetails := res.ResolutionDetail()
 
-	if res.Error() != nil || resolutionDetails.Reason == of.DisabledReason {
+	if res.Error() != nil {
 		return of.BoolResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
@@ -144,9 +144,18 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 	}
 
 	if p.usingBooleanConfigValue {
-		value := !(res.ProviderResolutionDetail.Reason == of.DisabledReason)
+		// Value will be true if the flag is enabled, false otherwise
+		value := !(resolutionDetails.Reason == of.DisabledReason)
 		return of.BoolResolutionDetail{
 			Value:                    value,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason: of.StaticReason,
+			},
+		}
+	}
+	if resolutionDetails.Reason == of.DisabledReason {
+		return of.BoolResolutionDetail{
+			Value:                    defaultValue,
 			ProviderResolutionDetail: res.ProviderResolutionDetail,
 		}
 	}

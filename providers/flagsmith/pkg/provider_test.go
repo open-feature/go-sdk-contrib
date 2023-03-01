@@ -259,9 +259,9 @@ const IdentityResponseJson = `{
 }`
 
 const EnvironmentAPIKey = "API_KEY"
+const Identifier = "test_user"
 
 func TestIntEvaluation(t *testing.T) {
-	identifier := "test_user"
 	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := int64(2)
 	expectedValue := int64(100)
@@ -317,7 +317,7 @@ func TestIntEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 			},
 		},
 		{
@@ -339,7 +339,7 @@ func TestIntEvaluation(t *testing.T) {
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        map[string]interface{}{},
 			},
 		},
@@ -352,41 +352,13 @@ func TestIntEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        traits,
 			},
 		},
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
-
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err := io.WriteString(rw, FlagsJson)
-
-		assert.NoError(t, err)
-
-	})
-	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, identifier)
-	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, identifier)
-	mux.HandleFunc("/api/v1/identities/", func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rawBody, err := io.ReadAll(req.Body)
-		assert.NoError(t, err)
-		assert.Contains(t, []string{expectedRequestBodyWithoutTraits, expectedRequestBodyWithTraits}, string(rawBody))
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err = io.WriteString(rw, IdentityResponseJson)
-
-		assert.NoError(t, err)
-
-	})
-
-	server := httptest.NewServer(mux)
+	server := getTestServer(t)
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
@@ -397,10 +369,13 @@ func TestIntEvaluation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			res := provider.IntEvaluation(context.Background(), test.flagKey, defaultValue, test.evalCtx)
+
 			assert.Equal(t, test.expectedValue, res.Value)
 			assert.Equal(t, test.reason, res.ProviderResolutionDetail.Reason)
+
 			if test.expectederrorString != "" {
 				resolutionDetails := res.ResolutionDetail()
+
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
@@ -411,7 +386,6 @@ func TestIntEvaluation(t *testing.T) {
 }
 
 func TestFloatEvaluation(t *testing.T) {
-	identifier := "test_user"
 	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := float64(2.1)
 	expectedFlagValue := float64(100.1)
@@ -467,7 +441,7 @@ func TestFloatEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 			},
 		},
 		{
@@ -489,7 +463,7 @@ func TestFloatEvaluation(t *testing.T) {
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        map[string]interface{}{},
 			},
 		},
@@ -502,41 +476,13 @@ func TestFloatEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        traits,
 			},
 		},
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
-
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err := io.WriteString(rw, FlagsJson)
-
-		assert.NoError(t, err)
-
-	})
-	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, identifier)
-	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, identifier)
-	mux.HandleFunc("/api/v1/identities/", func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rawBody, err := io.ReadAll(req.Body)
-		assert.NoError(t, err)
-		assert.Contains(t, []string{expectedRequestBodyWithoutTraits, expectedRequestBodyWithTraits}, string(rawBody))
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err = io.WriteString(rw, IdentityResponseJson)
-
-		assert.NoError(t, err)
-
-	})
-
-	server := httptest.NewServer(mux)
+	server := getTestServer(t)
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
@@ -547,10 +493,13 @@ func TestFloatEvaluation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			res := provider.FloatEvaluation(context.Background(), test.flagKey, defaultValue, test.evalCtx)
+
 			assert.Equal(t, test.expectedValue, res.Value)
 			assert.Equal(t, test.reason, res.ProviderResolutionDetail.Reason)
+
 			if test.expectederrorString != "" {
 				resolutionDetails := res.ResolutionDetail()
+
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
@@ -658,35 +607,7 @@ func TestStringEvaluation(t *testing.T) {
 		},
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
-
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err := io.WriteString(rw, FlagsJson)
-
-		assert.NoError(t, err)
-
-	})
-	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, identifier)
-	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, identifier)
-	mux.HandleFunc("/api/v1/identities/", func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rawBody, err := io.ReadAll(req.Body)
-		assert.NoError(t, err)
-		assert.Contains(t, []string{expectedRequestBodyWithoutTraits, expectedRequestBodyWithTraits}, string(rawBody))
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err = io.WriteString(rw, IdentityResponseJson)
-
-		assert.NoError(t, err)
-
-	})
-
-	server := httptest.NewServer(mux)
+	server := getTestServer(t)
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
@@ -701,8 +622,10 @@ func TestStringEvaluation(t *testing.T) {
 
 			assert.Equal(t, test.expectedValue, res.Value)
 			assert.Equal(t, test.reason, res.ProviderResolutionDetail.Reason)
+
 			if test.expectederrorString != "" {
 				resolutionDetails := res.ResolutionDetail()
+
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
@@ -713,7 +636,6 @@ func TestStringEvaluation(t *testing.T) {
 }
 
 func TestBooleanEvaluation(t *testing.T) {
-	identifier := "test_user"
 	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := false
 	expectedFlagValue := true
@@ -728,6 +650,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		reason              of.Reason
 		expectedErrorCode   of.ErrorCode
 		evalCtx             map[string]interface{}
+		WithUsingBooleanConfigValue bool
 	}{
 		{
 			name:                "Should resolve a valid flag with Static reason",
@@ -744,6 +667,15 @@ func TestBooleanEvaluation(t *testing.T) {
 			expectederrorString: "",
 			expectedErrorCode:   "",
 			reason:              of.DisabledReason,
+		},
+		{
+			name:                "Should resolve WithUsingBooleanConfigValue when flag is disabled",
+			flagKey:             "disabled_bool_flag",
+			expectedValue:       false,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.StaticReason,
+			WithUsingBooleanConfigValue: true,
 		},
 		{
 			name:                "Should error if flag is of incorrect type",
@@ -769,7 +701,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 			},
 		},
 		{
@@ -791,7 +723,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        map[string]interface{}{},
 			},
 		},
@@ -804,57 +736,32 @@ func TestBooleanEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        traits,
 			},
 		},
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
-
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err := io.WriteString(rw, FlagsJson)
-
-		assert.NoError(t, err)
-
-	})
-	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, identifier)
-	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, identifier)
-	mux.HandleFunc("/api/v1/identities/", func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rawBody, err := io.ReadAll(req.Body)
-		assert.NoError(t, err)
-		assert.Contains(t, []string{expectedRequestBodyWithoutTraits, expectedRequestBodyWithTraits}, string(rawBody))
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err = io.WriteString(rw, IdentityResponseJson)
-
-		assert.NoError(t, err)
-
-	})
-
-	server := httptest.NewServer(mux)
+	server := getTestServer(t)
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
 		flagsmith.WithBaseURL(server.URL+"/api/v1/"))
-
-	provider := NewProvider(client)
-
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			provider := NewProvider(client)
+			if test.WithUsingBooleanConfigValue {
+				provider = NewProvider(client, WithUsingBooleanConfigValue())
+			}
 
 			res := provider.BooleanEvaluation(context.Background(), test.flagKey, defaultValue, test.evalCtx)
 
 			assert.Equal(t, test.expectedValue, res.Value)
 			assert.Equal(t, test.reason, res.ProviderResolutionDetail.Reason)
+
 			if test.expectederrorString != "" {
 				resolutionDetails := res.ResolutionDetail()
+
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
@@ -865,7 +772,6 @@ func TestBooleanEvaluation(t *testing.T) {
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	identifier := "test_user"
 	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 
 	defaultValue := map[string]interface{}{"key1": "value1"}
@@ -924,7 +830,7 @@ func TestObjectEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 			},
 		},
 		{
@@ -946,7 +852,7 @@ func TestObjectEvaluation(t *testing.T) {
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        map[string]interface{}{},
 			},
 		},
@@ -959,41 +865,12 @@ func TestObjectEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 				"traits":        traits,
 			},
 		},
 	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
-
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err := io.WriteString(rw, FlagsJson)
-
-		assert.NoError(t, err)
-
-	})
-	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, identifier)
-	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, identifier)
-	mux.HandleFunc("/api/v1/identities/", func(rw http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
-
-		rawBody, err := io.ReadAll(req.Body)
-		assert.NoError(t, err)
-		assert.Contains(t, []string{expectedRequestBodyWithoutTraits, expectedRequestBodyWithTraits}, string(rawBody))
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusOK)
-		_, err = io.WriteString(rw, IdentityResponseJson)
-
-		assert.NoError(t, err)
-
-	})
-
-	server := httptest.NewServer(mux)
+	server := getTestServer(t)
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
@@ -1008,8 +885,10 @@ func TestObjectEvaluation(t *testing.T) {
 
 			assert.Equal(t, test.expectedValue, res.Value)
 			assert.Equal(t, test.reason, res.ProviderResolutionDetail.Reason)
+
 			if test.expectederrorString != "" {
 				resolutionDetails := res.ResolutionDetail()
+
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
@@ -1017,4 +896,37 @@ func TestObjectEvaluation(t *testing.T) {
 		})
 	}
 
+}
+
+func getTestServer(t *testing.T) *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
+
+		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
+
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		_, err := io.WriteString(rw, FlagsJson)
+
+		assert.NoError(t, err)
+
+	})
+	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, Identifier)
+	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, Identifier)
+
+	mux.HandleFunc("/api/v1/identities/", func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
+
+		rawBody, err := io.ReadAll(req.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, []string{expectedRequestBodyWithoutTraits, expectedRequestBodyWithTraits}, string(rawBody))
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		_, err = io.WriteString(rw, IdentityResponseJson)
+
+		assert.NoError(t, err)
+
+	})
+
+	return httptest.NewServer(mux)
 }
