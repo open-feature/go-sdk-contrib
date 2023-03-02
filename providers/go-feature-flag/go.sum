@@ -44,6 +44,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
+github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/thomaspoignant/go-feature-flag v0.28.1 h1:JbMAjyCLLAKXWzlScd2lu3/zuJ0nC0TEQh4gXVp2Gug=
 github.com/thomaspoignant/go-feature-flag v0.28.1/go.mod h1:MXobTPVseHQ5O1CbICuDE2JWulOn5JjL5SGdPjHKIKI=
 github.com/thomaspoignant/go-feature-flag v0.28.2 h1:+NGD3K6w6gnJZgREW+jseLWkawttbEQrPxEBJNUa8pM=
@@ -52,6 +54,8 @@ github.com/thomaspoignant/go-feature-flag v1.0.0 h1:yy1I+o59iIU81zHO37E9YXOhCL8l
 github.com/thomaspoignant/go-feature-flag v1.0.0/go.mod h1:7EVzKjQf+EdXmHGOUyhxwiVK1AXXWNYYPM/tezXEI6g=
 github.com/thomaspoignant/go-feature-flag v1.2.2 h1:fidB8dhaHLmp0KewKjPSmffw96Uy3tL9Jnv+YJLIgxU=
 github.com/thomaspoignant/go-feature-flag v1.2.2/go.mod h1:pnjxCLJsloFbMZkN3ZTatT+yET1kLtNpWYPKJ+W7XTE=
+github.com/thomaspoignant/go-feature-flag v1.4.0 h1:EhWXLbPneX5LuzW3hsD0qhFavrHd9r41B3faRpD2Jko=
+github.com/thomaspoignant/go-feature-flag v1.4.0/go.mod h1:Msux9aRLLfVDtj9ofGsrnNcBJN1/epCUhtdsWKn4v+Y=
 go.opencensus.io v0.23.0 h1:gqCw0LfLxScz8irSi8exQc7fyQ0fKQU/qnC/X8+V/1M=
 golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e h1:+WEEuIdZHnUeJJmEUjyYC2gfUMj69yZXw17EnHg/otA=
 golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e/go.mod h1:Kr81I6Kryrl9sr8s2FK3vxD90NdsKWRuOIl2O4CvYbA=
