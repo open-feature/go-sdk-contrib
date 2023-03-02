@@ -181,7 +181,7 @@ func (p *Provider) withCache(cache string) bool {
 	case cacheDisabledValue:
 		WithoutCache()(p)
 	case cacheLRUValue:
-		WithLRUCache(p.maxCacheSize)
+		WithLRUCache(p.maxCacheSize)(p)
 	default:
 		return false
 	}
