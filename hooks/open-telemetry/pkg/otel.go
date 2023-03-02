@@ -16,20 +16,17 @@ const (
 )
 
 type hook struct {
-	ctx context.Context
 	openfeature.UnimplementedHook
 }
 
 // NewHook return a reference to a new instance of the OpenTelemetry Hook
-func NewHook(ctx context.Context) *hook {
-	return &hook{
-		ctx: ctx,
-	}
+func NewHook() *hook {
+	return &hook{}
 }
 
 // After sets the feature_flag event and associated attributes on the span stored in the context
-func (h *hook) After(hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
-	span := trace.SpanFromContext(h.ctx)
+func (h *hook) After(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
+	span := trace.SpanFromContext(ctx)
 	span.AddEvent(EventName, trace.WithAttributes(
 		attribute.String(EventPropertyFlagKey, hookContext.FlagKey()),
 		attribute.String(EventPropertyProviderName, hookContext.ProviderMetadata().Name),
@@ -39,7 +36,7 @@ func (h *hook) After(hookContext openfeature.HookContext, flagEvaluationDetails 
 }
 
 // Error records the given error against the span and sets the span to an error status
-func (h *hook) Error(hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
-	span := trace.SpanFromContext(h.ctx)
+func (h *hook) Error(ctx context.Context, hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
+	span := trace.SpanFromContext(ctx)
 	span.RecordError(err)
 }

@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"context"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
@@ -10,14 +11,11 @@ type validator interface {
 
 // Hook validates the flag evaluation details After flag resolution
 type Hook struct {
+	of.UnimplementedHook
 	Validator validator
 }
 
-func (h Hook) Before(hookContext of.HookContext, hookHints of.HookHints) (*of.EvaluationContext, error) {
-	return nil, nil
-}
-
-func (h Hook) After(hookContext of.HookContext, flagEvaluationDetails of.InterfaceEvaluationDetails, hookHints of.HookHints) error {
+func (h Hook) After(ctx context.Context, hookContext of.HookContext, flagEvaluationDetails of.InterfaceEvaluationDetails, hookHints of.HookHints) error {
 	err := h.Validator.IsValid(flagEvaluationDetails)
 	if err != nil {
 		return err
@@ -25,7 +23,3 @@ func (h Hook) After(hookContext of.HookContext, flagEvaluationDetails of.Interfa
 
 	return nil
 }
-
-func (h Hook) Error(hookContext of.HookContext, err error, hookHints of.HookHints) {}
-
-func (h Hook) Finally(hookContext of.HookContext, hookHints of.HookHints) {}
