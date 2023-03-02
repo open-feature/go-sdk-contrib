@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/hooks/validator/v0.1.2...hooks/validator/v0.1.3) (2023-03-02)
+
+
+### Features
+
+* ⚠️ requires OpenFeature Go SDK v1.3.0 or above ⚠️ absorbed Hook API changes ([#130](https://github.com/open-feature/go-sdk-contrib/issues/130)) ([a65b009](https://github.com/open-feature/go-sdk-contrib/commit/a65b00957a425b89c261a979f81dcfdf2f5a2bcb))
+
 ## [0.1.2](https://github.com/open-feature/go-sdk-contrib/compare/hooks/validator/v0.1.1...hooks/validator/v0.1.2) (2023-02-21)
 
 
