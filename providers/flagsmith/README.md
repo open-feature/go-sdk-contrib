@@ -24,7 +24,7 @@ import (
     // Intialise the flagsmith client
 	client := flagsmithClient.NewClient(os.Getenv("FLAGSMITH_ENVIRONMENT_KEY"))
 
-    // Inlitalise the flagsmith provider
+    // Initialize the flagsmith provider
 	provider := flagsmith.NewProvider(client, flagsmith.WithUsingBooleanConfigValue())
 
 	of.SetProvider(provider)
