@@ -12,7 +12,6 @@ import (
 	"time"
 
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
-	flagdModels "github.com/open-feature/flagd/pkg/model"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -49,6 +48,38 @@ func NewService(client iClient, logger logr.Logger, baseStreamRetryDelay *time.D
 
 const ConnectionError = "connection not made"
 
+type resolutionRequestConstraints interface {
+	schemaV1.ResolveBooleanRequest | schemaV1.ResolveStringRequest | schemaV1.ResolveIntRequest |
+		schemaV1.ResolveFloatRequest | schemaV1.ResolveObjectRequest
+}
+
+type resolutionResponseConstraints interface {
+	schemaV1.ResolveBooleanResponse | schemaV1.ResolveStringResponse | schemaV1.ResolveIntResponse |
+		schemaV1.ResolveFloatResponse | schemaV1.ResolveObjectResponse
+}
+
+func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraints](
+	ctx context.Context, logger logr.Logger,
+	resolver func(context.Context, *connect.Request[req]) (*connect.Response[resp], error),
+	flagKey string, evalCtx map[string]interface{},
+) (*resp, error) {
+	evalCtxF, err := structpb.NewStruct(evalCtx)
+	if err != nil {
+		logger.Error(err, "struct from evaluation context")
+		return nil, openfeature.NewParseErrorResolutionError(err.Error())
+	}
+
+	res, err := resolver(ctx, connect.NewRequest(&req{
+		FlagKey: flagKey,
+		Context: evalCtxF,
+	}))
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return res.Msg, nil
+}
+
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
 func (s *Service) ResolveBoolean(ctx context.Context, flagKey string, evalCtx map[string]interface{}) (*schemaV1.ResolveBooleanResponse, error) {
 	client := s.Client.Instance()
@@ -57,23 +88,17 @@ func (s *Service) ResolveBoolean(ctx context.Context, flagKey string, evalCtx ma
 			Reason: string(openfeature.ErrorReason),
 		}, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
 	}
-	evalCtxF, err := structpb.NewStruct(evalCtx)
-	if err != nil {
-		s.logger.Error(err, "struct from evaluation context")
-		return &schemaV1.ResolveBooleanResponse{
-			Reason: string(openfeature.ErrorReason),
-		}, openfeature.NewParseErrorResolutionError(err.Error())
-	}
-	res, err := client.ResolveBoolean(ctx, connect.NewRequest(&schemaV1.ResolveBooleanRequest{
-		FlagKey: flagKey,
-		Context: evalCtxF,
-	}))
+
+	resp, err := resolve[schemaV1.ResolveBooleanRequest, schemaV1.ResolveBooleanResponse](
+		ctx, s.logger, client.ResolveBoolean, flagKey, evalCtx,
+	)
 	if err != nil {
 		return &schemaV1.ResolveBooleanResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, handleError(err)
+		}, err
 	}
-	return res.Msg, nil
+
+	return resp, nil
 }
 
 // ResolveString handles the flag evaluation response from the  flagd interface ResolveString rpc
@@ -81,26 +106,20 @@ func (s *Service) ResolveString(ctx context.Context, flagKey string, evalCtx map
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveStringResponse{
-			Reason: flagdModels.ErrorReason,
+			Reason: string(openfeature.ErrorReason),
 		}, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
 	}
-	evalCtxF, err := structpb.NewStruct(evalCtx)
-	if err != nil {
-		s.logger.Error(err, "struct from evaluation context")
-		return &schemaV1.ResolveStringResponse{
-			Reason: flagdModels.ErrorReason,
-		}, openfeature.NewParseErrorResolutionError(err.Error())
-	}
-	res, err := client.ResolveString(ctx, connect.NewRequest(&schemaV1.ResolveStringRequest{
-		FlagKey: flagKey,
-		Context: evalCtxF,
-	}))
+
+	resp, err := resolve[schemaV1.ResolveStringRequest, schemaV1.ResolveStringResponse](
+		ctx, s.logger, client.ResolveString, flagKey, evalCtx,
+	)
 	if err != nil {
 		return &schemaV1.ResolveStringResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, handleError(err)
+		}, err
 	}
-	return res.Msg, nil
+
+	return resp, nil
 }
 
 // ResolveFloat handles the flag evaluation response from the  flagd interface ResolveFloat rpc
@@ -108,26 +127,20 @@ func (s *Service) ResolveFloat(ctx context.Context, flagKey string, evalCtx map[
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveFloatResponse{
-			Reason: flagdModels.ErrorReason,
+			Reason: string(openfeature.ErrorReason),
 		}, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
 	}
-	evalCtxF, err := structpb.NewStruct(evalCtx)
-	if err != nil {
-		s.logger.Error(err, "struct from evaluation context")
-		return &schemaV1.ResolveFloatResponse{
-			Reason: flagdModels.ErrorReason,
-		}, openfeature.NewParseErrorResolutionError(err.Error())
-	}
-	res, err := client.ResolveFloat(ctx, connect.NewRequest(&schemaV1.ResolveFloatRequest{
-		FlagKey: flagKey,
-		Context: evalCtxF,
-	}))
+
+	resp, err := resolve[schemaV1.ResolveFloatRequest, schemaV1.ResolveFloatResponse](
+		ctx, s.logger, client.ResolveFloat, flagKey, evalCtx,
+	)
 	if err != nil {
 		return &schemaV1.ResolveFloatResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, handleError(err)
+		}, err
 	}
-	return res.Msg, nil
+
+	return resp, nil
 }
 
 // ResolveInt handles the flag evaluation response from the  flagd interface ResolveNumber rpc
@@ -135,26 +148,20 @@ func (s *Service) ResolveInt(ctx context.Context, flagKey string, evalCtx map[st
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveIntResponse{
-			Reason: flagdModels.ErrorReason,
+			Reason: string(openfeature.ErrorReason),
 		}, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
 	}
-	evalCtxF, err := structpb.NewStruct(evalCtx)
-	if err != nil {
-		s.logger.Error(err, "struct from evaluation context")
-		return &schemaV1.ResolveIntResponse{
-			Reason: flagdModels.ErrorReason,
-		}, openfeature.NewParseErrorResolutionError(err.Error())
-	}
-	res, err := client.ResolveInt(ctx, connect.NewRequest(&schemaV1.ResolveIntRequest{
-		FlagKey: flagKey,
-		Context: evalCtxF,
-	}))
+
+	resp, err := resolve[schemaV1.ResolveIntRequest, schemaV1.ResolveIntResponse](
+		ctx, s.logger, client.ResolveInt, flagKey, evalCtx,
+	)
 	if err != nil {
 		return &schemaV1.ResolveIntResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, handleError(err)
+		}, err
 	}
-	return res.Msg, nil
+
+	return resp, nil
 }
 
 // ResolveObject handles the flag evaluation response from the  flagd interface ResolveObject rpc
@@ -162,26 +169,20 @@ func (s *Service) ResolveObject(ctx context.Context, flagKey string, evalCtx map
 	client := s.Client.Instance()
 	if client == nil {
 		return &schemaV1.ResolveObjectResponse{
-			Reason: flagdModels.ErrorReason,
+			Reason: string(openfeature.ErrorReason),
 		}, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
 	}
-	evalCtxF, err := structpb.NewStruct(evalCtx)
-	if err != nil {
-		s.logger.Error(err, "struct from evaluation context")
-		return &schemaV1.ResolveObjectResponse{
-			Reason: flagdModels.ErrorReason,
-		}, openfeature.NewParseErrorResolutionError(err.Error())
-	}
-	res, err := client.ResolveObject(ctx, connect.NewRequest(&schemaV1.ResolveObjectRequest{
-		FlagKey: flagKey,
-		Context: evalCtxF,
-	}))
+
+	resp, err := resolve[schemaV1.ResolveObjectRequest, schemaV1.ResolveObjectResponse](
+		ctx, s.logger, client.ResolveObject, flagKey, evalCtx,
+	)
 	if err != nil {
 		return &schemaV1.ResolveObjectResponse{
 			Reason: string(openfeature.ErrorReason),
-		}, handleError(err)
+		}, err
 	}
-	return res.Msg, nil
+
+	return resp, nil
 }
 
 func handleError(err error) openfeature.ResolutionError {
