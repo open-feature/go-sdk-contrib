@@ -21,7 +21,7 @@ import (
     flagsmith "github.com/open-feature/go-sdk-contrib/providers/flagsmith/pkg"
 )
     ...
-    // Intialise the flagsmith client
+    // Initialize the flagsmith client
 	client := flagsmithClient.NewClient(os.Getenv("FLAGSMITH_ENVIRONMENT_KEY"))
 
     // Initialize the flagsmith provider
