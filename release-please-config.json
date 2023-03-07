@@ -43,6 +43,14 @@
             "versioning": "default",
             "extra-files": []
         },
+        "providers/posthog": {
+            "release-type": "go",
+            "package-name": "providers/posthog",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": true,
+            "versioning": "default",
+            "extra-files": []
+        },
         "tests/flagd": {
             "release-type": "go",
             "package-name": "tests/flagd",
