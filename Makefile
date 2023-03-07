@@ -11,7 +11,7 @@ workspace-update:
 test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
 
-lint: 
+lint:
 	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run --deadline=3m --timeout=3m $(module)/...;)
 
@@ -20,7 +20,7 @@ new-provider:
 	cd ./providers/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/providers/$(MODULE_NAME) && touch README.md
 	$(MAKE) append-to-release-please MODULE_TYPE=provider MODULE_NAME=$(MODULE_NAME)
 
-new-hook: 
+new-hook:
 	mkdir ./hooks/$(MODULE_NAME)
 	cd ./hooks/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/hooks/$(MODULE_NAME) && touch README.md
 	$(MAKE) append-to-release-please MODULE_TYPE=hooks MODULE_NAME=$(MODULE_NAME)

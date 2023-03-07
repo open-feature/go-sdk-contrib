@@ -1,0 +1,10 @@
+go 1.20
+
+use (
+	./hooks/open-telemetry
+	./hooks/validator
+	./providers/flagd
+	./providers/from-env
+	./providers/go-feature-flag
+	./providers/posthog
+)
