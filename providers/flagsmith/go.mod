@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagsmith
 
-go 1.20
+go 1.18
 
 require (
 	github.com/Flagsmith/flagsmith-go-client/v2 v2.2.1
