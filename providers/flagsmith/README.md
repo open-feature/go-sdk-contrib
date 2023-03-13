@@ -37,13 +37,13 @@ import (
     ....
 
     // With traits
-    trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
-    traits := []*flagsmith.Trait{&trait}
+    traitKey := "some_key"
+    traitValue := "some_value"
 
 	evalCtx := of.NewEvaluationContext(
             "openfeature_user",
             map[string]interface{}{
-                "traits": traits,
+                 traitKey:traitValue
             },
         )
 	valueForIdentity, err := ofClient.BooleanValue(context.Background(), "bool_feature", defaultboolValue,  evalCtx)

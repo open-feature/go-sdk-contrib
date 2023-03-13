@@ -260,14 +260,14 @@ const IdentityResponseJson = `{
 
 const EnvironmentAPIKey = "API_KEY"
 const Identifier = "test_user"
+const TraitKey = "of_key"
+const TraitValue = "of_value"
 
 func TestIntEvaluation(t *testing.T) {
-	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := int64(2)
 	expectedValue := int64(100)
 	expectedValueIdentityOverride := int64(101)
 
-	traits := []*flagsmith.Trait{&trait}
 	tests := []struct {
 		name                string
 		flagKey             string
@@ -332,19 +332,6 @@ func TestIntEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name:                "Should error if provided traits are not valid",
-			flagKey:             "int_flag",
-			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got map[string]interface {}",
-			reason:              of.ErrorReason,
-			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: Identifier,
-				"traits":        map[string]interface{}{},
-			},
-		},
-
-		{
 			name:                "Should resolve if provided traits are valid",
 			flagKey:             "int_flag",
 			expectedValue:       expectedValueIdentityOverride,
@@ -353,7 +340,7 @@ func TestIntEvaluation(t *testing.T) {
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
 				of.TargetingKey: Identifier,
-				"traits":        traits,
+				TraitKey:        TraitValue,
 			},
 		},
 	}
@@ -386,12 +373,10 @@ func TestIntEvaluation(t *testing.T) {
 }
 
 func TestFloatEvaluation(t *testing.T) {
-	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := float64(2.1)
 	expectedFlagValue := float64(100.1)
 	expectedValueIdentityOverride := float64(101.1)
 
-	traits := []*flagsmith.Trait{&trait}
 	tests := []struct {
 		name                string
 		flagKey             string
@@ -455,18 +440,6 @@ func TestFloatEvaluation(t *testing.T) {
 				of.TargetingKey: map[string]interface{}{},
 			},
 		},
-		{
-			name:                "Should error if provided traits are not valid",
-			flagKey:             "float_flag",
-			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got map[string]interface {}",
-			reason:              of.ErrorReason,
-			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: Identifier,
-				"traits":        map[string]interface{}{},
-			},
-		},
 
 		{
 			name:                "Should resolve if provided traits are valid",
@@ -477,7 +450,7 @@ func TestFloatEvaluation(t *testing.T) {
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
 				of.TargetingKey: Identifier,
-				"traits":        traits,
+				TraitKey:        TraitValue,
 			},
 		},
 	}
@@ -510,13 +483,10 @@ func TestFloatEvaluation(t *testing.T) {
 }
 
 func TestStringEvaluation(t *testing.T) {
-	identifier := "test_user"
-	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := "default_value"
 	expectedFlagValue := "some_value"
 	expectedValueIdentityOverride := "some_value_override"
 
-	traits := []*flagsmith.Trait{&trait}
 	tests := []struct {
 		name                string
 		flagKey             string
@@ -566,7 +536,7 @@ func TestStringEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
+				of.TargetingKey: Identifier,
 			},
 		},
 		{
@@ -581,19 +551,6 @@ func TestStringEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name:                "Should error if provided traits are not valid",
-			flagKey:             "string_flag",
-			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got map[string]interface {}",
-			reason:              of.ErrorReason,
-			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
-				"traits":        map[string]interface{}{},
-			},
-		},
-
-		{
 			name:                "Should resolve if provided traits are valid",
 			flagKey:             "string_flag",
 			expectedValue:       expectedValueIdentityOverride,
@@ -601,8 +558,8 @@ func TestStringEvaluation(t *testing.T) {
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
-				of.TargetingKey: identifier,
-				"traits":        traits,
+				of.TargetingKey: Identifier,
+				TraitKey:        TraitValue,
 			},
 		},
 	}
@@ -636,12 +593,10 @@ func TestStringEvaluation(t *testing.T) {
 }
 
 func TestBooleanEvaluation(t *testing.T) {
-	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
 	defaultValue := false
 	expectedFlagValue := true
 	expectedValueIdentityOverride := true
 
-	traits := []*flagsmith.Trait{&trait}
 	tests := []struct {
 		name                        string
 		flagKey                     string
@@ -716,19 +671,6 @@ func TestBooleanEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name:                "Should error if provided traits are not valid",
-			flagKey:             "bool_flag",
-			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got map[string]interface {}",
-			reason:              of.ErrorReason,
-			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: Identifier,
-				"traits":        map[string]interface{}{},
-			},
-		},
-
-		{
 			name:                "Should resolve if provided traits are valid",
 			flagKey:             "bool_flag",
 			expectedValue:       expectedValueIdentityOverride,
@@ -737,7 +679,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
 				of.TargetingKey: Identifier,
-				"traits":        traits,
+				TraitKey:        TraitValue,
 			},
 		},
 	}
@@ -772,14 +714,10 @@ func TestBooleanEvaluation(t *testing.T) {
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	trait := flagsmith.Trait{TraitKey: "of_key", TraitValue: "of_value"}
-
 	defaultValue := map[string]interface{}{"key1": "value1"}
 	expectedFlagValue := map[string]interface{}{"key": "value"}
 
 	expectedValueIdentityOverride := map[string]interface{}{"key": "value_override"}
-
-	traits := []*flagsmith.Trait{&trait}
 
 	tests := []struct {
 		name                string
@@ -845,19 +783,6 @@ func TestObjectEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name:                "Should error if provided traits are not valid",
-			flagKey:             "json_flag",
-			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got map[string]interface {}",
-			reason:              of.ErrorReason,
-			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: Identifier,
-				"traits":        map[string]interface{}{},
-			},
-		},
-
-		{
 			name:                "Should resolve if provided traits are valid",
 			flagKey:             "json_flag",
 			expectedValue:       expectedValueIdentityOverride,
@@ -866,7 +791,7 @@ func TestObjectEvaluation(t *testing.T) {
 			expectedErrorCode:   of.InvalidContextCode,
 			evalCtx: map[string]interface{}{
 				of.TargetingKey: Identifier,
-				"traits":        traits,
+				TraitKey:        TraitValue,
 			},
 		},
 	}

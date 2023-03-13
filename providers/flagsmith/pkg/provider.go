@@ -9,8 +9,6 @@ import (
 	"strconv"
 )
 
-const TraitsKey = "traits"
-
 type Provider struct {
 	client                  *flagsmithClient.Client
 	usingBooleanConfigValue bool
@@ -41,7 +39,6 @@ func (p *Provider) Metadata() of.Metadata {
 	}
 }
 
-
 func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	var flags flagsmithClient.Flags
 	var err error
@@ -65,20 +62,14 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 			}
 
 		}
-		var traits []*flagsmithClient.Trait
 
-		userTraits, ok := evalCtx[TraitsKey]
-		if ok {
-			traits, ok = userTraits.([]*flagsmithClient.Trait)
-			if !ok {
-				e := of.NewInvalidContextResolutionError(fmt.Sprintf("flagsmith: invalid traits: expected type []*flagsmithClient.Trait, got %T", userTraits))
-				return of.InterfaceResolutionDetail{
-					Value: defaultValue,
-					ProviderResolutionDetail: of.ProviderResolutionDetail{
-						ResolutionError: e,
-						Reason:          of.ErrorReason,
-					},
-				}
+		var traits []*flagsmithClient.Trait
+		for k, v := range evalCtx {
+			if k != of.TargetingKey {
+				traits = append(traits, &flagsmithClient.Trait{
+					TraitKey:   k,
+					TraitValue: v,
+				})
 			}
 		}
 
