@@ -9,6 +9,8 @@ import (
 	"strconv"
 )
 
+const TraitsKey = "traits"
+
 type Provider struct {
 	client                  *flagsmithClient.Client
 	usingBooleanConfigValue bool
@@ -33,13 +35,12 @@ func (p *Provider) Hooks() []of.Hook {
 }
 
 // Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
-func (provider *Provider) Metadata() of.Metadata {
+func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
 		Name: "Flagsmith",
 	}
 }
 
-const TraitsKey = "traits"
 
 func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	var flags flagsmithClient.Flags
@@ -223,7 +224,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 		}
 	}
 
-	misMatachResolutionErr := of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid float", res.Value))
+	misMatchResolutionErr := of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid float", res.Value))
 
 	// Because We store floats as string
 	stringValue, ok := res.Value.(string)
@@ -231,7 +232,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: misMatachResolutionErr,
+				ResolutionError: misMatchResolutionErr,
 				Reason:          of.ErrorReason,
 			},
 		}
@@ -243,7 +244,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: misMatachResolutionErr,
+				ResolutionError: misMatchResolutionErr,
 				Reason:          of.ErrorReason,
 			},
 		}
