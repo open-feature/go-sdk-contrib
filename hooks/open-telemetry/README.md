@@ -3,7 +3,7 @@
 For this hook to function correctly a global `TracerProvider` must be set, an example of how to do this can be found below.
 
 The `open telemetry hook` taps into the after and error methods of the hook lifecycle to write `events` and `attributes` to an existing `span`.
-A `context.Context` containing a `span` must be passed to the hook `NewHook` method, otherwise the hook will no-op.
+A `context.Context` containing a `span` must be passed to the client evaluation method, otherwise the hook will no-op.
 
 ## Example
 The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:
@@ -96,7 +96,7 @@ func main() {
 	// set up the span
 	ctx, s := otel.Tracer("test-tracer").Start(ctx, "run")
 	// set the opentelemetry hook
-	openfeature.AddHooks(otelHook.NewHook(ctx))
+	openfeature.AddHooks(otelHook.NewHook())
 	// create a new client
 	client := openfeature.NewClient("test-client")
 	// evaluate a flag value

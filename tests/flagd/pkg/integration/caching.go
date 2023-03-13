@@ -11,20 +11,34 @@ import (
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 )
 
 var (
-	testingFlags          eval.Flags
-	flagConfigurationPath string
+	testingFlags                                                                         eval.Flags
+	flagConfigurationPath, flagConfigurationTargetFilePath, flagMutatedConfigurationPath string
 )
 
 // InitializeCachingScenario initializes the caching test scenario
-func InitializeCachingScenario(flagConfigPath string, pOptions ...flagd.ProviderOption) (func(*godog.ScenarioContext), error) {
+//
+// All the path parameters must be in the same dir.
+// flagConfigTargetFilePath - must be the path to the underlying flag configuration file
+// flagConfigPath - must be the path to a symlink to flagConfigTargetFilePath
+// flagMutatedConfigPath - must be the path to a non-existing flag configuration file
+func InitializeCachingScenario(flagConfigTargetFilePath, flagConfigPath, flagMutatedConfigPath string, pOptions ...flagd.ProviderOption) (func(*godog.ScenarioContext), error) {
 	providerOptions = pOptions
 	flagConfigurationPath = flagConfigPath
+	flagConfigurationTargetFilePath = flagConfigTargetFilePath
+	flagMutatedConfigurationPath = flagMutatedConfigPath
 	var err error
 	testingFlags, err = loadFlagConfiguration(flagConfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = writeFlagsToFile(testingFlags, flagMutatedConfigurationPath)
 	if err != nil {
 		return nil, err
 	}
@@ -70,20 +84,39 @@ func loadFlagConfiguration(path string) (eval.Flags, error) {
 	return flags, nil
 }
 
-func theFlagsConfigurationWithKeyIsUpdatedToDefaultVariant(flagKey, defaultVariant string) error {
-	file, err := os.Create(flagConfigurationPath)
+func writeFlagsToFile(flags eval.Flags, path string) error {
+	file, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("open flag configuration: %w", err)
+		return fmt.Errorf("create %s: %w", path, err)
 	}
 
+	err = json.NewEncoder(file).Encode(flags)
+	if err != nil {
+		return fmt.Errorf("write flag configuration to file: %w", err)
+	}
+
+	return nil
+}
+
+func theFlagsConfigurationWithKeyIsUpdatedToDefaultVariant(flagKey, defaultVariant string) error {
 	flags := copyFlags(testingFlags)
 	flagConfig := flags.Flags[flagKey]
 	flagConfig.DefaultVariant = defaultVariant
 	flags.Flags[flagKey] = flagConfig
 
-	err = json.NewEncoder(file).Encode(flags)
-	if err != nil {
-		return fmt.Errorf("write flag configuration to file: %w", err)
+	if err := writeFlagsToFile(flags, flagMutatedConfigurationPath); err != nil {
+		return fmt.Errorf("writeFlagsToFile %s: %w", flagMutatedConfigurationPath, err)
+	}
+
+	cmd := exec.Command("ln", "-sf", filepath.Base(flagMutatedConfigurationPath), flagConfigurationPath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("symlink: %w", err)
+	}
+
+	// remove the underlying linked to file, forcing the symlink to be reevaluated by flagd.
+	// without this, the symlink change isn't noticed by flagd
+	if err := os.Remove(flagConfigurationTargetFilePath); err != nil {
+		return fmt.Errorf("remove %s: %w", flagConfigurationTargetFilePath, err)
 	}
 
 	return nil
@@ -250,14 +283,27 @@ func sleepForMilliseconds(milliseconds int64) error {
 }
 
 func resetState(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
-	file, err := os.Create(flagConfigurationPath)
-	if err != nil {
-		return ctx, fmt.Errorf("open flag configuration: %w", err)
+	if flagConfigurationTargetFilePath == "" {
+		// nothing to reset
+		return ctx, nil
 	}
 
-	err = json.NewEncoder(file).Encode(testingFlags)
-	if err != nil {
-		return ctx, fmt.Errorf("write flag configuration to file: %w", err)
+	if _, err := os.Stat(flagConfigurationTargetFilePath); err == nil {
+		// initial flag configuration file already exists, no reset necessary
+		return ctx, nil
+	}
+
+	if err := writeFlagsToFile(testingFlags, flagConfigurationTargetFilePath); err != nil {
+		return ctx, err
+	}
+
+	cmd := exec.Command("ln", "-sf", filepath.Base(flagConfigurationTargetFilePath), flagConfigurationPath)
+	if err := cmd.Run(); err != nil {
+		return ctx, fmt.Errorf("symlink: %w", err)
+	}
+
+	if err := os.Remove(flagMutatedConfigurationPath); err != nil {
+		return ctx, fmt.Errorf("remove %s: %w", flagMutatedConfigurationPath, err)
 	}
 
 	return ctx, nil
