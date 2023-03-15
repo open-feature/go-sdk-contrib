@@ -13,7 +13,7 @@ require (
 	github.com/open-feature/flagd v0.3.7
 	github.com/open-feature/go-sdk v1.2.0
 	golang.org/x/net v0.6.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.29.1
 )
 
 require (
