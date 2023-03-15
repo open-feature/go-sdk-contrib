@@ -2,6 +2,7 @@
     "monorepo-tags": true,
     "tag-separator": "/",
     "bootstrap-sha": "4d6cb816ed912084c598767636324aa9a2866bdd",
+    "separate-pull-requests": true,
     "packages": {
         "hooks/open-telemetry": {
             "release-type": "go",
