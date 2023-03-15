@@ -52,9 +52,9 @@
             "versioning": "default",
             "extra-files": []
         },
-        "provider/flagsmith": {
+        "providers/flagsmith": {
             "release-type": "go",
-            "package-name": "provider/flagsmith",
+            "package-name": "providers/flagsmith",
             "bump-minor-pre-major": true,
             "bump-patch-for-minor-pre-major": true,
             "versioning": "default",
