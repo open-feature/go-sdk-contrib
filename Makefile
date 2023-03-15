@@ -18,7 +18,7 @@ lint:
 new-provider:
 	mkdir ./providers/$(MODULE_NAME)
 	cd ./providers/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/providers/$(MODULE_NAME) && touch README.md
-	$(MAKE) append-to-release-please MODULE_TYPE=provider MODULE_NAME=$(MODULE_NAME)
+	$(MAKE) append-to-release-please MODULE_TYPE=providers MODULE_NAME=$(MODULE_NAME)
 
 new-hook: 
 	mkdir ./hooks/$(MODULE_NAME)
