@@ -40,3 +40,5 @@ func (h *hook) Error(ctx context.Context, hookContext openfeature.HookContext, e
 	span := trace.SpanFromContext(ctx)
 	span.RecordError(err)
 }
+
+var _ openfeature.Hook = &hook{}
