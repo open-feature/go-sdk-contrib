@@ -17,3 +17,28 @@ jobs:
           command: manifest
           token: ${{secrets.GITHUB_TOKEN}}
           default-branch: main
+    outputs:
+      all: ${{ toJSON(steps.release.outputs) }}
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
+  sbom:
+    needs: release-please
+    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.releases_created }}
+    strategy:
+      matrix:
+        release: ${{ fromJSON(needs.release-please.outputs.paths_released) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Generate SBOM
+        uses: CycloneDX/gh-gomod-generate-sbom@v1
+        with:
+          version: v1
+          args: mod -licenses -json -output bom.json ${{ matrix.release }}
+      - name: Upload SBOM to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: bom.json
+          tag: ${{ fromJSON(needs.release-please.outputs.all)[format('{0}--tag_name', matrix.release)] }}
