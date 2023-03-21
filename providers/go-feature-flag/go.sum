@@ -56,6 +56,8 @@ github.com/thomaspoignant/go-feature-flag v1.2.2 h1:fidB8dhaHLmp0KewKjPSmffw96Uy
 github.com/thomaspoignant/go-feature-flag v1.2.2/go.mod h1:pnjxCLJsloFbMZkN3ZTatT+yET1kLtNpWYPKJ+W7XTE=
 github.com/thomaspoignant/go-feature-flag v1.4.0 h1:EhWXLbPneX5LuzW3hsD0qhFavrHd9r41B3faRpD2Jko=
 github.com/thomaspoignant/go-feature-flag v1.4.0/go.mod h1:Msux9aRLLfVDtj9ofGsrnNcBJN1/epCUhtdsWKn4v+Y=
+github.com/thomaspoignant/go-feature-flag v1.5.1 h1:Iqs0IHrMq4z7uS0Rfg5kBStIAZT8VEGPWJOR6WBwiVg=
+github.com/thomaspoignant/go-feature-flag v1.5.1/go.mod h1:/NfoEex1llz5iGrlKAobb3O4DvM+Fb5m9aiMm/r2cpU=
 go.opencensus.io v0.23.0 h1:gqCw0LfLxScz8irSi8exQc7fyQ0fKQU/qnC/X8+V/1M=
 golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e h1:+WEEuIdZHnUeJJmEUjyYC2gfUMj69yZXw17EnHg/otA=
 golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e/go.mod h1:Kr81I6Kryrl9sr8s2FK3vxD90NdsKWRuOIl2O4CvYbA=
