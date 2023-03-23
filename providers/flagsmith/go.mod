@@ -3,9 +3,9 @@ module github.com/open-feature/go-sdk-contrib/providers/flagsmith
 go 1.18
 
 require (
-	github.com/Flagsmith/flagsmith-go-client/v2 v2.2.1
+	github.com/Flagsmith/flagsmith-go-client/v2 v2.3.1
 	github.com/open-feature/go-sdk v1.2.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 )
 
 require (
