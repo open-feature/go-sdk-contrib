@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/golang-lru/v2 v2.0.1
+	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/open-feature/flagd v0.3.7
 	github.com/open-feature/go-sdk v1.2.0
 	golang.org/x/net v0.7.0
