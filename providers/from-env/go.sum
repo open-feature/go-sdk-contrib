@@ -4,4 +4,6 @@ github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=
 github.com/open-feature/go-sdk v1.1.0 h1:JOOa0AleJFUvnWoF9KWdLqYosi5fDIRBDzPYZPr5qgM=
 github.com/open-feature/go-sdk v1.2.0 h1:2xsUgNUUDITpryB9nFS43CI9gAF415I1He22Q1d4+Po=
 github.com/open-feature/go-sdk v1.2.0/go.mod h1:UQJJXUptk92An4F6so2Vd0iRo6EEZ+QGa7HVyQ/GPi0=
+github.com/open-feature/go-sdk v1.3.0 h1:SiIS0ElVZTjbmHZB1/5Fm5mBRIqoYD+c2jVdw+D+Qok=
+github.com/open-feature/go-sdk v1.3.0/go.mod h1:hEOzRFh23MH+IZttR9+zyf5jBzotxxxcCjnk/wBH2H0=
 golang.org/x/text v0.6.0 h1:3XmdazWV+ubf7QgHSTWeykHOci5oeekaGJBLkrkaw4k=

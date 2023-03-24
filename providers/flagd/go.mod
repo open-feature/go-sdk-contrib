@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/open-feature/flagd v0.3.7
-	github.com/open-feature/go-sdk v1.2.0
+	github.com/open-feature/go-sdk v1.3.0
 	golang.org/x/net v0.8.0
 	google.golang.org/protobuf v1.30.0
 )
