@@ -1,6 +1,6 @@
 {
   "trackEvents": true,
-  "variationType": "defaultSdk",
+  "variationType": "SdkDefault",
   "failed": false,
   "version": "",
   "reason": "DISABLED",
