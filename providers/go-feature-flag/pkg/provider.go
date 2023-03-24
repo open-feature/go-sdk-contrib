@@ -335,7 +335,7 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Reason:  of.DisabledReason,
-				Variant: "defaultSdk",
+				Variant: "SdkDefault",
 			},
 		}
 	}
