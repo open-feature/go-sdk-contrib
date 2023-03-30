@@ -4,6 +4,19 @@
 
 go 1.18+  is recommended.
 
+## Setup workspace
+ 
+Run the following command to setup the go workspace.
+```
+make workspace-init
+```
+
+sync go.work with current modules
+
+```
+make workspace-update
+```
+
 ## Compilation target(s)
 
 In Go, the compilation target refers to the operating system and CPU architecture that the Go compiler is targeting when building an executable binary.The operating system can be Windows, Linux, macOS, or other Unix-like systems, and the CPU architecture can be x86, x86-64, ARM, MIPS, or others.
@@ -16,9 +29,20 @@ GOOS={os} GOARCH={cpu} go build
 
 The project has some specifications in `makefile`  for creating [hooks](https://docs.openfeature.dev/docs/reference/concepts/hooks) and [providers](https://docs.openfeature.dev/docs/reference/concepts/provider).
 
+
 To contibute a new hook, or provider fork this repository and create a new go module, it will then be discoverable by `make workspace-init` and `make workspace-update`.
 
-The script will create the basic code scaffolding, and infrastructure to publish the artifact.
+create and setup new provider directory (requires jq)
+```
+make MODULE_NAME=NAME new-provider
+```
+
+create and setup new hook directory (requires jq)
+```
+make MODULE_NAME=NAME new-hook 
+```
+
+[jq documentation](https://stedolan.github.io/jq/download/)
 
 ## Documentation
 
@@ -30,6 +54,11 @@ Instructions for how to develop a module should also be included (required syste
 Any published modules must have reasonable test coverage.
 
 Testing packages provide shared testing functionality across OpenFeature components, avoiding duplication.
+
+To test all go modules
+```
+make test
+```
 
 ## Releases
 
