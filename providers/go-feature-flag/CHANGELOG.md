@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.6...providers/go-feature-flag/v0.1.7) (2023-04-07)
+
+
+### ✨ New Features
+
+* Support apiKey for GO Feature Flag relay proxy v1.7.0 ([#166](https://github.com/open-feature/go-sdk-contrib/issues/166)) ([9836b5f](https://github.com/open-feature/go-sdk-contrib/commit/9836b5f2648e367a6619f655d88059b17f3a8745))
+
 ## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.5...providers/go-feature-flag/v0.1.6) (2023-03-24)
 
 
