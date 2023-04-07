@@ -21,6 +21,7 @@ type Provider struct {
 	httpClient            HTTPClient
 	endpoint              string
 	goFeatureFlagInstance *client.GoFeatureFlag
+	apiKey                string
 }
 
 // HTTPClient is a custom interface to be able to override it by any implementation
@@ -64,6 +65,7 @@ func NewProvider(options ProviderOptions) (*Provider, error) {
 	}
 
 	return &Provider{
+		apiKey:     options.APIKey,
 		endpoint:   options.Endpoint,
 		httpClient: httpClient,
 	}, nil
@@ -276,6 +278,9 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 		}
 	}
 	goffRequest.Header.Set("Content-Type", "application/json")
+	if provider.apiKey != "" {
+		goffRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %s", provider.apiKey))
+	}
 
 	response, err := provider.httpClient.Do(goffRequest)
 	if err != nil {
@@ -294,6 +299,27 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewGeneralResolutionError("impossible to read API response from GO Feature Flag"),
 				Reason:          of.ErrorReason,
+			},
+		}
+	}
+
+	if response.StatusCode == http.StatusUnauthorized {
+		return model.GenericResolutionDetail[T]{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewGeneralResolutionError(
+					"invalid token used to contact GO Feature Flag relay proxy instance"),
+				Reason: of.ErrorReason,
+			},
+		}
+	}
+	if response.StatusCode >= http.StatusBadRequest {
+		return model.GenericResolutionDetail[T]{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewGeneralResolutionError(
+					"unexpected answer from the relay proxy"),
+				Reason: of.ErrorReason,
 			},
 		}
 	}
