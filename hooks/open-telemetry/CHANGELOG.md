@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.4](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.3...hooks/open-telemetry/v0.2.4) (2023-04-13)
+
+
+### 🧹 Chore
+
+* upgrade go-sdk to v1.3.0. enforce otel hook to be valid Hook at compile time ([#137](https://github.com/open-feature/go-sdk-contrib/issues/137)) ([3944f05](https://github.com/open-feature/go-sdk-contrib/commit/3944f05aa6b9c109ef027e55d7e6d170a388b413))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update opentelemetry-go monorepo to v1.14.0 ([#108](https://github.com/open-feature/go-sdk-contrib/issues/108)) ([711bc52](https://github.com/open-feature/go-sdk-contrib/commit/711bc5286b0fcfbd23daf0d6c41253f07571e97b))
+
 ## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.2...hooks/open-telemetry/v0.2.3) (2023-03-02)
 
 
