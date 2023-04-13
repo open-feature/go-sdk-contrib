@@ -4,6 +4,6 @@
     "providers/flagd": "0.1.10",
     "providers/from-env": "0.1.2",
     "providers/go-feature-flag": "0.1.8",
-    "providers/flagsmith": "0.1.1",
+    "providers/flagsmith": "0.1.2",
     "tests/flagd": "1.2.1"
 }
