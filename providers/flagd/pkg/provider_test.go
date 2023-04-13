@@ -3,9 +3,10 @@ package flagd
 import (
 	"context"
 	"fmt"
-	"github.com/golang/mock/gomock"
 	reflect "reflect"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 
 	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	flagdModels "github.com/open-feature/flagd/pkg/model"
@@ -144,6 +145,27 @@ func TestBooleanEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
+				},
+			},
+		},
+		// flagd does not contain a value field in its response for go zero values (false)
+		{
+			name:         "zero value response",
+			flagKey:      "flag",
+			defaultValue: true,
+			evalCtx: map[string]interface{}{
+				"food": "bars",
+			},
+			mockOut: &schemav1.ResolveBooleanResponse{
+				Variant: "on",
+				Reason:  flagdModels.DefaultReason,
+			},
+			mockError: nil,
+			response: of.BoolResolutionDetail{
+				Value: false,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Variant: "on",
+					Reason:  flagdModels.DefaultReason,
 				},
 			},
 		},
@@ -317,6 +339,27 @@ func TestFloatEvaluation(t *testing.T) {
 				},
 			},
 		},
+		// flagd does not contain a value field in its response for go zero values
+		{
+			name:         "zero value response",
+			flagKey:      "flag",
+			defaultValue: 1,
+			evalCtx: map[string]interface{}{
+				"food": "bars",
+			},
+			mockOut: &schemav1.ResolveFloatResponse{
+				Variant: "zero",
+				Reason:  flagdModels.DefaultReason,
+			},
+			mockError: nil,
+			response: of.FloatResolutionDetail{
+				Value: 0,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Variant: "zero",
+					Reason:  flagdModels.DefaultReason,
+				},
+			},
+		},
 	}
 
 	ctrl := gomock.NewController(t)
@@ -398,6 +441,27 @@ func TestIntEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
+				},
+			},
+		},
+		// flagd does not contain a value field in its response for go zero values
+		{
+			name:         "zero value response",
+			flagKey:      "flag",
+			defaultValue: 1,
+			evalCtx: map[string]interface{}{
+				"food": "bars",
+			},
+			mockOut: &schemav1.ResolveIntResponse{
+				Variant: "on",
+				Reason:  flagdModels.DefaultReason,
+			},
+			mockError: nil,
+			response: of.IntResolutionDetail{
+				Value: 0,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Variant: "on",
+					Reason:  flagdModels.DefaultReason,
 				},
 			},
 		},
