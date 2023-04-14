@@ -19,7 +19,7 @@ make workspace-update
 
 ## Adding a module
 
-The project provides `makefile` targets for creating [hooks](https://docs.openfeature.dev/docs/reference/concepts/hooks) and [providers](https://docs.openfeature.dev/docs/reference/concepts/provider).
+The project provides `makefile` targets for creating [hooks](https://openfeature.dev/docs/reference/concepts/hooks) and [providers](https://openfeature.dev/docs/reference/concepts/provider).
 
 
 To contibute a new hook, or provider fork this repository and create a new go module, it will then be discoverable by `make workspace-init` and `make workspace-update`.
