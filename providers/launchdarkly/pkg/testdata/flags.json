@@ -1,0 +1,21 @@
+{
+    "flags": {
+        "mtls_enabled": {
+            "key": "mtls_enabled",
+            "on": true,
+            "variations": [
+                true,
+                false
+            ],
+            "targets": [
+                {
+                    "contextKind": "redpanda-id",
+                    "values": [
+                        "redpanda-blah12342"
+                    ],
+                    "variation": 0
+                }
+            ]
+        }
+    }
+}
