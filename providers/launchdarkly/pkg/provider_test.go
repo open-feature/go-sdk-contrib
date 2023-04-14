@@ -49,7 +49,7 @@ func makeLDClient(t *testing.T, flagsFilePath string) *ld.LDClient {
 	return client
 }
 
-func TestProvider(t *testing.T) {
+func TestContextEvaluation(t *testing.T) {
 	tests := []struct {
 		desc         string
 		flagKey      string
@@ -68,6 +68,7 @@ func TestProvider(t *testing.T) {
 				"redpanda-id":     "redpanda-blah12342",
 				"key":             "redpanda-blah12343",
 				"cloud-provider":  "aws",
+				"anonymous":       true,
 			},
 			expErr:       nil,
 			expFlagValue: true,
@@ -119,9 +120,10 @@ func TestProvider(t *testing.T) {
 			evalCtx: map[string]any{
 				"kind": "multi",
 				"organization": map[string]any{
-					"key":  "blah1234",
-					"name": "Redpanda",
-					"tier": "GOLD",
+					"key":               "blah1234",
+					"name":              "Redpanda",
+					"tier":              "GOLD",
+					"privateAttributes": []string{"name"},
 				},
 				"redpanda-id": map[string]any{
 					"key":            "redpanda-blah12342",
@@ -166,4 +168,109 @@ func TestProvider(t *testing.T) {
 			assert.Equals(t, test.expFlagValue, mtlsEnabled)
 		})
 	}
+}
+
+func TestStringEvaluation(t *testing.T) {
+	openfeature.SetProvider(NewProvider(
+		makeLDClient(t, "testdata/flags.json"),
+		WithLogger(newTestLogger(t)),
+	))
+
+	evalCtx := openfeature.NewEvaluationContext("blah1234", map[string]any{
+		"kind":            "organization-id",
+		"organization-id": "blah1234",
+		"redpanda-id":     "redpanda-blah12342",
+		"key":             "redpanda-blah12343",
+		"cloud-provider":  "aws",
+		"anonymous":       true,
+	})
+	client := openfeature.NewClient("stringEvalTests")
+	generation, err := client.StringValue(context.Background(), "dataplane_generation", "k8s.v1", evalCtx)
+	assert.Ok(t, err)
+	assert.Equals(t, "metal.v1", generation)
+}
+
+func TestFloatEvaluation(t *testing.T) {
+	openfeature.SetProvider(NewProvider(
+		makeLDClient(t, "testdata/flags.json"),
+		WithLogger(newTestLogger(t)),
+	))
+
+	evalCtx := openfeature.NewEvaluationContext("blah1234", map[string]any{
+		"kind":            "organization-id",
+		"organization-id": "blah1234",
+		"redpanda-id":     "redpanda-blah12342",
+		"key":             "redpanda-blah12343",
+		"cloud-provider":  "aws",
+		"anonymous":       true,
+	})
+	client := openfeature.NewClient("floatEvalTests")
+	discount, err := client.FloatValue(context.Background(), "global_discount_pct", 1.5, evalCtx)
+	assert.Ok(t, err)
+	assert.Equals(t, 5.5, discount)
+}
+
+func TestIntEvaluation(t *testing.T) {
+	openfeature.SetProvider(NewProvider(
+		makeLDClient(t, "testdata/flags.json"),
+		WithLogger(newTestLogger(t)),
+	))
+
+	evalCtx := openfeature.NewEvaluationContext("blah1234", map[string]any{
+		"kind":            "organization-id",
+		"organization-id": "blah1234",
+		"redpanda-id":     "redpanda-blah12342",
+		"key":             "redpanda-blah12343",
+		"cloud-provider":  "aws",
+		"anonymous":       true,
+	})
+	client := openfeature.NewClient("intEvalTests")
+	abuseRiskWeight, err := client.IntValue(context.Background(), "abuse_risk_weight", 10, evalCtx)
+	assert.Ok(t, err)
+	assert.Equals(t, int64(50), abuseRiskWeight)
+}
+
+func TestObjectEvaluation(t *testing.T) {
+	openfeature.SetProvider(NewProvider(
+		makeLDClient(t, "testdata/flags.json"),
+		WithLogger(newTestLogger(t)),
+	))
+
+	evalCtx := openfeature.NewEvaluationContext("redpanda-blah12342", map[string]any{
+		"kind":            "redpanda-id",
+		"organization-id": "blah1234",
+		"redpanda-id":     "redpanda-blah12342",
+		"key":             "redpanda-blah12343",
+		"cloud-provider":  "aws",
+		"anonymous":       true,
+	})
+	client := openfeature.NewClient("objectEvalTests")
+	rateLimits, err := client.ObjectValue(context.Background(), "rate_limit_config", nil, evalCtx)
+	assert.Ok(t, err)
+	assert.Equals(t, map[string]any{
+		"target_quota_byte_rate":       float64(2147483648), // 2GB per second
+		"target_fetch_quota_byte_rate": float64(1073741824), // 1GB
+		"kafka_connection_rate_limit":  float64(100),        // per second
+	}, rateLimits)
+}
+
+func TestContextCancellation(t *testing.T) {
+	openfeature.SetProvider(NewProvider(
+		makeLDClient(t, "testdata/flags.json"),
+		WithLogger(newTestLogger(t)),
+	))
+
+	evalCtx := openfeature.NewEvaluationContext("redpanda-blah12342", map[string]any{
+		"kind":            "redpanda-id",
+		"organization-id": "blah1234",
+		"redpanda-id":     "redpanda-blah12342",
+		"key":             "redpanda-blah12343",
+		"cloud-provider":  "aws",
+		"anonymous":       true,
+	})
+	client := openfeature.NewClient("objectEvalTests")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
+	assert.Equals(t, errors.New("GENERAL: context canceled"), errors.Unwrap(err))
 }

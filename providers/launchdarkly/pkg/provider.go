@@ -16,10 +16,7 @@ import (
 	ld "github.com/launchdarkly/go-server-sdk/v6"
 )
 
-var (
-	errKeyMissing        = errors.New("key and targetingKey attributes are missing, at least 1 required")
-	errMultiContextValue = errors.New("multi context top level attribute values must be of openfeature.FlattenedContext type")
-)
+var errKeyMissing = errors.New("key and targetingKey attributes are missing, at least 1 required")
 
 // Scream at compile time if Provider does not implement FeatureProvider
 var _ openfeature.FeatureProvider = (*Provider)(nil)
