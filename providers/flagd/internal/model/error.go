@@ -2,7 +2,7 @@ package model
 
 import (
 	"fmt"
-	flagdModels "github.com/open-feature/flagd/pkg/model"
+	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
