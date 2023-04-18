@@ -10,6 +10,7 @@ import (
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/telemetry"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
@@ -48,6 +49,7 @@ type Provider struct {
 	eventStreamConnectionMaxAttempts int
 	isReady                          chan struct{}
 	logger                           logr.Logger
+	otelExporter                     string
 }
 type ProviderConfiguration struct {
 	Port            uint16
@@ -73,13 +75,27 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	for _, opt := range opts { // explicitly declared options have the highest priority
 		opt(provider)
 	}
+
+	// setup telemetry only if target is set
+	var intercept bool
+	if provider.otelExporter != "" {
+		err := telemetry.TraceProvider(provider.ctx, provider.otelExporter)
+		if err != nil {
+			// log the error and avoid interceptor for connection
+			provider.logger.V(logger.Warn).Error(err, "telemetry initialization failed")
+		} else {
+			intercept = true
+		}
+	}
+
 	provider.service = service.NewService(&service.Client{
-		ServiceConfiguration: &service.ServiceConfiguration{
+		ServiceConfiguration: &service.Configuration{
 			Host:            provider.providerConfiguration.Host,
 			Port:            provider.providerConfiguration.Port,
 			CertificatePath: provider.providerConfiguration.CertificatePath,
 			SocketPath:      provider.providerConfiguration.SocketPath,
 			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
+			OtelInterceptor: intercept,
 		},
 	}, provider.logger, nil)
 
@@ -275,6 +291,13 @@ func WithTLS(certPath string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.TLSEnabled = true
 		p.providerConfiguration.CertificatePath = certPath
+	}
+}
+
+// WithOtelGRPCExporter allows to set grpc otel exporter target. Setting this enables traces & trace propagation.
+func WithOtelGRPCExporter(target string) ProviderOption {
+	return func(p *Provider) {
+		p.otelExporter = target
 	}
 }
 
