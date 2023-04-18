@@ -9,7 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 
 	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
-	flagdModels "github.com/open-feature/flagd/pkg/model"
+	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
