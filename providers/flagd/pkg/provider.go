@@ -48,6 +48,7 @@ type Provider struct {
 	eventStreamConnectionMaxAttempts int
 	isReady                          chan struct{}
 	logger                           logr.Logger
+	otelIntercept                    bool
 }
 type ProviderConfiguration struct {
 	Port            uint16
@@ -73,13 +74,15 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	for _, opt := range opts { // explicitly declared options have the highest priority
 		opt(provider)
 	}
+
 	provider.service = service.NewService(&service.Client{
-		ServiceConfiguration: &service.ServiceConfiguration{
+		ServiceConfiguration: &service.Configuration{
 			Host:            provider.providerConfiguration.Host,
 			Port:            provider.providerConfiguration.Port,
 			CertificatePath: provider.providerConfiguration.CertificatePath,
 			SocketPath:      provider.providerConfiguration.SocketPath,
 			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
+			OtelInterceptor: provider.otelIntercept,
 		},
 	}, provider.logger, nil)
 
@@ -275,6 +278,13 @@ func WithTLS(certPath string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.TLSEnabled = true
 		p.providerConfiguration.CertificatePath = certPath
+	}
+}
+
+// WithOtelInterceptor enable/disable otel interceptor for flagd communication
+func WithOtelInterceptor(intercept bool) ProviderOption {
+	return func(p *Provider) {
+		p.otelIntercept = intercept
 	}
 }
 
