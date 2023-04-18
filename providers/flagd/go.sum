@@ -3,8 +3,8 @@ buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.5.2-20230222100723-49
 buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.5.2-20230222100723-491ee098dd92.1/go.mod h1:wgQMLfjCfOMyzfdWA8HNnD1SA5HWyIJWPpJTc7dsZgw=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.29.1-20230317150644-afd1cc2ef580.1 h1:CWgXoLTajc7QagTz76kplcFnjjWIkxhhDdmKYtVShOU=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.29.1-20230317150644-afd1cc2ef580.1/go.mod h1:WWnccsJMW7QwvXkdXUuQmg28sx+ZoX36+J2TAjcy6u4=
-github.com/bufbuild/connect-go v1.7.0 h1:MGp82v7SCza+3RhsVhV7aMikwxvI3ZfD72YiGt8FYJo=
-github.com/bufbuild/connect-go v1.7.0/go.mod h1:GmMJYR6orFqD0Y6ZgX8pwQ8j9baizDrIQMm1/a6LnHk=
+github.com/bufbuild/connect-go v1.5.2 h1:G4EZd5gF1U1ZhhbVJXplbuUnfKpBZ5j5izqIwu2g2W8=
+github.com/bufbuild/connect-go v1.5.2/go.mod h1:GmMJYR6orFqD0Y6ZgX8pwQ8j9baizDrIQMm1/a6LnHk=
 github.com/go-logr/logr v1.2.4 h1:g01GSCwiDw2xSZfjJ2/T9M+S6pFdcNtFYsp+Y43HYDQ=
 github.com/go-logr/logr v1.2.4/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=
