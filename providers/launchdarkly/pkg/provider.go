@@ -29,7 +29,7 @@ type options struct {
 	l        Logger
 }
 
-// WithLoggers sets a logger implementation. By default a noop logger is used.
+// WithLogger sets a logger implementation. By default a noop logger is used.
 func WithLogger(l Logger) Option {
 	return func(o *options) {
 		o.l = l
@@ -121,15 +121,17 @@ func (p *Provider) mapContext(kind ldcontext.Kind, evalCtx openfeature.Flattened
 		ldCtx.Private(privateAttrs...)
 	}
 
+	skipList := []string{
+		openfeature.TargetingKey,
+		p.kindAttr,
+		"key",
+		"privateAttributes",
+		"anonymous",
+	}
+
 	for key, value := range evalCtx {
 		// skip attributes that were already added to the context
-		if slices.Contains([]string{
-			openfeature.TargetingKey,
-			p.kindAttr,
-			"key",
-			"privateAttributes",
-			"anonymous",
-		}, key) {
+		if slices.Contains(skipList, key) {
 			continue
 		}
 
