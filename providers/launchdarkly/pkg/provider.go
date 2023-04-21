@@ -23,7 +23,7 @@ var _ openfeature.FeatureProvider = (*Provider)(nil)
 
 type Option func(*options)
 
-// options contains all the optional argumnents supported by Provider.
+// options contains all the optional arguments supported by Provider.
 type options struct {
 	kindAttr string
 	l        Logger
@@ -164,7 +164,7 @@ func (p *Provider) toLDContext(evalCtx openfeature.FlattenedContext) (ldcontext.
 	return p.mapContext(kind, evalCtx)
 }
 
-// toReason maps LaunchDarkly flag evalution reasons to OpenFeatures'
+// toReason maps LaunchDarkly flag evaluation reasons to OpenFeatures'
 func (p *Provider) toReason(reasonKind ldreason.EvalReasonKind) openfeature.Reason {
 	switch reasonKind {
 	case ldreason.EvalReasonOff:
@@ -222,7 +222,7 @@ func (p *Provider) toProviderResolutionDetail(detail ldreason.EvaluationDetail) 
 
 // resolveContext encapsulates common logic that validates the OpenFeature evaluation
 // contest and translates it to LaunchDarkly's. Callers are supposed to only use
-// ldCtx if an error is not returned. When an error is returned, an non-empty OpenFeature
+// ldCtx if an error is not returned. When an error is returned, a non-empty OpenFeature
 // ResolutionDetail is returned as well with additional details.
 // This function also handles context cancellations.
 func (p *Provider) resolveContext(ctx context.Context, evalCtx openfeature.FlattenedContext) (ldcontext.Context, openfeature.InterfaceResolutionDetail, error) {
