@@ -220,12 +220,12 @@ func (p *Provider) toProviderResolutionDetail(detail ldreason.EvaluationDetail) 
 	return ofDetail
 }
 
-// resolveContext encapsulates common logic that validates the OpenFeature evaluation
+// transformContext encapsulates common logic that validates the OpenFeature evaluation
 // contest and translates it to LaunchDarkly's. Callers are supposed to only use
 // ldCtx if an error is not returned. When an error is returned, a non-empty OpenFeature
 // ResolutionDetail is returned as well with additional details.
 // This function also handles context cancellations.
-func (p *Provider) resolveContext(ctx context.Context, evalCtx openfeature.FlattenedContext) (ldcontext.Context, openfeature.InterfaceResolutionDetail, error) {
+func (p *Provider) transformContext(ctx context.Context, evalCtx openfeature.FlattenedContext) (ldcontext.Context, openfeature.InterfaceResolutionDetail, error) {
 	ldCtx, err := p.toLDContext(evalCtx)
 	emptyDetail := openfeature.InterfaceResolutionDetail{}
 
@@ -234,7 +234,7 @@ func (p *Provider) resolveContext(ctx context.Context, evalCtx openfeature.Flatt
 		detail := openfeature.InterfaceResolutionDetail{
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.NewInvalidContextResolutionError(errMsg),
-				Reason:          openfeature.DefaultReason,
+				Reason:          openfeature.ErrorReason,
 			},
 		}
 		if errors.Is(err, errKeyMissing) {
@@ -248,7 +248,7 @@ func (p *Provider) resolveContext(ctx context.Context, evalCtx openfeature.Flatt
 		return ldCtx, openfeature.InterfaceResolutionDetail{
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.NewGeneralResolutionError(err.Error()),
-				Reason:          openfeature.DefaultReason,
+				Reason:          openfeature.ErrorReason,
 			},
 		}, err
 	}
@@ -257,7 +257,7 @@ func (p *Provider) resolveContext(ctx context.Context, evalCtx openfeature.Flatt
 }
 
 func (p *Provider) BooleanEvaluation(ctx context.Context, flagKey string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
-	ldCtx, errDetail, err := p.resolveContext(ctx, evalCtx)
+	ldCtx, errDetail, err := p.transformContext(ctx, evalCtx)
 	if err != nil {
 		return openfeature.BoolResolutionDetail{
 			Value:                    defaultValue,
@@ -278,7 +278,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flagKey string, defaul
 
 // StringEvaluation evaluates a string feature flag and returns the result.
 func (p *Provider) StringEvaluation(ctx context.Context, flagKey string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
-	ldCtx, errDetail, err := p.resolveContext(ctx, evalCtx)
+	ldCtx, errDetail, err := p.transformContext(ctx, evalCtx)
 	if err != nil {
 		return openfeature.StringResolutionDetail{
 			Value:                    defaultValue,
@@ -299,7 +299,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flagKey string, default
 
 // FloatEvaluation evaluates a float feature flag and returns the result.
 func (p *Provider) FloatEvaluation(ctx context.Context, flagKey string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
-	ldCtx, errDetail, err := p.resolveContext(ctx, evalCtx)
+	ldCtx, errDetail, err := p.transformContext(ctx, evalCtx)
 	if err != nil {
 		return openfeature.FloatResolutionDetail{
 			Value:                    defaultValue,
@@ -320,7 +320,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flagKey string, defaultV
 
 // IntEvaluation evaluates an integer feature flag and returns the result.
 func (p *Provider) IntEvaluation(ctx context.Context, flagKey string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
-	ldCtx, errDetail, err := p.resolveContext(ctx, evalCtx)
+	ldCtx, errDetail, err := p.transformContext(ctx, evalCtx)
 	if err != nil {
 		return openfeature.IntResolutionDetail{
 			Value:                    defaultValue,
@@ -341,7 +341,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flagKey string, defaultVal
 
 // ObjectEvaluation evaluates an object feature flag and returns the result.
 func (p *Provider) ObjectEvaluation(ctx context.Context, flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
-	ldCtx, errDetail, err := p.resolveContext(ctx, evalCtx)
+	ldCtx, errDetail, err := p.transformContext(ctx, evalCtx)
 	if err != nil {
 		return openfeature.InterfaceResolutionDetail{
 			Value:                    defaultValue,
