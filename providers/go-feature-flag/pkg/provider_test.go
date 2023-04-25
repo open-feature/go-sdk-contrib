@@ -217,6 +217,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -339,6 +340,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -461,6 +463,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -583,6 +586,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -690,6 +694,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -699,6 +704,190 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 
 			if tt.want.ErrorCode != "" {
 				require.Error(t, err)
+				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
+				assert.Equal(t, want, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.want, value)
+		})
+	}
+}
+
+func TestProvider_BooleanEvaluation_With_Cache(t *testing.T) {
+	type args struct {
+		flag         string
+		defaultValue bool
+		evalCtx      of.EvaluationContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want of.BooleanEvaluationDetails
+	}{
+		{
+			name: "should resolve a valid boolean flag with TARGETING_MATCH reason",
+			args: args{
+				flag:         "bool_targeting_match",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: true,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "bool_targeting_match",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Variant:      "True",
+						Reason:       of.TargetingMatchReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+					},
+				},
+			},
+		},
+		{
+			name: "should use boolean default value if the flag is disabled",
+			args: args{
+				flag:         "disabled_bool",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "disabled_bool",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Variant:      "SdkDefault",
+						Reason:       of.DisabledReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+					},
+				},
+			},
+		},
+		{
+			name: "should error if we expect a boolean and got another type",
+			args: args{
+				flag:         "string_key",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "string_key",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Variant:      "",
+						Reason:       of.ErrorReason,
+						ErrorCode:    of.TypeMismatchCode,
+						ErrorMessage: "unexpected type for flag string_key",
+					},
+				},
+			},
+		},
+		{
+			name: "should error if flag does not exists",
+			args: args{
+				flag:         "does_not_exists",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "does_not_exists",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Variant:      "",
+						Reason:       of.ErrorReason,
+						ErrorCode:    of.FlagNotFoundCode,
+						ErrorMessage: "flag does_not_exists was not found in GO Feature Flag",
+					},
+				},
+			},
+		},
+		{
+			name: "should return custom reason if returned by relay proxy",
+			args: args{
+				flag:         "unknown_reason",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: true,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "unknown_reason",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Variant:      "True",
+						Reason:       "CUSTOM_REASON",
+						ErrorCode:    "",
+						ErrorMessage: "",
+					},
+				},
+			},
+		},
+		{
+			name: "should return error if no targeting key",
+			args: args{
+				flag:         "bool_targeting_match",
+				defaultValue: false,
+				evalCtx:      of.EvaluationContext{},
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "bool_targeting_match",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Reason:       of.ErrorReason,
+						ErrorCode:    of.TargetingKeyMissingCode,
+						ErrorMessage: "no targetingKey provided in the evaluation context",
+					},
+				},
+			},
+		},
+		{
+			name: "should return an error if invalid json body",
+			args: args{
+				flag:         "invalid_json_body",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "invalid_json_body",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Reason:       of.ErrorReason,
+						ErrorCode:    of.ParseErrorCode,
+						ErrorMessage: "impossible to parse response for flag invalid_json_body: {\n  \"trackEvents\": true,\n  \"variationType\": \"True\",\n  \"failed\": false,\n  \"version\": \"\",\n  \"reason\": \"TARGETING_MATCH\",\n  \"errorCode\": \"\",\n  \"value\": true\n",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			options := gofeatureflag.ProviderOptions{
+				Endpoint:            "https://gofeatureflag.org/",
+				HTTPClient:          &mockClient{},
+				GOFeatureFlagConfig: nil,
+			}
+			provider, err := gofeatureflag.NewProvider(options)
+			defer provider.Shutdown()
+			assert.NoError(t, err)
+			of.SetProvider(provider)
+			client := of.NewClient("test-app")
+			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
+
+			if tt.want.ErrorCode != "" {
+				assert.Error(t, err)
 				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
 				assert.Equal(t, want, err.Error())
 			} else {

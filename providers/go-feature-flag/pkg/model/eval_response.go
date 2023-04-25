@@ -8,4 +8,5 @@ type EvalResponse[T JsonType] struct {
 	Reason        string `json:"reason"`
 	ErrorCode     string `json:"errorCode"`
 	Value         T      `json:"value"`
+	Cacheable     bool   `json:"cacheable"`
 }

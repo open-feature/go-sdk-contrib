@@ -3,9 +3,10 @@ module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
 go 1.18
 
 require (
+	github.com/bluele/gcache v0.0.2
 	github.com/open-feature/go-sdk v1.2.0
 	github.com/stretchr/testify v1.8.2
-	github.com/thomaspoignant/go-feature-flag v1.6.0
+	github.com/thomaspoignant/go-feature-flag v1.9.1
 )
 
 require (
@@ -16,7 +17,6 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/nikunjy/rules v1.2.0 // indirect
-	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
