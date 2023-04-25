@@ -90,7 +90,7 @@ This code block explain how you can create an `EvaluationContext` and use it to 
 
 > In this example we are evaluating a `boolean` flag, but other types are available.
 > 
-> **Refer to the [Open Feature documentation](https://docs.openfeature.dev/docs/reference/concepts/evaluation-api#basic-evaluation) to know more about it.**
+> **Refer to the [Open Feature documentation](https://openfeature.dev/docs/reference/concepts/evaluation-api#basic-evaluation) to know more about it.**
 
 ```go
 evaluationCtx := of.NewEvaluationContext(

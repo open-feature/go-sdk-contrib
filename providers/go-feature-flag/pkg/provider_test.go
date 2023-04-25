@@ -20,6 +20,14 @@ type mockClient struct{}
 func (m *mockClient) Do(req *http.Request) (*http.Response, error) {
 	mockPath := "../testutils/mock_responses/%s.json"
 	flagName := strings.Replace(strings.Replace(req.URL.Path, "/v1/feature/", "", -1), "/eval", "", -1)
+
+	if flagName == "unauthorized" {
+		return &http.Response{
+			StatusCode: http.StatusUnauthorized,
+			Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+		}, nil
+	}
+
 	content, err := os.ReadFile(fmt.Sprintf(mockPath, flagName))
 	if err != nil {
 		content, _ = os.ReadFile(fmt.Sprintf(mockPath, "flag_not_found"))
@@ -65,6 +73,27 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 		args args
 		want of.BooleanEvaluationDetails
 	}{
+		{
+			name: "unauthorized flag",
+			args: args{
+				flag:         "unauthorized",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: of.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: of.EvaluationDetails{
+					FlagKey:  "unauthorized",
+					FlagType: of.Boolean,
+					ResolutionDetail: of.ResolutionDetail{
+						Variant:      "",
+						Reason:       of.ErrorReason,
+						ErrorCode:    of.GeneralCode,
+						ErrorMessage: "invalid token used to contact GO Feature Flag relay proxy instance",
+					},
+				},
+			},
+		},
 		{
 			name: "should resolve a valid boolean flag with TARGETING_MATCH reason",
 			args: args{

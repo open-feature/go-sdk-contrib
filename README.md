@@ -8,28 +8,15 @@ The project includes:
 - [Hooks](./hooks)
 - [Tests](./tests)
 
-## Environment
 
-Run the following command to setup the go workspace.
+## Contributing
 
-```
-make workspace-init
-```
+Interested in contributing? Great, we'd love your help! To get started, take a look at the [CONTRIBUTING](CONTRIBUTING.md) guide.
 
-Additional workspace commands:
+## Useful links
 
-```go
-make workspace-update               // sync go.work with current modules
-make test                           // test all go modules
-make lint                           // lint all go modules
-make MODULE_NAME=NAME new-provider  // create and setup new provider directory (requires jq)
-make MODULE_NAME=NAME new-hook      // create and setup new hook directory (requires jq)
-```
-> [jq documentation](https://stedolan.github.io/jq/download/)
-
-## Releases
-
-This repo uses _Release Please_ to release packages. Release Please sets up a running PR that tracks all changes for the library components, and maintains the versions according to [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/), generated when [PRs are merged](https://github.com/amannn/action-semantic-pull-request). When Release Please's running PR is merged, any changed artifacts are published.
+* For more information on OpenFeature, visit [openfeature.dev](https://openfeature.dev)
+* For help or feedback on this project, join us on [Slack](https://cloud-native.slack.com/archives/C0344AANLA1) or create a [GitHub issue](https://github.com/open-feature/js-sdk-contrib/issues/new/choose).
 
 ## License
 

@@ -20,6 +20,12 @@ type ProviderOptions struct {
 	// If not nil we will launch the provider using the GO Feature Flag module.
 	GOFeatureFlagConfig *ffclient.Config
 
+	// APIKey  (optional) If the relay proxy is configured to authenticate the requests, you should provide
+	// an API Key to the provider. Please ask the administrator of the relay proxy to provide an API Key.
+	// (This feature is available only if you are using GO Feature Flag relay proxy v1.7.0 or above)
+	// Default: null
+	APIKey string
+
 	// DisableCache (optional) set to true if you would like that every flag evaluation goes to the GO Feature Flag directly.
 	DisableCache bool
 
