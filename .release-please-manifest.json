@@ -3,7 +3,7 @@
     "hooks/validator": "0.1.3",
     "providers/flagd": "0.1.10",
     "providers/from-env": "0.1.2",
-    "providers/go-feature-flag": "0.1.9",
+    "providers/go-feature-flag": "0.1.10",
     "providers/flagsmith": "0.1.2",
     "tests/flagd": "1.2.1"
 }
