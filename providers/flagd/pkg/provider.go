@@ -75,8 +75,8 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
-	provider.service = service.NewService(&service.Client{
-		ServiceConfiguration: &service.Configuration{
+	provider.service = service.NewService(service.NewClient(
+		&service.Configuration{
 			Host:            provider.providerConfiguration.Host,
 			Port:            provider.providerConfiguration.Port,
 			CertificatePath: provider.providerConfiguration.CertificatePath,
@@ -84,7 +84,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
 			OtelInterceptor: provider.otelIntercept,
 		},
-	}, provider.logger, nil)
+	), provider.logger, nil)
 
 	go func() {
 		if err := provider.handleEvents(provider.ctx); err != nil {
