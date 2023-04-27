@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.1.11](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.10...providers/flagd/v0.1.11) (2023-04-27)
+
+
+### 🔄 Refactoring
+
+* reduce duplication of flagd provider service ([#135](https://github.com/open-feature/go-sdk-contrib/issues/135)) ([f444b38](https://github.com/open-feature/go-sdk-contrib/commit/f444b38b13f4230b1243e89ef7b4a942338025f0))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/bufbuild/connect-go to v1.7.0 ([#177](https://github.com/open-feature/go-sdk-contrib/issues/177)) ([591759f](https://github.com/open-feature/go-sdk-contrib/commit/591759fd59c9425e0583c35b67bdeddca4173b88))
+* **deps:** update module github.com/go-logr/logr to v1.2.4 ([#158](https://github.com/open-feature/go-sdk-contrib/issues/158)) ([5fdfa0e](https://github.com/open-feature/go-sdk-contrib/commit/5fdfa0e9cf21ef2ebf8a86fbc0c71cc591b185c9))
+* **deps:** update module github.com/hashicorp/golang-lru/v2 to v2.0.2 ([#142](https://github.com/open-feature/go-sdk-contrib/issues/142)) ([e9149a3](https://github.com/open-feature/go-sdk-contrib/commit/e9149a3f451f65ddc1576cd09376a23158de9e15))
+* **deps:** update module github.com/open-feature/flagd to v0.4.2 ([#134](https://github.com/open-feature/go-sdk-contrib/issues/134)) ([ad8c67e](https://github.com/open-feature/go-sdk-contrib/commit/ad8c67edbc095b4282b5ebfdd6970d8827ba45d1))
+* **deps:** update module golang.org/x/net to v0.7.0 [security] ([#136](https://github.com/open-feature/go-sdk-contrib/issues/136)) ([d7455d6](https://github.com/open-feature/go-sdk-contrib/commit/d7455d68ff5ee1488ac1354dcfeaef0a2dd77e42))
+* **deps:** update module golang.org/x/net to v0.8.0 ([#148](https://github.com/open-feature/go-sdk-contrib/issues/148)) ([6e695a3](https://github.com/open-feature/go-sdk-contrib/commit/6e695a3e21f48a52fc74b9aa389c4b0a1b51c009))
+* **deps:** update module google.golang.org/protobuf to v1.29.1 ([#141](https://github.com/open-feature/go-sdk-contrib/issues/141)) ([f2a924f](https://github.com/open-feature/go-sdk-contrib/commit/f2a924ff331fbcfd479e948805223f02af9c032b))
+* **deps:** update module google.golang.org/protobuf to v1.30.0 ([#151](https://github.com/open-feature/go-sdk-contrib/issues/151)) ([bf98120](https://github.com/open-feature/go-sdk-contrib/commit/bf98120d82218471c7acc2773c737d7bff64e401))
+
+
+### 🧹 Chore
+
+* fix flagd dependencies after mono repo split ([#172](https://github.com/open-feature/go-sdk-contrib/issues/172)) ([4b10a18](https://github.com/open-feature/go-sdk-contrib/commit/4b10a1833bad5b7f91c6fe2a4c4c2395e14657e4))
+
+
+### ✨ New Features
+
+* otel interceptor for flagd go-sdk ([#176](https://github.com/open-feature/go-sdk-contrib/issues/176)) ([17e5ab7](https://github.com/open-feature/go-sdk-contrib/commit/17e5ab796717c090bb203ebc766375e8efada23b))
+
 ## [0.1.10](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.9...providers/flagd/v0.1.10) (2023-03-02)
 
 
