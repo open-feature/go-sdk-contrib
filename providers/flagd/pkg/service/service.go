@@ -15,14 +15,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type ServiceConfiguration struct {
-	Port            uint16
-	Host            string
-	CertificatePath string
-	SocketPath      string
-	TLSEnabled      bool
-}
-
 // Service handles the client side  interface for the flagd server
 type Service struct {
 	rwMx           *sync.RWMutex
