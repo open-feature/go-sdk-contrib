@@ -1,4 +1,6 @@
-# LaunchDarkly OpenFeature Provider for Go
+# Unofficial LaunchDarkly OpenFeature Provider for Go
+
+This provider is maintained by the Open Feature community.
 
 ## Installation
 
