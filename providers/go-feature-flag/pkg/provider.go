@@ -112,9 +112,17 @@ func startDataCollector(options ProviderOptions) *exporter.Scheduler {
 
 	webhook := webhookexporter.Exporter{
 		EndpointURL: u.String(),
-		// TODO missing how to handle the APIKEY in this usage
-		Meta: map[string]string{"provider": "go"},
+		Meta: map[string]string{
+			"provider":    "go",
+			"openfeature": "true",
+		},
 	}
+	if options.APIKey != "" {
+		webhook.Headers = map[string][]string{
+			"Authorization": {fmt.Sprintf("Bearer %s", options.APIKey)},
+		}
+	}
+
 	scheduler := exporter.NewScheduler(context.Background(),
 		options.DataCacheFlushInterval, options.DataCacheMaxEventInMemory, &webhook, nil)
 	go scheduler.StartDaemon()
