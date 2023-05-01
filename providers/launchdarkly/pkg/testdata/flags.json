@@ -1,0 +1,95 @@
+{
+    "flags": {
+        "mtls_enabled": {
+            "key": "mtls_enabled",
+            "on": true,
+            "variations": [
+                true,
+                false
+            ],
+            "targets": [
+                {
+                    "contextKind": "redpanda-id",
+                    "values": [
+                        "redpanda-blah12342"
+                    ],
+                    "variation": 0
+                }
+            ]
+        },
+        "dataplane_generation": {
+            "key": "dataplane_generation",
+            "on": true,
+            "variations": [
+                "k8s.v1",
+                "metal.v1",
+                "vm.v1"
+            ],
+            "targets": [
+                {
+                    "contextKind": "organization-id",
+                    "values": [
+                        "blah1234"
+                    ],
+                    "variation": 1
+                }
+            ]
+        },
+        "global_discount_pct": {
+            "key": "global_discount_pct",
+            "on": true,
+            "variations": [
+                1.5,
+                5.5,
+                10
+            ],
+            "targets": [
+                {
+                    "contextKind": "organization-id",
+                    "values": [
+                        "blah1234"
+                    ],
+                    "variation": 1
+                }
+            ]
+        },
+        "abuse_risk_weight": {
+            "key": "abuse_risk_weight",
+            "on": true,
+            "variations": [
+                10,
+                20,
+                50
+            ],
+            "targets": [
+                {
+                    "contextKind": "organization-id",
+                    "values": [
+                        "blah1234"
+                    ],
+                    "variation": 2
+                }
+            ]
+        },
+        "rate_limit_config": {
+            "key": "rate_limit_config",
+            "on": true,
+            "variations": [
+                {
+                    "target_quota_byte_rate": 2147483648,
+                    "target_fetch_quota_byte_rate": 1073741824,
+                    "kafka_connection_rate_limit": 100
+                }
+            ],
+            "targets": [
+                {
+                    "contextKind": "redpanda-id",
+                    "values": [
+                        "redpanda-blah12342"
+                    ],
+                    "variation": 0
+                }
+            ]
+        }
+    }
+}

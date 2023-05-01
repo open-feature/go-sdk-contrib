@@ -22,6 +22,7 @@ flagd.WithoutCache()                    // disables caching of flag evaluations
 flagd.WithLRUCache(1000)                // enables LRU caching (see configuring caching section)
 flagd.WithBasicInMemoryCache()          // enables basic in memory cache (see configuring caching section)
 flagd.WithLogger(logger)                // sets a custom logger (see logging section)
+flagd.WithOtelInterceptor(bool)         // enable or disable OpenTelemetry interceptor for flagd communication
 ```
 for example:
 ```go

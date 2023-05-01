@@ -6,6 +6,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/bufbuild/connect-go"
+	otelconnect "github.com/bufbuild/connect-opentelemetry-go"
 	"log"
 	"net"
 	"net/http"
@@ -14,47 +16,64 @@ import (
 
 type iClient interface {
 	Instance() schemaConnectV1.ServiceClient
-	Configuration() *ServiceConfiguration
+	Configuration() *Configuration
+}
+
+type Configuration struct {
+	Port            uint16
+	Host            string
+	CertificatePath string
+	SocketPath      string
+	TLSEnabled      bool
+	OtelInterceptor bool
 }
 
 type Client struct {
 	client               schemaConnectV1.ServiceClient
-	ServiceConfiguration *ServiceConfiguration
+	serviceConfiguration *Configuration
 }
 
-// Instance returns an instance of schemaConnectV1.ServiceClient
-func (c *Client) Instance() schemaConnectV1.ServiceClient {
-	if c.client == nil {
-		var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
-		var tlsConfig *tls.Config
-		url := fmt.Sprintf("http://%s:%d", c.ServiceConfiguration.Host, c.ServiceConfiguration.Port)
-		// socket
-		if c.ServiceConfiguration.SocketPath != "" {
-			dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", c.ServiceConfiguration.SocketPath)
-			}
+func NewClient(cfg *Configuration) *Client {
+	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
+	var tlsConfig *tls.Config
+	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
+	// socket
+	if cfg.SocketPath != "" {
+		dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", cfg.SocketPath)
 		}
-		// tls
-		if c.ServiceConfiguration.TLSEnabled {
-			url = fmt.Sprintf("https://%s:%d", c.ServiceConfiguration.Host, c.ServiceConfiguration.Port)
-			tlsConfig = &tls.Config{}
-			if c.ServiceConfiguration.CertificatePath != "" {
-				caCert, err := os.ReadFile(c.ServiceConfiguration.CertificatePath)
-				if err != nil {
-					log.Fatal(err)
-				}
-				caCertPool := x509.NewCertPool()
-				if !caCertPool.AppendCertsFromPEM(caCert) {
-					log.Fatalf(
-						"failed to AppendCertsFromPEM, certificate %s is malformed",
-						c.ServiceConfiguration.CertificatePath,
-					)
-				}
-				tlsConfig.RootCAs = caCertPool
+	}
+	// tls
+	if cfg.TLSEnabled {
+		url = fmt.Sprintf("https://%s:%d", cfg.Host, cfg.Port)
+		tlsConfig = &tls.Config{}
+		if cfg.CertificatePath != "" {
+			caCert, err := os.ReadFile(cfg.CertificatePath)
+			if err != nil {
+				log.Fatal(err)
 			}
+			caCertPool := x509.NewCertPool()
+			if !caCertPool.AppendCertsFromPEM(caCert) {
+				log.Fatalf(
+					"failed to AppendCertsFromPEM, certificate %s is malformed",
+					cfg.CertificatePath,
+				)
+			}
+			tlsConfig.RootCAs = caCertPool
 		}
+	}
 
-		c.client = schemaConnectV1.NewServiceClient(
+	// build options
+	var options []connect.ClientOption
+
+	if cfg.OtelInterceptor {
+		options = append(options, connect.WithInterceptors(
+			otelconnect.NewInterceptor(),
+		))
+	}
+
+	return &Client{
+		client: schemaConnectV1.NewServiceClient(
 			&http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: tlsConfig,
@@ -62,12 +81,18 @@ func (c *Client) Instance() schemaConnectV1.ServiceClient {
 				},
 			},
 			url,
-		)
+			options...,
+		),
+		serviceConfiguration: cfg,
 	}
+}
+
+// Instance returns an instance of schemaConnectV1.ServiceClient
+func (c *Client) Instance() schemaConnectV1.ServiceClient {
 	return c.client
 }
 
 // Configuration returns the current GRPCServiceConfiguration for the client
-func (s *Client) Configuration() *ServiceConfiguration {
-	return s.ServiceConfiguration
+func (c *Client) Configuration() *Configuration {
+	return c.serviceConfiguration
 }
