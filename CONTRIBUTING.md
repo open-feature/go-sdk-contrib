@@ -34,7 +34,13 @@ create and setup new hook directory (requires jq)
 make MODULE_NAME=NAME new-hook 
 ```
 
-[jq documentation](https://stedolan.github.io/jq/download/)
+Note - [jq documentation](https://stedolan.github.io/jq/download/)
+
+### Versioning
+
+The release version of the newly added module(hook/provider) is controlled by `.release-please-manifest.json`. You can 
+control the versioning of your module by adding an entry  with desired initial version(ex: `"provider/acme":"0.0.1"` ). 
+Otherwise, default versioning will start from `1.0.0`.
 
 ## Documentation
 
