@@ -83,11 +83,11 @@ func NewProvider(options ProviderOptions) (*Provider, error) {
 	if options.FlagCacheTTL == 0 {
 		options.FlagCacheTTL = defaultCacheTTL
 	}
-	if options.DataCacheMaxEventInMemory == 0 {
-		options.DataCacheMaxEventInMemory = defaultDataCacheMaxEventInMemory
+	if options.DataMaxEventInMemory == 0 {
+		options.DataMaxEventInMemory = defaultDataCacheMaxEventInMemory
 	}
-	if options.DataCacheFlushInterval == 0 {
-		options.DataCacheFlushInterval = defaultDataCacheFlushInterval
+	if options.DataFlushInterval == 0 {
+		options.DataFlushInterval = defaultDataCacheFlushInterval
 	}
 	scheduler := startDataCollector(options)
 	return &Provider{
@@ -124,7 +124,7 @@ func startDataCollector(options ProviderOptions) *exporter.Scheduler {
 	}
 
 	scheduler := exporter.NewScheduler(context.Background(),
-		options.DataCacheFlushInterval, options.DataCacheMaxEventInMemory, &webhook, nil)
+		options.DataFlushInterval, options.DataMaxEventInMemory, &webhook, nil)
 	go scheduler.StartDaemon()
 	return scheduler
 }
