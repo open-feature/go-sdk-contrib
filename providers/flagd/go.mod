@@ -11,9 +11,9 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.2
-	github.com/open-feature/flagd/core v0.5.2
+	github.com/open-feature/flagd/core v0.5.3
 	github.com/open-feature/go-sdk v1.2.0
-	golang.org/x/net v0.8.0
+	golang.org/x/net v0.9.0
 	google.golang.org/protobuf v1.30.0
 )
 
