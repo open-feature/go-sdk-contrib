@@ -28,21 +28,22 @@ jobs:
     strategy:
       matrix:
         release: ${{ fromJSON(needs.release-please.outputs.paths_released) }}
+    env:
+      TAG: ${{ fromJSON(needs.release-please.outputs.all)[format('{0}--tag_name', matrix.release)] }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      # Generate SBOM
+      # Bundle SBOM
       - name: Generate SBOM
         uses: CycloneDX/gh-gomod-generate-sbom@v1
         with:
           version: v1
           args: mod -licenses -json -output bom.json ${{ matrix.release }}
       - name: Upload SBOM to release
-        uses: svenstaro/upload-release-action@v2
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: bom.json
-          tag: ${{ fromJSON(needs.release-please.outputs.all)[format('{0}--tag_name', matrix.release)] }}
+          tag_name: ${{ env.TAG }}
+          files: bom.json
       # Bundle licenses
       - name: Install go-licenses
         run: go install github.com/google/go-licenses@latest
