@@ -21,7 +21,7 @@ jobs:
       all: ${{ toJSON(steps.release.outputs) }}
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
-  sbom:
+  artifacts:
     needs: release-please
     runs-on: ubuntu-latest
     if: ${{ needs.release-please.outputs.releases_created }}
@@ -31,6 +31,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      # Generate SBOM
       - name: Generate SBOM
         uses: CycloneDX/gh-gomod-generate-sbom@v1
         with:
@@ -42,3 +43,24 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: bom.json
           tag: ${{ fromJSON(needs.release-please.outputs.all)[format('{0}--tag_name', matrix.release)] }}
+      # Bundle licenses
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses@latest
+      - name: Define license extraction locations
+        id: license-files
+        run: |
+          echo "LICENSE_FOLDER=third-party-license" >> $GITHUB_OUTPUT
+          echo "LICENSE_ARCHIVE=third-party-license.tar.gz" >> $GITHUB_OUTPUT
+          echo "LICENSE_ERROR_FILE=license-errors.txt" >> $GITHUB_OUTPUT
+      - name: Run go-licenses for module ${{ matrix.release }}
+        run: go-licenses save ./${{ matrix.release }}/... --save_path=./${{ steps.license-files.outputs.LICENSE_FOLDER }} --force --logtostderr=false 2> ./${{ steps.license-files.outputs.LICENSE_ERROR_FILE }}
+        continue-on-error: true # ignore errors which can be referred through error artefact
+      - name: Archive license extracts
+        run: tar czf ./${{ steps.license-files.outputs.LICENSE_ARCHIVE }} ./${{ steps.license-files.outputs.LICENSE_FOLDER }}
+      - name: Bundle to release assets
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          tag_name: ${{ env.TAG }}
+          files: |
+            ./${{ steps.license-files.outputs.LICENSE_ARCHIVE }}
+            ./${{ steps.license-files.outputs.LICENSE_ERROR_FILE }}
