@@ -33,18 +33,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      # Bundle SBOM
+      # Create SBOM
       - name: Generate SBOM
         uses: CycloneDX/gh-gomod-generate-sbom@v1
         with:
           version: v1
           args: mod -licenses -json -output bom.json ${{ matrix.release }}
-      - name: Upload SBOM to release
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
-        with:
-          tag_name: ${{ env.TAG }}
-          files: bom.json
-      # Bundle licenses
+      # Create licenses artifacts
       - name: Install go-licenses
         run: go install github.com/google/go-licenses@latest
       - name: Define license extraction locations
@@ -58,10 +53,12 @@ jobs:
         continue-on-error: true # ignore errors which can be referred through error artefact
       - name: Archive license extracts
         run: tar czf ./${{ steps.license-files.outputs.LICENSE_ARCHIVE }} ./${{ steps.license-files.outputs.LICENSE_FOLDER }}
-      - name: Bundle to release assets
+      # Bundle extra assets to release
+      - name: Bundle release assets
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           tag_name: ${{ env.TAG }}
           files: |
+            bom.json
             ./${{ steps.license-files.outputs.LICENSE_ARCHIVE }}
             ./${{ steps.license-files.outputs.LICENSE_ERROR_FILE }}
