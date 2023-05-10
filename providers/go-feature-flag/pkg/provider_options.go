@@ -34,6 +34,7 @@ type ProviderOptions struct {
 	FlagCacheSize int
 
 	// FlagCacheTTL (optional) is the time we keep the evaluation in the cache before we consider it as obsolete.
+	// If you want to keep the value forever you can set the FlagCacheTTL field to -1
 	// default: 1 minute
 	FlagCacheTTL time.Duration
 

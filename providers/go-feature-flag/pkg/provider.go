@@ -21,7 +21,6 @@ import (
 
 const defaultCacheSize = 10000
 const defaultCacheTTL = 1 * time.Minute
-
 const defaultDataCacheMaxEventInMemory = 500
 const defaultDataCacheFlushInterval = 1 * time.Minute
 
@@ -56,8 +55,14 @@ func defaultHTTPClient() HTTPClient {
 	}
 }
 
-// NewProvider is the easiest way of creating a new GO Feature Flag provider.
-func NewProvider(options ProviderOptions) (*Provider, error) {
+// NewProvider allows you to create a GO Feature Flag provider without any context.
+// We recommend using the function NewProviderWithContext and provide your context when creating the provider.
+func NewProvider(ctx context.Context, options ProviderOptions) (*Provider, error) {
+	return NewProviderWithContext(context.Background(), options)
+}
+
+// NewProviderWithContext is the easiest way of creating a new GO Feature Flag provider.
+func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Provider, error) {
 	if options.GOFeatureFlagConfig != nil {
 		goff, err := client.New(*options.GOFeatureFlagConfig)
 		if err != nil {
@@ -80,16 +85,16 @@ func NewProvider(options ProviderOptions) (*Provider, error) {
 	if options.FlagCacheSize == 0 {
 		options.FlagCacheSize = defaultCacheSize
 	}
-	if options.FlagCacheTTL == 0 {
-		options.FlagCacheTTL = defaultCacheTTL
-	}
 	if options.DataMaxEventInMemory == 0 {
 		options.DataMaxEventInMemory = defaultDataCacheMaxEventInMemory
 	}
 	if options.DataFlushInterval == 0 {
 		options.DataFlushInterval = defaultDataCacheFlushInterval
 	}
-	scheduler := startDataCollector(options)
+	if options.FlagCacheTTL == 0 {
+		options.FlagCacheTTL = defaultCacheTTL
+	}
+	scheduler := startDataCollector(ctx, options)
 	return &Provider{
 		apiKey:                 options.APIKey,
 		endpoint:               options.Endpoint,
@@ -100,7 +105,7 @@ func NewProvider(options ProviderOptions) (*Provider, error) {
 		dataCollectorScheduler: scheduler,
 	}, nil
 }
-func startDataCollector(options ProviderOptions) *exporter.Scheduler {
+func startDataCollector(ctx context.Context, options ProviderOptions) *exporter.Scheduler {
 	if options.DisableCache {
 		return nil
 	}
@@ -122,8 +127,10 @@ func startDataCollector(options ProviderOptions) *exporter.Scheduler {
 			"Authorization": {fmt.Sprintf("Bearer %s", options.APIKey)},
 		}
 	}
-
-	scheduler := exporter.NewScheduler(context.Background(),
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	scheduler := exporter.NewScheduler(ctx,
 		options.DataFlushInterval, options.DataMaxEventInMemory, &webhook, nil)
 	go scheduler.StartDaemon()
 	return scheduler
@@ -300,13 +307,12 @@ func evaluateLocally[T model.JsonType](provider *Provider, goffRequestBody model
 	}
 }
 
-func convertCache[T model.JsonType](value interface{}) model.GenericResolutionDetail[T] {
+func convertCache[T model.JsonType](value interface{}) (model.GenericResolutionDetail[T], error) {
 	switch v := value.(type) {
 	case model.GenericResolutionDetail[T]:
-		return v
+		return v, nil
 	default:
-		// TODO: impossible to convert
-		panic("error")
+		return model.GenericResolutionDetail[T]{}, fmt.Errorf("impossible to convert into the cache")
 	}
 }
 
@@ -317,17 +323,23 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 	cacheResInterface, err := provider.cache.Get(cacheKey)
 	if err == nil {
 		// we have retrieve something from the cache.
-		cacheValue := convertCache[T](cacheResInterface)
-		event := exporter.NewFeatureEvent(
-			ffuser.NewUser(goffRequestBody.User.Key),
-			flagName,
-			cacheValue.Value,
-			cacheValue.Variant,
-			cacheValue.Reason == of.ErrorReason,
-			"",
-		)
-		provider.dataCollectorScheduler.AddEvent(event)
-		return cacheValue
+		cacheValue, err := convertCache[T](cacheResInterface)
+		if err != nil {
+			// impossible to convert the cache, we remove the entry from the cache assuming the next
+			// call to convertCache wouldn't result in the same error on the next call.
+			provider.cache.Remove(cacheKey)
+		} else {
+			event := exporter.NewFeatureEvent(
+				ffuser.NewUser(goffRequestBody.User.Key),
+				flagName,
+				cacheValue.Value,
+				cacheValue.Variant,
+				cacheValue.Reason == of.ErrorReason,
+				"",
+			)
+			provider.dataCollectorScheduler.AddEvent(event)
+			return cacheValue
+		}
 	}
 
 	goffRequestBodyStr, err := json.Marshal(goffRequestBody)
@@ -465,8 +477,10 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 	}
 
 	if !provider.cacheDisable && evalResponse.Cacheable {
-		if provider.cacheTTL > 0 {
-			provider.cache.SetWithExpire(cacheKey, resDetail, provider.cacheTTL)
+		if provider.cacheTTL == -1 {
+			_ = provider.cache.Set(cacheKey, resDetail)
+		} else {
+			_ = provider.cache.SetWithExpire(cacheKey, resDetail, provider.cacheTTL)
 		}
 	}
 	return resDetail
