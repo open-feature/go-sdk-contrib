@@ -6,7 +6,7 @@ require (
 	github.com/bluele/gcache v0.0.2
 	github.com/open-feature/go-sdk v1.2.0
 	github.com/stretchr/testify v1.8.2
-	github.com/thomaspoignant/go-feature-flag v1.10.1
+	github.com/thomaspoignant/go-feature-flag v1.10.2
 )
 
 require (
