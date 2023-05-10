@@ -37,7 +37,7 @@ options := gofeatureflag.ProviderOptions{
     Timeout:   1 * time.Second,
   },
 }
-provider, _ := gofeatureflag.NewProvider(options)
+provider, _ := gofeatureflag.NewProviderWithContext(ctx, options)
 ```
 
 ### Using the GO module _(standalone version)_
@@ -58,7 +58,7 @@ options := gofeatureflag.ProviderOptions{
       },
     },
 }
-provider, _ := gofeatureflag.NewProvider(options)
+provider, _ := gofeatureflag.NewProviderWithContext(ctx, options)
 ```
 
 ## Initialize your Open Feature client
@@ -78,7 +78,7 @@ import (
 options := gofeatureflag.ProviderOptions{
     Endpoint: "http://localhost:1031",
 }
-provider, err := gofeatureflag.NewProvider(options)
+provider, err := gofeatureflag.NewProviderWithContext(ctx, options)
 of.SetProvider(provider)
 client := of.NewClient("my-app")
 ```
