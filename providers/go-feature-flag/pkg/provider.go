@@ -57,7 +57,7 @@ func defaultHTTPClient() HTTPClient {
 
 // NewProvider allows you to create a GO Feature Flag provider without any context.
 // We recommend using the function NewProviderWithContext and provide your context when creating the provider.
-func NewProvider(ctx context.Context, options ProviderOptions) (*Provider, error) {
+func NewProvider(options ProviderOptions) (*Provider, error) {
 	return NewProviderWithContext(context.Background(), options)
 }
 
