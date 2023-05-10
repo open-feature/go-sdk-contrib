@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.13...providers/go-feature-flag/v0.1.14) (2023-05-10)
+
+
+### ✨ New Features
+
+* (GO Feature Flag provider) introducing cache in the provider ([#181](https://github.com/open-feature/go-sdk-contrib/issues/181)) ([62f0821](https://github.com/open-feature/go-sdk-contrib/commit/62f0821d4ba16ec42041de497cd2538e8e7ea9bc))
+
 ## [0.1.13](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.12...providers/go-feature-flag/v0.1.13) (2023-05-09)
 
 
