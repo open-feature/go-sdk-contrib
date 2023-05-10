@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.12](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.11...providers/flagd/v0.1.12) (2023-05-10)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/flagd/core to v0.5.3 ([#195](https://github.com/open-feature/go-sdk-contrib/issues/195)) ([c9cd501](https://github.com/open-feature/go-sdk-contrib/commit/c9cd5011f18c1994b718423847c40adc88af2030))
+
 ## [0.1.11](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.10...providers/flagd/v0.1.11) (2023-04-27)
 
 
