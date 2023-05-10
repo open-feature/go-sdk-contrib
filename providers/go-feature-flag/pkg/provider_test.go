@@ -13,11 +13,15 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
-type mockClient struct{}
+type mockClient struct {
+	callCount int
+}
 
 func (m *mockClient) Do(req *http.Request) (*http.Response, error) {
+	m.callCount++
 	mockPath := "../testutils/mock_responses/%s.json"
 	flagName := strings.Replace(strings.Replace(req.URL.Path, "/v1/feature/", "", -1), "/eval", "", -1)
 
@@ -246,6 +250,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -368,6 +373,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -490,6 +496,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -612,6 +619,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -719,6 +727,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				Endpoint:            "https://gofeatureflag.org/",
 				HTTPClient:          &mockClient{},
 				GOFeatureFlagConfig: nil,
+				DisableCache:        true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -737,4 +746,118 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 			assert.Equal(t, tt.want, value)
 		})
 	}
+}
+
+func TestProvider_Cache_Calling_Flag_Multiple_Time_Same_User(t *testing.T) {
+	mockedHttpClient := mockClient{}
+	options := gofeatureflag.ProviderOptions{
+		Endpoint:            "https://gofeatureflag.org/",
+		HTTPClient:          &mockedHttpClient,
+		GOFeatureFlagConfig: nil,
+		DisableCache:        false,
+		FlagCacheTTL:        5 * time.Minute,
+		FlagCacheSize:       5,
+	}
+
+	provider, err := gofeatureflag.NewProvider(options)
+	defer provider.Shutdown()
+	assert.NoError(t, err)
+	of.SetProvider(provider)
+	client := of.NewClient("test-app")
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, mockedHttpClient.callCount)
+}
+
+func TestProvider_Cache_Calling_Flag_Multiple_Time_Different_EvalutationCtx(t *testing.T) {
+	mockedHttpClient := mockClient{}
+	options := gofeatureflag.ProviderOptions{
+		Endpoint:            "https://gofeatureflag.org/",
+		HTTPClient:          &mockedHttpClient,
+		GOFeatureFlagConfig: nil,
+		DisableCache:        false,
+		FlagCacheTTL:        5 * time.Minute,
+		FlagCacheSize:       5,
+	}
+
+	provider, err := gofeatureflag.NewProvider(options)
+	defer provider.Shutdown()
+	assert.NoError(t, err)
+	of.SetProvider(provider)
+	client := of.NewClient("test-app")
+	ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
+	ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
+	ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]interface{}{})
+	ctx4 := of.NewEvaluationContext("5d1d5245-23fd-466e-96a1-101e5088396e", map[string]interface{}{})
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx2)
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx3)
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx4)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, mockedHttpClient.callCount)
+}
+
+func TestProvider_Cache_Fill_All_Cache(t *testing.T) {
+	mockedHttpClient := mockClient{}
+	options := gofeatureflag.ProviderOptions{
+		Endpoint:            "https://gofeatureflag.org/",
+		HTTPClient:          &mockedHttpClient,
+		GOFeatureFlagConfig: nil,
+		DisableCache:        false,
+		FlagCacheTTL:        5 * time.Minute,
+		FlagCacheSize:       2,
+	}
+
+	provider, err := gofeatureflag.NewProvider(options)
+	defer provider.Shutdown()
+	assert.NoError(t, err)
+	of.SetProvider(provider)
+	client := of.NewClient("test-app")
+	ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
+	ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
+	ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]interface{}{})
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx2)
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx3)
+	assert.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, mockedHttpClient.callCount)
+}
+
+func TestProvider_Cache_TTL_Reached(t *testing.T) {
+	mockedHttpClient := mockClient{}
+	options := gofeatureflag.ProviderOptions{
+		Endpoint:            "https://gofeatureflag.org/",
+		HTTPClient:          &mockedHttpClient,
+		GOFeatureFlagConfig: nil,
+		DisableCache:        false,
+		FlagCacheTTL:        500 * time.Millisecond,
+		FlagCacheSize:       200,
+	}
+
+	provider, err := gofeatureflag.NewProvider(options)
+	defer provider.Shutdown()
+	assert.NoError(t, err)
+	of.SetProvider(provider)
+	client := of.NewClient("test-app")
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	assert.NoError(t, err)
+	time.Sleep(700 * time.Millisecond)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	assert.NoError(t, err)
+	assert.Equal(t, 2, mockedHttpClient.callCount)
 }
