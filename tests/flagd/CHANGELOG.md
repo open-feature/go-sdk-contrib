@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.1...tests/flagd/v1.2.2) (2023-05-11)
+
+
+### 🧹 Chore
+
+* fix flagd dependencies after mono repo split ([#172](https://github.com/open-feature/go-sdk-contrib/issues/172)) ([4b10a18](https://github.com/open-feature/go-sdk-contrib/commit/4b10a1833bad5b7f91c6fe2a4c4c2395e14657e4))
+
 ## [1.2.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.0...tests/flagd/v1.2.1) (2023-02-27)
 
 
