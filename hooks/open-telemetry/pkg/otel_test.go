@@ -3,6 +3,7 @@ package otel_test
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel/codes"
 	"testing"
 
 	otelHook "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry/pkg"
@@ -88,7 +89,7 @@ func TestHookMethods(t *testing.T) {
 		}
 	})
 
-	t.Run("Error hook should record exception on span", func(t *testing.T) {
+	t.Run("Error hook should record exception on span & set error status", func(t *testing.T) {
 		exp := tracetest.NewInMemoryExporter()
 		tp := trace.NewTracerProvider(
 			trace.WithSyncer(exp),
@@ -104,11 +105,17 @@ func TestHookMethods(t *testing.T) {
 		if len(spans) != 1 {
 			t.Errorf("expected 1 span, got %d", len(spans))
 		}
-		if len(spans[0].Events) != 1 {
-			t.Errorf("expected 1 event, got %d", len(spans[0].Events))
+
+		errSpan := spans[0]
+
+		if errSpan.Status.Code != codes.Error {
+			t.Errorf("expected status %s, got %s", codes.Error.String(), errSpan.Status.Code.String())
 		}
-		if spans[0].Events[0].Name != semconv.ExceptionEventName {
-			t.Errorf("unexpected event name: %s", spans[0].Events[0].Name)
+		if len(errSpan.Events) != 1 {
+			t.Errorf("expected 1 event, got %d", len(errSpan.Events))
+		}
+		if errSpan.Events[0].Name != semconv.ExceptionEventName {
+			t.Errorf("unexpected event name: %s", errSpan.Events[0].Name)
 		}
 	})
 
