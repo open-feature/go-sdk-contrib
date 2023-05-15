@@ -119,6 +119,34 @@ func TestHookMethods(t *testing.T) {
 		}
 	})
 
+	t.Run("Error hook should skip setting span status if build option is provided", func(t *testing.T) {
+		exp := tracetest.NewInMemoryExporter()
+		tp := trace.NewTracerProvider(
+			trace.WithSyncer(exp),
+		)
+		otel.SetTracerProvider(tp)
+		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+
+		// build hook with option WithErrorStatusDisabled
+		hook := otelHook.NewHook(otelHook.WithErrorStatusDisabled())
+
+		err := errors.New("a terrible error")
+		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
+		span.End()
+
+		spans := exp.GetSpans()
+		if len(spans) != 1 {
+			t.Errorf("expected 1 span, got %d", len(spans))
+		}
+
+		errSpan := spans[0]
+
+		// check for codes.Unset - default span status
+		if errSpan.Status.Code != codes.Unset {
+			t.Errorf("expected status %s, got %s", codes.Error.String(), errSpan.Status.Code.String())
+		}
+	})
+
 	t.Run("a nil context should not cause a panic", func(t *testing.T) {
 		flagKey := "flag-key"
 		providerName := "provider-name"
