@@ -13,8 +13,8 @@ A `context.Context` containing a `span` must be passed to the client evaluation 
 
 ### Options
 
-- WithErrorStatusDisabled: prevents setting span status to `Error` in case of an error. Default behavior is enabled, 
-  span status is set to `Error` if error occurs
+- WithErrorStatusEnabled: enable setting span status to `Error` in case of an error. Default behavior is disabled, 
+  span status is unset for errors.
 
 ### Example
 The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:

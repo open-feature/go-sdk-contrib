@@ -89,7 +89,7 @@ func TestHookMethods(t *testing.T) {
 		}
 	})
 
-	t.Run("Error hook should record exception on span & set error status", func(t *testing.T) {
+	t.Run("Error hook should record exception on span & avoid setting span status", func(t *testing.T) {
 		exp := tracetest.NewInMemoryExporter()
 		tp := trace.NewTracerProvider(
 			trace.WithSyncer(exp),
@@ -108,8 +108,9 @@ func TestHookMethods(t *testing.T) {
 
 		errSpan := spans[0]
 
-		if errSpan.Status.Code != codes.Error {
-			t.Errorf("expected status %s, got %s", codes.Error.String(), errSpan.Status.Code.String())
+		// check for codes.Unset - default span status
+		if errSpan.Status.Code != codes.Unset {
+			t.Errorf("expected status %s, got %s", codes.Unset.String(), errSpan.Status.Code.String())
 		}
 		if len(errSpan.Events) != 1 {
 			t.Errorf("expected 1 event, got %d", len(errSpan.Events))
@@ -119,7 +120,7 @@ func TestHookMethods(t *testing.T) {
 		}
 	})
 
-	t.Run("Error hook should skip setting span status if build option is provided", func(t *testing.T) {
+	t.Run("Error hook should set span status if build option is provided", func(t *testing.T) {
 		exp := tracetest.NewInMemoryExporter()
 		tp := trace.NewTracerProvider(
 			trace.WithSyncer(exp),
@@ -127,8 +128,8 @@ func TestHookMethods(t *testing.T) {
 		otel.SetTracerProvider(tp)
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
 
-		// build hook with option WithErrorStatusDisabled
-		hook := otelHook.NewHook(otelHook.WithErrorStatusDisabled())
+		// build hook with option WithErrorStatusEnabled
+		hook := otelHook.NewHook(otelHook.WithErrorStatusEnabled())
 
 		err := errors.New("a terrible error")
 		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
@@ -141,8 +142,7 @@ func TestHookMethods(t *testing.T) {
 
 		errSpan := spans[0]
 
-		// check for codes.Unset - default span status
-		if errSpan.Status.Code != codes.Unset {
+		if errSpan.Status.Code != codes.Error {
 			t.Errorf("expected status %s, got %s", codes.Error.String(), errSpan.Status.Code.String())
 		}
 	})

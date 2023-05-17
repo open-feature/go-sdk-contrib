@@ -23,9 +23,7 @@ type hook struct {
 
 // NewHook return a reference to a new instance of the OpenTelemetry Hook
 func NewHook(opts ...Options) *hook {
-	h := &hook{
-		setErrorStatus: true,
-	}
+	h := &hook{}
 
 	for _, opt := range opts {
 		opt(h)
@@ -61,10 +59,10 @@ func (h *hook) Error(ctx context.Context, hookContext openfeature.HookContext, e
 
 type Options func(*hook)
 
-// WithErrorStatusDisabled prevents setting span status to codes.Error in case of an error. Default behavior is enabled
-func WithErrorStatusDisabled() Options {
+// WithErrorStatusEnabled enable setting span status to codes.Error in case of an error. Default behavior is disabled
+func WithErrorStatusEnabled() Options {
 	return func(h *hook) {
-		h.setErrorStatus = false
+		h.setErrorStatus = true
 	}
 }
 
