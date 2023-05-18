@@ -36,7 +36,7 @@ import (
 func main() {
     openfeature.SetProvider(flagd.NewProvider(
         flagd.WithHost("localhost"),
-        flagd.WithPort(8000),
+        flagd.WithPort(8013),
     ))
 }
 ```
