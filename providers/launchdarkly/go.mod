@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.0.1
-	github.com/launchdarkly/go-server-sdk/v6 v6.0.3
+	github.com/launchdarkly/go-server-sdk/v6 v6.1.0
 	github.com/open-feature/go-sdk v1.3.0
 	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 )
