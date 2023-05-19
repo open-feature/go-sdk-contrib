@@ -17,12 +17,19 @@ const (
 )
 
 type hook struct {
+	setErrorStatus bool
 	openfeature.UnimplementedHook
 }
 
 // NewHook return a reference to a new instance of the OpenTelemetry Hook
-func NewHook() *hook {
-	return &hook{}
+func NewHook(opts ...Options) *hook {
+	h := &hook{}
+
+	for _, opt := range opts {
+		opt(h)
+	}
+
+	return h
 }
 
 // After sets the feature_flag event and associated attributes on the span stored in the context
@@ -39,9 +46,24 @@ func (h *hook) After(ctx context.Context, hookContext openfeature.HookContext, f
 // Error records the given error against the span and sets the span to an error status
 func (h *hook) Error(ctx context.Context, hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
 	span := trace.SpanFromContext(ctx)
-	span.SetStatus(codes.Error,
-		fmt.Sprintf("error evaluating flag '%s' of type '%s'", hookContext.FlagKey(), hookContext.FlagType().String()))
+
+	if h.setErrorStatus {
+		span.SetStatus(codes.Error,
+			fmt.Sprintf("error evaluating flag '%s' of type '%s'", hookContext.FlagKey(), hookContext.FlagType().String()))
+	}
+
 	span.RecordError(err)
+}
+
+// Options of the hook
+
+type Options func(*hook)
+
+// WithErrorStatusEnabled enable setting span status to codes.Error in case of an error. Default behavior is disabled
+func WithErrorStatusEnabled() Options {
+	return func(h *hook) {
+		h.setErrorStatus = true
+	}
 }
 
 var _ openfeature.Hook = &hook{}

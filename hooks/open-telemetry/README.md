@@ -11,6 +11,11 @@ For this hook to function correctly a global `TracerProvider` must be set, an ex
 The `open telemetry hook` taps into the after and error methods of the hook lifecycle to write `events` and `attributes` to an existing `span`.
 A `context.Context` containing a `span` must be passed to the client evaluation method, otherwise the hook will no-op.
 
+### Options
+
+- WithErrorStatusEnabled: enable setting span status to `Error` in case of an error. Default behavior is disabled, 
+  span status is unset for errors.
+
 ### Example
 The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:
 ```json
