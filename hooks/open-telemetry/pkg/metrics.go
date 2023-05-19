@@ -12,7 +12,7 @@ import (
 const (
 	meterName = "OpenFeature/Metrics"
 
-	activeCounter     = "activeCounter"
+	evaluationActive  = "evaluationActive"
 	evaluationCounter = "evaluationRequests"
 	successCounter    = "evaluationSuccess"
 	errorCounter      = "evaluationError"
@@ -30,7 +30,7 @@ func NewMetricsHook(reader metric.Reader) (*MetricsHook, error) {
 	provider := metric.NewMeterProvider(metric.WithReader(reader))
 	meter := provider.Meter(meterName)
 
-	activeCounter, err := meter.Int64UpDownCounter(activeCounter, api.WithDescription("active evaluations counter"))
+	activeCounter, err := meter.Int64UpDownCounter(evaluationActive, api.WithDescription("active evaluations counter"))
 	if err != nil {
 		return nil, err
 	}
