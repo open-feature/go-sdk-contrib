@@ -50,7 +50,7 @@ func TestMetricsHook_BeforeStage(t *testing.T) {
 
 	metrics := scopeMetrics[0].Metrics
 	if len(metrics) != 2 {
-		t.Errorf("expected 2 metrics, %s & %s to be present with before hook", evaluationCounter, evaluationActive)
+		t.Errorf("expected 2 metrics, %s & %s to be present with before hook", evaluationRequests, evaluationActive)
 	}
 }
 
@@ -102,11 +102,11 @@ func TestMetricsHook_AfterStage(t *testing.T) {
 
 	metrics := scopeMetrics[0].Metrics
 	if len(metrics) < 1 {
-		t.Errorf("expected metric, %s to be present with after hook", successCounter)
+		t.Errorf("expected metric, %s to be present with after hook", evaluationSuccess)
 	}
 
-	if metrics[0].Name != successCounter {
-		t.Errorf("expected %s to be present with after hook", successCounter)
+	if metrics[0].Name != evaluationSuccess {
+		t.Errorf("expected %s to be present with after hook", evaluationSuccess)
 	}
 }
 
@@ -147,13 +147,13 @@ func TestMetricsHook_ErrorStage(t *testing.T) {
 
 	metrics := scopeMetrics[0].Metrics
 	if len(metrics) < 1 {
-		t.Errorf("expected metric, %s to be present with error hook", errorCounter)
+		t.Errorf("expected metric, %s to be present with error hook", evaluationErrors)
 	}
 
 	errorCounterMetric := metrics[0]
 
-	if errorCounterMetric.Name != errorCounter {
-		t.Errorf("expected %s to be present with error hook", errorCounter)
+	if errorCounterMetric.Name != evaluationErrors {
+		t.Errorf("expected %s to be present with error hook", evaluationErrors)
 	}
 
 	m := errorCounterMetric.Data.(metricdata.Sum[int64])
