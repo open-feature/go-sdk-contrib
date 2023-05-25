@@ -25,7 +25,8 @@ type MetricsHook struct {
 	errorCounter   api.Int64Counter
 }
 
-// NewMetricsHook builds a metric hook backed by provided metric.Reader. Reader must be provided by library user and
+// NewMetricsHook builds a metric hook backed by provided metric.Reader. Reader must be provided by developer and
+// its configurations govern metric exports
 func NewMetricsHook(reader metric.Reader) (*MetricsHook, error) {
 	provider := metric.NewMeterProvider(metric.WithReader(reader))
 	meter := provider.Meter(meterName)
@@ -58,9 +59,10 @@ func NewMetricsHook(reader metric.Reader) (*MetricsHook, error) {
 	}, nil
 }
 
-func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext, hint openfeature.HookHints) (*openfeature.EvaluationContext, error) {
-	h.activeCounter.Add(ctx, +1, api.WithAttributes(semconv.FeatureFlagVariant(hCtx.FlagType().String())))
+func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
+	hint openfeature.HookHints) (*openfeature.EvaluationContext, error) {
 
+	h.activeCounter.Add(ctx, +1, api.WithAttributes(semconv.FeatureFlagVariant(hCtx.FlagType().String())))
 	h.requestCounter.Add(ctx, 1, api.WithAttributes(SemConvFeatureFlagAttributes(hCtx)...))
 
 	return nil, nil
@@ -86,8 +88,9 @@ func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext,
 	h.activeCounter.Add(ctx, -1, api.WithAttributes(semconv.FeatureFlagVariant(hCtx.FlagType().String())))
 }
 
-// SemConvFeatureFlagAttributes a helper to derive semantic convention attributes from openfeature.HookContext
-// refer - https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/feature-flags/
+// SemConvFeatureFlagAttributes a helper to derive feature flag semantic convention attributes from
+// openfeature.HookContext
+// Read more - https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/feature-flags/
 func SemConvFeatureFlagAttributes(hookContext openfeature.HookContext) []attribute.KeyValue {
 	return []attribute.KeyValue{
 		semconv.FeatureFlagKey(hookContext.FlagKey()),
