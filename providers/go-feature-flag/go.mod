@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/bluele/gcache v0.0.2
-	github.com/open-feature/go-sdk v1.2.0
+	github.com/open-feature/go-sdk v1.4.0
 	github.com/stretchr/testify v1.8.3
 	github.com/thomaspoignant/go-feature-flag v1.10.4
 )
@@ -14,7 +14,7 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20220911224424-aa1f1f12a846 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/nikunjy/rules v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

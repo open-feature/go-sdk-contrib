@@ -31,6 +31,8 @@ github.com/open-feature/flagd/core v0.5.3 h1:ztWPkLs2mRk4dHvUYLc7bsGyght43fnvomj
 github.com/open-feature/flagd/core v0.5.3/go.mod h1:pVS/k/iEaJ5fPeIND8JpB22mqCi3iDcgb8wEgiqipnM=
 github.com/open-feature/go-sdk v1.2.0 h1:2xsUgNUUDITpryB9nFS43CI9gAF415I1He22Q1d4+Po=
 github.com/open-feature/go-sdk v1.2.0/go.mod h1:UQJJXUptk92An4F6so2Vd0iRo6EEZ+QGa7HVyQ/GPi0=
+github.com/open-feature/go-sdk v1.4.0 h1:QvFXywCvm9J6uS8+kESHnzi5sLtRkxwhS/ooS7SaF8M=
+github.com/open-feature/go-sdk v1.4.0/go.mod h1:DtxB5FPc2GDjOZRFXm+hEjB+JPC8GTYCKo9JuKNx1F0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
