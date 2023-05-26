@@ -23,11 +23,15 @@ type MetricsHook struct {
 	requestCounter api.Int64Counter
 	successCounter api.Int64Counter
 	errorCounter   api.Int64Counter
+
+	flagEvalMetadataDimensions []DimensionDescription
 }
+
+type Options func(*MetricsHook)
 
 // NewMetricsHook builds a metric hook backed by provided metric.Reader. Reader must be provided by developer and
 // its configurations govern metric exports
-func NewMetricsHook(reader metric.Reader) (*MetricsHook, error) {
+func NewMetricsHook(reader metric.Reader, opts ...Options) (*MetricsHook, error) {
 	provider := metric.NewMeterProvider(metric.WithReader(reader))
 	meter := provider.Meter(meterName)
 
@@ -51,12 +55,18 @@ func NewMetricsHook(reader metric.Reader) (*MetricsHook, error) {
 		return nil, err
 	}
 
-	return &MetricsHook{
+	m := &MetricsHook{
 		activeCounter:  activeCounter,
 		requestCounter: evalCounter,
 		successCounter: successCounter,
 		errorCounter:   errorCounter,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		opt(m)
+	}
+
+	return m, nil
 }
 
 func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
@@ -74,6 +84,13 @@ func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 	reasonAttrib := attribute.String("reason", string(details.Reason))
 	attribs := append(SemConvFeatureFlagAttributes(hCtx), reasonAttrib)
 
+	fromMetadata, err := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
+	if err != nil {
+		return err
+	}
+
+	attribs = append(attribs, fromMetadata...)
+
 	h.successCounter.Add(ctx, 1, api.WithAttributes(attribs...))
 
 	return nil
@@ -88,6 +105,34 @@ func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext,
 	h.activeCounter.Add(ctx, -1, api.WithAttributes(semconv.FeatureFlagVariant(hCtx.FlagType().String())))
 }
 
+// Extra options for metrics hook
+
+type Type int
+
+// Type helper
+const (
+	Bool = iota
+	String
+	Int
+	Float
+)
+
+// DimensionDescription is key and Type description of the dimension
+type DimensionDescription struct {
+	Key string
+	Type
+}
+
+// WithFlagMetadataDimensions allows configuring extra dimensions for feature_flag.evaluation_success_total metric.
+// If provided, dimensions will be extracted from openfeature.FlagMetadata & added to the metric with the same key
+func WithFlagMetadataDimensions(descriptions ...DimensionDescription) Options {
+	return func(metricsHook *MetricsHook) {
+		metricsHook.flagEvalMetadataDimensions = descriptions
+	}
+}
+
+// Metric helpers
+
 // SemConvFeatureFlagAttributes a helper to derive feature flag semantic convention attributes from
 // openfeature.HookContext
 // Read more - https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/feature-flags/
@@ -97,4 +142,41 @@ func SemConvFeatureFlagAttributes(hookContext openfeature.HookContext) []attribu
 		semconv.FeatureFlagVariant(hookContext.FlagType().String()),
 		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),
 	}
+}
+
+// descriptionsToAttributes is a helper to extract dimensions from openfeature.FlagMetadata
+func descriptionsToAttributes(metadata openfeature.FlagMetadata, descriptions []DimensionDescription) (
+	[]attribute.KeyValue, error) {
+
+	attribs := []attribute.KeyValue{}
+	for _, dimension := range descriptions {
+		switch dimension.Type {
+		case Bool:
+			b, err := metadata.GetBool(dimension.Key)
+			if err != nil {
+				return nil, err
+			}
+			attribs = append(attribs, attribute.Bool(dimension.Key, b))
+		case String:
+			s, err := metadata.GetString(dimension.Key)
+			if err != nil {
+				return nil, err
+			}
+			attribs = append(attribs, attribute.String(dimension.Key, s))
+		case Int:
+			i, err := metadata.GetInt(dimension.Key)
+			if err != nil {
+				return nil, err
+			}
+			attribs = append(attribs, attribute.Int64(dimension.Key, i))
+		case Float:
+			f, err := metadata.GetFloat(dimension.Key)
+			if err != nil {
+				return nil, err
+			}
+			attribs = append(attribs, attribute.Float64(dimension.Key, f))
+		}
+	}
+
+	return attribs, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"reflect"
@@ -18,7 +19,6 @@ func TestMetricsHook_BeforeStage(t *testing.T) {
 
 	ctx := context.Background()
 
-	hookContext := hookContext()
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
 	metricsHook, err := NewMetricsHook(manualReader)
@@ -28,7 +28,7 @@ func TestMetricsHook_BeforeStage(t *testing.T) {
 	}
 
 	// when
-	_, err = metricsHook.Before(ctx, hookContext, hookHints)
+	_, err = metricsHook.Before(ctx, hookContext(), hookHints)
 	if err != nil {
 		t.Error(err)
 		return
@@ -62,7 +62,6 @@ func TestMetricsHook_AfterStage(t *testing.T) {
 
 	ctx := context.Background()
 
-	hookContext := hookContext()
 	evalDetails := openfeature.InterfaceEvaluationDetails{
 		Value: true,
 		EvaluationDetails: openfeature.EvaluationDetails{
@@ -80,7 +79,7 @@ func TestMetricsHook_AfterStage(t *testing.T) {
 	}
 
 	// when
-	err = metricsHook.After(ctx, hookContext, evalDetails, hookHints)
+	err = metricsHook.After(ctx, hookContext(), evalDetails, hookHints)
 	if err != nil {
 		t.Error(err)
 		return
@@ -118,7 +117,6 @@ func TestMetricsHook_ErrorStage(t *testing.T) {
 
 	ctx := context.Background()
 
-	hookContext := hookContext()
 	evalError := errors.New("some eval error")
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
@@ -129,7 +127,7 @@ func TestMetricsHook_ErrorStage(t *testing.T) {
 	}
 
 	// when
-	metricsHook.Error(ctx, hookContext, evalError, hookHints)
+	metricsHook.Error(ctx, hookContext(), evalError, hookHints)
 
 	// then
 	var data metricdata.ResourceMetrics
@@ -273,6 +271,125 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 	if m.DataPoints[0].Value != 0 {
 		t.Errorf("expected 0 value with before & finally stage executions")
 	}
+}
+
+func TestMetricHook_OptionMetadataDimensions(t *testing.T) {
+	// Test validates WithFlagMetadataDimensions option
+
+	// given
+	manualReader := metric.NewManualReader()
+	ctx := context.Background()
+
+	scopeDescription := DimensionDescription{
+		Key:  "scope",
+		Type: String,
+	}
+	scopeValue := "7c34165e-fbef-11ed-be56-0242ac120002"
+
+	stageDescription := DimensionDescription{
+		Key:  "stage",
+		Type: Int,
+	}
+	stageValue := 1
+
+	scoreDescription := DimensionDescription{
+		Key:  "score",
+		Type: Float,
+	}
+	scoreValue := 4.5
+
+	cachedDescription := DimensionDescription{
+		Key:  "cached",
+		Type: Bool,
+	}
+	cacheValue := false
+
+	evalMetadata := map[string]interface{}{
+		scopeDescription.Key:  scopeValue,
+		stageDescription.Key:  stageValue,
+		scoreDescription.Key:  scoreValue,
+		cachedDescription.Key: cacheValue,
+	}
+
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value: true,
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:  "flagA",
+			FlagType: openfeature.Boolean,
+			ResolutionDetail: openfeature.ResolutionDetail{
+				FlagMetadata: evalMetadata,
+			},
+		},
+	}
+	hookHints := openfeature.NewHookHints(map[string]interface{}{})
+
+	metricsHook, err := NewMetricsHook(manualReader,
+		WithFlagMetadataDimensions(scopeDescription, stageDescription, scoreDescription, cachedDescription))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// when
+	err = metricsHook.After(ctx, hookContext(), evalDetails, hookHints)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// then
+	var data metricdata.ResourceMetrics
+
+	err = manualReader.Collect(ctx, &data)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	scopeMetrics := data.ScopeMetrics
+	if len(scopeMetrics) < 1 {
+		t.Error("expected scope metrics to be non empty with after hook")
+	}
+
+	metrics := scopeMetrics[0].Metrics
+	if len(metrics) < 1 {
+		t.Errorf("expected metric, %s to be present with after hook", evaluationSuccess)
+	}
+
+	successMetric := metrics[0]
+
+	if successMetric.Name != evaluationSuccess {
+		t.Errorf("expected %s to be present with after hook", evaluationSuccess)
+	}
+
+	instrument := successMetric.Data.(metricdata.Sum[int64])
+
+	if len(instrument.DataPoints) < 1 {
+		t.Error("expected data points, but found none")
+	}
+
+	attributes := instrument.DataPoints[0].Attributes
+
+	value, ok := attributes.Value(attribute.Key(scopeDescription.Key))
+	if !ok || value.AsString() != scopeValue {
+		t.Errorf("attribute %s is incorrectoly configured", scoreDescription.Key)
+	}
+
+	value, ok = attributes.Value(attribute.Key(stageDescription.Key))
+	if !ok || value.AsInt64() != int64(stageValue) {
+		t.Errorf("attribute %s is incorrectoly configured", stageDescription.Key)
+	}
+
+	value, ok = attributes.Value(attribute.Key(scoreDescription.Key))
+	if !ok || value.AsFloat64() != scoreValue {
+		t.Errorf("attribute %s is incorrectoly configured", scoreDescription.Key)
+	}
+
+	value, ok = attributes.Value(attribute.Key(cachedDescription.Key))
+	if !ok || value.AsBool() != cacheValue {
+		t.Errorf("attribute %s is incorrectoly configured", cachedDescription.Key)
+	}
+
 }
 
 func hookContext() openfeature.HookContext {

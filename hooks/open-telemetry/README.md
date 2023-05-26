@@ -1,14 +1,65 @@
 # OpenTelemetry Hook
 
-### Requirements
+## Requirements
 
 - open-feature/go-sdk >= v1.3.0
 
 ## Usage
 
-For this hook to function correctly a global `TracerProvider` must be set, an example of how to do this can be found below.
+## Metric hook
 
-The `open telemetry hook` taps into the after and error methods of the hook lifecycle to write `events` and `attributes` to an existing `span`.
+This hook performs metric collection by tapping into various hook stages. Given below are the metrics are extracted 
+by this hook,
+
+- `feature_flag.evaluation_requests_total`
+- `feature_flag.evaluation_success_total`
+- `feature_flag.evaluation_error_total`
+- `feature_flag.evaluation_active_count`
+
+### Options
+
+#### WithFlagMetadataDimensions 
+
+This constructor option allows to configure dimension descriptions to be extracted from `openfeature.FlagMetadata`. 
+If present, these dimension will be added to the `feature_flag.evaluation_success_total` metric.
+
+Note that, this configuration must be carefully coordinated with `Provider` as missing dimensions results in hook 
+evaluation error.
+
+Example usage,
+
+```go
+NewMetricsHook(reader,
+    WithFlagMetadataDimensions(
+        DimensionDescription{
+            Key:  "scope",
+            Type: String,
+        }))
+```
+
+### Example
+
+```go
+// Reader must be configured and injected based from application level
+var reader metric.Reader
+        
+// Derive metric hook from reader
+metricsHook, _ := hooks.NewMetricsHook(reader)
+if err != nil {
+    return err
+}
+
+// Register OpenFeature API level hooks
+openfeature.AddHooks(metricsHook)
+```
+
+## Span hook
+
+For this hook to function correctly a global `TracerProvider` must be set, an example of how to do this can be found
+below.
+
+The `open telemetry hook` taps into the after and error methods of the hook lifecycle to write `events` and `attributes`
+to an existing `span`.
 A `context.Context` containing a `span` must be passed to the client evaluation method, otherwise the hook will no-op.
 
 ### Options
@@ -17,27 +68,30 @@ A `context.Context` containing a `span` must be passed to the client evaluation 
   span status is unset for errors.
 
 ### Example
-The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:
+
+The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are
+sent to a `zipkin` server running at `:9411` which will receive the following trace:
+
 ```json
 {
-	"traceId":"ac4464e6387c552b4b55ab3d19bf64f9",
-	"id":"f677ca41dbfd6bfe",
-	"name":"run",
-	"timestamp":1673431556236064,
-	"duration":45,
-	"localEndpoint":{
-		"serviceName":"hook-example"
-		},
-		"annotations":[
-			{
-				"timestamp":1673431556236107,
-				"value":"feature_flag: {\"feature_flag.key\":\"my-bool-flag\",\"feature_flag.provider_name\":\"NoopProvider\",\"feature_flag.variant\":\"default-variant\"}"
-			}
-		],
-		"tags":{
-			"otel.library.name":"test-tracer",
-			"service.name":"hook-example"
-		}
+  "traceId": "ac4464e6387c552b4b55ab3d19bf64f9",
+  "id": "f677ca41dbfd6bfe",
+  "name": "run",
+  "timestamp": 1673431556236064,
+  "duration": 45,
+  "localEndpoint": {
+    "serviceName": "hook-example"
+  },
+  "annotations": [
+    {
+      "timestamp": 1673431556236107,
+      "value": "feature_flag: {\"feature_flag.key\":\"my-bool-flag\",\"feature_flag.provider_name\":\"NoopProvider\",\"feature_flag.variant\":\"default-variant\"}"
+    }
+  ],
+  "tags": {
+    "otel.library.name": "test-tracer",
+    "service.name": "hook-example"
+  }
 }
 ```
 
@@ -121,9 +175,4 @@ func main() {
 	)
 	s.End()
 }
-
 ```
-
-## License
-
-Apache 2.0 - See [LICENSE](./../../LICENSE) for more information.
