@@ -12,13 +12,14 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/open-feature/flagd/core v0.5.3
-	github.com/open-feature/go-sdk v1.2.0
+	github.com/open-feature/go-sdk v1.4.0
 	golang.org/x/net v0.10.0
 	google.golang.org/protobuf v1.30.0
 )
 
 require (
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/stretchr/testify v1.8.3 // indirect
 	go.opentelemetry.io/otel v1.15.1 // indirect
 	go.opentelemetry.io/otel/metric v0.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.15.1 // indirect
