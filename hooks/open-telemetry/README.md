@@ -8,8 +8,7 @@
 
 ## Metric hook
 
-This hook performs metric collection by tapping into various hook stages. Given below are the metrics are extracted 
-by this hook,
+This hook performs metric collection by tapping into various hook stages. Given below are the metrics are extracted by this hook,
 
 - `feature_flag.evaluation_requests_total`
 - `feature_flag.evaluation_success_total`
@@ -23,8 +22,7 @@ by this hook,
 This constructor option allows to configure dimension descriptions to be extracted from `openfeature.FlagMetadata`. 
 If present, these dimension will be added to the `feature_flag.evaluation_success_total` metric.
 
-Note that, this configuration must be carefully coordinated with `Provider` as missing dimensions results in hook 
-evaluation error.
+Note that, this configuration must be carefully coordinated with `Provider` as missing dimensions results in hook evaluation error.
 
 Example usage,
 
@@ -55,11 +53,9 @@ openfeature.AddHooks(metricsHook)
 
 ## Span hook
 
-For this hook to function correctly a global `TracerProvider` must be set, an example of how to do this can be found
-below.
+For this hook to function correctly a global `TracerProvider` must be set, an example of how to do this can be found below.
 
-The `open telemetry hook` taps into the after and error methods of the hook lifecycle to write `events` and `attributes`
-to an existing `span`.
+The `open telemetry hook` taps into the after and error methods of the hook lifecycle to write `events` and `attributes`to an existing `span`.
 A `context.Context` containing a `span` must be passed to the client evaluation method, otherwise the hook will no-op.
 
 ### Options
@@ -69,8 +65,8 @@ A `context.Context` containing a `span` must be passed to the client evaluation 
 
 ### Example
 
-The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`. The traces are
-sent to a `zipkin` server running at `:9411` which will receive the following trace:
+The following example demonstrates the use of the `OpenTelemetry hook` with the `OpenFeature go-sdk`.
+The traces are sent to a `zipkin` server running at `:9411` which will receive the following trace:
 
 ```json
 {
