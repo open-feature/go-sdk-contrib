@@ -27,11 +27,11 @@ type MetricsHook struct {
 	flagEvalMetadataDimensions []DimensionDescription
 }
 
-type Options func(*MetricsHook)
+type MetricOptions func(*MetricsHook)
 
 // NewMetricsHook builds a metric hook backed by provided metric.Reader. Reader must be provided by developer and
 // its configurations govern metric exports
-func NewMetricsHook(reader metric.Reader, opts ...Options) (*MetricsHook, error) {
+func NewMetricsHook(reader metric.Reader, opts ...MetricOptions) (*MetricsHook, error) {
 	provider := metric.NewMeterProvider(metric.WithReader(reader))
 	meter := provider.Meter(meterName)
 
@@ -125,7 +125,7 @@ type DimensionDescription struct {
 
 // WithFlagMetadataDimensions allows configuring extra dimensions for feature_flag.evaluation_success_total metric.
 // If provided, dimensions will be extracted from openfeature.FlagMetadata & added to the metric with the same key
-func WithFlagMetadataDimensions(descriptions ...DimensionDescription) Options {
+func WithFlagMetadataDimensions(descriptions ...DimensionDescription) MetricOptions {
 	return func(metricsHook *MetricsHook) {
 		metricsHook.flagEvalMetadataDimensions = descriptions
 	}
