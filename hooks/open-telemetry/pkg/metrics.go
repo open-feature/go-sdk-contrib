@@ -96,10 +96,7 @@ func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 	if details.Reason != "" {
 		attribs = append(attribs, attribute.String("reason", string(details.Reason)))
 	}
-	fromMetadata, err := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
-	if err != nil {
-		return err
-	}
+	fromMetadata := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
 
 	attribs = append(attribs, fromMetadata...)
 	h.successCounter.Add(ctx, 1, api.WithAttributes(attribs...))
@@ -145,39 +142,35 @@ func WithFlagMetadataDimensions(descriptions ...DimensionDescription) MetricOpti
 	}
 }
 
-// descriptionsToAttributes is a helper to extract dimensions from openfeature.FlagMetadata
-func descriptionsToAttributes(metadata openfeature.FlagMetadata, descriptions []DimensionDescription) (
-	[]attribute.KeyValue, error) {
+// descriptionsToAttributes is a helper to extract dimensions from openfeature.FlagMetadata. Missing metadata
+// dimensions are ignore.
+func descriptionsToAttributes(metadata openfeature.FlagMetadata, descriptions []DimensionDescription) []attribute.KeyValue {
 
 	attribs := []attribute.KeyValue{}
 	for _, dimension := range descriptions {
 		switch dimension.Type {
 		case Bool:
 			b, err := metadata.GetBool(dimension.Key)
-			if err != nil {
-				return nil, err
+			if err == nil {
+				attribs = append(attribs, attribute.Bool(dimension.Key, b))
 			}
-			attribs = append(attribs, attribute.Bool(dimension.Key, b))
 		case String:
 			s, err := metadata.GetString(dimension.Key)
-			if err != nil {
-				return nil, err
+			if err == nil {
+				attribs = append(attribs, attribute.String(dimension.Key, s))
 			}
-			attribs = append(attribs, attribute.String(dimension.Key, s))
 		case Int:
 			i, err := metadata.GetInt(dimension.Key)
-			if err != nil {
-				return nil, err
+			if err == nil {
+				attribs = append(attribs, attribute.Int64(dimension.Key, i))
 			}
-			attribs = append(attribs, attribute.Int64(dimension.Key, i))
 		case Float:
 			f, err := metadata.GetFloat(dimension.Key)
-			if err != nil {
-				return nil, err
+			if err == nil {
+				attribs = append(attribs, attribute.Float64(dimension.Key, f))
 			}
-			attribs = append(attribs, attribute.Float64(dimension.Key, f))
 		}
 	}
 
-	return attribs, nil
+	return attribs
 }

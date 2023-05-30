@@ -20,9 +20,8 @@ This hook performs metric collection by tapping into various hook stages. Given 
 #### WithFlagMetadataDimensions 
 
 This constructor option allows to configure dimension descriptions to be extracted from `openfeature.FlagMetadata`. 
-If present, these dimension will be added to the `feature_flag.evaluation_success_total` metric.
-
-Note that, this configuration must be carefully coordinated with `Provider` as missing dimensions results in hook evaluation error.
+If present, these dimension will be added to the `feature_flag.evaluation_success_total` metric. 
+Missing metadata keys will be ignored by the implementation.
 
 Example usage,
 
