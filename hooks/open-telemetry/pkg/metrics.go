@@ -11,7 +11,6 @@ import (
 
 const (
 	meterName = "go.openfeature.dev"
-	meterName = "github.com/open-feature/go-sdk-contrib/otel"
 
 	evaluationActive   = "feature_flag.evaluation_active_count"
 	evaluationRequests = "feature_flag.evaluation_requests_total"
