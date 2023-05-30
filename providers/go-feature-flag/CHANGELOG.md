@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.18](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.17...providers/go-feature-flag/v0.1.18) (2023-05-29)
+
+
+### 🧹 Chore
+
+* update module github.com/open-feature/go-sdk to v1.4.0 ([#223](https://github.com/open-feature/go-sdk-contrib/issues/223)) ([7c8ea46](https://github.com/open-feature/go-sdk-contrib/commit/7c8ea46e3e094f746dbf6d80ba6a1b606314e8d7))
+
 ## [0.1.17](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.16...providers/go-feature-flag/v0.1.17) (2023-05-25)
 
 
