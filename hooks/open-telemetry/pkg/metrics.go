@@ -72,8 +72,12 @@ func NewMetricsHook(reader metric.Reader, opts ...MetricOptions) (*MetricsHook, 
 func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
 	hint openfeature.HookHints) (*openfeature.EvaluationContext, error) {
 
-	h.activeCounter.Add(ctx, +1, api.WithAttributes(semconv.FeatureFlagVariant(hCtx.FlagType().String())))
-	h.requestCounter.Add(ctx, 1, api.WithAttributes(SemConvFeatureFlagAttributes(hCtx)...))
+	h.activeCounter.Add(ctx, +1, api.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
+
+	h.requestCounter.Add(ctx, 1,
+		api.WithAttributes(
+			semconv.FeatureFlagKey(hCtx.FlagKey()),
+			semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name)))
 
 	return nil, nil
 }
@@ -81,28 +85,38 @@ func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
 func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 	details openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) error {
 
-	reasonAttrib := attribute.String("reason", string(details.Reason))
-	attribs := append(SemConvFeatureFlagAttributes(hCtx), reasonAttrib)
+	attribs := []attribute.KeyValue{
+		semconv.FeatureFlagKey(hCtx.FlagKey()),
+		semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name)}
 
+	if details.Variant != "" {
+		attribs = append(attribs, semconv.FeatureFlagVariant(details.Variant))
+	}
+
+	if details.Reason != "" {
+		attribs = append(attribs, attribute.String("reason", string(details.Reason)))
+	}
 	fromMetadata, err := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
 	if err != nil {
 		return err
 	}
 
 	attribs = append(attribs, fromMetadata...)
-
 	h.successCounter.Add(ctx, 1, api.WithAttributes(attribs...))
 
 	return nil
 }
 
 func (h *MetricsHook) Error(ctx context.Context, hCtx openfeature.HookContext, err error, hint openfeature.HookHints) {
-	errorReason := attribute.String(semconv.ExceptionEventName, err.Error())
-	h.errorCounter.Add(ctx, 1, api.WithAttributes(append(SemConvFeatureFlagAttributes(hCtx), errorReason)...))
+	h.errorCounter.Add(ctx, 1,
+		api.WithAttributes(
+			semconv.FeatureFlagKey(hCtx.FlagKey()),
+			semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name),
+			attribute.String(semconv.ExceptionEventName, err.Error())))
 }
 
 func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, hint openfeature.HookHints) {
-	h.activeCounter.Add(ctx, -1, api.WithAttributes(semconv.FeatureFlagVariant(hCtx.FlagType().String())))
+	h.activeCounter.Add(ctx, -1, api.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 }
 
 // Extra options for metrics hook
@@ -128,19 +142,6 @@ type DimensionDescription struct {
 func WithFlagMetadataDimensions(descriptions ...DimensionDescription) MetricOptions {
 	return func(metricsHook *MetricsHook) {
 		metricsHook.flagEvalMetadataDimensions = descriptions
-	}
-}
-
-// Metric helpers
-
-// SemConvFeatureFlagAttributes a helper to derive feature flag semantic convention attributes from
-// openfeature.HookContext
-// Read more - https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/feature-flags/
-func SemConvFeatureFlagAttributes(hookContext openfeature.HookContext) []attribute.KeyValue {
-	return []attribute.KeyValue{
-		semconv.FeatureFlagKey(hookContext.FlagKey()),
-		semconv.FeatureFlagVariant(hookContext.FlagType().String()),
-		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),
 	}
 }
 
