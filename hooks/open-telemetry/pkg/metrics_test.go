@@ -372,7 +372,7 @@ func TestMetricHook_OptionMetadataDimensions(t *testing.T) {
 
 	value, ok := attributes.Value(attribute.Key(scopeDescription.Key))
 	if !ok || value.AsString() != scopeValue {
-		t.Errorf("attribute %s is incorrectoly configured", scoreDescription.Key)
+		t.Errorf("attribute %s is incorrectly configured", scoreDescription.Key)
 	}
 
 	value, ok = attributes.Value(attribute.Key(stageDescription.Key))
