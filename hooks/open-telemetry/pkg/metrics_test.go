@@ -377,17 +377,17 @@ func TestMetricHook_OptionMetadataDimensions(t *testing.T) {
 
 	value, ok = attributes.Value(attribute.Key(stageDescription.Key))
 	if !ok || value.AsInt64() != int64(stageValue) {
-		t.Errorf("attribute %s is incorrectoly configured", stageDescription.Key)
+		t.Errorf("attribute %s is incorrectly configured", stageDescription.Key)
 	}
 
 	value, ok = attributes.Value(attribute.Key(scoreDescription.Key))
 	if !ok || value.AsFloat64() != scoreValue {
-		t.Errorf("attribute %s is incorrectoly configured", scoreDescription.Key)
+		t.Errorf("attribute %s is incorrectly configured", scoreDescription.Key)
 	}
 
 	value, ok = attributes.Value(attribute.Key(cachedDescription.Key))
 	if !ok || value.AsBool() != cacheValue {
-		t.Errorf("attribute %s is incorrectoly configured", cachedDescription.Key)
+		t.Errorf("attribute %s is incorrectly configured", cachedDescription.Key)
 	}
 
 }
