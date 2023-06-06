@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.18...providers/go-feature-flag/v0.1.19) (2023-05-31)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/stretchr/testify to v1.8.4 ([#229](https://github.com/open-feature/go-sdk-contrib/issues/229)) ([d75b066](https://github.com/open-feature/go-sdk-contrib/commit/d75b0666417a0b0e46cbe4f157e34765fe9bc7d9))
+
 ## [0.1.18](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.17...providers/go-feature-flag/v0.1.18) (2023-05-29)
 
 
