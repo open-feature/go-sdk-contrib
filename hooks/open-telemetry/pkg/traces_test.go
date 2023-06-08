@@ -26,7 +26,7 @@ func TestHookMethods(t *testing.T) {
 		)
 		otel.SetTracerProvider(tp)
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
-		hook := otelHook.NewHook()
+		hook := otelHook.NewTracesHook()
 		err := hook.After(
 			ctx,
 			openfeature.NewHookContext(
@@ -96,7 +96,7 @@ func TestHookMethods(t *testing.T) {
 		)
 		otel.SetTracerProvider(tp)
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
-		hook := otelHook.NewHook()
+		hook := otelHook.NewTracesHook()
 		err := errors.New("a terrible error")
 		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
 		span.End()
@@ -128,8 +128,8 @@ func TestHookMethods(t *testing.T) {
 		otel.SetTracerProvider(tp)
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
 
-		// build hook with option WithErrorStatusEnabled
-		hook := otelHook.NewHook(otelHook.WithErrorStatusEnabled())
+		// build traceHook with option WithErrorStatusEnabled
+		hook := otelHook.NewTracesHook(otelHook.WithErrorStatusEnabled())
 
 		err := errors.New("a terrible error")
 		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
@@ -152,7 +152,7 @@ func TestHookMethods(t *testing.T) {
 		providerName := "provider-name"
 		variant := "variant"
 		ctx := context.Background()
-		hook := otelHook.NewHook()
+		hook := otelHook.NewTracesHook()
 
 		err := hook.After(
 			ctx,

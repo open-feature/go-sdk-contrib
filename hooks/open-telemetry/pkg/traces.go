@@ -16,14 +16,21 @@ const (
 	EventPropertyVariant      = "feature_flag.variant"
 )
 
-type hook struct {
+// traceHook is the hook implementation for OTel traces
+type traceHook struct {
 	setErrorStatus bool
 	openfeature.UnimplementedHook
 }
 
 // NewHook return a reference to a new instance of the OpenTelemetry Hook
-func NewHook(opts ...Options) *hook {
-	h := &hook{}
+// Deprecated: please use NewTracesHook instead
+func NewHook(opts ...Options) *traceHook {
+	return NewTracesHook(opts...)
+}
+
+// NewTracesHook return a reference to a new instance of the OpenTelemetry Hook
+func NewTracesHook(opts ...Options) *traceHook {
+	h := &traceHook{}
 
 	for _, opt := range opts {
 		opt(h)
@@ -33,7 +40,7 @@ func NewHook(opts ...Options) *hook {
 }
 
 // After sets the feature_flag event and associated attributes on the span stored in the context
-func (h *hook) After(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
+func (h *traceHook) After(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
 	span := trace.SpanFromContext(ctx)
 	span.AddEvent(EventName, trace.WithAttributes(
 		attribute.String(EventPropertyFlagKey, hookContext.FlagKey()),
@@ -44,7 +51,7 @@ func (h *hook) After(ctx context.Context, hookContext openfeature.HookContext, f
 }
 
 // Error records the given error against the span and sets the span to an error status
-func (h *hook) Error(ctx context.Context, hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
+func (h *traceHook) Error(ctx context.Context, hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
 	span := trace.SpanFromContext(ctx)
 
 	if h.setErrorStatus {
@@ -57,13 +64,13 @@ func (h *hook) Error(ctx context.Context, hookContext openfeature.HookContext, e
 
 // Options of the hook
 
-type Options func(*hook)
+type Options func(*traceHook)
 
 // WithErrorStatusEnabled enable setting span status to codes.Error in case of an error. Default behavior is disabled
 func WithErrorStatusEnabled() Options {
-	return func(h *hook) {
+	return func(h *traceHook) {
 		h.setErrorStatus = true
 	}
 }
 
-var _ openfeature.Hook = &hook{}
+var _ openfeature.Hook = &traceHook{}
