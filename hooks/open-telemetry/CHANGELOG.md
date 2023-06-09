@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.5](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.4...hooks/open-telemetry/v0.2.5) (2023-06-09)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update opentelemetry-go monorepo to v1.15.1 ([#189](https://github.com/open-feature/go-sdk-contrib/issues/189)) ([c42a1c4](https://github.com/open-feature/go-sdk-contrib/commit/c42a1c4371cc219cdfc7ae23c940641548482306))
+* set error state with a message ([#205](https://github.com/open-feature/go-sdk-contrib/issues/205)) ([ce14e22](https://github.com/open-feature/go-sdk-contrib/commit/ce14e22870a9329fe02dd7dba5634d62f9845728))
+
+
+### ✨ New Features
+
+* metric hooks ([#217](https://github.com/open-feature/go-sdk-contrib/issues/217)) ([3a055e4](https://github.com/open-feature/go-sdk-contrib/commit/3a055e45a2ef549696ac2e7eb0a0c388ee3bbb83))
+* otel hook error status override option ([#209](https://github.com/open-feature/go-sdk-contrib/issues/209)) ([48fd3f6](https://github.com/open-feature/go-sdk-contrib/commit/48fd3f6f12a07c2e0e6a92e516e5bab071e8bff0))
+
+
+### 🧹 Chore
+
+* bump interlinked deps ([#236](https://github.com/open-feature/go-sdk-contrib/issues/236)) ([ea2233c](https://github.com/open-feature/go-sdk-contrib/commit/ea2233cc92f0bbb20affa61776a7b9ac166f2575))
+* rename constructor method ([#237](https://github.com/open-feature/go-sdk-contrib/issues/237)) ([b54f2c5](https://github.com/open-feature/go-sdk-contrib/commit/b54f2c50d878e95b07d7444e5912665a4433c80e))
+* update module github.com/open-feature/go-sdk to v1.4.0 ([#223](https://github.com/open-feature/go-sdk-contrib/issues/223)) ([7c8ea46](https://github.com/open-feature/go-sdk-contrib/commit/7c8ea46e3e094f746dbf6d80ba6a1b606314e8d7))
+
 ## [0.2.4](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.3...hooks/open-telemetry/v0.2.4) (2023-04-13)
 
 
