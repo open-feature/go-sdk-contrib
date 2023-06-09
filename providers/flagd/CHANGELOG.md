@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.13](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.12...providers/flagd/v0.1.13) (2023-06-09)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module buf.build/gen/go/open-feature/flagd/bufbuild/connect-go to v1.5.2-20230317150644-afd1cc2ef580.1 ([#170](https://github.com/open-feature/go-sdk-contrib/issues/170)) ([a04997e](https://github.com/open-feature/go-sdk-contrib/commit/a04997eea44f89bcf607625a4f02cfc45587914b))
+* **deps:** update module github.com/bufbuild/connect-opentelemetry-go to v0.2.0 ([#192](https://github.com/open-feature/go-sdk-contrib/issues/192)) ([13c923f](https://github.com/open-feature/go-sdk-contrib/commit/13c923f91407c8ba2de002ab8d5e82d563f399c8))
+* **deps:** update module golang.org/x/net to v0.10.0 ([#165](https://github.com/open-feature/go-sdk-contrib/issues/165)) ([e7249e2](https://github.com/open-feature/go-sdk-contrib/commit/e7249e26f20cfe4a6c99ecc4da8583971ba080fc))
+
+
+### 📚 Documentation
+
+* update flagd port in readme ([#207](https://github.com/open-feature/go-sdk-contrib/issues/207)) ([919d808](https://github.com/open-feature/go-sdk-contrib/commit/919d80855ae4e12ba7908626ddef6b81f34f570f))
+
+
+### 🧹 Chore
+
+* bump interlinked deps ([#236](https://github.com/open-feature/go-sdk-contrib/issues/236)) ([ea2233c](https://github.com/open-feature/go-sdk-contrib/commit/ea2233cc92f0bbb20affa61776a7b9ac166f2575))
+* update module github.com/open-feature/go-sdk to v1.4.0 ([#223](https://github.com/open-feature/go-sdk-contrib/issues/223)) ([7c8ea46](https://github.com/open-feature/go-sdk-contrib/commit/7c8ea46e3e094f746dbf6d80ba6a1b606314e8d7))
+
 ## [0.1.12](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.11...providers/flagd/v0.1.12) (2023-05-10)
 
 
