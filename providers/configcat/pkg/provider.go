@@ -142,6 +142,10 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 }
 
 func (p *Provider) toUserData(evalCtx openfeature.FlattenedContext) (*configcat.UserData, *openfeature.ProviderResolutionDetail) {
+	if len(evalCtx) == 0 {
+		return nil, nil
+	}
+
 	userData := &configcat.UserData{}
 	errDetailFunc := func(key string) *openfeature.ProviderResolutionDetail {
 		return &openfeature.ProviderResolutionDetail{
