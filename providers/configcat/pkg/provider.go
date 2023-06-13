@@ -3,6 +3,7 @@ package configcat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	configcat "github.com/configcat/go-sdk/v7"
@@ -38,7 +39,7 @@ func (p *Provider) Hooks() []openfeature.Hook {
 }
 
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
-	user, errDetails := p.toUserData(evalCtx)
+	user, errDetails := toUserData(evalCtx)
 	if errDetails != nil {
 		return openfeature.BoolResolutionDetail{
 			Value:                    defaultValue,
@@ -49,12 +50,12 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 	evaluation := p.client.GetBoolValueDetails(flag, defaultValue, user)
 	return openfeature.BoolResolutionDetail{
 		Value:                    evaluation.Value,
-		ProviderResolutionDetail: p.evalToResolutionDetail(evaluation.Data),
+		ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 	}
 }
 
 func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
-	user, errDetails := p.toUserData(evalCtx)
+	user, errDetails := toUserData(evalCtx)
 	if errDetails != nil {
 		return openfeature.StringResolutionDetail{
 			Value:                    defaultValue,
@@ -65,12 +66,12 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	evaluation := p.client.GetStringValueDetails(flag, defaultValue, user)
 	return openfeature.StringResolutionDetail{
 		Value:                    evaluation.Value,
-		ProviderResolutionDetail: p.evalToResolutionDetail(evaluation.Data),
+		ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 	}
 }
 
 func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
-	user, errDetails := p.toUserData(evalCtx)
+	user, errDetails := toUserData(evalCtx)
 	if errDetails != nil {
 		return openfeature.FloatResolutionDetail{
 			Value:                    defaultValue,
@@ -81,12 +82,12 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 	evaluation := p.client.GetFloatValueDetails(flag, defaultValue, user)
 	return openfeature.FloatResolutionDetail{
 		Value:                    evaluation.Value,
-		ProviderResolutionDetail: p.evalToResolutionDetail(evaluation.Data),
+		ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 	}
 }
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
-	user, errDetails := p.toUserData(evalCtx)
+	user, errDetails := toUserData(evalCtx)
 	if errDetails != nil {
 		return openfeature.IntResolutionDetail{
 			Value:                    defaultValue,
@@ -97,12 +98,12 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	evaluation := p.client.GetIntValueDetails(flag, int(defaultValue), user)
 	return openfeature.IntResolutionDetail{
 		Value:                    int64(evaluation.Value),
-		ProviderResolutionDetail: p.evalToResolutionDetail(evaluation.Data),
+		ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 	}
 }
 
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
-	user, errDetails := p.toUserData(evalCtx)
+	user, errDetails := toUserData(evalCtx)
 	if errDetails != nil {
 		return openfeature.InterfaceResolutionDetail{
 			Value:                    defaultValue,
@@ -116,7 +117,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		// need to use the one we were provided
 		return openfeature.InterfaceResolutionDetail{
 			Value:                    defaultValue,
-			ProviderResolutionDetail: p.evalToResolutionDetail(evaluation.Data),
+			ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 		}
 	}
 
@@ -137,11 +138,11 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 
 	return openfeature.InterfaceResolutionDetail{
 		Value:                    object,
-		ProviderResolutionDetail: p.evalToResolutionDetail(evaluation.Data),
+		ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 	}
 }
 
-func (p *Provider) toUserData(evalCtx openfeature.FlattenedContext) (*configcat.UserData, *openfeature.ProviderResolutionDetail) {
+func toUserData(evalCtx openfeature.FlattenedContext) (*configcat.UserData, *openfeature.ProviderResolutionDetail) {
 	if len(evalCtx) == 0 {
 		return nil, nil
 	}
@@ -190,18 +191,10 @@ func toStr(val any) (string, bool) {
 	}
 }
 
-func (p *Provider) evalToResolutionDetail(details configcat.EvaluationDetailsData) openfeature.ProviderResolutionDetail {
+func toResolutionDetail(details configcat.EvaluationDetailsData) openfeature.ProviderResolutionDetail {
 	if details.Error != nil {
-		var resolutionErr openfeature.ResolutionError
-		switch details.Error.(type) {
-		case configcat.ErrKeyNotFound:
-			resolutionErr = openfeature.NewFlagNotFoundResolutionError(details.Error.Error())
-		default:
-			resolutionErr = openfeature.NewGeneralResolutionError(details.Error.Error())
-		}
-
 		return openfeature.ProviderResolutionDetail{
-			ResolutionError: resolutionErr,
+			ResolutionError: toResolutionError(details.Error),
 			Reason:          openfeature.ErrorReason,
 		}
 	}
@@ -215,4 +208,13 @@ func (p *Provider) evalToResolutionDetail(details configcat.EvaluationDetailsDat
 		Reason:  reason,
 		Variant: details.VariationID,
 	}
+}
+
+func toResolutionError(err error) openfeature.ResolutionError {
+	var errKeyNotFound configcat.ErrKeyNotFound
+	if errors.As(err, &errKeyNotFound) {
+		return openfeature.NewFlagNotFoundResolutionError(errKeyNotFound.Error())
+	}
+
+	return openfeature.NewGeneralResolutionError(err.Error())
 }
