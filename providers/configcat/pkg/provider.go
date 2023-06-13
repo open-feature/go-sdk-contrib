@@ -147,45 +147,31 @@ func (p *Provider) toUserData(evalCtx openfeature.FlattenedContext) (*configcat.
 	}
 
 	userData := &configcat.UserData{}
-	errDetailFunc := func(key string) *openfeature.ProviderResolutionDetail {
-		return &openfeature.ProviderResolutionDetail{
-			ResolutionError: openfeature.NewInvalidContextResolutionError(
-				fmt.Sprintf("key `%s` is not a string", key),
-			),
-			Reason: openfeature.ErrorReason,
-		}
-	}
-
 	custom := make(map[string]string, len(evalCtx))
 	for key, origVal := range evalCtx {
 		val, ok := toStr(origVal)
+		if !ok {
+			return nil, &openfeature.ProviderResolutionDetail{
+				ResolutionError: openfeature.NewInvalidContextResolutionError(
+					fmt.Sprintf("key `%s` can not be converted to string", key),
+				),
+				Reason: openfeature.ErrorReason,
+			}
+		}
 
 		switch key {
 		case IdentifierKey:
-			if !ok {
-				return nil, errDetailFunc(key)
-			}
 			userData.Identifier = val
 		case EmailKey:
-			if !ok {
-				return nil, errDetailFunc(key)
-			}
 			userData.Email = val
 		case CountryKey:
-			if !ok {
-				return nil, errDetailFunc(key)
-			}
 			userData.Country = val
 		default:
-			// custom
-			// skip values we couldn't convert to string
-			if ok {
-				custom[key] = val
-			}
+			custom[key] = val
 		}
 	}
-	userData.Custom = custom
 
+	userData.Custom = custom
 	return userData, nil
 }
 
