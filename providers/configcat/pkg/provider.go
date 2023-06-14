@@ -30,7 +30,7 @@ func NewProvider(client *configcat.Client) *Provider {
 
 func (p *Provider) Metadata() openfeature.Metadata {
 	return openfeature.Metadata{
-		Name: "Configcat",
+		Name: "ConfigCat",
 	}
 }
 
