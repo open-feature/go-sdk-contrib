@@ -6,6 +6,7 @@ import (
 	sdk "github.com/configcat/go-sdk/v7"
 )
 
+// NewClient creates enough of the ConfigCat client to record flag interactions.
 func NewClient() *Client {
 	return &Client{}
 }

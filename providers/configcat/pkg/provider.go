@@ -10,13 +10,14 @@ import (
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
+var _ openfeature.FeatureProvider = (*Provider)(nil)
+
+// Evaluation ctx keys that are mapped to ConfigCat user data.
 const (
 	IdentifierKey = openfeature.TargetingKey
 	EmailKey      = "email"
 	CountryKey    = "country"
 )
-
-var _ openfeature.FeatureProvider = (*Provider)(nil)
 
 type Client interface {
 	GetBoolValueDetails(key string, defaultValue bool, user sdk.User) sdk.BoolEvaluationDetails
@@ -25,6 +26,7 @@ type Client interface {
 	GetIntValueDetails(key string, defaultValue int, user sdk.User) sdk.IntEvaluationDetails
 }
 
+// NewProvider creates an OpenFeature provider backed by ConfigCat.
 func NewProvider(client Client) *Provider {
 	return &Provider{
 		client: client,
@@ -35,12 +37,14 @@ type Provider struct {
 	client Client
 }
 
+// Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
 func (p *Provider) Metadata() openfeature.Metadata {
 	return openfeature.Metadata{
 		Name: "ConfigCat",
 	}
 }
 
+// Hooks are not currently implemented, an empty slice is returned.
 func (p *Provider) Hooks() []openfeature.Hook {
 	return nil
 }
@@ -109,6 +113,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	}
 }
 
+// ObjectEvaluation attempts to parse a string feature flag value as JSON.
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	user, errDetails := toUserData(evalCtx)
 	if errDetails != nil {
