@@ -494,7 +494,7 @@ func TestObjectEvaluation(t *testing.T) {
 		})
 
 		resolution := provider.ObjectEvaluation(ctx, "flag", map[string]string{"name": "test"}, nil)
-		require.Equal(t, map[string]any{"name": "test"}, resolution.Value)
+		require.Equal(t, map[string]interface{}{"name": "test"}, resolution.Value)
 		require.Equal(t, expectedVariant, resolution.Variant)
 		require.Equal(t, openfeature.DefaultReason, resolution.Reason)
 	})
@@ -527,7 +527,7 @@ func TestObjectEvaluation(t *testing.T) {
 	t.Run("key not found", func(t *testing.T) {
 		defer client.Reset()
 
-		expected := map[string]any{"some": "default"}
+		expected := map[string]interface{}{"some": "default"}
 
 		resolution := provider.ObjectEvaluation(ctx, "flag", expected, nil)
 		require.Equal(t, expected, resolution.Value)
@@ -583,7 +583,7 @@ func TestObjectEvaluation(t *testing.T) {
 		})
 
 		resolution := provider.ObjectEvaluation(ctx, "flag", nil, nil)
-		require.Equal(t, map[string]any{"domain": "example.org"}, resolution.Value)
+		require.Equal(t, map[string]interface{}{"domain": "example.org"}, resolution.Value)
 		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
 	})
 
@@ -601,7 +601,7 @@ func TestObjectEvaluation(t *testing.T) {
 		})
 
 		resolution := provider.ObjectEvaluation(ctx, "flag", nil, nil)
-		require.Equal(t, map[string]any{"domain": "example.org"}, resolution.Value)
+		require.Equal(t, map[string]interface{}{"domain": "example.org"}, resolution.Value)
 		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
 	})
 }
@@ -611,35 +611,35 @@ func testEvalCtxNotString(t *testing.T, cb func(evalCtx openfeature.FlattenedCon
 
 	inputs := []struct {
 		name    string
-		evalCtx map[string]any
+		evalCtx map[string]interface{}
 	}{
 		{
 			name: "targeting",
-			evalCtx: map[string]any{
+			evalCtx: map[string]interface{}{
 				openfeature.TargetingKey: new(configcat.Provider),
 			},
 		},
 		{
 			name: "identifier",
-			evalCtx: map[string]any{
+			evalCtx: map[string]interface{}{
 				configcat.IdentifierKey: new(configcat.Provider),
 			},
 		},
 		{
 			name: "email",
-			evalCtx: map[string]any{
+			evalCtx: map[string]interface{}{
 				configcat.EmailKey: new(configcat.Provider),
 			},
 		},
 		{
 			name: "country",
-			evalCtx: map[string]any{
+			evalCtx: map[string]interface{}{
 				configcat.CountryKey: new(configcat.Provider),
 			},
 		},
 		{
 			name: "custom",
-			evalCtx: map[string]any{
+			evalCtx: map[string]interface{}{
 				"some-key": new(configcat.Provider),
 			},
 		},
@@ -659,7 +659,7 @@ func testEvalCtxStringer(t *testing.T, cb func(evalCtx openfeature.FlattenedCont
 
 	inputs := []struct {
 		name     string
-		val      any
+		val      interface{}
 		expected string
 	}{
 		{name: "string", val: "some-string", expected: "some-string"},
@@ -676,7 +676,7 @@ func testEvalCtxStringer(t *testing.T, cb func(evalCtx openfeature.FlattenedCont
 
 	for _, input := range inputs {
 		t.Run(input.name, func(t *testing.T) {
-			requests := cb(map[string]any{
+			requests := cb(map[string]interface{}{
 				openfeature.TargetingKey: input.val,
 			})
 			require.Len(t, requests, 1)
@@ -695,7 +695,7 @@ func testEvalCtxUserData(t *testing.T, cb func(evalCtx openfeature.FlattenedCont
 	expectedCountry := "AQ"
 	expectedSomeKey := "some-value"
 
-	requests := cb(map[string]any{
+	requests := cb(map[string]interface{}{
 		openfeature.TargetingKey: expectedIdentifier,
 		configcat.EmailKey:       expectedEmail,
 		configcat.CountryKey:     expectedCountry,

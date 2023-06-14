@@ -23,7 +23,7 @@ type Client struct {
 
 type Request struct {
 	Key          string
-	DefaultValue any
+	DefaultValue interface{}
 	User         sdk.User
 }
 

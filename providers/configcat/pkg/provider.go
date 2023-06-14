@@ -134,7 +134,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 
 	// Attempt to unmarshal the string value as if it's JSON
-	var object map[string]any
+	var object map[string]interface{}
 	err := json.Unmarshal([]byte(evaluation.Value), &object)
 	if err != nil {
 		return openfeature.InterfaceResolutionDetail{
@@ -188,7 +188,7 @@ func toUserData(evalCtx openfeature.FlattenedContext) (*sdk.UserData, *openfeatu
 	return userData, nil
 }
 
-func toStr(val any) (string, bool) {
+func toStr(val interface{}) (string, bool) {
 	switch v := val.(type) {
 	case string:
 		return v, true
