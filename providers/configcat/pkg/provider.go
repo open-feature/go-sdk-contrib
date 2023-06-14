@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	configcat "github.com/configcat/go-sdk/v7"
+	sdk "github.com/configcat/go-sdk/v7"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
@@ -18,14 +18,21 @@ const (
 
 var _ openfeature.FeatureProvider = (*Provider)(nil)
 
-type Provider struct {
-	client *configcat.Client
+type Client interface {
+	GetBoolValueDetails(key string, defaultValue bool, user sdk.User) sdk.BoolEvaluationDetails
+	GetStringValueDetails(key string, defaultValue string, user sdk.User) sdk.StringEvaluationDetails
+	GetFloatValueDetails(key string, defaultValue float64, user sdk.User) sdk.FloatEvaluationDetails
+	GetIntValueDetails(key string, defaultValue int, user sdk.User) sdk.IntEvaluationDetails
 }
 
-func NewProvider(client *configcat.Client) *Provider {
+func NewProvider(client Client) *Provider {
 	return &Provider{
 		client: client,
 	}
+}
+
+type Provider struct {
+	client Client
 }
 
 func (p *Provider) Metadata() openfeature.Metadata {
@@ -142,12 +149,12 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func toUserData(evalCtx openfeature.FlattenedContext) (*configcat.UserData, *openfeature.ProviderResolutionDetail) {
+func toUserData(evalCtx openfeature.FlattenedContext) (*sdk.UserData, *openfeature.ProviderResolutionDetail) {
 	if len(evalCtx) == 0 {
 		return nil, nil
 	}
 
-	userData := &configcat.UserData{}
+	userData := &sdk.UserData{}
 	custom := make(map[string]string, len(evalCtx))
 	for key, origVal := range evalCtx {
 		val, ok := toStr(origVal)
@@ -191,7 +198,7 @@ func toStr(val any) (string, bool) {
 	}
 }
 
-func toResolutionDetail(details configcat.EvaluationDetailsData) openfeature.ProviderResolutionDetail {
+func toResolutionDetail(details sdk.EvaluationDetailsData) openfeature.ProviderResolutionDetail {
 	if details.Error != nil {
 		return openfeature.ProviderResolutionDetail{
 			ResolutionError: toResolutionError(details.Error),
@@ -211,7 +218,7 @@ func toResolutionDetail(details configcat.EvaluationDetailsData) openfeature.Pro
 }
 
 func toResolutionError(err error) openfeature.ResolutionError {
-	var errKeyNotFound configcat.ErrKeyNotFound
+	var errKeyNotFound sdk.ErrKeyNotFound
 	if errors.As(err, &errKeyNotFound) {
 		return openfeature.NewFlagNotFoundResolutionError(errKeyNotFound.Error())
 	}
