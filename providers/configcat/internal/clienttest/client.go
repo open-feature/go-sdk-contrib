@@ -58,6 +58,24 @@ func (c *Client) WithBoolEvaluation(eval func(req Request) sdk.BoolEvaluationDet
 	c.boolEvaluation = eval
 }
 
+func (c *Client) WithStringEvaluation(eval func(req Request) sdk.StringEvaluationDetails) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.stringEvaluation = eval
+}
+
+func (c *Client) WithFloatEvaluation(eval func(req Request) sdk.FloatEvaluationDetails) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.floatEvaluation = eval
+}
+
+func (c *Client) WithIntEvaluation(eval func(req Request) sdk.IntEvaluationDetails) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.intEvaluation = eval
+}
+
 func (c *Client) GetBoolValueDetails(key string, defaultValue bool, user sdk.User) sdk.BoolEvaluationDetails {
 	c.mu.Lock()
 	defer c.mu.Unlock()
