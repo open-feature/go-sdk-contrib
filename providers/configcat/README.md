@@ -1,5 +1,7 @@
 # ConfigCat OpenFeature provider for Go
 
+OpenFeature Go provider implementation for [ConfigCat](https://configcat.com) that uses the official [ConfigCat Go SDK](https://github.com/configcat/go-sdk).
+
 ## Installation
 
 ```shell
