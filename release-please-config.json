@@ -1,127 +1,135 @@
 {
-    "monorepo-tags": true,
-    "tag-separator": "/",
-    "bootstrap-sha": "4d6cb816ed912084c598767636324aa9a2866bdd",
-    "separate-pull-requests": true,
-    "packages": {
-        "hooks/open-telemetry": {
-            "release-type": "go",
-            "package-name": "hooks/open-telemetry",
-            "bump-minor-pre-major": true,
-            "bump-patch-for-minor-pre-major": true,
-            "versioning": "default",
-            "extra-files": []
-        },
-        "hooks/validator": {
-            "release-type": "go",
-            "package-name": "hooks/validator",
-            "bump-minor-pre-major": true,
-            "bump-patch-for-minor-pre-major": true,
-            "versioning": "default",
-            "extra-files": []
-        },
-        "providers/flagd": {
-            "release-type": "go",
-            "package-name": "providers/flagd",
-            "bump-minor-pre-major": true,
-            "bump-patch-for-minor-pre-major": true,
-            "versioning": "default",
-            "extra-files": []
-        },
-        "providers/launchdarkly": {
-          "release-type": "go",
-          "package-name": "providers/launchdarkly",
-          "bump-minor-pre-major": true,
-          "bump-patch-for-minor-pre-major": true,
-          "versioning": "default",
-          "extra-files": []
-        },
-        "providers/from-env": {
-            "release-type": "go",
-            "package-name": "providers/from-env",
-            "bump-minor-pre-major": true,
-            "bump-patch-for-minor-pre-major": true,
-            "versioning": "default",
-            "extra-files": []
-        },
-        "providers/go-feature-flag": {
-            "release-type": "go",
-            "package-name": "providers/go-feature-flag",
-            "bump-minor-pre-major": true,
-            "bump-patch-for-minor-pre-major": true,
-            "versioning": "default",
-            "extra-files": []
-        },
-        "tests/flagd": {
-            "release-type": "go",
-            "package-name": "tests/flagd",
-            "bump-minor-pre-major": true,
-            "bump-patch-for-minor-pre-major": true,
-            "versioning": "default",
-            "extra-files": []
-        },
-        "providers/flagsmith": {
-            "release-type": "go",
-            "package-name": "providers/flagsmith",
-            "bump-minor-pre-major": true,
-            "bump-patch-for-minor-pre-major": true,
-            "versioning": "default",
-            "extra-files": []
-        }
+  "monorepo-tags": true,
+  "tag-separator": "/",
+  "bootstrap-sha": "4d6cb816ed912084c598767636324aa9a2866bdd",
+  "separate-pull-requests": true,
+  "packages": {
+    "hooks/open-telemetry": {
+      "release-type": "go",
+      "package-name": "hooks/open-telemetry",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
     },
-    "changelog-sections": [
-      {
-        "type": "fix",
-        "section": "🐛 Bug Fixes"
-      },
-      {
-        "type": "feat",
-        "section": "✨ New Features"
-      },
-      {
-        "type": "chore",
-        "section": "🧹 Chore"
-      },
-      {
-        "type": "docs",
-        "section": "📚 Documentation"
-      },
-      {
-        "type": "perf",
-        "section": "🚀 Performance"
-      },
-      {
-        "type": "build",
-        "hidden": true,
-        "section": "🛠️ Build"
-      },
-      {
-        "type": "deps",
-        "section": "📦 Dependencies"
-      },
-      {
-        "type": "ci",
-        "hidden": true,
-        "section": "🚦 CI"
-      },
-      {
-        "type": "refactor",
-        "section": "🔄 Refactoring"
-      },
-      {
-        "type": "revert",
-        "section": "🔙 Reverts"
-      },
-      {
-        "type": "style",
-        "hidden": true,
-        "section": "🎨 Styling"
-      },
-      {
-        "type": "test",
-        "hidden": true,
-        "section": "🧪 Tests"
-      }
+    "hooks/validator": {
+      "release-type": "go",
+      "package-name": "hooks/validator",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "providers/flagd": {
+      "release-type": "go",
+      "package-name": "providers/flagd",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "providers/launchdarkly": {
+      "release-type": "go",
+      "package-name": "providers/launchdarkly",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "providers/from-env": {
+      "release-type": "go",
+      "package-name": "providers/from-env",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "providers/go-feature-flag": {
+      "release-type": "go",
+      "package-name": "providers/go-feature-flag",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "tests/flagd": {
+      "release-type": "go",
+      "package-name": "tests/flagd",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "providers/flagsmith": {
+      "release-type": "go",
+      "package-name": "providers/flagsmith",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "providers/configcat": {
+      "release-type": "go",
+      "package-name": "providers/configcat",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    }
+  },
+  "changelog-sections": [
+    {
+      "type": "fix",
+      "section": "🐛 Bug Fixes"
+    },
+    {
+      "type": "feat",
+      "section": "✨ New Features"
+    },
+    {
+      "type": "chore",
+      "section": "🧹 Chore"
+    },
+    {
+      "type": "docs",
+      "section": "📚 Documentation"
+    },
+    {
+      "type": "perf",
+      "section": "🚀 Performance"
+    },
+    {
+      "type": "build",
+      "hidden": true,
+      "section": "🛠️ Build"
+    },
+    {
+      "type": "deps",
+      "section": "📦 Dependencies"
+    },
+    {
+      "type": "ci",
+      "hidden": true,
+      "section": "🚦 CI"
+    },
+    {
+      "type": "refactor",
+      "section": "🔄 Refactoring"
+    },
+    {
+      "type": "revert",
+      "section": "🔙 Reverts"
+    },
+    {
+      "type": "style",
+      "hidden": true,
+      "section": "🎨 Styling"
+    },
+    {
+      "type": "test",
+      "hidden": true,
+      "section": "🧪 Tests"
+    }
   ],
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
 }
