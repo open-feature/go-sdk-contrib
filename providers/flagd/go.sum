@@ -23,6 +23,8 @@ github.com/hashicorp/golang-lru/v2 v2.0.2 h1:Dwmkdr5Nc/oBiXgJS3CDHNhJtIHkuZ3DZF5
 github.com/hashicorp/golang-lru/v2 v2.0.2/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
 github.com/open-feature/flagd/core v0.5.3 h1:ztWPkLs2mRk4dHvUYLc7bsGyght43fnvomjc+pe98t4=
 github.com/open-feature/flagd/core v0.5.3/go.mod h1:pVS/k/iEaJ5fPeIND8JpB22mqCi3iDcgb8wEgiqipnM=
+github.com/open-feature/flagd/core v0.5.4 h1:JQWdu1C7xUr2AV/KrfHHGFf7HM5GyM8YA2gmDktbasc=
+github.com/open-feature/flagd/core v0.5.4/go.mod h1:f1ZRnlevCMd272eOSKtLBwac3SS7TNGAnNoXpZtDpas=
 github.com/open-feature/go-sdk v1.4.0 h1:QvFXywCvm9J6uS8+kESHnzi5sLtRkxwhS/ooS7SaF8M=
 github.com/open-feature/go-sdk v1.4.0/go.mod h1:DtxB5FPc2GDjOZRFXm+hEjB+JPC8GTYCKo9JuKNx1F0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
