@@ -6,6 +6,7 @@ import (
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -41,12 +42,16 @@ func NewTracesHook(opts ...Options) *traceHook {
 
 // After sets the feature_flag event and associated attributes on the span stored in the context
 func (h *traceHook) After(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
+	attribs := []attribute.KeyValue{
+		semconv.FeatureFlagKey(hookContext.FlagKey()),
+		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),
+	}
+	if flagEvaluationDetails.Variant != "" {
+		attribs = append(attribs, semconv.FeatureFlagVariant(flagEvaluationDetails.Variant))
+	}
+
 	span := trace.SpanFromContext(ctx)
-	span.AddEvent(EventName, trace.WithAttributes(
-		attribute.String(EventPropertyFlagKey, hookContext.FlagKey()),
-		attribute.String(EventPropertyProviderName, hookContext.ProviderMetadata().Name),
-		attribute.String(EventPropertyVariant, flagEvaluationDetails.Variant),
-	))
+	span.AddEvent(EventName, trace.WithAttributes(attribs...))
 	return nil
 }
 
@@ -59,7 +64,10 @@ func (h *traceHook) Error(ctx context.Context, hookContext openfeature.HookConte
 			fmt.Sprintf("error evaluating flag '%s' of type '%s'", hookContext.FlagKey(), hookContext.FlagType().String()))
 	}
 
-	span.RecordError(err)
+	span.RecordError(err, trace.WithAttributes(
+		semconv.FeatureFlagKey(hookContext.FlagKey()),
+		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),
+	))
 }
 
 // Options of the hook
