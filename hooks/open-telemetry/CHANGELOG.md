@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.5...hooks/open-telemetry/v0.2.6) (2023-06-21)
+
+
+### 🔄 Refactoring
+
+* **hooks/open-telemetry:** Use semconv for trace attribites ([#245](https://github.com/open-feature/go-sdk-contrib/issues/245)) ([8bfbbf4](https://github.com/open-feature/go-sdk-contrib/commit/8bfbbf42e2872e86946fb8ea191fbe5036a6a063))
+
 ## [0.2.5](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.4...hooks/open-telemetry/v0.2.5) (2023-06-09)
 
 
