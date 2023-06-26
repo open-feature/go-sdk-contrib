@@ -14,7 +14,7 @@ require (
 	github.com/open-feature/flagd/core v0.5.4
 	github.com/open-feature/go-sdk v1.4.0
 	golang.org/x/net v0.10.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
