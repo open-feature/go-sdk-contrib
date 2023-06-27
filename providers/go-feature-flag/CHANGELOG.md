@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.21](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.20...providers/go-feature-flag/v0.1.21) (2023-06-27)
+
+
+### ✨ New Features
+
+* Return CACHED reason when using cache ([#250](https://github.com/open-feature/go-sdk-contrib/issues/250)) ([1043924](https://github.com/open-feature/go-sdk-contrib/commit/1043924810e38ac1beaac18b1aef32efdfe60e2a))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/thomaspoignant/go-feature-flag to v1.12.0 ([#252](https://github.com/open-feature/go-sdk-contrib/issues/252)) ([ae90007](https://github.com/open-feature/go-sdk-contrib/commit/ae90007b6ea7e6b820fcc49c47cafe8945984412))
+
 ## [0.1.20](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.19...providers/go-feature-flag/v0.1.20) (2023-06-09)
 
 
