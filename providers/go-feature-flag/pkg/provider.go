@@ -11,7 +11,7 @@ import (
 	client "github.com/thomaspoignant/go-feature-flag"
 	"github.com/thomaspoignant/go-feature-flag/exporter"
 	"github.com/thomaspoignant/go-feature-flag/exporter/webhookexporter"
-	"github.com/thomaspoignant/go-feature-flag/ffuser"
+	"github.com/thomaspoignant/go-feature-flag/ffcontext"
 	"io"
 	"net/http"
 	"net/url"
@@ -213,14 +213,13 @@ func genericEvaluation[T model.JsonType](provider *Provider, ctx context.Context
 // it means that you don't need any relay proxy to make it work.
 func evaluateLocally[T model.JsonType](provider *Provider, goffRequestBody model.EvalFlagRequest, flagName string, defaultValue T) model.GenericResolutionDetail[T] {
 	// Construct user
-	userBuilder := ffuser.NewUserBuilder(goffRequestBody.User.Key)
-	userBuilder.Anonymous(goffRequestBody.User.Anonymous)
-	for k, v := range goffRequestBody.User.Custom {
-		userBuilder.AddCustom(k, v)
+	ctxBuilder := ffcontext.NewEvaluationContextBuilder(goffRequestBody.EvaluationContext.Key)
+	for k, v := range goffRequestBody.EvaluationContext.Custom {
+		ctxBuilder.AddCustom(k, v)
 	}
 
 	// Call GO Module
-	rawResult, err := provider.goFeatureFlagInstance.RawVariation(flagName, userBuilder.Build(), defaultValue)
+	rawResult, err := provider.goFeatureFlagInstance.RawVariation(flagName, ctxBuilder.Build(), defaultValue)
 	if err != nil {
 		switch rawResult.ErrorCode {
 		case string(of.FlagNotFoundCode):
@@ -330,7 +329,7 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 			provider.cache.Remove(cacheKey)
 		} else {
 			event := exporter.NewFeatureEvent(
-				ffuser.NewUser(goffRequestBody.User.Key),
+				ffcontext.NewEvaluationContext(goffRequestBody.EvaluationContext.Key),
 				flagName,
 				cacheValue.Value,
 				cacheValue.Variant,
