@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.22](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.21...providers/go-feature-flag/v0.1.22) (2023-07-03)
+
+
+### 🧹 Chore
+
+* Stop using userBuilder to use evaluationContext instead  ([#255](https://github.com/open-feature/go-sdk-contrib/issues/255)) ([3000469](https://github.com/open-feature/go-sdk-contrib/commit/300046988384aacb67d77cae2f8fa3d26ff47cac))
+
 ## [0.1.21](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.20...providers/go-feature-flag/v0.1.21) (2023-06-27)
 
 
