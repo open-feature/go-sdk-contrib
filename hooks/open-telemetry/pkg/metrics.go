@@ -31,8 +31,15 @@ type MetricOptions func(*MetricsHook)
 
 // NewMetricsHook builds a metric hook backed by provided metric.Reader. Reader must be provided by developer and
 // its configurations govern metric exports
+// Deprecated: NewMetricsHook is deprecated. Please use NewMetricsHookFromProvider
 func NewMetricsHook(reader metric.Reader, opts ...MetricOptions) (*MetricsHook, error) {
 	provider := metric.NewMeterProvider(metric.WithReader(reader))
+
+	return NewMetricsHookForProvider(provider, opts...)
+}
+
+// NewMetricsHookForProvider builds a metric hook backed by metric.MeterProvider.
+func NewMetricsHookForProvider(provider *metric.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
 	meter := provider.Meter(meterName)
 
 	activeCounter, err := meter.Int64UpDownCounter(evaluationActive, api.WithDescription("active flag evaluations counter"))

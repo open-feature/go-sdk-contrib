@@ -21,7 +21,7 @@ func TestMetricsHook_BeforeStage(t *testing.T) {
 
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
-	metricsHook, err := NewMetricsHook(manualReader)
+	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
 		t.Error(err)
 		return
@@ -72,7 +72,7 @@ func TestMetricsHook_AfterStage(t *testing.T) {
 	}
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
-	metricsHook, err := NewMetricsHook(manualReader)
+	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
 		t.Error(err)
 		return
@@ -120,7 +120,7 @@ func TestMetricsHook_ErrorStage(t *testing.T) {
 	evalError := errors.New("some eval error")
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
-	metricsHook, err := NewMetricsHook(manualReader)
+	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
 		t.Error(err)
 		return
@@ -173,7 +173,7 @@ func TestMetricsHook_FinallyStage(t *testing.T) {
 	hookContext := hookContext()
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
-	metricsHook, err := NewMetricsHook(manualReader)
+	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
 		t.Error(err)
 		return
@@ -217,7 +217,7 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 	hookContext := hookContext()
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
-	metricsHook, err := NewMetricsHook(manualReader)
+	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
 		t.Error(err)
 		return
@@ -323,7 +323,7 @@ func TestMetricHook_OptionMetadataDimensions(t *testing.T) {
 	}
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
-	metricsHook, err := NewMetricsHook(manualReader,
+	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)),
 		WithFlagMetadataDimensions(scopeDescription, stageDescription, scoreDescription, cachedDescription))
 	if err != nil {
 		t.Error(err)
