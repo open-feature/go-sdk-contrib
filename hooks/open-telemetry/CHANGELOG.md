@@ -5,7 +5,8 @@
 
 ### ✨ New Features
 
-* api change to support more usecases ([#254](https://github.com/open-feature/go-sdk-contrib/issues/254)) ([c855a67](https://github.com/open-feature/go-sdk-contrib/commit/c855a677e34d3f6b1d8b24bc721ce389a19f742f))
+* Metric hook API change to provide better hook constructor flexibility ([#254](https://github.
+  com/open-feature/go-sdk-contrib/issues/254)) ([c855a67](https://github.com/open-feature/go-sdk-contrib/commit/c855a677e34d3f6b1d8b24bc721ce389a19f742f))
 
 ## [0.2.6](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.5...hooks/open-telemetry/v0.2.6) (2023-06-21)
 
