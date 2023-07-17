@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/Flagsmith/flagsmith-go-client/v2 v2.3.1
+	github.com/Flagsmith/flagsmith-go-client/v3 v3.0.0
 	github.com/open-feature/go-sdk v1.4.0
 	github.com/stretchr/testify v1.8.4
 )
