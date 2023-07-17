@@ -1,0 +1,26 @@
+# Keep all in alphabetical order
+components:
+  hooks/open-telemetry:
+    - Kavindu-Dodan
+  hooks/validator:
+    - Kavindu-Dodan
+    - toddbaert
+  providers/configcat:
+    - rcrowe
+  providers/flagd:
+    - Kavindu-Dodan
+    - toddbaert
+  providers/flagsmith:
+    - gagantrivedi
+    - matthewelwell
+  providers/from-env:
+    - Kavindu-Dodan
+    - toddbaert
+  providers/go-feature-flag:
+    - thomaspoignant
+  providers/launchdarkly:
+    - c4milo
+    - kinyoklion
+
+ignored-authors:
+  - renovate-bot
