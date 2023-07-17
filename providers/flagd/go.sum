@@ -5,8 +5,12 @@ buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.29.1-20230317150644-af
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.29.1-20230317150644-afd1cc2ef580.1/go.mod h1:WWnccsJMW7QwvXkdXUuQmg28sx+ZoX36+J2TAjcy6u4=
 github.com/bufbuild/connect-go v1.8.0 h1:srluNkFkZBfSfg9Qb6DrO+5nMaxix//h2ctrHZhMGKc=
 github.com/bufbuild/connect-go v1.8.0/go.mod h1:GmMJYR6orFqD0Y6ZgX8pwQ8j9baizDrIQMm1/a6LnHk=
+github.com/bufbuild/connect-go v1.9.0 h1:JIgAeNuFpo+SUPfU19Yt5TcWlznsN5Bv10/gI/6Pjoc=
+github.com/bufbuild/connect-go v1.9.0/go.mod h1:CAIePUgkDR5pAFaylSMtNK45ANQjp9JvpluG20rhpV8=
 github.com/bufbuild/connect-opentelemetry-go v0.3.0 h1:AuZi3asTDKmjGtd2aqpyP4p5QvBFG/YEaHopViLatnk=
 github.com/bufbuild/connect-opentelemetry-go v0.3.0/go.mod h1:r1ppyTtu1EWeRodk4Q/JbyQhIWtO7eR3GoRDzjeEcNU=
+github.com/bufbuild/connect-opentelemetry-go v0.4.0 h1:6JAn10SNqlQ/URhvRNGrIlczKw1wEXknBUUtmWqOiak=
+github.com/bufbuild/connect-opentelemetry-go v0.4.0/go.mod h1:nwPXYoDOoc2DGyKE/6pT1Q9MPSi2Et2e6BieMD0l6WU=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.2.4 h1:g01GSCwiDw2xSZfjJ2/T9M+S6pFdcNtFYsp+Y43HYDQ=
@@ -27,6 +31,8 @@ github.com/open-feature/flagd/core v0.5.3 h1:ztWPkLs2mRk4dHvUYLc7bsGyght43fnvomj
 github.com/open-feature/flagd/core v0.5.3/go.mod h1:pVS/k/iEaJ5fPeIND8JpB22mqCi3iDcgb8wEgiqipnM=
 github.com/open-feature/flagd/core v0.5.4 h1:JQWdu1C7xUr2AV/KrfHHGFf7HM5GyM8YA2gmDktbasc=
 github.com/open-feature/flagd/core v0.5.4/go.mod h1:f1ZRnlevCMd272eOSKtLBwac3SS7TNGAnNoXpZtDpas=
+github.com/open-feature/flagd/core v0.6.0 h1:sf8BR3YcggLJuUrpWKiknfhhSv2gVQ6hvQgZYmzQMok=
+github.com/open-feature/flagd/core v0.6.0/go.mod h1:gYf76egLbU3gYIX5B0720O0HPXnRiMRr4YTvAgQBTFc=
 github.com/open-feature/go-sdk v1.4.0 h1:QvFXywCvm9J6uS8+kESHnzi5sLtRkxwhS/ooS7SaF8M=
 github.com/open-feature/go-sdk v1.4.0/go.mod h1:DtxB5FPc2GDjOZRFXm+hEjB+JPC8GTYCKo9JuKNx1F0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -48,6 +54,8 @@ golang.org/x/net v0.0.0-20190620200207-3b0461eec859/go.mod h1:z5CRVTTTmAJ677TzLL
 golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4/go.mod h1:p54w0d4576C0XHj96bSt6lcn1PtDYWL6XObtHCRCNQM=
 golang.org/x/net v0.10.0 h1:X2//UzNDwYmtCLn7To6G58Wr6f5ahEAQgKNzv9Y951M=
 golang.org/x/net v0.10.0/go.mod h1:0qNGK6F8kojg2nk9dLZ2mShWaEBan6FAoqfSigmmuDg=
+golang.org/x/net v0.11.0 h1:Gi2tvZIJyBtO9SDr1q9h5hEQCp/4L2RQ+ar0qjx2oNU=
+golang.org/x/net v0.11.0/go.mod h1:2L/ixqYpgIVXmeoSA/4Lu7BzTG4KIyPIryS4IsOd1oQ=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20210220032951-036812b2e83c/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
