@@ -41,7 +41,7 @@ jobs:
           args: mod -licenses -json -output bom.json ${{ matrix.release }}
       # Create licenses artifacts
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: 1.18
       - name: Setup workspace
