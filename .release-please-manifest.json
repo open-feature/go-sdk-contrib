@@ -7,5 +7,5 @@
     "providers/go-feature-flag": "0.1.22",
     "providers/flagsmith": "0.1.2",
     "providers/launchdarkly": "0.1.2",
-    "tests/flagd": "1.2.2"
+    "tests/flagd": "1.2.3"
 }
