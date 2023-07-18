@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.2...tests/flagd/v1.2.3) (2023-07-18)
+
+
+### 🧹 Chore
+
+* update module github.com/open-feature/go-sdk to v1.4.0 ([#223](https://github.com/open-feature/go-sdk-contrib/issues/223)) ([7c8ea46](https://github.com/open-feature/go-sdk-contrib/commit/7c8ea46e3e094f746dbf6d80ba6a1b606314e8d7))
+
 ## [1.2.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.1...tests/flagd/v1.2.2) (2023-05-11)
 
 
