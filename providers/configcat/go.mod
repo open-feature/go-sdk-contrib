@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/configcat/go-sdk/v7 v7.10.1
-	github.com/open-feature/go-sdk v1.4.0
+	github.com/open-feature/go-sdk v1.5.1
 	github.com/stretchr/testify v1.8.4
 )
 
