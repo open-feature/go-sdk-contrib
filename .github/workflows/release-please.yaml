@@ -4,7 +4,7 @@ on:
       - main
 
 env:
-  DEFAULT_GO_VERSION: 1.19.3
+  DEFAULT_GO_VERSION: 1.18
 
 name: Run Release Please
 jobs:
@@ -33,6 +33,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.18'
       # Create SBOM
       - name: Generate SBOM
         uses: CycloneDX/gh-gomod-generate-sbom@v2
@@ -40,10 +44,6 @@ jobs:
           version: v1
           args: mod -licenses -json -output bom.json ${{ matrix.release }}
       # Create licenses artifacts
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.18
       - name: Setup workspace
         run: make workspace-init
       - name: Install go-licenses
