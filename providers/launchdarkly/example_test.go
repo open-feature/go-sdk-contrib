@@ -27,7 +27,10 @@ func Example() {
 	defer ldClient.Close()
 
 	// Set Launchdarkly as OpenFeature provider
-	openfeature.SetProvider(ofld.NewProvider(ldClient))
+	err = openfeature.SetProvider(ofld.NewProvider(ldClient))
+	if err != nil {
+		// handle error for provider initialization
+	}
 
 	// Set a multi-context evaluation context as example
 	evalCtx := openfeature.NewEvaluationContext("redpanda-12342", map[string]any{
