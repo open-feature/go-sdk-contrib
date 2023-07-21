@@ -262,7 +262,9 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -389,7 +391,9 @@ func TestProvider_StringEvaluation(t *testing.T) {
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -516,7 +520,9 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -643,7 +649,9 @@ func TestProvider_IntEvaluation(t *testing.T) {
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -754,7 +762,9 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -785,7 +795,9 @@ func TestProvider_Cache_Calling_Flag_Multiple_Time_Same_User(t *testing.T) {
 	provider, err := gofeatureflag.NewProvider(options)
 	defer provider.Shutdown()
 	assert.NoError(t, err)
-	of.SetProvider(provider)
+
+	err = of.SetProvider(provider)
+	assert.NoError(t, err)
 	client := of.NewClient("test-app")
 	got1, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 	assert.NoError(t, err)
@@ -816,7 +828,9 @@ func TestProvider_Cache_Calling_Flag_Multiple_Time_Different_EvalutationCtx(t *t
 	provider, err := gofeatureflag.NewProvider(options)
 	defer provider.Shutdown()
 	assert.NoError(t, err)
-	of.SetProvider(provider)
+
+	err = of.SetProvider(provider)
+	assert.NoError(t, err)
 	client := of.NewClient("test-app")
 	ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
 	ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
@@ -851,7 +865,9 @@ func TestProvider_Cache_Fill_All_Cache(t *testing.T) {
 	provider, err := gofeatureflag.NewProvider(options)
 	defer provider.Shutdown()
 	assert.NoError(t, err)
-	of.SetProvider(provider)
+
+	err = of.SetProvider(provider)
+	assert.NoError(t, err)
 	client := of.NewClient("test-app")
 	ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
 	ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
@@ -883,7 +899,9 @@ func TestProvider_Cache_TTL_Reached(t *testing.T) {
 	provider, err := gofeatureflag.NewProvider(options)
 	defer provider.Shutdown()
 	assert.NoError(t, err)
-	of.SetProvider(provider)
+
+	err = of.SetProvider(provider)
+	assert.NoError(t, err)
 	client := of.NewClient("test-app")
 	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 	assert.NoError(t, err)
