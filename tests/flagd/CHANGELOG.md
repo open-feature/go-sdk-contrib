@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.3...tests/flagd/v1.2.4) (2023-07-21)
+
+
+### 🐛 Bug Fixes
+
+* lint correction on tests ([#276](https://github.com/open-feature/go-sdk-contrib/issues/276)) ([b972274](https://github.com/open-feature/go-sdk-contrib/commit/b972274655638dd09c90b5974a9f8aca0b04ca13))
+
 ## [1.2.3](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.2...tests/flagd/v1.2.3) (2023-07-18)
 
 
