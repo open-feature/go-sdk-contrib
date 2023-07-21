@@ -12,7 +12,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.4
 	github.com/open-feature/flagd/core v0.6.0
-	github.com/open-feature/go-sdk v1.4.0
+	github.com/open-feature/go-sdk v1.5.1
 	golang.org/x/net v0.12.0
 	google.golang.org/protobuf v1.31.0
 )
@@ -22,4 +22,5 @@ require (
 	go.opentelemetry.io/otel v1.16.0 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
 	go.opentelemetry.io/otel/trace v1.16.0 // indirect
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 )
