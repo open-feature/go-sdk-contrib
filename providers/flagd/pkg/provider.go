@@ -332,6 +332,7 @@ func (p *Provider) BooleanEvaluation(
 				ResolutionError: e,
 				Reason:          of.Reason(res.Reason),
 				Variant:         res.Variant,
+				FlagMetadata:    res.Metadata.AsMap(),
 			},
 		}
 	}
@@ -339,8 +340,9 @@ func (p *Provider) BooleanEvaluation(
 	resDetail := of.BoolResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:  of.Reason(res.Reason),
-			Variant: res.Variant,
+			Reason:       of.Reason(res.Reason),
+			Variant:      res.Variant,
+			FlagMetadata: res.Metadata.AsMap(),
 		},
 	}
 
@@ -378,6 +380,7 @@ func (p *Provider) StringEvaluation(
 				ResolutionError: e,
 				Reason:          of.Reason(res.Reason),
 				Variant:         res.Variant,
+				FlagMetadata:    res.Metadata.AsMap(),
 			},
 		}
 	}
@@ -385,8 +388,9 @@ func (p *Provider) StringEvaluation(
 	resDetail := of.StringResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:  of.Reason(res.Reason),
-			Variant: res.Variant,
+			Reason:       of.Reason(res.Reason),
+			Variant:      res.Variant,
+			FlagMetadata: res.Metadata.AsMap(),
 		},
 	}
 
@@ -424,6 +428,7 @@ func (p *Provider) FloatEvaluation(
 				ResolutionError: e,
 				Reason:          of.Reason(res.Reason),
 				Variant:         res.Variant,
+				FlagMetadata:    res.Metadata.AsMap(),
 			},
 		}
 	}
@@ -431,8 +436,9 @@ func (p *Provider) FloatEvaluation(
 	resDetail := of.FloatResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:  of.Reason(res.Reason),
-			Variant: res.Variant,
+			Reason:       of.Reason(res.Reason),
+			Variant:      res.Variant,
+			FlagMetadata: res.Metadata.AsMap(),
 		},
 	}
 
@@ -470,6 +476,7 @@ func (p *Provider) IntEvaluation(
 				ResolutionError: e,
 				Reason:          of.Reason(res.Reason),
 				Variant:         res.Variant,
+				FlagMetadata:    res.Metadata.AsMap(),
 			},
 		}
 	}
@@ -477,8 +484,9 @@ func (p *Provider) IntEvaluation(
 	resDetail := of.IntResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:  of.Reason(res.Reason),
-			Variant: res.Variant,
+			Reason:       of.Reason(res.Reason),
+			Variant:      res.Variant,
+			FlagMetadata: res.Metadata.AsMap(),
 		},
 	}
 
@@ -516,6 +524,7 @@ func (p *Provider) ObjectEvaluation(
 				ResolutionError: e,
 				Reason:          of.Reason(res.Reason),
 				Variant:         res.Variant,
+				FlagMetadata:    res.Metadata.AsMap(),
 			},
 		}
 	}
@@ -523,8 +532,9 @@ func (p *Provider) ObjectEvaluation(
 	resDetail := of.InterfaceResolutionDetail{
 		Value: res.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:  of.Reason(res.Reason),
-			Variant: res.Variant,
+			Reason:       of.Reason(res.Reason),
+			Variant:      res.Variant,
+			FlagMetadata: res.Metadata.AsMap(),
 		},
 	}
 
