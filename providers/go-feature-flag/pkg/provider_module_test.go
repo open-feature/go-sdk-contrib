@@ -127,7 +127,9 @@ func TestProvider_module_BooleanEvaluation(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -257,7 +259,9 @@ func TestProvider_module_StringEvaluation(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -387,7 +391,9 @@ func TestProvider_module_FloatEvaluation(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -517,7 +523,9 @@ func TestProvider_module_IntEvaluation(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
@@ -630,7 +638,9 @@ func TestProvider_module_ObjectEvaluation(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
-			of.SetProvider(provider)
+
+			err = of.SetProvider(provider)
+			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 

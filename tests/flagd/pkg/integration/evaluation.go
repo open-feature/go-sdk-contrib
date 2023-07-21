@@ -659,7 +659,12 @@ func aProviderIsRegisteredWithCacheDisabled(ctx context.Context) (context.Contex
 	pOptions := []flagd.ProviderOption{flagd.WithPort(8013), flagd.WithoutCache()}
 	pOptions = append(pOptions, providerOptions...)
 	provider := flagd.NewProvider(pOptions...)
-	openfeature.SetProvider(provider)
+
+	err := openfeature.SetProvider(provider)
+	if err != nil {
+		return nil, err
+	}
+
 	client := openfeature.NewClient("evaluation tests")
 
 	select {

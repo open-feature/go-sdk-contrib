@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/hooks/validator/v0.1.4...hooks/validator/v0.1.5) (2023-07-21)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.5.1 ([#263](https://github.com/open-feature/go-sdk-contrib/issues/263)) ([c75ffd6](https://github.com/open-feature/go-sdk-contrib/commit/c75ffd6017689a86860dec92c1a1564b6145f0c9))
+
 ## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/hooks/validator/v0.1.3...hooks/validator/v0.1.4) (2023-07-17)
 
 
