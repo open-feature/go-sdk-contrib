@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.14](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.13...providers/flagd/v0.1.14) (2023-07-21)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module buf.build/gen/go/open-feature/flagd/bufbuild/connect-go to v1.5.2-20230710190440-2333a9579c1a.1 ([#260](https://github.com/open-feature/go-sdk-contrib/issues/260)) ([35d2774](https://github.com/open-feature/go-sdk-contrib/commit/35d277438add84d139dbc416e0a9e180eade7ed2))
+* **deps:** update module github.com/hashicorp/golang-lru/v2 to v2.0.4 ([#233](https://github.com/open-feature/go-sdk-contrib/issues/233)) ([dc053d0](https://github.com/open-feature/go-sdk-contrib/commit/dc053d05d49ab4500b443dd5c933a9feaec1ca6a))
+* **deps:** update module github.com/open-feature/flagd/core to v0.5.4 ([#235](https://github.com/open-feature/go-sdk-contrib/issues/235)) ([b908b07](https://github.com/open-feature/go-sdk-contrib/commit/b908b07b7f73a345bd8aed1e85050e2e7fa0a878))
+* **deps:** update module github.com/open-feature/flagd/core to v0.6.0 ([#259](https://github.com/open-feature/go-sdk-contrib/issues/259)) ([3121c53](https://github.com/open-feature/go-sdk-contrib/commit/3121c5388f24614d7131cfc5ff47402faa6e64b5))
+* **deps:** update module github.com/open-feature/go-sdk to v1.5.1 ([#263](https://github.com/open-feature/go-sdk-contrib/issues/263)) ([c75ffd6](https://github.com/open-feature/go-sdk-contrib/commit/c75ffd6017689a86860dec92c1a1564b6145f0c9))
+* **deps:** update module golang.org/x/net to v0.12.0 ([#240](https://github.com/open-feature/go-sdk-contrib/issues/240)) ([b4b161e](https://github.com/open-feature/go-sdk-contrib/commit/b4b161ecb8e135fe90215e63696bb664ed06b161))
+* **deps:** update module google.golang.org/protobuf to v1.31.0 ([#249](https://github.com/open-feature/go-sdk-contrib/issues/249)) ([909b0b7](https://github.com/open-feature/go-sdk-contrib/commit/909b0b73fca87f5f0f374ff299eae4f7fa884f5d))
+
 ## [0.1.13](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.12...providers/flagd/v0.1.13) (2023-06-09)
 
 
