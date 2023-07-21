@@ -154,10 +154,11 @@ func TestContextEvaluation(t *testing.T) {
 		},
 	}
 
-	openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
+	assert.Ok(t, err)
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
@@ -171,10 +172,11 @@ func TestContextEvaluation(t *testing.T) {
 }
 
 func TestStringEvaluation(t *testing.T) {
-	openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
+	assert.Ok(t, err)
 
 	evalCtx := openfeature.NewEvaluationContext("blah1234", map[string]any{
 		"kind":            "organization-id",
@@ -191,10 +193,11 @@ func TestStringEvaluation(t *testing.T) {
 }
 
 func TestFloatEvaluation(t *testing.T) {
-	openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
+	assert.Ok(t, err)
 
 	evalCtx := openfeature.NewEvaluationContext("blah1234", map[string]any{
 		"kind":            "organization-id",
@@ -211,10 +214,11 @@ func TestFloatEvaluation(t *testing.T) {
 }
 
 func TestIntEvaluation(t *testing.T) {
-	openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
+	assert.Ok(t, err)
 
 	evalCtx := openfeature.NewEvaluationContext("blah1234", map[string]any{
 		"kind":            "organization-id",
@@ -231,10 +235,11 @@ func TestIntEvaluation(t *testing.T) {
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
+	assert.Ok(t, err)
 
 	evalCtx := openfeature.NewEvaluationContext("redpanda-blah12342", map[string]any{
 		"kind":            "redpanda-id",
@@ -255,10 +260,11 @@ func TestObjectEvaluation(t *testing.T) {
 }
 
 func TestContextCancellation(t *testing.T) {
-	openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
+	assert.Ok(t, err)
 
 	evalCtx := openfeature.NewEvaluationContext("redpanda-blah12342", map[string]any{
 		"kind":            "redpanda-id",
@@ -271,6 +277,6 @@ func TestContextCancellation(t *testing.T) {
 	client := openfeature.NewClient("objectEvalTests")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
+	_, err = client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, errors.New("GENERAL: context canceled"), errors.Unwrap(err))
 }
