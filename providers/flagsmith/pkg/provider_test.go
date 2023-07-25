@@ -3,8 +3,7 @@ package flagsmith
 import (
 	"context"
 	"fmt"
-	"github.com/Flagsmith/flagsmith-go-client/v2"
-	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v2"
+	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v3"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -305,7 +304,7 @@ func TestIntEvaluation(t *testing.T) {
 			name:                "Should error if flag does not exists",
 			flagKey:             "flag_that_does_not_exists",
 			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: No feature found with name flag_that_does_not_exists",
+			expectederrorString: "flagsmith: No feature found with name \"flag_that_does_not_exists\"",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 		},
@@ -349,7 +348,7 @@ func TestIntEvaluation(t *testing.T) {
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
-		flagsmith.WithBaseURL(server.URL+"/api/v1/"))
+		flagsmithClient.WithBaseURL(server.URL+"/api/v1/"))
 
 	provider := NewProvider(client)
 
@@ -414,7 +413,7 @@ func TestFloatEvaluation(t *testing.T) {
 			name:                "Should error if flag does not exists",
 			flagKey:             "flag_that_does_not_exists",
 			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: No feature found with name flag_that_does_not_exists",
+			expectederrorString: "flagsmith: No feature found with name \"flag_that_does_not_exists\"",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 		},
@@ -459,7 +458,7 @@ func TestFloatEvaluation(t *testing.T) {
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
-		flagsmith.WithBaseURL(server.URL+"/api/v1/"))
+		flagsmithClient.WithBaseURL(server.URL+"/api/v1/"))
 
 	provider := NewProvider(client)
 
@@ -524,7 +523,7 @@ func TestStringEvaluation(t *testing.T) {
 			name:                "Should error if flag does not exists",
 			flagKey:             "flag_that_does_not_exists",
 			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: No feature found with name flag_that_does_not_exists",
+			expectederrorString: "flagsmith: No feature found with name \"flag_that_does_not_exists\"",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 		},
@@ -568,7 +567,7 @@ func TestStringEvaluation(t *testing.T) {
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
-		flagsmith.WithBaseURL(server.URL+"/api/v1/"))
+		flagsmithClient.WithBaseURL(server.URL+"/api/v1/"))
 
 	provider := NewProvider(client)
 
@@ -644,7 +643,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			name:                "Should error if flag does not exists",
 			flagKey:             "flag_that_does_not_exists",
 			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: No feature found with name flag_that_does_not_exists",
+			expectederrorString: "flagsmith: No feature found with name \"flag_that_does_not_exists\"",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 		},
@@ -688,7 +687,7 @@ func TestBooleanEvaluation(t *testing.T) {
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
-		flagsmith.WithBaseURL(server.URL+"/api/v1/"))
+		flagsmithClient.WithBaseURL(server.URL+"/api/v1/"))
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			provider := NewProvider(client)
@@ -756,7 +755,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:                "Should error if flag does not exists",
 			flagKey:             "flag_that_does_not_exists",
 			expectedValue:       defaultValue,
-			expectederrorString: "flagsmith: No feature found with name flag_that_does_not_exists",
+			expectederrorString: "flagsmith: No feature found with name \"flag_that_does_not_exists\"",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
 		},
@@ -799,7 +798,7 @@ func TestObjectEvaluation(t *testing.T) {
 	defer server.Close()
 
 	client := flagsmithClient.NewClient(EnvironmentAPIKey,
-		flagsmith.WithBaseURL(server.URL+"/api/v1/"))
+		flagsmithClient.WithBaseURL(server.URL+"/api/v1/"))
 
 	provider := NewProvider(client)
 
