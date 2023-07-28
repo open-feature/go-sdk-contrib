@@ -317,7 +317,7 @@ func convertCache[T model.JsonType](value interface{}) (model.GenericResolutionD
 
 // evaluateWithRelayProxy is calling GO Feature Flag relay proxy to evaluate the file.
 func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Context, goffRequestBody model.EvalFlagRequest, flagName string, defaultValue T) model.GenericResolutionDetail[T] {
-	cacheKey := fmt.Sprintf("%s-%s", flagName, goffRequestBody.User.Key)
+	cacheKey := fmt.Sprintf("%s-%+v", flagName, goffRequestBody.EvaluationContext)
 	// check if flag is available in the cache
 	cacheResInterface, err := provider.cache.Get(cacheKey)
 	if err == nil {
