@@ -39,6 +39,7 @@ func NewEvalFlagRequest[T JsonType](flatCtx of.FlattenedContext, defaultValue T)
 
 type EvalFlagRequest struct {
 	// User The representation of a user for your feature flag system.
+	// Deprecated: User please use EvaluationContext instead
 	User *UserRequest `json:"user" xml:"user" form:"user" query:"user"`
 	// EvaluationContext the context to evaluate the flag.
 	EvaluationContext *EvaluationContextRequest `json:"evaluationContext,omitempty" xml:"evaluationContext,omitempty" form:"evaluationContext,omitempty" query:"evaluationContext,omitempty"`
