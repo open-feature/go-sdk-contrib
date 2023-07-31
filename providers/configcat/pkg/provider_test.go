@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	sdk "github.com/configcat/go-sdk/v7"
+	sdk "github.com/configcat/go-sdk/v8"
 	"github.com/open-feature/go-sdk-contrib/providers/configcat/internal/clienttest"
 	configcat "github.com/open-feature/go-sdk-contrib/providers/configcat/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"

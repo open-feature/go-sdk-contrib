@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/configcat/go-sdk/v7"
+	sdk "github.com/configcat/go-sdk/v8"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 

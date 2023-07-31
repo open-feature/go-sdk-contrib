@@ -3,7 +3,7 @@ package clienttest
 import (
 	"sync"
 
-	sdk "github.com/configcat/go-sdk/v7"
+	sdk "github.com/configcat/go-sdk/v8"
 )
 
 // NewClient creates enough of the ConfigCat client to record flag interactions.
