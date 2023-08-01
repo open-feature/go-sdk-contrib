@@ -23,6 +23,16 @@ func TestBooleanEvaluationCache(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// flag evaluation metadata
+	metadata := map[string]interface{}{
+		"scope": "flagd-scope",
+	}
+
+	metadataStruct, err := structpb.NewStruct(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := map[string]struct {
 		flagKey string
 		mockOut *schemav1.ResolveBooleanResponse
@@ -35,9 +45,10 @@ func TestBooleanEvaluationCache(t *testing.T) {
 		"cache when static": {
 			flagKey: "foo",
 			mockOut: &schemav1.ResolveBooleanResponse{
-				Value:   true,
-				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				Value:    true,
+				Variant:  "on",
+				Reason:   flagdModels.StaticReason,
+				Metadata: metadataStruct,
 			},
 			setup: func(
 				t *testing.T, ctx context.Context, provider Provider, mockSvc *mock.MockIService,
@@ -52,7 +63,7 @@ func TestBooleanEvaluationCache(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       constant.ReasonCached,
 					Variant:      "on",
-					FlagMetadata: map[string]interface{}{},
+					FlagMetadata: metadata,
 				},
 			},
 		},
