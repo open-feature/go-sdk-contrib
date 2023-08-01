@@ -97,6 +97,16 @@ func TestNewProvider(t *testing.T) {
 }
 
 func TestBooleanEvaluation(t *testing.T) {
+	// flag evaluation metadata
+	metadata := map[string]interface{}{
+		"scope": "flagd-scope",
+	}
+
+	metadataStruct, err := structpb.NewStruct(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []struct {
 		name         string
 		flagKey      string
@@ -124,8 +134,32 @@ func TestBooleanEvaluation(t *testing.T) {
 			response: of.BoolResolutionDetail{
 				Value: true,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Variant: "on",
+					Variant:      "on",
+					Reason:       flagdModels.DefaultReason,
+					FlagMetadata: map[string]interface{}{},
+				},
+			},
+		},
+		{
+			name:         "with evaluation metadata",
+			flagKey:      "flag-with-metadata",
+			defaultValue: true,
+			evalCtx:      map[string]interface{}{},
+			mockOut: &schemav1.ResolveBooleanResponse{
+				Value:    true,
+				Variant:  "off",
+				Reason:   flagdModels.DefaultReason,
+				Metadata: metadataStruct,
+			},
+			mockError: nil,
+			response: of.BoolResolutionDetail{
+				Value: true,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Variant: "off",
 					Reason:  flagdModels.DefaultReason,
+					FlagMetadata: map[string]interface{}{
+						"scope": "flagd-scope",
+					},
 				},
 			},
 		},
@@ -145,6 +179,7 @@ func TestBooleanEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
+					FlagMetadata:    map[string]interface{}{},
 				},
 			},
 		},
@@ -164,8 +199,9 @@ func TestBooleanEvaluation(t *testing.T) {
 			response: of.BoolResolutionDetail{
 				Value: false,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Variant: "on",
-					Reason:  flagdModels.DefaultReason,
+					Variant:      "on",
+					Reason:       flagdModels.DefaultReason,
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -198,6 +234,9 @@ func TestBooleanEvaluation(t *testing.T) {
 			}
 			if res.Reason != test.response.Reason {
 				t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
+			}
+			if !reflect.DeepEqual(res.FlagMetadata, test.response.FlagMetadata) {
+				t.Errorf("metadata mismatched, expected %v, got %v", test.response.FlagMetadata, res.FlagMetadata)
 			}
 		})
 	}

@@ -23,6 +23,16 @@ func TestBooleanEvaluationCache(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// flag evaluation metadata
+	metadata := map[string]interface{}{
+		"scope": "flagd-scope",
+	}
+
+	metadataStruct, err := structpb.NewStruct(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := map[string]struct {
 		flagKey string
 		mockOut *schemav1.ResolveBooleanResponse
@@ -35,9 +45,10 @@ func TestBooleanEvaluationCache(t *testing.T) {
 		"cache when static": {
 			flagKey: "foo",
 			mockOut: &schemav1.ResolveBooleanResponse{
-				Value:   true,
-				Variant: "on",
-				Reason:  flagdModels.StaticReason,
+				Value:    true,
+				Variant:  "on",
+				Reason:   flagdModels.StaticReason,
+				Metadata: metadataStruct,
 			},
 			setup: func(
 				t *testing.T, ctx context.Context, provider Provider, mockSvc *mock.MockIService,
@@ -50,8 +61,9 @@ func TestBooleanEvaluationCache(t *testing.T) {
 			expectedRes: of.BoolResolutionDetail{
 				Value: true,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  constant.ReasonCached,
-					Variant: "on",
+					Reason:       constant.ReasonCached,
+					Variant:      "on",
+					FlagMetadata: metadata,
 				},
 			},
 		},
@@ -73,8 +85,9 @@ func TestBooleanEvaluationCache(t *testing.T) {
 			expectedRes: of.BoolResolutionDetail{
 				Value: true,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.DefaultReason,
-					Variant: "on",
+					Reason:       flagdModels.DefaultReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -96,8 +109,9 @@ func TestBooleanEvaluationCache(t *testing.T) {
 			expectedRes: of.BoolResolutionDetail{
 				Value: true,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -180,8 +194,9 @@ func TestStringEvaluationCache(t *testing.T) {
 			expectedRes: of.StringResolutionDetail{
 				Value: "bar",
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  constant.ReasonCached,
-					Variant: "on",
+					Reason:       constant.ReasonCached,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -203,8 +218,9 @@ func TestStringEvaluationCache(t *testing.T) {
 			expectedRes: of.StringResolutionDetail{
 				Value: "bar",
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.DefaultReason,
-					Variant: "on",
+					Reason:       flagdModels.DefaultReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -226,8 +242,9 @@ func TestStringEvaluationCache(t *testing.T) {
 			expectedRes: of.StringResolutionDetail{
 				Value: "bar",
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -310,8 +327,9 @@ func TestFloatEvaluationCache(t *testing.T) {
 			expectedRes: of.FloatResolutionDetail{
 				Value: 9,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  constant.ReasonCached,
-					Variant: "on",
+					Reason:       constant.ReasonCached,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -333,8 +351,9 @@ func TestFloatEvaluationCache(t *testing.T) {
 			expectedRes: of.FloatResolutionDetail{
 				Value: 9,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.DefaultReason,
-					Variant: "on",
+					Reason:       flagdModels.DefaultReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -356,8 +375,9 @@ func TestFloatEvaluationCache(t *testing.T) {
 			expectedRes: of.FloatResolutionDetail{
 				Value: 9,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -440,8 +460,9 @@ func TestIntEvaluationCache(t *testing.T) {
 			expectedRes: of.IntResolutionDetail{
 				Value: 9,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  constant.ReasonCached,
-					Variant: "on",
+					Reason:       constant.ReasonCached,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -463,8 +484,9 @@ func TestIntEvaluationCache(t *testing.T) {
 			expectedRes: of.IntResolutionDetail{
 				Value: 9,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.DefaultReason,
-					Variant: "on",
+					Reason:       flagdModels.DefaultReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -486,8 +508,9 @@ func TestIntEvaluationCache(t *testing.T) {
 			expectedRes: of.IntResolutionDetail{
 				Value: 9,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -568,8 +591,9 @@ func TestObjectEvaluationCache(t *testing.T) {
 			},
 			expectedRes: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  constant.ReasonCached,
-					Variant: "on",
+					Reason:       constant.ReasonCached,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -589,8 +613,9 @@ func TestObjectEvaluationCache(t *testing.T) {
 			},
 			expectedRes: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.DefaultReason,
-					Variant: "on",
+					Reason:       flagdModels.DefaultReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -610,8 +635,9 @@ func TestObjectEvaluationCache(t *testing.T) {
 			},
 			expectedRes: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -728,8 +754,9 @@ func TestCacheInvalidation(t *testing.T) {
 			},
 			expectedRes: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -777,8 +804,9 @@ func TestCacheInvalidation(t *testing.T) {
 			},
 			expectedRes: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  constant.ReasonCached,
-					Variant: "on",
+					Reason:       constant.ReasonCached,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -818,8 +846,9 @@ func TestCacheInvalidation(t *testing.T) {
 			},
 			expectedRes: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
@@ -852,8 +881,9 @@ func TestCacheInvalidation(t *testing.T) {
 			},
 			expectedRes: of.InterfaceResolutionDetail{
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason:  flagdModels.StaticReason,
-					Variant: "on",
+					Reason:       flagdModels.StaticReason,
+					Variant:      "on",
+					FlagMetadata: map[string]interface{}{},
 				},
 			},
 		},
