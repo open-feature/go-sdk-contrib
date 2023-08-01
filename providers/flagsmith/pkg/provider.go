@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v2"
+	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v3"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"strconv"
 )
@@ -73,7 +73,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 			}
 		}
 
-		flags, err = p.client.GetIdentityFlags(targetKey, traits)
+		flags, err = p.client.GetIdentityFlags(ctx, targetKey, traits)
 		if err != nil {
 			e := of.NewGeneralResolutionError(err.Error())
 			return of.InterfaceResolutionDetail{
@@ -86,7 +86,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue in
 		}
 
 	} else {
-		flags, err = p.client.GetEnvironmentFlags()
+		flags, err = p.client.GetEnvironmentFlags(ctx)
 		if err != nil {
 			e := of.NewGeneralResolutionError(err.Error())
 

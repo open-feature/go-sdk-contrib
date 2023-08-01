@@ -7,7 +7,7 @@
 To use the Flagsmith provider, you'll need to install [flagsmith Go client](https://github.com/Flagsmith/flagsmith-go-client) and flagsmith provider. You can install the packages using the following command
 
 ```shell
-go get github.com/Flagsmith/flagsmith-go-client/v2
+go get github.com/Flagsmith/flagsmith-go-client/v3
 go get github.com/open-feature/go-sdk-contrib/providers/flagsmith
 ```
 
@@ -16,7 +16,7 @@ Here's an example of how you can use the Flagsmith provider:
 
 ```go
 import (
-    flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v2"
+    flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v3"
     of "github.com/open-feature/go-sdk/pkg/openfeature"
     flagsmith "github.com/open-feature/go-sdk-contrib/providers/flagsmith/pkg"
 )
