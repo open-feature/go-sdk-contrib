@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.15](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.14...providers/flagd/v0.1.15) (2023-08-02)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/bufbuild/connect-go to v1.10.0 ([#284](https://github.com/open-feature/go-sdk-contrib/issues/284)) ([a6a67b0](https://github.com/open-feature/go-sdk-contrib/commit/a6a67b01c0441b4cb4881945109265bd6d9e8cd6))
+* **deps:** update module github.com/open-feature/flagd/core to v0.6.2 ([#286](https://github.com/open-feature/go-sdk-contrib/issues/286)) ([6290121](https://github.com/open-feature/go-sdk-contrib/commit/62901210bda2aa62333b6648ae9ab9dad9612d48))
+
+
+### ✨ New Features
+
+* flag evaluation metadata ([#278](https://github.com/open-feature/go-sdk-contrib/issues/278)) ([b0a61cd](https://github.com/open-feature/go-sdk-contrib/commit/b0a61cde5abcd7ea0bc10ef7c6174fc1be5cb423))
+
 ## [0.1.14](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.13...providers/flagd/v0.1.14) (2023-07-21)
 
 
