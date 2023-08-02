@@ -2,6 +2,8 @@ github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/configcat/go-sdk/v7 v7.10.1 h1:5j/f6o6L9+gGnQ0UbY9B8i6Bf7R8moAksRI85BOscik=
 github.com/configcat/go-sdk/v7 v7.10.1/go.mod h1:gFmNkwMeEo3hcOyz6NRd/aiOjx1FPIS/g9DZeATKJQ0=
+github.com/configcat/go-sdk/v8 v8.0.0 h1:JAfkd6noFaEDLqwgrdEEre9zVxtiw09+vA2+YlLEFpo=
+github.com/configcat/go-sdk/v8 v8.0.0/go.mod h1:wWQipNPtT5hkl7JEIaEBOwo+49fN9WaWksTgpMaC1n4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -20,6 +22,8 @@ github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/open-feature/go-sdk v1.5.1 h1:ja1+XtWwqLqgJSFJ31sh+MCioVW4vWj5ya/e/f81y38=
 github.com/open-feature/go-sdk v1.5.1/go.mod h1:yllFTs5yJguao9zdcmYYGJBHTyBGwO2zC+GP2JeFR0o=
+github.com/open-feature/go-sdk v1.6.0 h1:9Wi8J77ORVKvm/8d1ZGKI7+/Uq+5JrpxylQ50DvZZnA=
+github.com/open-feature/go-sdk v1.6.0/go.mod h1:xR4RHexQNwvE/7IOR0LOiCuH+2wlQyoZwpAc4bp508o=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
