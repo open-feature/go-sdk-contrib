@@ -12,7 +12,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.4
 	github.com/open-feature/flagd/core v0.6.2
-	github.com/open-feature/go-sdk v1.5.1
+	github.com/open-feature/go-sdk v1.6.0
 	golang.org/x/net v0.12.0
 	google.golang.org/protobuf v1.31.0
 )
