@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagsmith/v0.1.3...providers/flagsmith/v0.1.4) (2023-08-02)
+
+
+### 🧹 Chore
+
+* **flagsmith:** bump provider version ([#281](https://github.com/open-feature/go-sdk-contrib/issues/281)) ([f003ac8](https://github.com/open-feature/go-sdk-contrib/commit/f003ac8f309db7d0bae233994041fe0e416aa82d))
+
 ## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagsmith/v0.1.2...providers/flagsmith/v0.1.3) (2023-07-21)
 
 
