@@ -273,43 +273,10 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 	}
 }
 
-func TestMetricHook_OptionMetadataDimensions(t *testing.T) {
-	// Test validates WithFlagMetadataDimensions option
-
+func TestMetricHook_MetadataExtractionOptions(t *testing.T) {
 	// given
 	manualReader := metric.NewManualReader()
 	ctx := context.Background()
-
-	scopeDescription := DimensionDescription{
-		Key:  "scope",
-		Type: String,
-	}
-	scopeValue := "7c34165e-fbef-11ed-be56-0242ac120002"
-
-	stageDescription := DimensionDescription{
-		Key:  "stage",
-		Type: Int,
-	}
-	stageValue := 1
-
-	scoreDescription := DimensionDescription{
-		Key:  "score",
-		Type: Float,
-	}
-	scoreValue := 4.5
-
-	cachedDescription := DimensionDescription{
-		Key:  "cached",
-		Type: Bool,
-	}
-	cacheValue := false
-
-	evalMetadata := map[string]interface{}{
-		scopeDescription.Key:  scopeValue,
-		stageDescription.Key:  stageValue,
-		scoreDescription.Key:  scoreValue,
-		cachedDescription.Key: cacheValue,
-	}
 
 	evalDetails := openfeature.InterfaceEvaluationDetails{
 		Value: true,
@@ -323,72 +290,144 @@ func TestMetricHook_OptionMetadataDimensions(t *testing.T) {
 	}
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
-	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)),
-		WithFlagMetadataDimensions(scopeDescription, stageDescription, scoreDescription, cachedDescription))
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	t.Run("from dimensionDescriptions", func(t *testing.T) {
+		// when
+		metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)),
+			WithFlagMetadataDimensions(scopeDescription, stageDescription, scoreDescription, cachedDescription))
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
-	// when
-	err = metricsHook.After(ctx, hookContext(), evalDetails, hookHints)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+		err = metricsHook.After(ctx, hookContext(), evalDetails, hookHints)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
-	// then
-	var data metricdata.ResourceMetrics
+		// then
+		var data metricdata.ResourceMetrics
 
-	err = manualReader.Collect(ctx, &data)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+		err = manualReader.Collect(ctx, &data)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
-	scopeMetrics := data.ScopeMetrics
-	if len(scopeMetrics) < 1 {
-		t.Error("expected scope metrics to be non empty with after hook")
-	}
+		scopeMetrics := data.ScopeMetrics
+		if len(scopeMetrics) < 1 {
+			t.Error("expected scope metrics to be non empty with after hook")
+		}
 
-	metrics := scopeMetrics[0].Metrics
-	if len(metrics) < 1 {
-		t.Errorf("expected metric, %s to be present with after hook", evaluationSuccess)
-	}
+		metrics := scopeMetrics[0].Metrics
+		if len(metrics) < 1 {
+			t.Errorf("expected metric, %s to be present with after hook", evaluationSuccess)
+		}
 
-	successMetric := metrics[0]
+		successMetric := metrics[0]
 
-	if successMetric.Name != evaluationSuccess {
-		t.Errorf("expected %s to be present with after hook", evaluationSuccess)
-	}
+		if successMetric.Name != evaluationSuccess {
+			t.Errorf("expected %s to be present with after hook", evaluationSuccess)
+		}
 
-	instrument := successMetric.Data.(metricdata.Sum[int64])
+		instrument := successMetric.Data.(metricdata.Sum[int64])
 
-	if len(instrument.DataPoints) < 1 {
-		t.Error("expected data points, but found none")
-	}
+		if len(instrument.DataPoints) < 1 {
+			t.Error("expected data points, but found none")
+		}
 
-	attributes := instrument.DataPoints[0].Attributes
+		attributes := instrument.DataPoints[0].Attributes
 
-	value, ok := attributes.Value(attribute.Key(scopeDescription.Key))
-	if !ok || value.AsString() != scopeValue {
-		t.Errorf("attribute %s is incorrectly configured", scoreDescription.Key)
-	}
+		value, ok := attributes.Value(attribute.Key(scopeKey))
+		if !ok || value.AsString() != scopeValue {
+			t.Errorf("attribute %s is incorrectly configured", scopeKey)
+		}
 
-	value, ok = attributes.Value(attribute.Key(stageDescription.Key))
-	if !ok || value.AsInt64() != int64(stageValue) {
-		t.Errorf("attribute %s is incorrectly configured", stageDescription.Key)
-	}
+		value, ok = attributes.Value(attribute.Key(stageKey))
+		if !ok || value.AsInt64() != int64(stageValue) {
+			t.Errorf("attribute %s is incorrectly configured", stageKey)
+		}
 
-	value, ok = attributes.Value(attribute.Key(scoreDescription.Key))
-	if !ok || value.AsFloat64() != scoreValue {
-		t.Errorf("attribute %s is incorrectly configured", scoreDescription.Key)
-	}
+		value, ok = attributes.Value(attribute.Key(scoreKey))
+		if !ok || value.AsFloat64() != scoreValue {
+			t.Errorf("attribute %s is incorrectly configured", scoreKey)
+		}
 
-	value, ok = attributes.Value(attribute.Key(cachedDescription.Key))
-	if !ok || value.AsBool() != cacheValue {
-		t.Errorf("attribute %s is incorrectly configured", cachedDescription.Key)
-	}
+		value, ok = attributes.Value(attribute.Key(cachedKey))
+		if !ok || value.AsBool() != cacheValue {
+			t.Errorf("attribute %s is incorrectly configured", cachedKey)
+		}
+	})
+
+	t.Run("from custom extractionCallback", func(t *testing.T) {
+		// when
+		metricsHook, err := NewMetricsHookForProvider(
+			metric.NewMeterProvider(metric.WithReader(manualReader)),
+			WithAttributeSetterForMetrics(&extractionCallback))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		err = metricsHook.After(ctx, hookContext(), evalDetails, hookHints)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		// then
+		var data metricdata.ResourceMetrics
+
+		err = manualReader.Collect(ctx, &data)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		scopeMetrics := data.ScopeMetrics
+		if len(scopeMetrics) < 1 {
+			t.Error("expected scope metrics to be non empty with after hook")
+		}
+
+		metrics := scopeMetrics[0].Metrics
+		if len(metrics) < 1 {
+			t.Errorf("expected metric, %s to be present with after hook", evaluationSuccess)
+		}
+
+		successMetric := metrics[0]
+
+		if successMetric.Name != evaluationSuccess {
+			t.Errorf("expected %s to be present with after hook", evaluationSuccess)
+		}
+
+		instrument := successMetric.Data.(metricdata.Sum[int64])
+
+		if len(instrument.DataPoints) < 1 {
+			t.Error("expected data points, but found none")
+		}
+
+		attributes := instrument.DataPoints[0].Attributes
+
+		value, ok := attributes.Value(attribute.Key(scopeKey))
+		if !ok || value.AsString() != scopeValue {
+			t.Errorf("attribute %s is incorrectly configured", scopeKey)
+		}
+
+		value, ok = attributes.Value(attribute.Key(stageKey))
+		if !ok || value.AsInt64() != int64(stageValue) {
+			t.Errorf("attribute %s is incorrectly configured", stageKey)
+		}
+
+		value, ok = attributes.Value(attribute.Key(scoreKey))
+		if !ok || value.AsFloat64() != scoreValue {
+			t.Errorf("attribute %s is incorrectly configured", scoreKey)
+		}
+
+		value, ok = attributes.Value(attribute.Key(cachedKey))
+		if !ok || value.AsBool() != cacheValue {
+			t.Errorf("attribute %s is incorrectly configured", cachedKey)
+		}
+	})
 
 }
 

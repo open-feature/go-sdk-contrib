@@ -1,4 +1,4 @@
-package otel_test
+package otel
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"testing"
 
-	otelHook "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -15,7 +14,6 @@ import (
 )
 
 func TestHookMethods(t *testing.T) {
-
 	t.Run("After hook should add feature_flag event as well as key, provider_name and variant attributes", func(t *testing.T) {
 		flagKey := "flag-key"
 		providerName := "provider-name"
@@ -26,7 +24,7 @@ func TestHookMethods(t *testing.T) {
 		)
 		otel.SetTracerProvider(tp)
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
-		hook := otelHook.NewTracesHook()
+		hook := NewTracesHook()
 		err := hook.After(
 			ctx,
 			openfeature.NewHookContext(
@@ -66,20 +64,20 @@ func TestHookMethods(t *testing.T) {
 		if len(spans[0].Events) != 1 {
 			t.Errorf("expected 1 event, got %d", len(spans[0].Events))
 		}
-		if spans[0].Events[0].Name != otelHook.EventName {
+		if spans[0].Events[0].Name != EventName {
 			t.Errorf("unexpected event name: %s", spans[0].Events[0].Name)
 		}
 		for _, attr := range spans[0].Events[0].Attributes {
 			switch attr.Key {
-			case otelHook.EventPropertyFlagKey:
+			case EventPropertyFlagKey:
 				if attr.Value.AsString() != flagKey {
 					t.Errorf("unexpected feature_flag.key attribute value: %s", attr.Value.AsString())
 				}
-			case otelHook.EventPropertyProviderName:
+			case EventPropertyProviderName:
 				if attr.Value.AsString() != providerName {
 					t.Errorf("unexpected feature_flag.provider_name attribute value: %s", attr.Value.AsString())
 				}
-			case otelHook.EventPropertyVariant:
+			case EventPropertyVariant:
 				if attr.Value.AsString() != variant {
 					t.Errorf("unexpected feature_flag.variant attribute value: %s", attr.Value.AsString())
 				}
@@ -96,7 +94,7 @@ func TestHookMethods(t *testing.T) {
 		)
 		otel.SetTracerProvider(tp)
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
-		hook := otelHook.NewTracesHook()
+		hook := NewTracesHook()
 		err := errors.New("a terrible error")
 		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
 		span.End()
@@ -129,7 +127,7 @@ func TestHookMethods(t *testing.T) {
 		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
 
 		// build traceHook with option WithErrorStatusEnabled
-		hook := otelHook.NewTracesHook(otelHook.WithErrorStatusEnabled())
+		hook := NewTracesHook(WithErrorStatusEnabled())
 
 		err := errors.New("a terrible error")
 		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
@@ -152,7 +150,7 @@ func TestHookMethods(t *testing.T) {
 		providerName := "provider-name"
 		variant := "variant"
 		ctx := context.Background()
-		hook := otelHook.NewTracesHook()
+		hook := NewTracesHook()
 
 		err := hook.After(
 			ctx,
@@ -188,5 +186,71 @@ func TestHookMethods(t *testing.T) {
 
 		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
 	})
+}
 
+func TestTracesHook_MedataExtractionOption(t *testing.T) {
+	// given
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(
+		trace.WithSyncer(exp),
+	)
+	otel.SetTracerProvider(tp)
+
+	evaluationDetails := openfeature.InterfaceEvaluationDetails{
+		Value: "ok",
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:  "stringFlag",
+			FlagType: openfeature.String,
+			ResolutionDetail: openfeature.ResolutionDetail{
+				FlagMetadata: evalMetadata,
+			},
+		},
+	}
+
+	hook := NewTracesHook(WithAttributeSetterForTraces(&extractionCallback))
+
+	// when
+	ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+	err := hook.After(ctx, openfeature.HookContext{}, evaluationDetails, openfeature.HookHints{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	span.End()
+
+	// then
+	spans := exp.GetSpans()
+	if len(spans) != 1 {
+		t.Errorf("expected 1 span, got %d", len(spans))
+	}
+
+	if len(spans[0].Events) != 1 {
+		t.Errorf("expected 1 event, got %d", len(spans[0].Events))
+	}
+
+	if spans[0].Events[0].Name != EventName {
+		t.Errorf("unexpected event name: %s", spans[0].Events[0].Name)
+	}
+
+	attributes := spans[0].Events[0].Attributes
+
+	for _, attribute := range attributes {
+		switch string(attribute.Key) {
+		case scopeKey:
+			if attribute.Value.AsString() != scopeValue {
+				t.Errorf("expected %s, got type %s", scopeValue, attribute.Value.Type().String())
+			}
+		case stageKey:
+			if attribute.Value.AsInt64() != int64(stageValue) {
+				t.Errorf("expected %d, got type %s", stageValue, attribute.Value.Type().String())
+			}
+		case scoreKey:
+			if attribute.Value.AsFloat64() != scoreValue {
+				t.Errorf("expected %f, got type %s", scoreValue, attribute.Value.Type().String())
+			}
+		case cachedKey:
+			if attribute.Value.AsBool() != cacheValue {
+				t.Errorf("expected %t, got type %s", cacheValue, attribute.Value.Type().String())
+			}
+		}
+	}
 }
