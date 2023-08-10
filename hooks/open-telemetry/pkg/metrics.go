@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
@@ -18,11 +19,15 @@ const (
 	evaluationErrors   = "feature_flag.evaluation_error_total"
 )
 
+type AttributeMapper func(openfeature.FlagMetadata) []attribute.KeyValue
+
 type MetricsHook struct {
 	activeCounter  api.Int64UpDownCounter
 	requestCounter api.Int64Counter
 	successCounter api.Int64Counter
 	errorCounter   api.Int64Counter
+
+	attributeMapper AttributeMapper
 
 	flagEvalMetadataDimensions []DimensionDescription
 }
@@ -103,9 +108,14 @@ func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 	if details.Reason != "" {
 		attribs = append(attribs, attribute.String("reason", string(details.Reason)))
 	}
-	fromMetadata := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
 
+	fromMetadata := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
 	attribs = append(attribs, fromMetadata...)
+
+	if h.attributeMapper != nil {
+		attribs = append(attribs, h.attributeMapper(details.FlagMetadata)...)
+	}
+
 	h.successCounter.Add(ctx, 1, api.WithAttributes(attribs...))
 
 	return nil
@@ -129,7 +139,7 @@ type Type int
 
 // Type helper
 const (
-	Bool = iota
+	Bool Type = iota
 	String
 	Int
 	Float
@@ -139,6 +149,14 @@ const (
 type DimensionDescription struct {
 	Key string
 	Type
+}
+
+// WithAttributeMapper allows providing an AttributeMapper that takes openfeature.FlagMetadata and returns
+// []attribute.KeyValue.
+func WithAttributeMapper(attributeMapper AttributeMapper) MetricOptions {
+	return func(metricsHook *MetricsHook) {
+		metricsHook.attributeMapper = attributeMapper
+	}
 }
 
 // WithFlagMetadataDimensions allows configuring extra dimensions for feature_flag.evaluation_success_total metric.

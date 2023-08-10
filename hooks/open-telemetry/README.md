@@ -17,6 +17,27 @@ This hook performs metric collection by tapping into various hook stages. Given 
 
 ### Options
 
+#### WithAttributeMapper
+
+This constructor option allows specification of a `AttributeMapper` which maps
+`openfeature.FlagMetadata` to an array of `attribute.KeyValue`. If present, the
+resulting attributes will be added to the
+`feature_flag.evaluation_success_total` metric.
+
+Example usage,
+
+```go
+NewMetricsHook(reader,
+	WithAttributeMapper(func(md openfeature.FlagMetadata) []attribute.KeyValue {
+		var kvs []attribute.KeyValue
+		if scopeValue, err := md.GetString("scope"); err != nil {
+			kvs = append(kvs, attribute.String(scopeKey, scopeValue))
+		}
+		return kvs
+	}),
+)
+```
+
 #### WithFlagMetadataDimensions 
 
 This constructor option allows to configure dimension descriptions to be extracted from `openfeature.FlagMetadata`. 
