@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/bluele/gcache v0.0.2
-	github.com/open-feature/go-sdk v1.6.0
+	github.com/open-feature/go-sdk v1.7.0
 	github.com/stretchr/testify v1.8.4
 	github.com/thomaspoignant/go-feature-flag v1.14.1
 )
@@ -21,7 +21,7 @@ require (
 	github.com/nikunjy/rules v1.2.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
+	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
