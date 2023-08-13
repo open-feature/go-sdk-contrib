@@ -67,6 +67,8 @@ github.com/thomaspoignant/go-feature-flag v1.14.0 h1:99r/hzCYyye5pSZvTVjl4Oug3MY
 github.com/thomaspoignant/go-feature-flag v1.14.0/go.mod h1:AjNPP99o9VtHaVCmOC0y9+lwoBis9VPjBX24EZZNCiQ=
 github.com/thomaspoignant/go-feature-flag v1.14.1 h1:lNorALbmQbvLlW7FWPYucE7OqVDxDY/0ytEHJBMT3nI=
 github.com/thomaspoignant/go-feature-flag v1.14.1/go.mod h1:SIP+LEUvjs8Ti47TJV9g1PsrbQZ1+8A1zqE9a8Z5mqc=
+github.com/thomaspoignant/go-feature-flag v1.15.0 h1:bS5nL2zv5dvz9KuN+unvAonmg3BmJ5TllyjXv3bR+8w=
+github.com/thomaspoignant/go-feature-flag v1.15.0/go.mod h1:V+hq1GSQqVWkVWGnt7u1MFcdEt/iSIUOsGX9aYFWX0Y=
 github.com/xitongsys/parquet-go v1.6.2 h1:MhCaXii4eqceKPu9BwrjLqyK10oX9WF+xGhwvwbw7xM=
 github.com/xitongsys/parquet-go-source v0.0.0-20200817004010-026bad9b25d0 h1:a742S4V5A15F93smuVxA60LQWsrCnN8bKeWDBARU1/k=
 go.opencensus.io v0.24.0 h1:y73uSU6J157QMP2kn2r30vwW1A2W2WFwSCGnAVxeaD0=
