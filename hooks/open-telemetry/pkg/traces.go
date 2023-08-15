@@ -20,7 +20,7 @@ const (
 // traceHook is the hook implementation for OTel traces
 type traceHook struct {
 	setErrorStatus          bool
-	attributeSetterCallback *func(openfeature.FlagMetadata) []attribute.KeyValue
+	attributeMapperCallback *func(openfeature.FlagMetadata) []attribute.KeyValue
 
 	openfeature.UnimplementedHook
 }
@@ -48,8 +48,8 @@ func (h *traceHook) After(ctx context.Context, hookContext openfeature.HookConte
 		attribs = append(attribs, semconv.FeatureFlagVariant(flagEvaluationDetails.Variant))
 	}
 
-	if h.attributeSetterCallback != nil {
-		attribs = append(attribs, (*h.attributeSetterCallback)(flagEvaluationDetails.FlagMetadata)...)
+	if h.attributeMapperCallback != nil {
+		attribs = append(attribs, (*h.attributeMapperCallback)(flagEvaluationDetails.FlagMetadata)...)
 	}
 
 	span := trace.SpanFromContext(ctx)
@@ -83,11 +83,11 @@ func WithErrorStatusEnabled() Options {
 	}
 }
 
-// WithAttributeSetterForTraces allows to set a extractionCallback which accept openfeature.FlagMetadata and returns
+// WithTracesAttributeSetter allows to set a extractionCallback which accept openfeature.FlagMetadata and returns
 // []attribute.KeyValue derived from those metadata.
 // If present, returned attributes will be added to successful evaluation traces
-func WithAttributeSetterForTraces(callback *func(openfeature.FlagMetadata) []attribute.KeyValue) Options {
+func WithTracesAttributeSetter(callback *func(openfeature.FlagMetadata) []attribute.KeyValue) Options {
 	return func(tracesHook *traceHook) {
-		tracesHook.attributeSetterCallback = callback
+		tracesHook.attributeMapperCallback = callback
 	}
 }

@@ -25,7 +25,7 @@ type MetricsHook struct {
 	errorCounter   api.Int64Counter
 
 	flagEvalMetadataDimensions []DimensionDescription
-	attributeSetterCallback    *func(openfeature.FlagMetadata) []attribute.KeyValue
+	attributeMapperCallback    *func(openfeature.FlagMetadata) []attribute.KeyValue
 }
 
 var _ openfeature.Hook = &MetricsHook{}
@@ -98,8 +98,8 @@ func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 	fromMetadata := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
 	attribs = append(attribs, fromMetadata...)
 
-	if h.attributeSetterCallback != nil {
-		attribs = append(attribs, (*h.attributeSetterCallback)(details.FlagMetadata)...)
+	if h.attributeMapperCallback != nil {
+		attribs = append(attribs, (*h.attributeMapperCallback)(details.FlagMetadata)...)
 	}
 
 	h.successCounter.Add(ctx, 1, api.WithAttributes(attribs...))
@@ -149,11 +149,11 @@ func WithFlagMetadataDimensions(descriptions ...DimensionDescription) MetricOpti
 	}
 }
 
-// WithAttributeSetterForMetrics allows to set a extractionCallback which accept openfeature.FlagMetadata and returns
+// WithMetricsAttributeSetter allows to set a extractionCallback which accept openfeature.FlagMetadata and returns
 // []attribute.KeyValue derived from those metadata.
-func WithAttributeSetterForMetrics(callback *func(openfeature.FlagMetadata) []attribute.KeyValue) MetricOptions {
+func WithMetricsAttributeSetter(callback *func(openfeature.FlagMetadata) []attribute.KeyValue) MetricOptions {
 	return func(metricsHook *MetricsHook) {
-		metricsHook.attributeSetterCallback = callback
+		metricsHook.attributeMapperCallback = callback
 	}
 }
 
