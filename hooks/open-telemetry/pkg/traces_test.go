@@ -207,7 +207,7 @@ func TestTracesHook_MedataExtractionOption(t *testing.T) {
 		},
 	}
 
-	hook := NewTracesHook(WithTracesAttributeSetter(&extractionCallback))
+	hook := NewTracesHook(WithTracesAttributeSetter(extractionCallback))
 
 	// when
 	ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")

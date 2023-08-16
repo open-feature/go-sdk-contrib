@@ -363,7 +363,7 @@ func TestMetricHook_MetadataExtractionOptions(t *testing.T) {
 		// when
 		metricsHook, err := NewMetricsHookForProvider(
 			metric.NewMeterProvider(metric.WithReader(manualReader)),
-			WithMetricsAttributeSetter(&extractionCallback))
+			WithMetricsAttributeSetter(extractionCallback))
 		if err != nil {
 			t.Error(err)
 			return
