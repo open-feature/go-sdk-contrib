@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.8...hooks/open-telemetry/v0.3.0) (2023-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* attribute setter callbacks for otel hooks and remove deprecated constructors  ([#311](https://github.com/open-feature/go-sdk-contrib/issues/311))
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.6.0 ([#289](https://github.com/open-feature/go-sdk-contrib/issues/289)) ([13eeb48](https://github.com/open-feature/go-sdk-contrib/commit/13eeb482ee3d69c5fb8100563501c2250b6454f1))
+
+
+### ✨ New Features
+
+* attribute setter callbacks for otel hooks and remove deprecated constructors  ([#311](https://github.com/open-feature/go-sdk-contrib/issues/311)) ([27f7ca7](https://github.com/open-feature/go-sdk-contrib/commit/27f7ca7d17667b33e2ed8206b96dc304e5d33454))
+
 ## [0.2.8](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.2.7...hooks/open-telemetry/v0.2.8) (2023-07-21)
 
 
