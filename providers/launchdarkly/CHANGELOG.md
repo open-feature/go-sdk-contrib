@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.2...providers/launchdarkly/v0.1.3) (2023-08-21)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update golang.org/x/exp digest to d63ba01 ([#280](https://github.com/open-feature/go-sdk-contrib/issues/280)) ([6f7097f](https://github.com/open-feature/go-sdk-contrib/commit/6f7097f898029ceafec486d58f99f682423c7b7c))
+* **deps:** update module github.com/open-feature/go-sdk to v1.5.1 ([#263](https://github.com/open-feature/go-sdk-contrib/issues/263)) ([c75ffd6](https://github.com/open-feature/go-sdk-contrib/commit/c75ffd6017689a86860dec92c1a1564b6145f0c9))
+* **deps:** update module github.com/open-feature/go-sdk to v1.6.0 ([#289](https://github.com/open-feature/go-sdk-contrib/issues/289)) ([13eeb48](https://github.com/open-feature/go-sdk-contrib/commit/13eeb482ee3d69c5fb8100563501c2250b6454f1))
+* lint correction on tests ([#276](https://github.com/open-feature/go-sdk-contrib/issues/276)) ([b972274](https://github.com/open-feature/go-sdk-contrib/commit/b972274655638dd09c90b5974a9f8aca0b04ca13))
+
 ## [0.1.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.1...providers/launchdarkly/v0.1.2) (2023-07-18)
 
 
