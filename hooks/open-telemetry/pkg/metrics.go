@@ -25,18 +25,10 @@ type MetricsHook struct {
 	errorCounter   api.Int64Counter
 
 	flagEvalMetadataDimensions []DimensionDescription
+	attributeMapperCallback    func(openfeature.FlagMetadata) []attribute.KeyValue
 }
 
-type MetricOptions func(*MetricsHook)
-
-// NewMetricsHook builds a metric hook backed by provided metric.Reader. Reader must be provided by developer and
-// its configurations govern metric exports
-// Deprecated: NewMetricsHook is deprecated. Please use NewMetricsHookFromProvider
-func NewMetricsHook(reader metric.Reader, opts ...MetricOptions) (*MetricsHook, error) {
-	provider := metric.NewMeterProvider(metric.WithReader(reader))
-
-	return NewMetricsHookForProvider(provider, opts...)
-}
+var _ openfeature.Hook = &MetricsHook{}
 
 // NewMetricsHookForProvider builds a metric hook backed by metric.MeterProvider.
 func NewMetricsHookForProvider(provider *metric.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
@@ -104,8 +96,12 @@ func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 		attribs = append(attribs, attribute.String("reason", string(details.Reason)))
 	}
 	fromMetadata := descriptionsToAttributes(details.FlagMetadata, h.flagEvalMetadataDimensions)
-
 	attribs = append(attribs, fromMetadata...)
+
+	if h.attributeMapperCallback != nil {
+		attribs = append(attribs, h.attributeMapperCallback(details.FlagMetadata)...)
+	}
+
 	h.successCounter.Add(ctx, 1, api.WithAttributes(attribs...))
 
 	return nil
@@ -135,6 +131,10 @@ const (
 	Float
 )
 
+// Options of the hook
+
+type MetricOptions func(*MetricsHook)
+
 // DimensionDescription is key and Type description of the dimension
 type DimensionDescription struct {
 	Key string
@@ -146,6 +146,14 @@ type DimensionDescription struct {
 func WithFlagMetadataDimensions(descriptions ...DimensionDescription) MetricOptions {
 	return func(metricsHook *MetricsHook) {
 		metricsHook.flagEvalMetadataDimensions = descriptions
+	}
+}
+
+// WithMetricsAttributeSetter allows to set a extractionCallback which accept openfeature.FlagMetadata and returns
+// []attribute.KeyValue derived from those metadata.
+func WithMetricsAttributeSetter(callback func(openfeature.FlagMetadata) []attribute.KeyValue) MetricOptions {
+	return func(metricsHook *MetricsHook) {
+		metricsHook.attributeMapperCallback = callback
 	}
 }
 
