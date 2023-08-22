@@ -44,16 +44,16 @@ func main() {
 ### Using flagd.FromEnv()  
 By default the flagd provider will read non-empty environment variables to set its own configuration with the lowest priority. Use the `flagd.FromEnv()` option as an argument for the `flagd.NewProvider()` method to give environment variables a higher priority.
 
-| Option name           | Environment variable name      | Type      | Options      | Default   |
-|-----------------------|--------------------------------|-----------|--------------|-----------|
-| host                  | FLAGD_HOST                     | string    |              | localhost |
-| port                  | FLAGD_PORT                     | number    |              | 8013      |
-| tls                   | FLAGD_TLS                      | boolean   |              | false     |
-| socketPath            | FLAGD_SOCKET_PATH              | string    |              |           |
-| certPath              | FLAGD_SERVER_CERT_PATH         | string    |              |           |
-| cache                 | FLAGD_CACHE                    | string    | lru,disabled | lru       |
-| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int       |              | 1000      |
-| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int       |              | 5         |
+| Option name           | Environment variable name      | Type    | Options            | Default   |
+|-----------------------|--------------------------------|---------|--------------------|-----------|
+| host                  | FLAGD_HOST                     | string  |                    | localhost |
+| port                  | FLAGD_PORT                     | number  |                    | 8013      |
+| tls                   | FLAGD_TLS                      | boolean |                    | false     |
+| socketPath            | FLAGD_SOCKET_PATH              | string  |                    |           |
+| certPath              | FLAGD_SERVER_CERT_PATH         | string  |                    |           |
+| cache                 | FLAGD_CACHE                    | string  | lru, mem, disabled | lru       |
+| maxCacheSize          | FLAGD_MAX_CACHE_SIZE           | int     |                    | 1000      |
+| maxEventStreamRetries | FLAGD_MAX_EVENT_STREAM_RETRIES | int     |                    | 5         |
 
 In the event that another configuration option is passed to the `flagd.NewProvider()` method, such as `flagd.WithPort(8013)` then priority is decided by the order in which the options are passed to the constructor from lowest to highest priority.
 

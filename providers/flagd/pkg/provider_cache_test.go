@@ -125,12 +125,14 @@ func TestBooleanEvaluationCache(t *testing.T) {
 			name: "in memory",
 			apply: func(provider *Provider) {
 				WithBasicInMemoryCache()(provider)
+				setupCache(provider)
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
 				WithLRUCache(100)(provider)
+				setupCache(provider)
 			},
 		},
 	}
@@ -143,7 +145,8 @@ func TestBooleanEvaluationCache(t *testing.T) {
 					mockSvc := mock.NewMockIService(ctrl)
 
 					provider := Provider{
-						service: mockSvc,
+						service:               mockSvc,
+						providerConfiguration: newDefaultConfiguration(),
 					}
 					cacheImplementation.apply(&provider)
 
@@ -258,12 +261,14 @@ func TestStringEvaluationCache(t *testing.T) {
 			name: "in memory",
 			apply: func(provider *Provider) {
 				WithBasicInMemoryCache()(provider)
+				setupCache(provider)
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
 				WithLRUCache(100)(provider)
+				setupCache(provider)
 			},
 		},
 	}
@@ -276,7 +281,8 @@ func TestStringEvaluationCache(t *testing.T) {
 					mockSvc := mock.NewMockIService(ctrl)
 
 					provider := Provider{
-						service: mockSvc,
+						service:               mockSvc,
+						providerConfiguration: newDefaultConfiguration(),
 					}
 					cacheImplementation.apply(&provider)
 
@@ -391,12 +397,14 @@ func TestFloatEvaluationCache(t *testing.T) {
 			name: "in memory",
 			apply: func(provider *Provider) {
 				WithBasicInMemoryCache()(provider)
+				setupCache(provider)
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
 				WithLRUCache(100)(provider)
+				setupCache(provider)
 			},
 		},
 	}
@@ -409,7 +417,8 @@ func TestFloatEvaluationCache(t *testing.T) {
 					mockSvc := mock.NewMockIService(ctrl)
 
 					provider := Provider{
-						service: mockSvc,
+						service:               mockSvc,
+						providerConfiguration: newDefaultConfiguration(),
 					}
 					cacheImplementation.apply(&provider)
 
@@ -524,12 +533,14 @@ func TestIntEvaluationCache(t *testing.T) {
 			name: "in memory",
 			apply: func(provider *Provider) {
 				WithBasicInMemoryCache()(provider)
+				setupCache(provider)
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
 				WithLRUCache(100)(provider)
+				setupCache(provider)
 			},
 		},
 	}
@@ -542,7 +553,8 @@ func TestIntEvaluationCache(t *testing.T) {
 					mockSvc := mock.NewMockIService(ctrl)
 
 					provider := Provider{
-						service: mockSvc,
+						service:               mockSvc,
+						providerConfiguration: newDefaultConfiguration(),
 					}
 					cacheImplementation.apply(&provider)
 
@@ -651,12 +663,14 @@ func TestObjectEvaluationCache(t *testing.T) {
 			name: "in memory",
 			apply: func(provider *Provider) {
 				WithBasicInMemoryCache()(provider)
+				setupCache(provider)
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
 				WithLRUCache(100)(provider)
+				setupCache(provider)
 			},
 		},
 	}
@@ -669,7 +683,8 @@ func TestObjectEvaluationCache(t *testing.T) {
 					mockSvc := mock.NewMockIService(ctrl)
 
 					provider := Provider{
-						service: mockSvc,
+						service:               mockSvc,
+						providerConfiguration: newDefaultConfiguration(),
 					}
 					cacheImplementation.apply(&provider)
 
@@ -897,12 +912,14 @@ func TestCacheInvalidation(t *testing.T) {
 			name: "in memory",
 			apply: func(provider *Provider) {
 				WithBasicInMemoryCache()(provider)
+				setupCache(provider)
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
 				WithLRUCache(100)(provider)
+				setupCache(provider)
 			},
 		},
 	}
@@ -916,7 +933,8 @@ func TestCacheInvalidation(t *testing.T) {
 
 					provider := &Provider{
 						ctx: context.Background(), service: mockSvc, isReady: make(chan struct{}),
-						logger: logr.New(logger.Logger{}),
+						logger:                logr.New(logger.Logger{}),
+						providerConfiguration: newDefaultConfiguration(),
 					}
 					cacheImplementation.apply(provider)
 

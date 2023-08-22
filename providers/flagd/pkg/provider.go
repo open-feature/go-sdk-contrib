@@ -4,7 +4,6 @@ import (
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/go-logr/logr"
 	lru "github.com/hashicorp/golang-lru/v2"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
@@ -14,66 +13,39 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-	"os"
-	"strconv"
-)
-
-// naming and defaults follow https://github.com/open-feature/flagd/blob/main/docs/other_resources/creating_providers.md?plain=1#L117
-const (
-	defaultMaxCacheSize                               int    = 1000
-	defaultPort                                              = 8013
-	defaultMaxEventStreamRetries                             = 5
-	defaultTLS                                        bool   = false
-	defaultCache                                      string = "lru"
-	defaultHost                                              = "localhost"
-	flagdHostEnvironmentVariableName                         = "FLAGD_HOST"
-	flagdPortEnvironmentVariableName                         = "FLAGD_PORT"
-	flagdTLSEnvironmentVariableName                          = "FLAGD_TLS"
-	flagdSocketPathEnvironmentVariableName                   = "FLAGD_SOCKET_PATH"
-	flagdServerCertPathEnvironmentVariableName               = "FLAGD_SERVER_CERT_PATH"
-	flagdCacheEnvironmentVariableName                        = "FLAGD_CACHE"
-	flagdMaxCacheSizeEnvironmentVariableName                 = "FLAGD_MAX_CACHE_SIZE"
-	flagdMaxEventStreamRetriesEnvironmentVariableName        = "FLAGD_MAX_EVENT_STREAM_RETRIES"
-	cacheDisabledValue                                       = "disabled"
-	cacheLRUValue                                            = "lru"
 )
 
 type Provider struct {
-	ctx                              context.Context
-	service                          service.IService
-	cacheEnabled                     bool
-	cache                            Cache[string, interface{}]
-	maxCacheSize                     int
-	providerConfiguration            *ProviderConfiguration
-	eventStreamConnectionMaxAttempts int
-	isReady                          chan struct{}
-	logger                           logr.Logger
-	otelIntercept                    bool
+	cache                 Cache[string, interface{}]
+	ctx                   context.Context
+	isReady               chan struct{}
+	logger                logr.Logger
+	providerConfiguration *providerConfiguration
+	service               service.IService
 }
-type ProviderConfiguration struct {
-	Port            uint16
-	Host            string
-	CertificatePath string
-	SocketPath      string
-	TLSEnabled      bool
-}
-
-type ProviderOption func(*Provider)
 
 func NewProvider(opts ...ProviderOption) *Provider {
+	log := logr.New(logger.Logger{})
+
+	// initialize with default configurations
+	configuration := newDefaultConfiguration()
+
+	// env variables have higher priority than defaults
+	configuration.updateFromEnvVar(log)
+
 	provider := &Provider{
-		ctx: context.Background(),
-		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
-		// values (default values are then set after the options are run via applyDefaults())
-		providerConfiguration: &ProviderConfiguration{},
+		ctx:                   context.Background(),
 		isReady:               make(chan struct{}),
-		logger:                logr.New(logger.Logger{}),
+		logger:                log,
+		providerConfiguration: configuration,
 	}
-	provider.applyDefaults()   // defaults have the lowest priority
-	FromEnv()(provider)        // env variables have higher priority than defaults
-	for _, opt := range opts { // explicitly declared options have the highest priority
+
+	// explicitly declared options have the highest priority
+	for _, opt := range opts {
 		opt(provider)
 	}
+
+	setupCache(provider)
 
 	provider.service = service.NewService(service.NewClient(
 		&service.Configuration{
@@ -82,7 +54,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			CertificatePath: provider.providerConfiguration.CertificatePath,
 			SocketPath:      provider.providerConfiguration.SocketPath,
 			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
-			OtelInterceptor: provider.otelIntercept,
+			OtelInterceptor: provider.providerConfiguration.otelIntercept,
 		},
 	), provider.logger, nil)
 
@@ -95,104 +67,45 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
-func (p *Provider) applyDefaults() {
-	p.providerConfiguration.Host = defaultHost
-	p.providerConfiguration.Port = defaultPort
-	p.providerConfiguration.TLSEnabled = defaultTLS
-	p.eventStreamConnectionMaxAttempts = defaultMaxEventStreamRetries
-	p.maxCacheSize = defaultMaxCacheSize
-	p.withCache(defaultCache)
+// setupCache helper to setup cache
+func setupCache(provider *Provider) {
+	var c Cache[string, interface{}]
+	var err error
+
+	// setup cache
+	switch provider.providerConfiguration.CacheType {
+	case cacheLRUValue:
+		c, err = lru.New[string, interface{}](provider.providerConfiguration.MaxCacheSize)
+		if err != nil {
+			provider.logger.Error(err, "init lru cache")
+		} else {
+			provider.providerConfiguration.CacheEnabled = true
+		}
+	case cacheInMemValue:
+		c = cache.NewInMemory[string, interface{}]()
+		provider.providerConfiguration.CacheEnabled = true
+	case cacheDisabledValue:
+	default:
+		provider.providerConfiguration.CacheEnabled = false
+		c = nil
+	}
+
+	provider.cache = c
 }
+
+// ProviderOptions
+
+type ProviderOption func(*Provider)
 
 // WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
 func WithSocketPath(socketPath string) ProviderOption {
-	return func(s *Provider) {
-		s.providerConfiguration.SocketPath = socketPath
-	}
-}
-
-// FromEnv sets the provider configuration from environment variables (if set) as defined https://github.com/open-feature/flagd/blob/main/docs/other_resources/creating_providers.md?plain=1#L117
-func FromEnv() ProviderOption {
 	return func(p *Provider) {
-		portS := os.Getenv(flagdPortEnvironmentVariableName)
-		if portS != "" {
-			port, err := strconv.Atoi(portS)
-			if err != nil {
-				p.logger.Error(err,
-					fmt.Sprintf(
-						"invalid env config for %s provided, using default value: %d",
-						flagdPortEnvironmentVariableName, defaultPort,
-					))
-			} else {
-				p.providerConfiguration.Port = uint16(port)
-			}
-		}
-
-		host := os.Getenv(flagdHostEnvironmentVariableName)
-		if host != "" {
-			p.providerConfiguration.Host = host
-		}
-
-		socketPath := os.Getenv(flagdSocketPathEnvironmentVariableName)
-		if socketPath != "" {
-			p.providerConfiguration.SocketPath = socketPath
-		}
-
-		certificatePath := os.Getenv(flagdServerCertPathEnvironmentVariableName)
-		if certificatePath != "" || os.Getenv(flagdTLSEnvironmentVariableName) == "true" {
-			WithTLS(certificatePath)(p)
-		}
-
-		maxCacheSizeS := os.Getenv(flagdMaxCacheSizeEnvironmentVariableName)
-		if maxCacheSizeS != "" {
-			maxCacheSizeFromEnv, err := strconv.Atoi(maxCacheSizeS)
-			if err != nil {
-				p.logger.Error(err,
-					fmt.Sprintf("invalid env config for %s provided, using default value: %d",
-						flagdMaxCacheSizeEnvironmentVariableName, defaultMaxCacheSize,
-					))
-			} else {
-				p.maxCacheSize = maxCacheSizeFromEnv
-			}
-		}
-
-		if cacheValue := os.Getenv(flagdCacheEnvironmentVariableName); cacheValue != "" {
-			if ok := p.withCache(cacheValue); !ok {
-				p.logger.Error(fmt.Errorf("%s is invalid", cacheValue),
-					fmt.Sprintf("invalid env config for %s provided, using default value: %s",
-						flagdCacheEnvironmentVariableName, defaultCache,
-					))
-			}
-		}
-
-		maxEventStreamRetriesS := os.Getenv(flagdMaxEventStreamRetriesEnvironmentVariableName)
-		if maxEventStreamRetriesS != "" {
-			maxEventStreamRetries, err := strconv.Atoi(maxEventStreamRetriesS)
-			if err != nil {
-				p.logger.Error(err,
-					fmt.Sprintf("invalid env config for %s provided, using default value: %d",
-						flagdMaxEventStreamRetriesEnvironmentVariableName, defaultMaxEventStreamRetries))
-			} else {
-				p.eventStreamConnectionMaxAttempts = maxEventStreamRetries
-			}
-		}
+		p.providerConfiguration.SocketPath = socketPath
 	}
 }
 
-func (p *Provider) withCache(cache string) bool {
-	switch cache {
-	case cacheDisabledValue:
-		WithoutCache()(p)
-	case cacheLRUValue:
-		WithLRUCache(p.maxCacheSize)(p)
-	default:
-		return false
-	}
-
-	return true
-}
-
-// WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials. If certificate loading fails insecure credentials will be used instead
+// WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials.
+// If certificate loading fails insecure credentials will be used instead
 func WithCertificatePath(path string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.CertificatePath = path
@@ -217,17 +130,14 @@ func WithHost(host string) ProviderOption {
 // WithoutCache disables caching
 func WithoutCache() ProviderOption {
 	return func(p *Provider) {
-		p.cacheEnabled = false
-		p.cache = nil
+		p.providerConfiguration.CacheType = cacheDisabledValue
 	}
 }
 
 // WithBasicInMemoryCache applies a basic in memory cache store (with no memory limits)
 func WithBasicInMemoryCache() ProviderOption {
 	return func(p *Provider) {
-		p.cache = cache.NewInMemory[string, interface{}]()
-
-		p.cacheEnabled = true
+		p.providerConfiguration.CacheType = cacheInMemValue
 	}
 }
 
@@ -236,17 +146,10 @@ func WithBasicInMemoryCache() ProviderOption {
 // least recently used entry.
 func WithLRUCache(size int) ProviderOption {
 	return func(p *Provider) {
-		if size != 0 {
-			p.maxCacheSize = size
+		if size > 0 {
+			p.providerConfiguration.MaxCacheSize = size
 		}
-		c, err := lru.New[string, interface{}](p.maxCacheSize)
-		if err != nil {
-			p.logger.Error(err, "init lru cache")
-			return
-		}
-		p.cache = c
-
-		p.cacheEnabled = true
+		p.providerConfiguration.CacheType = cacheLRUValue
 	}
 }
 
@@ -262,7 +165,7 @@ func WithContext(ctx context.Context) ProviderOption {
 // On successful connection the attempts are reset.
 func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
 	return func(p *Provider) {
-		p.eventStreamConnectionMaxAttempts = i
+		p.providerConfiguration.EventStreamConnectionMaxAttempts = i
 	}
 }
 
@@ -284,7 +187,14 @@ func WithTLS(certPath string) ProviderOption {
 // WithOtelInterceptor enable/disable otel interceptor for flagd communication
 func WithOtelInterceptor(intercept bool) ProviderOption {
 	return func(p *Provider) {
-		p.otelIntercept = intercept
+		p.providerConfiguration.otelIntercept = intercept
+	}
+}
+
+// FromEnv sets the provider configuration from environment variables (if set)
+func FromEnv() ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.updateFromEnvVar(p.logger)
 	}
 }
 
@@ -298,11 +208,6 @@ func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
 		Name: "flagd",
 	}
-}
-
-// Configuration returns the current configuration of the provider
-func (p *Provider) Configuration() *ProviderConfiguration {
-	return p.providerConfiguration
 }
 
 func (p *Provider) BooleanEvaluation(
@@ -546,23 +451,25 @@ func (p *Provider) ObjectEvaluation(
 }
 
 func (p *Provider) isCacheAvailable() bool {
-	return p.cacheEnabled && p.service.IsEventStreamAlive()
+	return p.providerConfiguration.CacheEnabled && p.service.IsEventStreamAlive()
 }
+
+// todo: Event handling to be isolated to own component
 
 func (p *Provider) handleEvents(ctx context.Context) error {
 	eventChan := make(chan *schemaV1.EventStreamResponse)
 	errChan := make(chan error)
 
 	go func() {
-		p.service.EventStream(ctx, eventChan, p.eventStreamConnectionMaxAttempts, errChan)
+		p.service.EventStream(ctx, eventChan, p.providerConfiguration.EventStreamConnectionMaxAttempts, errChan)
 	}()
 
 	for {
 		select {
 		case event, ok := <-eventChan:
 			if !ok {
-				if p.cacheEnabled { // disable cache
-					WithoutCache()(p)
+				if p.providerConfiguration.CacheEnabled { // disable cache
+					p.providerConfiguration.CacheEnabled = false
 				}
 				return nil
 			}
@@ -579,8 +486,8 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 				p.handleProviderReadyEvent()
 			}
 		case err := <-errChan:
-			if p.cacheEnabled { // disable cache
-				WithoutCache()(p)
+			if p.providerConfiguration.CacheEnabled { // disable cache
+				p.providerConfiguration.CacheEnabled = false
 			}
 			return err
 		case <-ctx.Done():
@@ -592,7 +499,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 }
 
 func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *schemaV1.EventStreamResponse) error {
-	if !p.cacheEnabled {
+	if !p.providerConfiguration.CacheEnabled {
 		return nil
 	}
 
@@ -625,7 +532,7 @@ func (p *Provider) handleProviderReadyEvent() {
 		close(p.isReady)
 	}
 
-	if !p.cacheEnabled {
+	if !p.providerConfiguration.CacheEnabled {
 		return
 	}
 

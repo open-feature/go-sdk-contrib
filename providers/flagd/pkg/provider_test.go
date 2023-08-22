@@ -3,7 +3,7 @@ package flagd
 import (
 	"context"
 	"fmt"
-	reflect "reflect"
+	"reflect"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -70,7 +70,7 @@ func TestNewProvider(t *testing.T) {
 					metadata.Name,
 				)
 			}
-			config := svc.Configuration()
+			config := svc.providerConfiguration
 			if config == nil {
 				t.Fatal("config is nil")
 			}
@@ -218,7 +218,8 @@ func TestBooleanEvaluation(t *testing.T) {
 			svcMock.EXPECT().IsEventStreamAlive().Return(true).AnyTimes()
 
 			provider := Provider{
-				service: svcMock,
+				service:               svcMock,
+				providerConfiguration: newDefaultConfiguration(),
 			}
 
 			res := provider.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -305,7 +306,8 @@ func TestStringEvaluation(t *testing.T) {
 			svcMock.EXPECT().ResolveString(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 			provider := Provider{
-				service: svcMock,
+				service:               svcMock,
+				providerConfiguration: newDefaultConfiguration(),
 			}
 
 			res := provider.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -410,7 +412,8 @@ func TestFloatEvaluation(t *testing.T) {
 			svcMock.EXPECT().ResolveFloat(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 			provider := Provider{
-				service: svcMock,
+				service:               svcMock,
+				providerConfiguration: newDefaultConfiguration(),
 			}
 
 			res := provider.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -514,7 +517,8 @@ func TestIntEvaluation(t *testing.T) {
 		svcMock.EXPECT().ResolveInt(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := Provider{
-			service: svcMock,
+			service:               svcMock,
+			providerConfiguration: newDefaultConfiguration(),
 		}
 
 		res := provider.IntEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -606,7 +610,8 @@ func TestObjectEvaluation(t *testing.T) {
 		svcMock.EXPECT().ResolveObject(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := Provider{
-			service: svcMock,
+			service:               svcMock,
+			providerConfiguration: newDefaultConfiguration(),
 		}
 
 		res := provider.ObjectEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
