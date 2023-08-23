@@ -14,11 +14,6 @@ import (
 	"os"
 )
 
-type iClient interface {
-	Instance() schemaConnectV1.ServiceClient
-	Configuration() *Configuration
-}
-
 type Configuration struct {
 	Port            uint16
 	Host            string
@@ -33,7 +28,7 @@ type Client struct {
 	serviceConfiguration *Configuration
 }
 
-func NewClient(cfg *Configuration) *Client {
+func NewClient(cfg *Configuration) Client {
 	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
 	var tlsConfig *tls.Config
 	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
@@ -72,7 +67,7 @@ func NewClient(cfg *Configuration) *Client {
 		))
 	}
 
-	return &Client{
+	return Client{
 		client: schemaConnectV1.NewServiceClient(
 			&http.Client{
 				Transport: &http.Transport{
@@ -90,9 +85,4 @@ func NewClient(cfg *Configuration) *Client {
 // Instance returns an instance of schemaConnectV1.ServiceClient
 func (c *Client) Instance() schemaConnectV1.ServiceClient {
 	return c.client
-}
-
-// Configuration returns the current GRPCServiceConfiguration for the client
-func (c *Client) Configuration() *Configuration {
-	return c.serviceConfiguration
 }

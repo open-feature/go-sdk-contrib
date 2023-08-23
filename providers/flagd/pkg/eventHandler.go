@@ -7,11 +7,12 @@ import (
 	"github.com/go-logr/logr"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 )
 
 // eventHandler abstracts the event handling of flagd
 type eventHandler struct {
-	cache     *cacheService
+	cache     *cache.Service
 	errChan   chan error
 	eventChan chan *schemaV1.EventStreamResponse
 	isReady   chan struct{}
@@ -30,7 +31,7 @@ func (h *eventHandler) handle(ctx context.Context) error {
 			case string(flagdService.ConfigurationChange):
 				if err := h.handleConfigurationChangeEvent(event); err != nil {
 					// Purge the cache if we fail to handle the configuration change event
-					(*h.cache).getCache().Purge()
+					(*h.cache).GetCache().Purge()
 					h.logger.V(logger.Warn).Info("handle configuration change event", "err", err)
 				}
 			case string(flagdService.ProviderReady): // signals that a new connection has been made
@@ -38,7 +39,7 @@ func (h *eventHandler) handle(ctx context.Context) error {
 			}
 		case err := <-h.errChan:
 			// purge for error
-			(*h.cache).getCache().Purge()
+			(*h.cache).GetCache().Purge()
 			return err
 		case <-ctx.Done():
 			h.logger.V(logger.Info).Info("stop event handling with context done")
@@ -63,7 +64,7 @@ func (h *eventHandler) handleConfigurationChangeEvent(event *schemaV1.EventStrea
 	}
 
 	for flagKey := range flags {
-		(*h.cache).getCache().Remove(flagKey)
+		(*h.cache).GetCache().Remove(flagKey)
 	}
 
 	return nil

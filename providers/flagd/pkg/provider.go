@@ -3,17 +3,15 @@ package flagd
 import (
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
-	"errors"
 	"github.com/go-logr/logr"
-	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 type Provider struct {
-	cache                 *cacheService
+	cache                 *cache.Service
 	ctx                   context.Context
 	isReady               chan struct{}
 	logger                logr.Logger
@@ -42,7 +40,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
-	provider.cache = newCacheService(
+	provider.cache = cache.NewCacheService(
 		provider.providerConfiguration.CacheType,
 		provider.providerConfiguration.MaxCacheSize,
 		log)
@@ -56,7 +54,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
 			OtelInterceptor: provider.providerConfiguration.otelIntercept,
 		},
-	), provider.logger, nil)
+	), provider.cache, provider.logger)
 
 	go func() {
 		if err := provider.handleEvents(provider.ctx); err != nil {
@@ -65,6 +63,48 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	}()
 
 	return provider
+}
+
+// Hooks flagd provider does not have any hooks, returns empty slice
+func (p *Provider) Hooks() []of.Hook {
+	return []of.Hook{}
+}
+
+// Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
+func (p *Provider) Metadata() of.Metadata {
+	return of.Metadata{
+		Name: "flagd",
+	}
+}
+
+func (p *Provider) BooleanEvaluation(
+	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
+) of.BoolResolutionDetail {
+	return p.service.ResolveBoolean(ctx, flagKey, defaultValue, evalCtx)
+}
+
+func (p *Provider) StringEvaluation(
+	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
+) of.StringResolutionDetail {
+	return p.service.ResolveString(ctx, flagKey, defaultValue, evalCtx)
+}
+
+func (p *Provider) FloatEvaluation(
+	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
+) of.FloatResolutionDetail {
+	return p.service.ResolveFloat(ctx, flagKey, defaultValue, evalCtx)
+}
+
+func (p *Provider) IntEvaluation(
+	ctx context.Context, flagKey string, defaultValue int64, evalCtx of.FlattenedContext,
+) of.IntResolutionDetail {
+	return p.service.ResolveInt(ctx, flagKey, defaultValue, evalCtx)
+}
+
+func (p *Provider) ObjectEvaluation(
+	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
+) of.InterfaceResolutionDetail {
+	return p.service.ResolveObject(ctx, flagKey, defaultValue, evalCtx)
 }
 
 // ProviderOptions
@@ -170,258 +210,6 @@ func FromEnv() ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.updateFromEnvVar(p.logger)
 	}
-}
-
-// Hooks flagd provider does not have any hooks, returns empty slice
-func (p *Provider) Hooks() []of.Hook {
-	return []of.Hook{}
-}
-
-// Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
-func (p *Provider) Metadata() of.Metadata {
-	return of.Metadata{
-		Name: "flagd",
-	}
-}
-
-func (p *Provider) BooleanEvaluation(
-	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
-) of.BoolResolutionDetail {
-	if p.cache.isEnabled() {
-		fromCache, ok := p.cache.getCache().Get(flagKey)
-		if ok {
-			fromCacheResDetail, ok := fromCache.(of.BoolResolutionDetail)
-			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
-				return fromCacheResDetail
-			}
-		}
-	}
-
-	res, err := p.service.ResolveBoolean(ctx, flagKey, evalCtx)
-	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
-		return of.BoolResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
-				Reason:          of.Reason(res.Reason),
-				Variant:         res.Variant,
-				FlagMetadata:    res.Metadata.AsMap(),
-			},
-		}
-	}
-
-	resDetail := of.BoolResolutionDetail{
-		Value: res.Value,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:       of.Reason(res.Reason),
-			Variant:      res.Variant,
-			FlagMetadata: res.Metadata.AsMap(),
-		},
-	}
-
-	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
-		p.cache.getCache().Add(flagKey, resDetail)
-	}
-
-	return resDetail
-}
-
-func (p *Provider) StringEvaluation(
-	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
-) of.StringResolutionDetail {
-	if p.cache.isEnabled() {
-		fromCache, ok := p.cache.getCache().Get(flagKey)
-		if ok {
-			fromCacheResDetail, ok := fromCache.(of.StringResolutionDetail)
-			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
-				return fromCacheResDetail
-			}
-		}
-	}
-
-	res, err := p.service.ResolveString(ctx, flagKey, evalCtx)
-	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
-		return of.StringResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
-				Reason:          of.Reason(res.Reason),
-				Variant:         res.Variant,
-				FlagMetadata:    res.Metadata.AsMap(),
-			},
-		}
-	}
-
-	resDetail := of.StringResolutionDetail{
-		Value: res.Value,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:       of.Reason(res.Reason),
-			Variant:      res.Variant,
-			FlagMetadata: res.Metadata.AsMap(),
-		},
-	}
-
-	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
-		p.cache.getCache().Add(flagKey, resDetail)
-	}
-
-	return resDetail
-}
-
-func (p *Provider) FloatEvaluation(
-	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
-) of.FloatResolutionDetail {
-	if p.cache.isEnabled() {
-		fromCache, ok := p.cache.getCache().Get(flagKey)
-		if ok {
-			fromCacheResDetail, ok := fromCache.(of.FloatResolutionDetail)
-			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
-				return fromCacheResDetail
-			}
-		}
-	}
-
-	res, err := p.service.ResolveFloat(ctx, flagKey, evalCtx)
-	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
-		return of.FloatResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
-				Reason:          of.Reason(res.Reason),
-				Variant:         res.Variant,
-				FlagMetadata:    res.Metadata.AsMap(),
-			},
-		}
-	}
-
-	resDetail := of.FloatResolutionDetail{
-		Value: res.Value,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:       of.Reason(res.Reason),
-			Variant:      res.Variant,
-			FlagMetadata: res.Metadata.AsMap(),
-		},
-	}
-
-	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
-		p.cache.getCache().Add(flagKey, resDetail)
-	}
-
-	return resDetail
-}
-
-func (p *Provider) IntEvaluation(
-	ctx context.Context, flagKey string, defaultValue int64, evalCtx of.FlattenedContext,
-) of.IntResolutionDetail {
-	if p.cache.isEnabled() {
-		fromCache, ok := p.cache.getCache().Get(flagKey)
-		if ok {
-			fromCacheResDetail, ok := fromCache.(of.IntResolutionDetail)
-			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
-				return fromCacheResDetail
-			}
-		}
-	}
-
-	res, err := p.service.ResolveInt(ctx, flagKey, evalCtx)
-	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
-		return of.IntResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
-				Reason:          of.Reason(res.Reason),
-				Variant:         res.Variant,
-				FlagMetadata:    res.Metadata.AsMap(),
-			},
-		}
-	}
-
-	resDetail := of.IntResolutionDetail{
-		Value: res.Value,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:       of.Reason(res.Reason),
-			Variant:      res.Variant,
-			FlagMetadata: res.Metadata.AsMap(),
-		},
-	}
-
-	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
-		p.cache.getCache().Add(flagKey, resDetail)
-	}
-
-	return resDetail
-}
-
-func (p *Provider) ObjectEvaluation(
-	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
-) of.InterfaceResolutionDetail {
-	if p.cache.isEnabled() {
-		fromCache, ok := p.cache.getCache().Get(flagKey)
-		if ok {
-			fromCacheResDetail, ok := fromCache.(of.InterfaceResolutionDetail)
-			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
-				return fromCacheResDetail
-			}
-		}
-	}
-
-	res, err := p.service.ResolveObject(ctx, flagKey, evalCtx)
-	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
-		return of.InterfaceResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
-				Reason:          of.Reason(res.Reason),
-				Variant:         res.Variant,
-				FlagMetadata:    res.Metadata.AsMap(),
-			},
-		}
-	}
-
-	resDetail := of.InterfaceResolutionDetail{
-		Value: res.Value,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:       of.Reason(res.Reason),
-			Variant:      res.Variant,
-			FlagMetadata: res.Metadata.AsMap(),
-		},
-	}
-
-	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
-		p.cache.getCache().Add(flagKey, resDetail)
-	}
-
-	return resDetail
 }
 
 // todo: Event handling to be isolated to own component

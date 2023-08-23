@@ -1,9 +1,14 @@
-package flagd
+package cache
 
 import (
 	"github.com/go-logr/logr"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
+)
+
+const (
+	LRUValue      = "lru"
+	InMemValue    = "mem"
+	DisabledValue = "disabled"
 )
 
 // Cache is the contract of the cache implementation
@@ -14,48 +19,44 @@ type Cache[K comparable, V any] interface {
 	Remove(K) (present bool)
 }
 
-type cacheService struct {
+type Service struct {
 	cacheEnabled bool
 	cache        Cache[string, interface{}]
 }
 
-func newCacheService(cacheType string, maxCacheSize int, log logr.Logger) *cacheService {
+func NewCacheService(cacheType string, maxCacheSize int, log logr.Logger) *Service {
 	var c Cache[string, interface{}]
 	var err error
 	var cacheEnabled bool
 
 	// setup cache
 	switch cacheType {
-	case cacheLRUValue:
+	case LRUValue:
 		c, err = lru.New[string, interface{}](maxCacheSize)
 		if err != nil {
 			log.Error(err, "init lru cache")
 		} else {
 			cacheEnabled = true
 		}
-	case cacheInMemValue:
-		c = cache.NewInMemory[string, interface{}]()
+	case InMemValue:
+		c = NewInMemory[string, interface{}]()
 		cacheEnabled = true
-	case cacheDisabledValue:
+	case DisabledValue:
 	default:
 		cacheEnabled = false
 		c = nil
 	}
 
-	return &cacheService{
+	return &Service{
 		cacheEnabled: cacheEnabled,
 		cache:        c,
 	}
 }
 
-func (s *cacheService) getCache() Cache[string, interface{}] {
+func (s *Service) GetCache() Cache[string, interface{}] {
 	return s.cache
 }
 
-func (s *cacheService) isEnabled() bool {
+func (s *Service) IsEnabled() bool {
 	return s.cacheEnabled
-}
-
-func (s *cacheService) disable() {
-	s.cacheEnabled = false
 }

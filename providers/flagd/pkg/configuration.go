@@ -3,6 +3,7 @@ package flagd
 import (
 	"fmt"
 	"github.com/go-logr/logr"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"os"
 	"strconv"
 )
@@ -23,9 +24,9 @@ const (
 	flagdCacheEnvironmentVariableName                        = "FLAGD_CACHE"
 	flagdMaxCacheSizeEnvironmentVariableName                 = "FLAGD_MAX_CACHE_SIZE"
 	flagdMaxEventStreamRetriesEnvironmentVariableName        = "FLAGD_MAX_EVENT_STREAM_RETRIES"
-	cacheDisabledValue                                       = "disabled"
-	cacheLRUValue                                            = "lru"
-	cacheInMemValue                                          = "mem"
+	cacheDisabledValue                                       = cache.DisabledValue
+	cacheLRUValue                                            = cache.LRUValue
+	cacheInMemValue                                          = cache.InMemValue
 )
 
 type providerConfiguration struct {

@@ -13,6 +13,7 @@ import (
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -124,13 +125,13 @@ func TestBooleanEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -258,13 +259,13 @@ func TestStringEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -392,13 +393,13 @@ func TestFloatEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -526,13 +527,13 @@ func TestIntEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -654,13 +655,13 @@ func TestObjectEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -901,13 +902,13 @@ func TestCacheInvalidation(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
+				provider.cache = cache.NewCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}

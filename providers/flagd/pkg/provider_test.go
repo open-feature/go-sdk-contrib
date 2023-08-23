@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"reflect"
 	"testing"
 
@@ -221,7 +222,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 			provider := Provider{
 				service: svcMock,
-				cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
+				cache:   cache.NewCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 			}
 
 			res := provider.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -309,7 +310,7 @@ func TestStringEvaluation(t *testing.T) {
 
 			provider := Provider{
 				service: svcMock,
-				cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
+				cache:   cache.NewCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 			}
 
 			res := provider.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -415,7 +416,7 @@ func TestFloatEvaluation(t *testing.T) {
 
 			provider := Provider{
 				service: svcMock,
-				cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
+				cache:   cache.NewCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 			}
 
 			res := provider.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -519,8 +520,8 @@ func TestIntEvaluation(t *testing.T) {
 		svcMock.EXPECT().ResolveInt(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := Provider{
-			service:               svcMock,
-			providerConfiguration: newDefaultConfiguration(),
+			service: svcMock,
+			cache:   cache.NewCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 		}
 
 		res := provider.IntEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -613,7 +614,7 @@ func TestObjectEvaluation(t *testing.T) {
 
 		provider := Provider{
 			service: svcMock,
-			cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
+			cache:   cache.NewCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 		}
 
 		res := provider.ObjectEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
