@@ -7,7 +7,6 @@ import (
 	"github.com/go-logr/logr"
 	lru "github.com/hashicorp/golang-lru/v2"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
-	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
@@ -67,7 +66,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
-// setupCache helper to setup cache
+// setupCache helper to set up cache
 func setupCache(provider *Provider) {
 	var c Cache[string, interface{}]
 	var err error
@@ -460,86 +459,27 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 	eventChan := make(chan *schemaV1.EventStreamResponse)
 	errChan := make(chan error)
 
+	handler := eventHandler{
+		cache:     &p.cache,
+		errChan:   errChan,
+		eventChan: eventChan,
+		isReady:   p.isReady,
+		logger:    p.logger,
+	}
+
 	go func() {
 		p.service.EventStream(ctx, eventChan, p.providerConfiguration.EventStreamConnectionMaxAttempts, errChan)
 	}()
 
-	for {
-		select {
-		case event, ok := <-eventChan:
-			if !ok {
-				if p.providerConfiguration.CacheEnabled { // disable cache
-					p.providerConfiguration.CacheEnabled = false
-				}
-				return nil
-			}
-
-			switch event.Type {
-			case string(flagdService.ConfigurationChange):
-				if err := p.handleConfigurationChangeEvent(ctx, event); err != nil {
-					// Purge the cache if we fail to handle the configuration change event
-					p.cache.Purge()
-
-					p.logger.V(logger.Warn).Info("handle configuration change event", "err", err)
-				}
-			case string(flagdService.ProviderReady): // signals that a new connection has been made
-				p.handleProviderReadyEvent()
-			}
-		case err := <-errChan:
-			if p.providerConfiguration.CacheEnabled { // disable cache
-				p.providerConfiguration.CacheEnabled = false
-			}
-			return err
-		case <-ctx.Done():
-			p.logger.V(logger.Info).Info("stop event handling with context done")
-
-			return nil
-		}
-	}
-}
-
-func (p *Provider) handleConfigurationChangeEvent(ctx context.Context, event *schemaV1.EventStreamResponse) error {
-	if !p.providerConfiguration.CacheEnabled {
-		return nil
-	}
-
-	if event.Data == nil {
-		return errors.New("no data in event")
-	}
-
-	flagsVal, ok := event.Data.AsMap()["flags"]
-	if !ok {
-		return errors.New("no flags field in event data")
-	}
-
-	flags, ok := flagsVal.(map[string]interface{})
-	if !ok {
-		return errors.New("flags isn't a map")
-	}
-
-	for flagKey := range flags {
-		p.cache.Remove(flagKey)
+	err := handler.handle(ctx)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (p *Provider) handleProviderReadyEvent() {
-	select {
-	case <-p.isReady:
-		// avoids panic from closing already closed channel
-	default:
-		close(p.isReady)
-	}
-
-	if !p.providerConfiguration.CacheEnabled {
-		return
-	}
-
-	p.cache.Purge() // in case events were missed while the connection was down
-}
-
-// IsReady returns a non-blocking channel if the provider has received the provider_ready event from flagd
-func (p *Provider) IsReady() <-chan struct{} {
-	return p.isReady
-}
+//// todo
+//
+//- isolate cache to its own component
+//- start migrating to eventing
