@@ -124,15 +124,13 @@ func TestBooleanEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				WithBasicInMemoryCache()(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				WithLRUCache(100)(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -260,15 +258,13 @@ func TestStringEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				WithBasicInMemoryCache()(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				WithLRUCache(100)(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -396,15 +392,13 @@ func TestFloatEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				WithBasicInMemoryCache()(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				WithLRUCache(100)(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -532,15 +526,13 @@ func TestIntEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				WithBasicInMemoryCache()(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				WithLRUCache(100)(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -662,15 +654,13 @@ func TestObjectEvaluationCache(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				WithBasicInMemoryCache()(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				WithLRUCache(100)(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}
@@ -911,15 +901,13 @@ func TestCacheInvalidation(t *testing.T) {
 		{
 			name: "in memory",
 			apply: func(provider *Provider) {
-				WithBasicInMemoryCache()(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheInMemValue, defaultMaxCacheSize, logr.New(logger.Logger{}))
 			},
 		},
 		{
 			name: "lru",
 			apply: func(provider *Provider) {
-				WithLRUCache(100)(provider)
-				setupCache(provider)
+				provider.cache = newCacheService(cacheLRUValue, 100, logr.New(logger.Logger{}))
 			},
 		},
 	}

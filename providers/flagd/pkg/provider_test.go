@@ -3,6 +3,8 @@ package flagd
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"reflect"
 	"testing"
 
@@ -218,8 +220,8 @@ func TestBooleanEvaluation(t *testing.T) {
 			svcMock.EXPECT().IsEventStreamAlive().Return(true).AnyTimes()
 
 			provider := Provider{
-				service:               svcMock,
-				providerConfiguration: newDefaultConfiguration(),
+				service: svcMock,
+				cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 			}
 
 			res := provider.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -306,8 +308,8 @@ func TestStringEvaluation(t *testing.T) {
 			svcMock.EXPECT().ResolveString(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 			provider := Provider{
-				service:               svcMock,
-				providerConfiguration: newDefaultConfiguration(),
+				service: svcMock,
+				cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 			}
 
 			res := provider.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -412,8 +414,8 @@ func TestFloatEvaluation(t *testing.T) {
 			svcMock.EXPECT().ResolveFloat(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 			provider := Provider{
-				service:               svcMock,
-				providerConfiguration: newDefaultConfiguration(),
+				service: svcMock,
+				cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 			}
 
 			res := provider.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)
@@ -610,8 +612,8 @@ func TestObjectEvaluation(t *testing.T) {
 		svcMock.EXPECT().ResolveObject(context.Background(), test.flagKey, test.evalCtx).Return(test.mockOut, test.mockError)
 
 		provider := Provider{
-			service:               svcMock,
-			providerConfiguration: newDefaultConfiguration(),
+			service: svcMock,
+			cache:   newCacheService(defaultCache, defaultMaxCacheSize, logr.New(logger.Logger{})),
 		}
 
 		res := provider.ObjectEvaluation(context.Background(), test.flagKey, test.defaultValue, test.evalCtx)

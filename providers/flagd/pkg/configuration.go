@@ -29,7 +29,6 @@ const (
 )
 
 type providerConfiguration struct {
-	CacheEnabled                     bool
 	CacheType                        string
 	CertificatePath                  string
 	EventStreamConnectionMaxAttempts int

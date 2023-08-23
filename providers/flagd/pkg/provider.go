@@ -5,17 +5,15 @@ import (
 	"context"
 	"errors"
 	"github.com/go-logr/logr"
-	lru "github.com/hashicorp/golang-lru/v2"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 type Provider struct {
-	cache                 Cache[string, interface{}]
+	cache                 *cacheService
 	ctx                   context.Context
 	isReady               chan struct{}
 	logger                logr.Logger
@@ -44,7 +42,10 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
-	setupCache(provider)
+	provider.cache = newCacheService(
+		provider.providerConfiguration.CacheType,
+		provider.providerConfiguration.MaxCacheSize,
+		log)
 
 	provider.service = service.NewService(service.NewClient(
 		&service.Configuration{
@@ -64,32 +65,6 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	}()
 
 	return provider
-}
-
-// setupCache helper to set up cache
-func setupCache(provider *Provider) {
-	var c Cache[string, interface{}]
-	var err error
-
-	// setup cache
-	switch provider.providerConfiguration.CacheType {
-	case cacheLRUValue:
-		c, err = lru.New[string, interface{}](provider.providerConfiguration.MaxCacheSize)
-		if err != nil {
-			provider.logger.Error(err, "init lru cache")
-		} else {
-			provider.providerConfiguration.CacheEnabled = true
-		}
-	case cacheInMemValue:
-		c = cache.NewInMemory[string, interface{}]()
-		provider.providerConfiguration.CacheEnabled = true
-	case cacheDisabledValue:
-	default:
-		provider.providerConfiguration.CacheEnabled = false
-		c = nil
-	}
-
-	provider.cache = c
 }
 
 // ProviderOptions
@@ -212,8 +187,8 @@ func (p *Provider) Metadata() of.Metadata {
 func (p *Provider) BooleanEvaluation(
 	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
 ) of.BoolResolutionDetail {
-	if p.isCacheAvailable() {
-		fromCache, ok := p.cache.Get(flagKey)
+	if p.cache.isEnabled() {
+		fromCache, ok := p.cache.getCache().Get(flagKey)
 		if ok {
 			fromCacheResDetail, ok := fromCache.(of.BoolResolutionDetail)
 			if ok {
@@ -250,8 +225,8 @@ func (p *Provider) BooleanEvaluation(
 		},
 	}
 
-	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.cache.Add(flagKey, resDetail)
+	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
+		p.cache.getCache().Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -260,8 +235,8 @@ func (p *Provider) BooleanEvaluation(
 func (p *Provider) StringEvaluation(
 	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
 ) of.StringResolutionDetail {
-	if p.isCacheAvailable() {
-		fromCache, ok := p.cache.Get(flagKey)
+	if p.cache.isEnabled() {
+		fromCache, ok := p.cache.getCache().Get(flagKey)
 		if ok {
 			fromCacheResDetail, ok := fromCache.(of.StringResolutionDetail)
 			if ok {
@@ -298,8 +273,8 @@ func (p *Provider) StringEvaluation(
 		},
 	}
 
-	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.cache.Add(flagKey, resDetail)
+	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
+		p.cache.getCache().Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -308,8 +283,8 @@ func (p *Provider) StringEvaluation(
 func (p *Provider) FloatEvaluation(
 	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
 ) of.FloatResolutionDetail {
-	if p.isCacheAvailable() {
-		fromCache, ok := p.cache.Get(flagKey)
+	if p.cache.isEnabled() {
+		fromCache, ok := p.cache.getCache().Get(flagKey)
 		if ok {
 			fromCacheResDetail, ok := fromCache.(of.FloatResolutionDetail)
 			if ok {
@@ -346,8 +321,8 @@ func (p *Provider) FloatEvaluation(
 		},
 	}
 
-	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.cache.Add(flagKey, resDetail)
+	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
+		p.cache.getCache().Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -356,8 +331,8 @@ func (p *Provider) FloatEvaluation(
 func (p *Provider) IntEvaluation(
 	ctx context.Context, flagKey string, defaultValue int64, evalCtx of.FlattenedContext,
 ) of.IntResolutionDetail {
-	if p.isCacheAvailable() {
-		fromCache, ok := p.cache.Get(flagKey)
+	if p.cache.isEnabled() {
+		fromCache, ok := p.cache.getCache().Get(flagKey)
 		if ok {
 			fromCacheResDetail, ok := fromCache.(of.IntResolutionDetail)
 			if ok {
@@ -394,8 +369,8 @@ func (p *Provider) IntEvaluation(
 		},
 	}
 
-	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.cache.Add(flagKey, resDetail)
+	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
+		p.cache.getCache().Add(flagKey, resDetail)
 	}
 
 	return resDetail
@@ -404,8 +379,8 @@ func (p *Provider) IntEvaluation(
 func (p *Provider) ObjectEvaluation(
 	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
 ) of.InterfaceResolutionDetail {
-	if p.isCacheAvailable() {
-		fromCache, ok := p.cache.Get(flagKey)
+	if p.cache.isEnabled() {
+		fromCache, ok := p.cache.getCache().Get(flagKey)
 		if ok {
 			fromCacheResDetail, ok := fromCache.(of.InterfaceResolutionDetail)
 			if ok {
@@ -442,15 +417,11 @@ func (p *Provider) ObjectEvaluation(
 		},
 	}
 
-	if p.isCacheAvailable() && res.Reason == flagdModels.StaticReason {
-		p.cache.Add(flagKey, resDetail)
+	if p.cache.isEnabled() && res.Reason == flagdModels.StaticReason {
+		p.cache.getCache().Add(flagKey, resDetail)
 	}
 
 	return resDetail
-}
-
-func (p *Provider) isCacheAvailable() bool {
-	return p.providerConfiguration.CacheEnabled && p.service.IsEventStreamAlive()
 }
 
 // todo: Event handling to be isolated to own component
@@ -460,7 +431,7 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 	errChan := make(chan error)
 
 	handler := eventHandler{
-		cache:     &p.cache,
+		cache:     p.cache,
 		errChan:   errChan,
 		eventChan: eventChan,
 		isReady:   p.isReady,
@@ -478,8 +449,3 @@ func (p *Provider) handleEvents(ctx context.Context) error {
 
 	return nil
 }
-
-//// todo
-//
-//- isolate cache to its own component
-//- start migrating to eventing
