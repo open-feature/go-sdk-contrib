@@ -13,7 +13,7 @@ import (
 type Provider struct {
 	logger                logr.Logger
 	providerConfiguration *providerConfiguration
-	service               service.IService
+	service               IService
 	status                of.State
 
 	eventStream chan of.Event
@@ -41,26 +41,28 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
+	cacheService := cache.NewCacheService(
+		provider.providerConfiguration.CacheType,
+		provider.providerConfiguration.MaxCacheSize,
+		provider.logger)
+
+	provider.service = service.NewService(
+		service.Configuration{
+			Host:            provider.providerConfiguration.Host,
+			Port:            provider.providerConfiguration.Port,
+			CertificatePath: provider.providerConfiguration.CertificatePath,
+			SocketPath:      provider.providerConfiguration.SocketPath,
+			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
+			OtelInterceptor: provider.providerConfiguration.OtelIntercept,
+		},
+		cacheService,
+		provider.logger,
+		provider.providerConfiguration.EventStreamConnectionMaxAttempts)
+
 	return provider
 }
 
 func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
-	cacheService := cache.NewCacheService(
-		p.providerConfiguration.CacheType,
-		p.providerConfiguration.MaxCacheSize,
-		p.logger)
-
-	p.service = service.NewService(service.NewClient(
-		&service.Configuration{
-			Host:            p.providerConfiguration.Host,
-			Port:            p.providerConfiguration.Port,
-			CertificatePath: p.providerConfiguration.CertificatePath,
-			SocketPath:      p.providerConfiguration.SocketPath,
-			TLSEnabled:      p.providerConfiguration.TLSEnabled,
-			OtelInterceptor: p.providerConfiguration.OtelIntercept,
-		},
-	), cacheService, p.logger, p.providerConfiguration.EventStreamConnectionMaxAttempts)
-
 	go func() {
 		for {
 			select {

@@ -1,9 +1,13 @@
 package service
 
 import (
+	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/bufbuild/connect-go/schema/v1/schemav1connect"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"github.com/bufbuild/connect-go"
+	otelconnect "github.com/bufbuild/connect-opentelemetry-go"
 	"github.com/go-logr/logr"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
@@ -12,6 +16,9 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
+	"net"
+	"net/http"
+	"os"
 	"time"
 
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
@@ -20,21 +27,31 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+type Configuration struct {
+	Port            uint16
+	Host            string
+	CertificatePath string
+	SocketPath      string
+	TLSEnabled      bool
+	OtelInterceptor bool
+}
+
 // Service handles the client side  interface for the flagd server
 type Service struct {
+	cfg            Configuration
 	baseRetryDelay time.Duration
 	cache          *cache.Service
-	client         Client
 	events         chan of.Event
 	logger         logr.Logger
 	maxRetries     int
 
+	client     schemaConnectV1.ServiceClient
 	cancelHook context.CancelFunc
 }
 
-func NewService(client Client, cache *cache.Service, logger logr.Logger, retries int) *Service {
+func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, retries int) *Service {
 	return &Service{
-		client:     client,
+		cfg:        cfg,
 		cache:      cache,
 		logger:     logger,
 		maxRetries: retries,
@@ -57,6 +74,12 @@ type resolutionResponseConstraints interface {
 }
 
 func (s *Service) Init() error {
+	var err error
+	s.client, err = NewClient(s.cfg)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	go func() {
@@ -87,11 +110,9 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 		}
 	}
 
-	client := s.client.Instance()
-
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveBooleanRequest, schemaV1.ResolveBooleanResponse](
-		ctx, s.logger, client.ResolveBoolean, key, evalCtx,
+		ctx, s.logger, s.client.ResolveBoolean, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -138,11 +159,9 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 		}
 	}
 
-	client := s.client.Instance()
-
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveStringRequest, schemaV1.ResolveStringResponse](
-		ctx, s.logger, client.ResolveString, key, evalCtx,
+		ctx, s.logger, s.client.ResolveString, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -189,11 +208,9 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 		}
 	}
 
-	client := s.client.Instance()
-
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveFloatRequest, schemaV1.ResolveFloatResponse](
-		ctx, s.logger, client.ResolveFloat, key, evalCtx,
+		ctx, s.logger, s.client.ResolveFloat, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -240,11 +257,9 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 		}
 	}
 
-	client := s.client.Instance()
-
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveIntRequest, schemaV1.ResolveIntResponse](
-		ctx, s.logger, client.ResolveInt, key, evalCtx,
+		ctx, s.logger, s.client.ResolveInt, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -290,11 +305,9 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		}
 	}
 
-	client := s.client.Instance()
-
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveObjectRequest, schemaV1.ResolveObjectResponse](
-		ctx, s.logger, client.ResolveObject, key, evalCtx,
+		ctx, s.logger, s.client.ResolveObject, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -400,8 +413,7 @@ func (s *Service) startEventStream(ctx context.Context) {
 }
 
 func (s *Service) listenToStream(ctx context.Context) error {
-	client := s.client.Instance()
-	stream, err := client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
+	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
 	if err != nil {
 		return err
 	}
@@ -474,4 +486,52 @@ func (s *Service) handleReady() {
 		ProviderName: "flagd",
 		EventType:    of.ProviderReady,
 	}
+}
+
+func NewClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
+	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
+	var tlsConfig *tls.Config
+	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
+	// socket
+	if cfg.SocketPath != "" {
+		dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", cfg.SocketPath)
+		}
+	}
+	// tls
+	if cfg.TLSEnabled {
+		url = fmt.Sprintf("https://%s:%d", cfg.Host, cfg.Port)
+		tlsConfig = &tls.Config{}
+		if cfg.CertificatePath != "" {
+			caCert, err := os.ReadFile(cfg.CertificatePath)
+			if err != nil {
+				return nil, err
+			}
+			caCertPool := x509.NewCertPool()
+			if !caCertPool.AppendCertsFromPEM(caCert) {
+				return nil, errors.New("error appending provider certificate file. please check and try again")
+			}
+			tlsConfig.RootCAs = caCertPool
+		}
+	}
+
+	// build options
+	var options []connect.ClientOption
+
+	if cfg.OtelInterceptor {
+		options = append(options, connect.WithInterceptors(
+			otelconnect.NewInterceptor(),
+		))
+	}
+
+	return schemaConnectV1.NewServiceClient(
+		&http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+				DialContext:     dialContext,
+			},
+		},
+		url,
+		options...,
+	), nil
 }
