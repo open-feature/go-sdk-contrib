@@ -1,6 +1,8 @@
 package flagd
 
 import (
+	"github.com/golang/mock/gomock"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"testing"
 )
@@ -115,6 +117,61 @@ func TestNewProvider(t *testing.T) {
 			// this line will fail linting if this provider is no longer compatible with the openfeature sdk
 			var _ of.FeatureProvider = flagdProvider
 		})
-
 	}
+}
+
+func TestEventHandling(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	customChan := make(chan of.Event)
+
+	svcMock := mock.NewMockIService(ctrl)
+	svcMock.EXPECT().EventChannel().Return(customChan).AnyTimes()
+	svcMock.EXPECT().Init().AnyTimes()
+
+	provider := NewProvider()
+	provider.service = svcMock
+
+	if provider.Status() != of.NotReadyState {
+		t.Errorf("expected initial status to be not ready, but got %v", provider.Status())
+	}
+
+	err := provider.Init(of.EvaluationContext{})
+	if err != nil {
+		t.Fatal("error initialization provider", err)
+	}
+
+	// push events to local event channel
+	go func() {
+		customChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderReady,
+		}
+
+		customChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderError,
+		}
+	}()
+
+	// check event emitting from provider in order
+	event := <-provider.EventChannel()
+	if event.EventType != of.ProviderReady {
+		t.Errorf("expected event %v, got %v", of.ProviderReady, event.EventType)
+	}
+
+	if provider.Status() != of.ReadyState {
+		t.Errorf("expected status to be ready, but got %v", provider.Status())
+	}
+
+	event = <-provider.EventChannel()
+	if event.EventType != of.ProviderError {
+		t.Errorf("expected event %v, got %v", of.ProviderError, event.EventType)
+	}
+
+	if provider.Status() != of.ErrorState {
+		t.Errorf("expected status to be error, but got %v", provider.Status())
+	}
+
 }

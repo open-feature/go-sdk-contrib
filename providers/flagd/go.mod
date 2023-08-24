@@ -9,7 +9,6 @@ require (
 	github.com/bufbuild/connect-opentelemetry-go v0.4.0
 	github.com/go-logr/logr v1.2.4
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.4
 	github.com/open-feature/flagd/core v0.6.2
 	github.com/open-feature/go-sdk v1.6.0
