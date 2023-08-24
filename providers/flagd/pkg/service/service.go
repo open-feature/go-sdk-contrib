@@ -32,15 +32,15 @@ type Service struct {
 	cancelHook context.CancelFunc
 }
 
-func NewService(client Client, cache *cache.Service, logger logr.Logger) *Service {
+func NewService(client Client, cache *cache.Service, logger logr.Logger, retries int) *Service {
 	return &Service{
-		client: client,
-		cache:  cache,
-		logger: logger,
+		client:     client,
+		cache:      cache,
+		logger:     logger,
+		maxRetries: retries,
 
 		events:         make(chan of.Event, 1),
 		baseRetryDelay: time.Second,
-		maxRetries:     5,
 	}
 }
 

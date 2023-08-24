@@ -41,43 +41,40 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
-	cacheService := cache.NewCacheService(
-		provider.providerConfiguration.CacheType,
-		provider.providerConfiguration.MaxCacheSize,
-		log)
-
-	provider.service = service.NewService(service.NewClient(
-		&service.Configuration{
-			Host:            provider.providerConfiguration.Host,
-			Port:            provider.providerConfiguration.Port,
-			CertificatePath: provider.providerConfiguration.CertificatePath,
-			SocketPath:      provider.providerConfiguration.SocketPath,
-			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
-			OtelInterceptor: provider.providerConfiguration.otelIntercept,
-		},
-	), cacheService, provider.logger)
-
 	return provider
 }
 
 func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
-	// wrap service events with provider level event repeater
-	p.initOnce.Do(func() {
-		go func() {
-			for {
-				select {
-				case e := <-p.service.EventChannel():
-					p.eventStream <- e
-					switch e.EventType {
-					case of.ProviderReady:
-						p.status = of.ReadyState
-					case of.ProviderError:
-						p.status = of.ErrorState
-					}
+	cacheService := cache.NewCacheService(
+		p.providerConfiguration.CacheType,
+		p.providerConfiguration.MaxCacheSize,
+		p.logger)
+
+	p.service = service.NewService(service.NewClient(
+		&service.Configuration{
+			Host:            p.providerConfiguration.Host,
+			Port:            p.providerConfiguration.Port,
+			CertificatePath: p.providerConfiguration.CertificatePath,
+			SocketPath:      p.providerConfiguration.SocketPath,
+			TLSEnabled:      p.providerConfiguration.TLSEnabled,
+			OtelInterceptor: p.providerConfiguration.OtelIntercept,
+		},
+	), cacheService, p.logger, p.providerConfiguration.EventStreamConnectionMaxAttempts)
+
+	go func() {
+		for {
+			select {
+			case e := <-p.service.EventChannel():
+				p.eventStream <- e
+				switch e.EventType {
+				case of.ProviderReady:
+					p.status = of.ReadyState
+				case of.ProviderError:
+					p.status = of.ErrorState
 				}
 			}
-		}()
-	})
+		}
+	}()
 
 	return p.service.Init()
 }
@@ -140,7 +137,7 @@ func (p *Provider) ObjectEvaluation(
 
 type ProviderOption func(*Provider)
 
-// WithSocketPath overrides the default hostname and port, a unix socket connection is made to flagd instead
+// WithSocketPath overrides the default hostname and expectPort, a unix socket connection is made to flagd instead
 func WithSocketPath(socketPath string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.SocketPath = socketPath
@@ -156,14 +153,14 @@ func WithCertificatePath(path string) ProviderOption {
 	}
 }
 
-// WithPort specifies the port of the flagd server. Defaults to 8013
+// WithPort specifies the expectPort of the flagd server. Defaults to 8013
 func WithPort(port uint16) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Port = port
 	}
 }
 
-// WithHost specifies the host name of the flagd server. Defaults to localhost
+// WithHost specifies the expectHost name of the flagd server. Defaults to localhost
 func WithHost(host string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Host = host
@@ -196,14 +193,6 @@ func WithLRUCache(size int) ProviderOption {
 	}
 }
 
-//// WithContext supplies the given context to the event stream. Not to be confused with the context used in individual
-//// flag evaluation requests.
-//func WithContext(ctx context.Context) ProviderOption {
-//	return func(p *Provider) {
-//		p.ctx = ctx
-//	}
-//}
-
 // WithEventStreamConnectionMaxAttempts sets the maximum number of attempts to connect to flagd's event stream.
 // On successful connection the attempts are reset.
 func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
@@ -230,7 +219,7 @@ func WithTLS(certPath string) ProviderOption {
 // WithOtelInterceptor enable/disable otel interceptor for flagd communication
 func WithOtelInterceptor(intercept bool) ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.otelIntercept = intercept
+		p.providerConfiguration.OtelIntercept = intercept
 	}
 }
 

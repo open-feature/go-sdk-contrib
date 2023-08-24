@@ -35,7 +35,7 @@ type providerConfiguration struct {
 	EventStreamConnectionMaxAttempts int
 	Host                             string
 	MaxCacheSize                     int
-	otelIntercept                    bool
+	OtelIntercept                    bool
 	Port                             uint16
 	SocketPath                       string
 	TLSEnabled                       bool
