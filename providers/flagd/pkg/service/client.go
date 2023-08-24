@@ -24,8 +24,7 @@ type Configuration struct {
 }
 
 type Client struct {
-	client               schemaConnectV1.ServiceClient
-	serviceConfiguration *Configuration
+	client schemaConnectV1.ServiceClient
 }
 
 func NewClient(cfg *Configuration) Client {
@@ -78,7 +77,6 @@ func NewClient(cfg *Configuration) Client {
 			url,
 			options...,
 		),
-		serviceConfiguration: cfg,
 	}
 }
 

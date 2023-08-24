@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 )
 
+// IService abstract the service implementation for flagd provider
 type IService interface {
+	Init() error
+	Shutdown()
 	ResolveBoolean(ctx context.Context, key string, defaultValue bool,
 		evalCtx map[string]interface{}) of.BoolResolutionDetail
 	ResolveString(ctx context.Context, key string, defaultValue string,
@@ -18,6 +19,5 @@ type IService interface {
 		evalCtx map[string]interface{}) of.IntResolutionDetail
 	ResolveObject(ctx context.Context, key string, defaultValue interface{},
 		evalCtx map[string]interface{}) of.InterfaceResolutionDetail
-	EventStream(ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, maxAttempts int,
-		errChan chan<- error)
+	EventChannel() <-chan of.Event
 }

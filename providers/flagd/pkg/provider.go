@@ -1,22 +1,23 @@
 package flagd
 
 import (
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	"sync"
 )
 
 type Provider struct {
-	cache                 *cache.Service
-	ctx                   context.Context
-	isReady               chan struct{}
 	logger                logr.Logger
 	providerConfiguration *providerConfiguration
 	service               service.IService
+	status                of.State
+
+	eventStream chan of.Event
+	initOnce    sync.Once
 }
 
 func NewProvider(opts ...ProviderOption) *Provider {
@@ -29,10 +30,10 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	configuration.updateFromEnvVar(log)
 
 	provider := &Provider{
-		ctx:                   context.Background(),
-		isReady:               make(chan struct{}),
+		eventStream:           make(chan of.Event),
 		logger:                log,
 		providerConfiguration: configuration,
+		status:                of.NotReadyState,
 	}
 
 	// explicitly declared options have the highest priority
@@ -40,7 +41,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
-	provider.cache = cache.NewCacheService(
+	cacheService := cache.NewCacheService(
 		provider.providerConfiguration.CacheType,
 		provider.providerConfiguration.MaxCacheSize,
 		log)
@@ -54,15 +55,43 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
 			OtelInterceptor: provider.providerConfiguration.otelIntercept,
 		},
-	), provider.cache, provider.logger)
-
-	go func() {
-		if err := provider.handleEvents(provider.ctx); err != nil {
-			provider.logger.Error(err, "handle events")
-		}
-	}()
+	), cacheService, provider.logger)
 
 	return provider
+}
+
+func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
+	// wrap service events with provider level event repeater
+	p.initOnce.Do(func() {
+		go func() {
+			for {
+				select {
+				case e := <-p.service.EventChannel():
+					p.eventStream <- e
+					switch e.EventType {
+					case of.ProviderReady:
+						p.status = of.ReadyState
+					case of.ProviderError:
+						p.status = of.ErrorState
+					}
+				}
+			}
+		}()
+	})
+
+	return p.service.Init()
+}
+
+func (p *Provider) Status() of.State {
+	return p.status
+}
+
+func (p *Provider) Shutdown() {
+	p.service.Shutdown()
+}
+
+func (p *Provider) EventChannel() <-chan of.Event {
+	return p.eventStream
 }
 
 // Hooks flagd provider does not have any hooks, returns empty slice
@@ -167,13 +196,13 @@ func WithLRUCache(size int) ProviderOption {
 	}
 }
 
-// WithContext supplies the given context to the event stream. Not to be confused with the context used in individual
-// flag evaluation requests.
-func WithContext(ctx context.Context) ProviderOption {
-	return func(p *Provider) {
-		p.ctx = ctx
-	}
-}
+//// WithContext supplies the given context to the event stream. Not to be confused with the context used in individual
+//// flag evaluation requests.
+//func WithContext(ctx context.Context) ProviderOption {
+//	return func(p *Provider) {
+//		p.ctx = ctx
+//	}
+//}
 
 // WithEventStreamConnectionMaxAttempts sets the maximum number of attempts to connect to flagd's event stream.
 // On successful connection the attempts are reset.
@@ -210,30 +239,4 @@ func FromEnv() ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.updateFromEnvVar(p.logger)
 	}
-}
-
-// todo: Event handling to be isolated to own component
-
-func (p *Provider) handleEvents(ctx context.Context) error {
-	eventChan := make(chan *schemaV1.EventStreamResponse)
-	errChan := make(chan error)
-
-	handler := eventHandler{
-		cache:     p.cache,
-		errChan:   errChan,
-		eventChan: eventChan,
-		isReady:   p.isReady,
-		logger:    p.logger,
-	}
-
-	go func() {
-		p.service.EventStream(ctx, eventChan, p.providerConfiguration.EventStreamConnectionMaxAttempts, errChan)
-	}()
-
-	err := handler.handle(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

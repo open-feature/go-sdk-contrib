@@ -6,12 +6,12 @@ import (
 	"github.com/bufbuild/connect-go"
 	"github.com/go-logr/logr"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
+	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
-	"sync"
 	"time"
 
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
@@ -22,12 +22,14 @@ import (
 
 // Service handles the client side  interface for the flagd server
 type Service struct {
-	cache          *cache.Service
-	rwMx           *sync.RWMutex
-	streamAlive    bool
-	client         Client
 	baseRetryDelay time.Duration
+	cache          *cache.Service
+	client         Client
+	events         chan of.Event
 	logger         logr.Logger
+	maxRetries     int
+
+	cancelHook context.CancelFunc
 }
 
 func NewService(client Client, cache *cache.Service, logger logr.Logger) *Service {
@@ -36,9 +38,9 @@ func NewService(client Client, cache *cache.Service, logger logr.Logger) *Servic
 		cache:  cache,
 		logger: logger,
 
+		events:         make(chan of.Event, 1),
 		baseRetryDelay: time.Second,
-		rwMx:           &sync.RWMutex{},
-		streamAlive:    false,
+		maxRetries:     5,
 	}
 }
 
@@ -52,6 +54,22 @@ type resolutionRequestConstraints interface {
 type resolutionResponseConstraints interface {
 	schemaV1.ResolveBooleanResponse | schemaV1.ResolveStringResponse | schemaV1.ResolveIntResponse |
 		schemaV1.ResolveFloatResponse | schemaV1.ResolveObjectResponse
+}
+
+func (s *Service) Init() error {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	go func() {
+		s.startEventStream(ctx)
+	}()
+
+	s.cancelHook = cancelFunc
+
+	return nil
+}
+
+func (s *Service) Shutdown() {
+	s.cancelHook()
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
@@ -346,66 +364,114 @@ func handleError(err error) openfeature.ResolutionError {
 	return openfeature.NewGeneralResolutionError(err.Error())
 }
 
-// EventStream emits received events on the given channel
-func (s *Service) EventStream(
-	ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, maxAttempts int, errChan chan<- error,
-) {
-	delay := s.baseRetryDelay
-	var err error
-	for i := 1; i <= maxAttempts; i++ {
-		s.logger.V(logger.Debug).Info("attempt at connection to event stream", "attempt", i)
-		i, err = s.eventStream(ctx, eventChan, i)
-		if i == 1 {
-			delay = s.baseRetryDelay // reset delay if the connection was successful before failing
-		}
-		if err != nil && i <= maxAttempts {
+func (s *Service) EventChannel() <-chan of.Event {
+	return s.events
+}
+
+func (s *Service) startEventStream(ctx context.Context) {
+	var delay = s.baseRetryDelay
+	var attempts = 1
+
+	// wraps connection with retry attempts
+	for attempts <= s.maxRetries {
+		s.logger.V(logger.Debug).Info("connecting to event stream")
+		err := s.listenToStream(ctx)
+		if err != nil {
+			// error in stream handler
+			s.logger.V(logger.Warn).Info(fmt.Sprintf("connection to event stream failed, reattemping"))
 			delay = 2 * delay
-			s.logger.V(logger.Warn).Info(fmt.Sprintf("connection to event stream failed, sleeping %v", delay))
-			time.Sleep(delay)
+			attempts++
+		} else {
+			// no errors means planned connection termination
+			attempts = 0
+			delay = s.baseRetryDelay
 		}
+
+		time.Sleep(delay)
 	}
 
-	if err != nil {
-		errChan <- err
+	// retry attempts exhausted
+	s.cache.Disable()
+
+	s.events <- of.Event{
+		ProviderName: "flagd",
+		EventType:    of.ProviderError,
 	}
 }
 
-func (s *Service) eventStream(
-	ctx context.Context, eventChan chan<- *schemaV1.EventStreamResponse, attempt int) (int, error) {
+func (s *Service) listenToStream(ctx context.Context) error {
 	client := s.client.Instance()
-	if client == nil {
-		return attempt + 1, openfeature.NewProviderNotReadyResolutionError(ConnectionError)
-	}
-
 	stream, err := client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
 	if err != nil {
-		return attempt + 1, err
+		return err
 	}
 
 	s.logger.V(logger.Info).Info("connected to event stream")
-	s.rwMx.Lock()
-	s.streamAlive = true
-	s.rwMx.Unlock()
-	attempt = 0 // reset attempts on successful connection
 
 	for stream.Receive() {
-		eventChan <- stream.Msg()
+		switch stream.Msg().Type {
+		case string(flagdService.ConfigurationChange):
+			s.handleConfigurationChangeEvent(stream.Msg())
+		case string(flagdService.ProviderReady):
+			s.handleReady()
+		case string(flagdService.KeepAlive):
+		default:
+			// do nothing
+		}
 	}
-	s.rwMx.Lock()
-	s.streamAlive = false
-	s.rwMx.Unlock()
 
 	if err := stream.Err(); err != nil {
-		return attempt + 1, err
+		return err
 	}
-	close(eventChan)
 
-	return attempt + 1, nil
+	return nil
 }
 
-func (s *Service) IsEventStreamAlive() bool {
-	s.rwMx.RLock()
-	defer s.rwMx.RUnlock()
+func (s *Service) handleConfigurationChangeEvent(event *schemaV1.EventStreamResponse) {
+	if !s.cache.IsEnabled() {
+		return
+	}
 
-	return s.streamAlive
+	if event.Data == nil {
+		// purge cache and return
+		s.cache.GetCache().Purge()
+		return
+	}
+
+	flagsVal, ok := event.Data.AsMap()["flags"]
+	if !ok {
+		// purge cache and return
+		s.cache.GetCache().Purge()
+		return
+	}
+
+	flags, ok := flagsVal.(map[string]interface{})
+	if !ok {
+		// purge cache and return
+		s.cache.GetCache().Purge()
+		return
+	}
+
+	var keys []string
+
+	for flagKey := range flags {
+		s.cache.GetCache().Remove(flagKey)
+		keys = append(keys, flagKey)
+	}
+
+	s.events <- of.Event{
+		ProviderName: "flagd",
+		EventType:    of.ProviderConfigChange,
+		ProviderEventDetails: of.ProviderEventDetails{
+			Message:     "flags changed",
+			FlagChanges: keys,
+		},
+	}
+}
+
+func (s *Service) handleReady() {
+	s.events <- of.Event{
+		ProviderName: "flagd",
+		EventType:    of.ProviderReady,
+	}
 }

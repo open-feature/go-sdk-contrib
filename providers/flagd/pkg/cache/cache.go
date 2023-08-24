@@ -60,3 +60,10 @@ func (s *Service) GetCache() Cache[string, interface{}] {
 func (s *Service) IsEnabled() bool {
 	return s.cacheEnabled
 }
+
+func (s *Service) Disable() {
+	if s.IsEnabled() {
+		s.cacheEnabled = false
+		s.cache.Purge()
+	}
+}
