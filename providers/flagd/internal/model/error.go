@@ -6,6 +6,8 @@ import (
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
+// todo - this is unused hence remove
+
 func FlagdErrorCodeToResolutionError(flagdCode string, msg string) of.ResolutionError {
 	switch flagdCode {
 	case flagdModels.FlagNotFoundErrorCode:

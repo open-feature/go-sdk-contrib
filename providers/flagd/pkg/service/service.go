@@ -128,7 +128,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 	}
 
 	detail := of.BoolResolutionDetail{
-		Value: defaultValue,
+		Value: resp.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
@@ -177,7 +177,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 	}
 
 	detail := of.StringResolutionDetail{
-		Value: defaultValue,
+		Value: resp.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
@@ -226,7 +226,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 	}
 
 	detail := of.FloatResolutionDetail{
-		Value: defaultValue,
+		Value: resp.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
@@ -275,7 +275,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 	}
 
 	detail := of.IntResolutionDetail{
-		Value: defaultValue,
+		Value: resp.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
@@ -323,7 +323,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	}
 
 	detail := of.InterfaceResolutionDetail{
-		Value: defaultValue,
+		Value: resp.Value.AsMap(),
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
