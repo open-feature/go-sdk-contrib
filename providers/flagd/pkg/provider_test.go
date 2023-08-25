@@ -60,19 +60,12 @@ func TestNewProvider(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			flagdProvider := NewProvider(test.options...)
 
-			if flagdProvider == nil {
-				t.Fatal("received nil service from NewProvider")
-			}
-
 			metadata := flagdProvider.Metadata()
 			if metadata.Name != "flagd" {
 				t.Errorf("received unexpected metadata from NewProvider, expected %s got %s", "flagd", metadata.Name)
 			}
 
 			config := flagdProvider.providerConfiguration
-			if config == nil {
-				t.Fatal("configurations are not set")
-			}
 
 			if config.TLSEnabled != test.expectTlsEnabled {
 				t.Errorf("incorrect configuration TLSEnabled, expected %v, got %v",

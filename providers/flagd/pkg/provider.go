@@ -7,7 +7,6 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-	"sync"
 )
 
 type Provider struct {
@@ -17,7 +16,6 @@ type Provider struct {
 	status                of.State
 
 	eventStream chan of.Event
-	initOnce    sync.Once
 }
 
 func NewProvider(opts ...ProviderOption) *Provider {
@@ -65,15 +63,13 @@ func NewProvider(opts ...ProviderOption) *Provider {
 func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 	go func() {
 		for {
-			select {
-			case e := <-p.service.EventChannel():
-				p.eventStream <- e
-				switch e.EventType {
-				case of.ProviderReady:
-					p.status = of.ReadyState
-				case of.ProviderError:
-					p.status = of.ErrorState
-				}
+			e := <-p.service.EventChannel()
+			p.eventStream <- e
+			switch e.EventType {
+			case of.ProviderReady:
+				p.status = of.ReadyState
+			case of.ProviderError:
+				p.status = of.ErrorState
 			}
 		}
 	}()

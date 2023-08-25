@@ -396,7 +396,7 @@ func (s *Service) startEventStream(ctx context.Context) {
 		err := s.streamClient(ctx)
 		if err != nil {
 			// error in stream handler, purge cache if available and retry
-			s.logger.V(logger.Warn).Info(fmt.Sprintf("connection to event stream failed, reattemping"))
+			s.logger.V(logger.Warn).Info("connection to event stream failed, attempting again")
 			if s.cache.IsEnabled() {
 				s.cache.GetCache().Purge()
 			}
