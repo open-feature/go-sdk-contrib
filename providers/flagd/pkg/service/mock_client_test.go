@@ -48,12 +48,12 @@ func (m *MockClient) ResolveObject(context.Context, *connect.Request[v1.ResolveO
 }
 
 func (m *MockClient) EventStream(context.Context, *connect.Request[v1.EventStreamRequest]) (*connect.ServerStreamForClient[v1.EventStreamResponse], error) {
-	// todo - even testing
-	return &connect.ServerStreamForClient[v1.EventStreamResponse]{}, nil
+	// note - mocking this is impossible
+	return &connect.ServerStreamForClient[v1.EventStreamResponse]{}, m.error
 }
 
 func (m *MockClient) ResolveAll(context.Context, *connect.Request[v1.ResolveAllRequest]) (*connect.Response[v1.ResolveAllResponse], error) {
 	return &connect.Response[v1.ResolveAllResponse]{
 		Msg: &v1.ResolveAllResponse{},
-	}, nil
+	}, m.error
 }

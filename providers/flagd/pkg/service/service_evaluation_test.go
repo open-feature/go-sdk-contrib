@@ -14,6 +14,8 @@ import (
 	"testing"
 )
 
+// Service tests for flag evaluation
+
 var flagKey = "key"
 var metadata map[string]interface{}
 var metadataStruct *structpb.Struct

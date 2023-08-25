@@ -13,7 +13,6 @@ import (
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/constant"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
 	"net"
@@ -25,6 +24,10 @@ import (
 
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"google.golang.org/protobuf/types/known/structpb"
+)
+
+const (
+	ReasonCached = "CACHED"
 )
 
 type Configuration struct {
@@ -75,7 +78,7 @@ type resolutionResponseConstraints interface {
 
 func (s *Service) Init() error {
 	var err error
-	s.client, err = NewClient(s.cfg)
+	s.client, err = newClient(s.cfg)
 	if err != nil {
 		return err
 	}
@@ -104,7 +107,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 		if ok {
 			fromCacheResDetail, ok := fromCache.(openfeature.BoolResolutionDetail)
 			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
+				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
 			}
 		}
@@ -153,7 +156,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 		if ok {
 			fromCacheResDetail, ok := fromCache.(openfeature.StringResolutionDetail)
 			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
+				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
 			}
 		}
@@ -202,7 +205,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 		if ok {
 			fromCacheResDetail, ok := fromCache.(openfeature.FloatResolutionDetail)
 			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
+				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
 			}
 		}
@@ -251,7 +254,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 		if ok {
 			fromCacheResDetail, ok := fromCache.(openfeature.IntResolutionDetail)
 			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
+				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
 			}
 		}
@@ -299,7 +302,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		if ok {
 			fromCacheResDetail, ok := fromCache.(openfeature.InterfaceResolutionDetail)
 			if ok {
-				fromCacheResDetail.Reason = constant.ReasonCached
+				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
 			}
 		}
@@ -381,6 +384,8 @@ func (s *Service) EventChannel() <-chan of.Event {
 	return s.events
 }
 
+// startEventStream - starts listening to flagd event stream with retries.
+// If retrying is exhausted, an event with openfeature.ProviderError is emitted.
 func (s *Service) startEventStream(ctx context.Context) {
 	var delay = s.baseRetryDelay
 	var attempts = 1
@@ -388,10 +393,13 @@ func (s *Service) startEventStream(ctx context.Context) {
 	// wraps connection with retry attempts
 	for attempts <= s.maxRetries {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
-		err := s.listenToStream(ctx)
+		err := s.streamClient(ctx)
 		if err != nil {
-			// error in stream handler
+			// error in stream handler, purge cache if available and retry
 			s.logger.V(logger.Warn).Info(fmt.Sprintf("connection to event stream failed, reattemping"))
+			if s.cache.IsEnabled() {
+				s.cache.GetCache().Purge()
+			}
 			delay = 2 * delay
 			attempts++
 		} else {
@@ -403,16 +411,16 @@ func (s *Service) startEventStream(ctx context.Context) {
 		time.Sleep(delay)
 	}
 
-	// retry attempts exhausted
+	// retry attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
-
 	s.events <- of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderError,
 	}
 }
 
-func (s *Service) listenToStream(ctx context.Context) error {
+// streamClient opens the event stream and distribute streams to appropriate handlers
+func (s *Service) streamClient(ctx context.Context) error {
 	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
 	if err != nil {
 		return err
@@ -425,7 +433,10 @@ func (s *Service) listenToStream(ctx context.Context) error {
 		case string(flagdService.ConfigurationChange):
 			s.handleConfigurationChangeEvent(stream.Msg())
 		case string(flagdService.ProviderReady):
-			s.handleReady()
+			s.handleReadyEvent()
+		case string(flagdService.Shutdown):
+			// this is considered as a non-error
+			return nil
 		case string(flagdService.KeepAlive):
 		default:
 			// do nothing
@@ -481,14 +492,15 @@ func (s *Service) handleConfigurationChangeEvent(event *schemaV1.EventStreamResp
 	}
 }
 
-func (s *Service) handleReady() {
+func (s *Service) handleReadyEvent() {
 	s.events <- of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderReady,
 	}
 }
 
-func NewClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
+// newClient is a helper to derive schemaConnectV1.ServiceClient
+func newClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
 	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
 	var tlsConfig *tls.Config
 	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
