@@ -130,16 +130,17 @@ func TestEventHandling(t *testing.T) {
 		t.Errorf("expected initial status to be not ready, but got %v", provider.Status())
 	}
 
-	err := provider.Init(of.EvaluationContext{})
-	if err != nil {
-		t.Fatal("error initialization provider", err)
-	}
-
 	// push events to local event channel
 	go func() {
+		// initial ready event
 		customChan <- of.Event{
 			ProviderName: "flagd",
 			EventType:    of.ProviderReady,
+		}
+
+		customChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderConfigChange,
 		}
 
 		customChan <- of.Event{
@@ -148,9 +149,15 @@ func TestEventHandling(t *testing.T) {
 		}
 	}()
 
+	// Check initial readiness
+	err := provider.Init(of.EvaluationContext{})
+	if err != nil {
+		t.Fatal("error initialization provider", err)
+	}
+
 	// check event emitting from provider in order
 	event := <-provider.EventChannel()
-	if event.EventType != of.ProviderReady {
+	if event.EventType != of.ProviderConfigChange {
 		t.Errorf("expected event %v, got %v", of.ProviderReady, event.EventType)
 	}
 

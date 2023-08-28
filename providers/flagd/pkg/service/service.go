@@ -416,6 +416,9 @@ func (s *Service) startEventStream(ctx context.Context) {
 	s.events <- of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderError,
+		ProviderEventDetails: of.ProviderEventDetails{
+			Message: "grpc connection establishment failed",
+		},
 	}
 }
 

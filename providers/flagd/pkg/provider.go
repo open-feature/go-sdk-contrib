@@ -2,6 +2,7 @@ package flagd
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
@@ -61,11 +62,25 @@ func NewProvider(opts ...ProviderOption) *Provider {
 }
 
 func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
+	err := p.service.Init()
+	if err != nil {
+		return err
+	}
+
+	// wait for initialization from the service
+	e := <-p.service.EventChannel()
+	if e.EventType != of.ProviderReady {
+		return fmt.Errorf("provider initialization failed: %s", e.ProviderEventDetails.Message)
+	}
+
+	p.status = of.ReadyState
+
+	// start event handling after the first ready event
 	go func() {
 		for {
-			e := <-p.service.EventChannel()
-			p.eventStream <- e
-			switch e.EventType {
+			event := <-p.service.EventChannel()
+			p.eventStream <- event
+			switch event.EventType {
 			case of.ProviderReady:
 				p.status = of.ReadyState
 			case of.ProviderError:
@@ -74,7 +89,7 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 		}
 	}()
 
-	return p.service.Init()
+	return nil
 }
 
 func (p *Provider) Status() of.State {
