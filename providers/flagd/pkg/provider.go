@@ -151,7 +151,7 @@ func WithCertificatePath(path string) ProviderOption {
 	}
 }
 
-// WithPort specifies the expectPort of the flagd server. Defaults to 8013
+// WithPort specifies the port of the flagd server. Defaults to 8013
 func WithPort(port uint16) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Port = port
