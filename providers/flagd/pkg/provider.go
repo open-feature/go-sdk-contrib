@@ -158,7 +158,7 @@ func WithPort(port uint16) ProviderOption {
 	}
 }
 
-// WithHost specifies the expectHost name of the flagd server. Defaults to localhost
+// WithHost specifies the host name of the flagd server. Defaults to localhost
 func WithHost(host string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Host = host
