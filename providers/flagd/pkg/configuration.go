@@ -39,9 +39,11 @@ type providerConfiguration struct {
 	Port                             uint16
 	SocketPath                       string
 	TLSEnabled                       bool
+
+	log logr.Logger
 }
 
-func newDefaultConfiguration() *providerConfiguration {
+func newDefaultConfiguration(log logr.Logger) *providerConfiguration {
 	return &providerConfiguration{
 		CacheType:                        defaultCache,
 		EventStreamConnectionMaxAttempts: defaultMaxEventStreamRetries,
@@ -49,16 +51,17 @@ func newDefaultConfiguration() *providerConfiguration {
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Port:                             defaultPort,
 		TLSEnabled:                       defaultTLS,
+		log:                              log,
 	}
 }
 
 // updateFromEnvVar is a utility to update configurations based on current environment variables
-func (cfg *providerConfiguration) updateFromEnvVar(logger logr.Logger) {
+func (cfg *providerConfiguration) updateFromEnvVar() {
 	portS := os.Getenv(flagdPortEnvironmentVariableName)
 	if portS != "" {
 		port, err := strconv.Atoi(portS)
 		if err != nil {
-			logger.Error(err,
+			cfg.log.Error(err,
 				fmt.Sprintf(
 					"invalid env config for %s provided, using default value: %d",
 					flagdPortEnvironmentVariableName, defaultPort,
@@ -68,27 +71,25 @@ func (cfg *providerConfiguration) updateFromEnvVar(logger logr.Logger) {
 		}
 	}
 
-	host := os.Getenv(flagdHostEnvironmentVariableName)
-	if host != "" {
+	if host := os.Getenv(flagdHostEnvironmentVariableName); host != "" {
 		cfg.Host = host
 	}
 
-	socketPath := os.Getenv(flagdSocketPathEnvironmentVariableName)
-	if socketPath != "" {
+	if socketPath := os.Getenv(flagdSocketPathEnvironmentVariableName); socketPath != "" {
 		cfg.SocketPath = socketPath
 	}
 
-	certificatePath := os.Getenv(flagdServerCertPathEnvironmentVariableName)
-	if certificatePath != "" || os.Getenv(flagdTLSEnvironmentVariableName) == "true" {
+	if certificatePath := os.Getenv(flagdServerCertPathEnvironmentVariableName); certificatePath != "" || os.Getenv(
+		flagdTLSEnvironmentVariableName) == "true" {
+
 		cfg.TLSEnabled = true
 		cfg.CertificatePath = certificatePath
 	}
 
-	maxCacheSizeS := os.Getenv(flagdMaxCacheSizeEnvironmentVariableName)
-	if maxCacheSizeS != "" {
+	if maxCacheSizeS := os.Getenv(flagdMaxCacheSizeEnvironmentVariableName); maxCacheSizeS != "" {
 		maxCacheSizeFromEnv, err := strconv.Atoi(maxCacheSizeS)
 		if err != nil {
-			logger.Error(err,
+			cfg.log.Error(err,
 				fmt.Sprintf("invalid env config for %s provided, using default value: %d",
 					flagdMaxCacheSizeEnvironmentVariableName, defaultMaxCacheSize,
 				))
@@ -106,16 +107,17 @@ func (cfg *providerConfiguration) updateFromEnvVar(logger logr.Logger) {
 		case cache.DisabledValue:
 			cfg.CacheType = cache.DisabledValue
 		default:
-			logger.Info("invalid cache type configured: %s, falling back to default: %s", cacheValue, defaultCache)
+			cfg.log.Info("invalid cache type configured: %s, falling back to default: %s", cacheValue, defaultCache)
 			cfg.CacheType = defaultCache
 		}
 	}
 
-	maxEventStreamRetriesS := os.Getenv(flagdMaxEventStreamRetriesEnvironmentVariableName)
-	if maxEventStreamRetriesS != "" {
+	if maxEventStreamRetriesS := os.Getenv(
+		flagdMaxEventStreamRetriesEnvironmentVariableName); maxEventStreamRetriesS != "" {
+
 		maxEventStreamRetries, err := strconv.Atoi(maxEventStreamRetriesS)
 		if err != nil {
-			logger.Error(err,
+			cfg.log.Error(err,
 				fmt.Sprintf("invalid env config for %s provided, using default value: %d",
 					flagdMaxEventStreamRetriesEnvironmentVariableName, defaultMaxEventStreamRetries))
 		} else {

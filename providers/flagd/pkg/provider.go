@@ -23,10 +23,10 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
-	configuration := newDefaultConfiguration()
+	configuration := newDefaultConfiguration(log)
 
 	// env variables have higher priority than defaults
-	configuration.updateFromEnvVar(log)
+	configuration.updateFromEnvVar()
 
 	provider := &Provider{
 		eventStream:           make(chan of.Event),
@@ -239,6 +239,6 @@ func WithOtelInterceptor(intercept bool) ProviderOption {
 // FromEnv sets the provider configuration from environment variables (if set)
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.updateFromEnvVar(p.logger)
+		p.providerConfiguration.updateFromEnvVar()
 	}
 }
