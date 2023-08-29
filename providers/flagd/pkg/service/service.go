@@ -478,7 +478,7 @@ func (s *Service) handleConfigurationChangeEvent(event *schemaV1.EventStreamResp
 		return
 	}
 
-	var keys []string
+	keys := make([]string, len(flags))
 
 	for flagKey := range flags {
 		s.cache.GetCache().Remove(flagKey)
