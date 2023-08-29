@@ -45,7 +45,7 @@ func TestRetries(t *testing.T) {
 	}
 }
 
-func TestConfigChane(t *testing.T) {
+func TestConfigChange(t *testing.T) {
 	data := map[string]interface{}{
 		"flags": map[string]interface{}{
 			"a": "",
