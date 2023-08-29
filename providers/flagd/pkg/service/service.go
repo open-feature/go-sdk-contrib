@@ -385,7 +385,8 @@ func (s *Service) EventChannel() <-chan of.Event {
 }
 
 // startEventStream - starts listening to flagd event stream with retries.
-// If retrying is exhausted, an event with openfeature.ProviderError is emitted.
+// This contains blocking calls and busy wait backed retry attempts, hence must be called concurrently.
+// If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
 	var delay = s.baseRetryDelay
 	var attempts = 1
