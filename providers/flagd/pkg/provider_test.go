@@ -3,6 +3,7 @@ package flagd
 import (
 	"github.com/golang/mock/gomock"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"testing"
 )
@@ -12,7 +13,7 @@ func TestNewProvider(t *testing.T) {
 		name                string
 		expectPort          uint16
 		expectHost          string
-		expectCacheType     string
+		expectCacheType     cache.Type
 		expectCertPath      string
 		expectMaxRetries    int
 		expectCacheSize     int

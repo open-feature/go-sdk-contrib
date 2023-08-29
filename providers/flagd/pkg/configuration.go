@@ -10,27 +10,27 @@ import (
 
 // Naming and defaults must comply with flagd environment variables
 const (
-	defaultMaxCacheSize                               int    = 1000
-	defaultPort                                              = 8013
-	defaultMaxEventStreamRetries                             = 5
-	defaultTLS                                        bool   = false
-	defaultCache                                      string = "lru"
-	defaultHost                                              = "localhost"
-	flagdHostEnvironmentVariableName                         = "FLAGD_HOST"
-	flagdPortEnvironmentVariableName                         = "FLAGD_PORT"
-	flagdTLSEnvironmentVariableName                          = "FLAGD_TLS"
-	flagdSocketPathEnvironmentVariableName                   = "FLAGD_SOCKET_PATH"
-	flagdServerCertPathEnvironmentVariableName               = "FLAGD_SERVER_CERT_PATH"
-	flagdCacheEnvironmentVariableName                        = "FLAGD_CACHE"
-	flagdMaxCacheSizeEnvironmentVariableName                 = "FLAGD_MAX_CACHE_SIZE"
-	flagdMaxEventStreamRetriesEnvironmentVariableName        = "FLAGD_MAX_EVENT_STREAM_RETRIES"
-	cacheDisabledValue                                       = cache.DisabledValue
-	cacheLRUValue                                            = cache.LRUValue
-	cacheInMemValue                                          = cache.InMemValue
+	defaultMaxCacheSize                               int  = 1000
+	defaultPort                                            = 8013
+	defaultMaxEventStreamRetries                           = 5
+	defaultTLS                                        bool = false
+	defaultCache                                           = cache.LRUValue
+	defaultHost                                            = "localhost"
+	flagdHostEnvironmentVariableName                       = "FLAGD_HOST"
+	flagdPortEnvironmentVariableName                       = "FLAGD_PORT"
+	flagdTLSEnvironmentVariableName                        = "FLAGD_TLS"
+	flagdSocketPathEnvironmentVariableName                 = "FLAGD_SOCKET_PATH"
+	flagdServerCertPathEnvironmentVariableName             = "FLAGD_SERVER_CERT_PATH"
+	flagdCacheEnvironmentVariableName                      = "FLAGD_CACHE"
+	flagdMaxCacheSizeEnvironmentVariableName               = "FLAGD_MAX_CACHE_SIZE"
+	flagdMaxEventStreamRetriesEnvironmentVariableName      = "FLAGD_MAX_EVENT_STREAM_RETRIES"
+	cacheDisabledValue                                     = cache.DisabledValue
+	cacheLRUValue                                          = cache.LRUValue
+	cacheInMemValue                                        = cache.InMemValue
 )
 
 type providerConfiguration struct {
-	CacheType                        string
+	CacheType                        cache.Type
 	CertificatePath                  string
 	EventStreamConnectionMaxAttempts int
 	Host                             string
@@ -98,7 +98,17 @@ func (cfg *providerConfiguration) updateFromEnvVar(logger logr.Logger) {
 	}
 
 	if cacheValue := os.Getenv(flagdCacheEnvironmentVariableName); cacheValue != "" {
-		cfg.CacheType = cacheValue
+		switch cache.Type(cacheValue) {
+		case cache.LRUValue:
+			cfg.CacheType = cache.LRUValue
+		case cache.InMemValue:
+			cfg.CacheType = cache.InMemValue
+		case cache.DisabledValue:
+			cfg.CacheType = cache.DisabledValue
+		default:
+			logger.Info("invalid cache type configured: %s, falling back to default: %s", cacheValue, defaultCache)
+			cfg.CacheType = defaultCache
+		}
 	}
 
 	maxEventStreamRetriesS := os.Getenv(flagdMaxEventStreamRetriesEnvironmentVariableName)

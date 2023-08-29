@@ -5,11 +5,12 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-type CacheType string
+type Type string
+
 const (
-	LRUValue      CacheType = "lru"
-	InMemValue    CacheType = "mem"
-	DisabledValue CacheType = "disabled"
+	LRUValue      Type = "lru"
+	InMemValue    Type = "mem"
+	DisabledValue Type = "disabled"
 )
 
 // Cache is the contract of the cache implementation
@@ -25,7 +26,7 @@ type Service struct {
 	cache        Cache[string, interface{}]
 }
 
-func NewCacheService(cacheType string, maxCacheSize int, log logr.Logger) *Service {
+func NewCacheService(cacheType Type, maxCacheSize int, log logr.Logger) *Service {
 	var c Cache[string, interface{}]
 	var err error
 	var cacheEnabled bool
