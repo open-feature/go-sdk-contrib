@@ -5,10 +5,11 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
+type CacheType string
 const (
-	LRUValue      = "lru"
-	InMemValue    = "mem"
-	DisabledValue = "disabled"
+	LRUValue      CacheType = "lru"
+	InMemValue    CacheType = "mem"
+	DisabledValue CacheType = "disabled"
 )
 
 // Cache is the contract of the cache implementation
