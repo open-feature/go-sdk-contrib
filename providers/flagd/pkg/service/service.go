@@ -41,12 +41,11 @@ type Configuration struct {
 
 // Service handles the client side  interface for the flagd server
 type Service struct {
-	cfg            Configuration
-	baseRetryDelay time.Duration
-	cache          *cache.Service
-	events         chan of.Event
-	logger         logr.Logger
-	maxRetries     int
+	cache        *cache.Service
+	cfg          Configuration
+	events       chan of.Event
+	logger       logr.Logger
+	retryCounter retryCounter
 
 	client     schemaConnectV1.ServiceClient
 	cancelHook context.CancelFunc
@@ -54,13 +53,11 @@ type Service struct {
 
 func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, retries int) *Service {
 	return &Service{
-		cfg:        cfg,
-		cache:      cache,
-		logger:     logger,
-		maxRetries: retries,
-
-		events:         make(chan of.Event, 1),
-		baseRetryDelay: time.Second,
+		cache:        cache,
+		cfg:          cfg,
+		events:       make(chan of.Event, 1),
+		logger:       logger,
+		retryCounter: newRetryCounter(retries),
 	}
 }
 
@@ -388,11 +385,8 @@ func (s *Service) EventChannel() <-chan of.Event {
 // This contains blocking calls and busy wait backed retry attempts, hence must be called concurrently.
 // If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
-	var delay = s.baseRetryDelay
-	var attempts = 1
-
 	// wraps connection with retry attempts
-	for attempts <= s.maxRetries {
+	for s.retryCounter.retry() {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
 		err := s.streamClient(ctx)
 		if err != nil {
@@ -401,15 +395,9 @@ func (s *Service) startEventStream(ctx context.Context) {
 			if s.cache.IsEnabled() {
 				s.cache.GetCache().Purge()
 			}
-			delay = 2 * delay
-			attempts++
-		} else {
-			// no errors means planned connection termination
-			attempts = 0
-			delay = s.baseRetryDelay
 		}
 
-		time.Sleep(delay)
+		time.Sleep(s.retryCounter.sleep())
 	}
 
 	// retry attempts exhausted. Disable cache and emit error event
@@ -423,7 +411,7 @@ func (s *Service) startEventStream(ctx context.Context) {
 	}
 }
 
-// streamClient opens the event stream and distribute streams to appropriate handlers
+// streamClient opens the event stream and distribute streams to appropriate handlers.
 func (s *Service) streamClient(ctx context.Context) error {
 	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
 	if err != nil {
@@ -433,6 +421,9 @@ func (s *Service) streamClient(ctx context.Context) error {
 	s.logger.V(logger.Info).Info("connected to event stream")
 
 	for stream.Receive() {
+		// reset retry counters and proceed to message handling
+		s.retryCounter.reset()
+
 		switch stream.Msg().Type {
 		case string(flagdService.ConfigurationChange):
 			s.handleConfigurationChangeEvent(stream.Msg())

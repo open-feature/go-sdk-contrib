@@ -18,11 +18,13 @@ func TestRetries(t *testing.T) {
 	}
 
 	service := Service{
-		maxRetries:     1,
-		baseRetryDelay: 100 * time.Millisecond,
-		client:         &client,
-		cache:          cache.NewCacheService(cache.DisabledValue, 0, log),
-		events:         make(chan of.Event),
+		retryCounter: retryCounter{
+			baseRetryDelay: 100 * time.Millisecond,
+			maxRetries:     1,
+		},
+		client: &client,
+		cache:  cache.NewCacheService(cache.DisabledValue, 0, log),
+		events: make(chan of.Event),
 	}
 
 	// when - start event stream, knowing it will result in error
