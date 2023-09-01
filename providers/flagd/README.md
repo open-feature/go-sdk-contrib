@@ -48,7 +48,7 @@ By default the flagd provider will read non-empty environment variables to set i
 |-----------------------|--------------------------------|---------|--------------------|-----------|
 | host                  | FLAGD_HOST                     | string  |                    | localhost |
 | port                  | FLAGD_PORT                     | number  |                    | 8013      |
-| tls                   | FLAGD_TLS                      | boolean |                    | false     |
+| tls                   | FLAGD_TLS                      | boolean | true, false        | false     |
 | socketPath            | FLAGD_SOCKET_PATH              | string  |                    |           |
 | certPath              | FLAGD_SERVER_CERT_PATH         | string  |                    |           |
 | cache                 | FLAGD_CACHE                    | string  | lru, mem, disabled | lru       |
@@ -96,6 +96,26 @@ flagd.WithBasicInMemoryCache()
 ```go
 flagd.WithoutCache()
 ```
+
+## Supported Events
+
+The flagd provider emits `PROVIDER_READY`, `PROVIDER_ERROR` and `PROVIDER_CONFIGURATION_CHANGED` events.
+
+| SDK event                        | Originating action in flagd                                                     |
+|----------------------------------|---------------------------------------------------------------------------------|
+| `PROVIDER_READY`                 | The streaming connection with flagd has been established.                       |
+| `PROVIDER_ERROR`                 | The streaming connection with flagd has been broken.                            |
+| `PROVIDER_CONFIGURATION_CHANGED` | A flag configuration (default value, targeting rule, etc) in flagd has changed. |
+
+For general information on events, see the [official documentation](https://openfeature.dev/docs/reference/concepts/events).
+
+## Flag Metadata
+
+The flagd provider currently support following flag evaluation metadata,
+
+| Field   | Type   | Value                                             |
+|---------|--------|---------------------------------------------------|
+| `scope` | string | "selector" set for the associated source in flagd |
 
 ## Logging
 
