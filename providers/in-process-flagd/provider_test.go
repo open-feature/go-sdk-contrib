@@ -1,99 +1,110 @@
 package flagd
 
 import (
+	"buf.build/gen/go/open-feature/flagd/grpc/go/sync/v1/syncv1grpc"
+	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/sync/v1"
 	"context"
 	"fmt"
-	evalmock "github.com/open-feature/flagd/core/pkg/eval/mock"
-	reflect "reflect"
-	"testing"
-
 	"github.com/golang/mock/gomock"
-
-	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	evalmock "github.com/open-feature/flagd/core/pkg/eval/mock"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
+	"log"
+	"net"
+	"reflect"
+	"testing"
+	"time"
 )
 
+const sampleFlagConfig = `{
+	"flags": {
+      "myBoolFlag": {
+        "state": "ENABLED",
+        "variants": {
+          "on": true,
+          "off": false
+        },
+        "defaultVariant": "on"
+      }
+    }
+}`
+
+// bufferedServer - a mock grpc service backed by buffered connection
+type bufferedServer struct {
+	listener              net.Listener
+	mockResponses         []*v1.SyncFlagsResponse
+	fetchAllFlagsResponse *v1.FetchAllFlagsResponse
+	fetchAllFlagsError    error
+}
+
+func (b *bufferedServer) SyncFlags(_ *v1.SyncFlagsRequest, stream syncv1grpc.FlagSyncService_SyncFlagsServer) error {
+	for _, response := range b.mockResponses {
+		err := stream.Send(response)
+		if err != nil {
+			fmt.Printf("Error with stream: %s", err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *bufferedServer) FetchAllFlags(_ context.Context, _ *v1.FetchAllFlagsRequest) (*v1.FetchAllFlagsResponse, error) {
+	return b.fetchAllFlagsResponse, b.fetchAllFlagsError
+}
+
+// serve serves a bufferedServer. This is a blocking call
+func serve(bServer *bufferedServer) {
+	server := grpc.NewServer()
+
+	syncv1grpc.RegisterFlagSyncServiceServer(server, bServer)
+
+	if err := server.Serve(bServer.listener); err != nil {
+		log.Fatalf("Server exited with error: %v", err)
+	}
+}
+
 func TestNewProvider(t *testing.T) {
-	tests := []struct {
-		name           string
-		port           uint16
-		host           string
-		options        []ProviderOption
-		env            bool
-		envPort        uint16
-		envHost        string
-		cachingEnabled bool
-	}{
-		{
-			name:           "happy path",
-			port:           8013,
-			host:           "localhost",
-			cachingEnabled: true,
-		},
-		{
-			name: "with port",
-			port: 1,
-			host: "localhost",
-			options: []ProviderOption{
-				WithPort(1),
+	port := 8116
+	sURL := fmt.Sprintf("localhost:%d", port)
+	lis, err := net.Listen("tcp", sURL)
+
+	require.Nil(t, err)
+
+	bufServer := bufferedServer{
+		listener: lis,
+		mockResponses: []*v1.SyncFlagsResponse{
+			{
+				FlagConfiguration: sampleFlagConfig,
+				State:             v1.SyncState_SYNC_STATE_ALL,
 			},
-			cachingEnabled: true,
-		},
-		{
-			name: "with hostname",
-			port: 8013,
-			host: "not localhost",
-			options: []ProviderOption{
-				WithHost("not localhost"),
-			},
-			cachingEnabled: true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.env {
-				t.Setenv("FLAGD_PORT", fmt.Sprintf("%d", test.envPort))
-				t.Setenv("FLAGD_HOST", test.envHost)
-			}
-			svc := NewProvider(context.TODO(), test.options...)
-			if svc == nil {
-				t.Fatal("received nil service from NewProvider")
-			}
-			metadata := svc.Metadata()
-			if metadata.Name != "flagd" {
-				t.Errorf(
-					"received unexpected metadata from NewProvider, expected %s got %s",
-					"flagd",
-					metadata.Name,
-				)
-			}
-			config := svc.Configuration()
-			if config == nil {
-				t.Fatal("config is nil")
-			}
-			if config.Host != test.host {
-				t.Errorf(
-					"received unexpected ProviderConfiguration.Host from NewProvider, expected %s got %s",
-					test.host,
-					config.Host,
-				)
-			}
-			if config.Port != test.port {
-				t.Errorf(
-					"received unexpected ProviderConfiguration.Port from NewProvider, expected %d got %d",
-					test.port,
-					config.Port,
-				)
-			}
+	// start server
+	go serve(&bufServer)
 
-			// this line will fail linting if this provider is no longer compatible with the openfeature sdk
-			var _ of.FeatureProvider = svc
-		})
+	t.Setenv(flagdSourceURIEnvironmentVariableName, sURL)
+	t.Setenv(flagdSourceProviderEnvironmentVariableName, syncProviderGrpc)
+	t.Setenv(flagdSourceSelectorEnvironmentVariableName, "my-selector")
 
+	prov := NewProvider(context.TODO())
+
+	require.NotNil(t, prov)
+
+	select {
+	case <-prov.IsReady():
+	case <-time.After(5 * time.Second):
+		t.Errorf("timed out waiting for the provider to be ready")
 	}
+
+	evaluation := prov.BooleanEvaluation(context.Background(), "myBoolFlag", false, of.FlattenedContext{})
+
+	require.True(t, evaluation.Value)
 }
 
 func TestBooleanEvaluation(t *testing.T) {

@@ -19,11 +19,9 @@ import (
 )
 
 const (
-	defaultPort                = 8013
 	defaultMaxSyncRetries      = 5
 	defaultTLS            bool = false
 
-	defaultHost                                   = "localhost"
 	flagdProxyTLSEnvironmentVariableName          = "FLAGD_PROXY_TLS"
 	flagdProxyCertPathEnvironmentVariableName     = "FLAGD_PROXY_CERT_PATH"
 	flagdMaxSyncRetriesEnvironmentVariableName    = "FLAGD_MAX_SYNC_RETRIES"
@@ -152,9 +150,21 @@ func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {
 					}
 				}()
 			}
+			if data.Type == sync.ALL {
+				p.handleProviderReady()
+			}
 		case <-p.ctx.Done():
 			return nil
 		}
+	}
+}
+
+func (p *Provider) handleProviderReady() {
+	select {
+	case <-p.isReady:
+		// avoids panic from closing already closed channel
+	default:
+		close(p.isReady)
 	}
 }
 
@@ -451,7 +461,7 @@ func (p *Provider) ObjectEvaluation(
 	return resDetail
 }
 
-// IsReady returns a non-blocking channel if the provider has received the provider_ready event from flagd
+// IsReady returns a non-blocking channel if the provider has completed the initial flag sync
 func (p *Provider) IsReady() <-chan struct{} {
 	return p.isReady
 }
