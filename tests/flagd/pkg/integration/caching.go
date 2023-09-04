@@ -313,16 +313,24 @@ func aProviderIsRegisteredWithCacheEnabled(ctx context.Context) (context.Context
 	pOptions := []flagd.ProviderOption{flagd.WithPort(8013)}
 	pOptions = append(pOptions, providerOptions...)
 	provider := flagd.NewProvider(pOptions...)
+	readyChan := make(chan interface{})
 
 	err := openfeature.SetProvider(provider)
 	if err != nil {
 		return nil, err
 	}
 
+	callBack := func(details openfeature.EventDetails) {
+		// emit readiness
+		readyChan <- ""
+	}
+
+	openfeature.AddHandler(openfeature.ProviderReady, &callBack)
+
 	client := openfeature.NewClient("caching tests")
 
 	select {
-	case <-provider.IsReady():
+	case <-readyChan:
 	case <-time.After(500 * time.Millisecond):
 		return ctx, errors.New("provider not ready after 500 milliseconds")
 	}

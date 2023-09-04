@@ -12,7 +12,7 @@ test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
 
 lint: 
-	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.1
 	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run --deadline=3m --timeout=3m $(module)/...;)
 
 new-provider:
