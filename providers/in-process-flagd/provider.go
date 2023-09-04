@@ -9,7 +9,6 @@ import (
 	"github.com/open-feature/flagd/core/pkg/runtime"
 	"github.com/open-feature/flagd/core/pkg/store"
 	"github.com/open-feature/flagd/core/pkg/sync"
-	"golang.org/x/sync/errgroup"
 	"log"
 	sync2 "sync"
 
@@ -111,27 +110,24 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 		),
 	)
 
-	g, gCtx := errgroup.WithContext(provider.ctx)
 	dataSync := make(chan sync.DataSync, 1)
 
 	go provider.watchForUpdates(dataSync)
 
-	if err := provider.syncSource.Init(gCtx); err != nil {
+	if err := provider.syncSource.Init(provider.ctx); err != nil {
 		log.Fatal("sync provider Init returned error: %w", err)
 	}
 
 	// Start sync provider
-
-	g.Go(func() error {
-		if err := provider.syncSource.Sync(gCtx, dataSync); err != nil {
-			// TODO implement retry logic
-			// TODO put provider in STALE mode
-			return fmt.Errorf("sync provider returned error: %w", err)
-		}
-		return nil
-	})
+	go provider.startSyncSources(dataSync)
 
 	return provider
+}
+
+func (p *Provider) startSyncSources(dataSync chan sync.DataSync) {
+	if err := p.syncSource.Sync(p.ctx, dataSync); err != nil {
+		p.logger.Error(fmt.Sprintf("Error during source sync: %v", err))
+	}
 }
 
 func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {

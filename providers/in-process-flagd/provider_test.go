@@ -619,6 +619,7 @@ func TestObjectEvaluation(t *testing.T) {
 			evalCtx: map[string]interface{}{
 				"food": "bars",
 			},
+			defaultValue: map[string]interface{}{},
 			mockOut: &schemav1.ResolveObjectResponse{
 				Reason: flagdModels.DefaultReason,
 			},
@@ -628,6 +629,7 @@ func TestObjectEvaluation(t *testing.T) {
 					Reason:          flagdModels.DefaultReason,
 					ResolutionError: of.NewFlagNotFoundResolutionError(""),
 				},
+				Value: map[string]interface{}{},
 			},
 		},
 	}
@@ -649,7 +651,7 @@ func TestObjectEvaluation(t *testing.T) {
 		ctx := context.Background()
 
 		evalMock.EXPECT().ResolveObjectValue(ctx, "", test.flagKey, test.evalCtx).Return(
-			test.mockOut.Value,
+			test.mockOut.Value.AsMap(),
 			test.mockOut.Variant,
 			test.mockOut.Reason,
 			test.mockOut.Metadata.AsMap(),
@@ -668,8 +670,9 @@ func TestObjectEvaluation(t *testing.T) {
 		if res.Variant != test.response.Variant {
 			t.Errorf("unexpected Variant received, expected %v, got %v", test.response.Variant, res.Variant)
 		}
-		if res.Value != nil && test.mockOut.Value != nil && !reflect.DeepEqual(res.Value.(*structpb.Struct).AsMap(), test.response.Value.(map[string]interface{})) {
-			t.Errorf("unexpected Value received, expected %v, got %v", test.response.Value, res.Value)
+		if res.Value != nil && test.mockOut.Value.AsMap() != nil {
+			require.Equal(t, test.mockOut.Value.AsMap(), res.Value)
+			//t.Errorf("unexpected Value received, expected %v, got %v", test.mockOut.Value.AsMap(), res.Value)
 		}
 		if res.Reason != test.response.Reason {
 			t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
