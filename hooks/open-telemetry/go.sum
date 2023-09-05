@@ -12,6 +12,8 @@ github.com/open-feature/go-sdk v1.5.1 h1:ja1+XtWwqLqgJSFJ31sh+MCioVW4vWj5ya/e/f8
 github.com/open-feature/go-sdk v1.5.1/go.mod h1:yllFTs5yJguao9zdcmYYGJBHTyBGwO2zC+GP2JeFR0o=
 github.com/open-feature/go-sdk v1.6.0 h1:9Wi8J77ORVKvm/8d1ZGKI7+/Uq+5JrpxylQ50DvZZnA=
 github.com/open-feature/go-sdk v1.6.0/go.mod h1:xR4RHexQNwvE/7IOR0LOiCuH+2wlQyoZwpAc4bp508o=
+github.com/open-feature/go-sdk v1.7.0 h1:g6o/sf5xaED7xawXwZ0LqE7RS9co7HZJMClXCXmIbgw=
+github.com/open-feature/go-sdk v1.7.0/go.mod h1:5aV26tEoQuompRa8A6BAGukhi88pRMZsslJJwucGNzs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/stretchr/testify v1.8.3 h1:RP3t2pwF7cMEbC1dqtB6poj3niw/9gnV4Cjg5oW5gtY=
 go.opentelemetry.io/otel v1.16.0 h1:Z7GVAX/UkAXPKsy94IU+i6thsQS4nb7LviLpnaNeW8s=
@@ -26,6 +28,8 @@ go.opentelemetry.io/otel/trace v1.16.0 h1:8JRpaObFoW0pxuVPapkgH8UhHQj+bJW8jJsCZE
 go.opentelemetry.io/otel/trace v1.16.0/go.mod h1:Yt9vYq1SdNz3xdjZZK7wcXv1qv2pwLkqr2QVwea0ef0=
 golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 h1:k/i9J1pBpvlfR+9QsetwPyERsqu1GIbi967PQMq3Ivc=
 golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1/go.mod h1:V1LtkGg67GoY2N1AnLN78QLrzxkLyJw7RJb1gzOOz9w=
+golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb h1:mIKbk8weKhSeLH2GmUTrvx8CjkyJmnU1wFmg59CUjFA=
+golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb/go.mod h1:FXUEEKJgO7OQYeo8N01OfiKP8RXMtf6e8aTskBGqWdc=
 golang.org/x/sys v0.8.0 h1:EBmGv8NaZBZTWvrbjNoL6HVt+IVy3QDQpJs7VRIw3tU=
 golang.org/x/sys v0.8.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.10.0 h1:SqMFp9UcQJZa+pmYuAKjd9xq1f0j5rLcDIk0mj4qAsA=
