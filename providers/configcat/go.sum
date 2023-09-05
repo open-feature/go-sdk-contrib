@@ -4,6 +4,8 @@ github.com/configcat/go-sdk/v7 v7.10.1 h1:5j/f6o6L9+gGnQ0UbY9B8i6Bf7R8moAksRI85B
 github.com/configcat/go-sdk/v7 v7.10.1/go.mod h1:gFmNkwMeEo3hcOyz6NRd/aiOjx1FPIS/g9DZeATKJQ0=
 github.com/configcat/go-sdk/v8 v8.0.0 h1:JAfkd6noFaEDLqwgrdEEre9zVxtiw09+vA2+YlLEFpo=
 github.com/configcat/go-sdk/v8 v8.0.0/go.mod h1:wWQipNPtT5hkl7JEIaEBOwo+49fN9WaWksTgpMaC1n4=
+github.com/configcat/go-sdk/v8 v8.0.1 h1:Dy1PCcV7DIEyJcjSmW6HejsKAzSte7/A+0JICgySaao=
+github.com/configcat/go-sdk/v8 v8.0.1/go.mod h1:XWUdmQsnPHDvHmLucbpW5g8/A8OZdihXWeg8moYC+EI=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
