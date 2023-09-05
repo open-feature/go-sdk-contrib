@@ -5,9 +5,11 @@ import (
 	schemav1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/sync/v1"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/golang/mock/gomock"
 	evalmock "github.com/open-feature/flagd/core/pkg/eval/mock"
+	"github.com/open-feature/flagd/core/pkg/logger"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/require"
@@ -16,6 +18,7 @@ import (
 	"log"
 	"net"
 	"reflect"
+	sync2 "sync"
 	"testing"
 	"time"
 )
@@ -68,7 +71,7 @@ func serve(bServer *bufferedServer) {
 	}
 }
 
-func TestNewProvider(t *testing.T) {
+func TestProvider(t *testing.T) {
 	port := 8116
 	sURL := fmt.Sprintf("localhost:%d", port)
 	lis, err := net.Listen("tcp", sURL)
@@ -96,6 +99,25 @@ func TestNewProvider(t *testing.T) {
 
 	require.NotNil(t, prov)
 
+	// listen for the events emitted by the provider
+	receivedEvents := []of.Event{}
+	mtx := sync2.RWMutex{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		for {
+			select {
+			case event := <-prov.EventChannel():
+				mtx.Lock()
+				receivedEvents = append(receivedEvents, event)
+				mtx.Unlock()
+			case <-ctx.Done():
+				break
+			}
+		}
+	}(ctx)
+
 	select {
 	case <-prov.IsReady():
 	case <-time.After(5 * time.Second):
@@ -105,6 +127,15 @@ func TestNewProvider(t *testing.T) {
 	evaluation := prov.BooleanEvaluation(context.Background(), "myBoolFlag", false, of.FlattenedContext{})
 
 	require.True(t, evaluation.Value)
+
+	require.Eventually(t, func() bool {
+		mtx.RLock()
+		defer mtx.RUnlock()
+		return len(receivedEvents) == 2
+	}, 5*time.Second, 1*time.Millisecond)
+
+	require.Equal(t, of.ProviderReady, receivedEvents[0].EventType)
+	require.Equal(t, of.ProviderConfigChange, receivedEvents[1].EventType)
 }
 
 func TestBooleanEvaluation(t *testing.T) {
@@ -678,4 +709,118 @@ func TestObjectEvaluation(t *testing.T) {
 			t.Errorf("unexpected Reason received, expected %v, got %v", test.response.Reason, res.Reason)
 		}
 	}
+}
+
+func failingFunc(p *Provider) {
+	p.handleConnectionErr(errors.New(""), func() {
+		failingFunc(p)
+	})
+}
+
+func TestProvider_handleConnectionErrEndUpInErrorState(t *testing.T) {
+
+	p := &Provider{
+		connectionInfo: connectionInfo{
+			state:           0,
+			retries:         0,
+			maxSyncRetries:  2,
+			backoffDuration: 1 * time.Millisecond,
+		},
+		ofEventChannel: make(chan of.Event),
+		logger:         logger.NewLogger(nil, false),
+	}
+
+	receivedEvents := []of.Event{}
+	mtx := sync2.RWMutex{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		for {
+			select {
+			case event := <-p.EventChannel():
+				mtx.Lock()
+				receivedEvents = append(receivedEvents, event)
+				mtx.Unlock()
+			case <-ctx.Done():
+				break
+			}
+		}
+	}(ctx)
+
+	// call handleConnectionError with a function that keeps calling handleConnectionError again
+	// this is to verify that eventually we terminate after maxSyncRetries has been reached
+	p.handleConnectionErr(errors.New("oops"), func() {
+		failingFunc(p)
+	})
+
+	// verify that we end up in the error state
+	require.Equal(t, stateError, p.connectionInfo.state)
+	require.Equal(t, p.connectionInfo.maxSyncRetries, p.connectionInfo.retries)
+
+	require.Eventually(t, func() bool {
+		mtx.RLock()
+		defer mtx.RUnlock()
+		return len(receivedEvents) == 2
+	}, 5*time.Second, 1*time.Millisecond)
+
+	require.Equal(t, of.ProviderStale, receivedEvents[0].EventType)
+	require.Equal(t, of.ProviderError, receivedEvents[1].EventType)
+}
+
+func TestProvider_handleConnectionErrRecoverFromStaleState(t *testing.T) {
+	p := &Provider{
+		connectionInfo: connectionInfo{
+			state:           0,
+			retries:         0,
+			maxSyncRetries:  2,
+			backoffDuration: 1 * time.Millisecond,
+		},
+		ofEventChannel: make(chan of.Event),
+		isReady:        make(chan struct{}),
+		logger:         logger.NewLogger(nil, false),
+	}
+
+	receivedEvents := []of.Event{}
+	mtx := sync2.RWMutex{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		for {
+			select {
+			case event := <-p.EventChannel():
+				mtx.Lock()
+				receivedEvents = append(receivedEvents, event)
+				mtx.Unlock()
+			case <-ctx.Done():
+				break
+			}
+		}
+	}(ctx)
+
+	err := errors.New("oops")
+
+	// call handleConnectionError with a function that keeps calling handleConnectionError again
+	// this is to verify that eventually we terminate after maxSyncRetries has been reached
+	p.handleConnectionErr(err, func() {
+		require.Equal(t, stateStale, p.connectionInfo.state)
+		require.Equal(t, 1, p.connectionInfo.retries)
+
+		// simulate successful recovery
+		p.handleProviderReady()
+	})
+
+	// verify that we are in ready state again
+	require.Equal(t, stateReady, p.connectionInfo.state)
+	require.Equal(t, 0, p.connectionInfo.retries)
+
+	require.Eventually(t, func() bool {
+		mtx.RLock()
+		defer mtx.RUnlock()
+		return len(receivedEvents) == 2
+	}, 5*time.Second, 1*time.Millisecond)
+
+	require.Equal(t, of.ProviderStale, receivedEvents[0].EventType)
+	require.Equal(t, of.ProviderReady, receivedEvents[1].EventType)
 }

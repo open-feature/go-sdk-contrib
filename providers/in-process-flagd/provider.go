@@ -11,6 +11,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"log"
 	sync2 "sync"
+	"time"
 
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"os"
@@ -18,6 +19,8 @@ import (
 )
 
 const (
+	providerName = "flagd-in-process-provider"
+
 	defaultMaxSyncRetries      = 5
 	defaultTLS            bool = false
 
@@ -33,17 +36,35 @@ const (
 	syncProviderKubernetes = "kubernetes"
 )
 
+const (
+	stateNotReady connectionState = iota
+	stateReady
+	stateError
+	stateStale
+)
+
+type connectionInfo struct {
+	state           connectionState
+	retries         int
+	maxSyncRetries  int
+	backoffDuration time.Duration
+}
+
+type connectionState int
+
 type Provider struct {
-	ctx                       context.Context
-	cacheEnabled              bool
-	providerConfiguration     *ProviderConfiguration
-	isReady                   chan struct{}
-	logger                    *logger.Logger
-	otelIntercept             bool
-	evaluator                 eval.IEvaluator
-	syncSource                sync.ISync
-	mu                        sync2.Mutex
-	syncConnectionMaxAttempts int
+	ctx                   context.Context
+	cancelFunc            context.CancelFunc
+	cacheEnabled          bool
+	providerConfiguration *ProviderConfiguration
+	isReady               chan struct{}
+	connectionInfo        connectionInfo
+	logger                *logger.Logger
+	otelIntercept         bool
+	evaluator             eval.IEvaluator
+	syncSource            sync.ISync
+	mu                    sync2.Mutex
+	ofEventChannel        chan of.Event
 }
 type ProviderConfiguration struct {
 	Port            uint16
@@ -57,13 +78,22 @@ type ProviderConfiguration struct {
 type ProviderOption func(*Provider)
 
 func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
+	ctx, cancel := context.WithCancel(ctx)
 	provider := &Provider{
-		ctx: ctx,
+		ctx:        ctx,
+		cancelFunc: cancel,
 		// providerConfiguration maintains its default values, to ensure that the FromEnv option does not overwrite any explicitly set
 		// values (default values are then set after the options are run via applyDefaults())
 		providerConfiguration: &ProviderConfiguration{},
 		isReady:               make(chan struct{}),
-		logger:                logger.NewLogger(nil, false),
+		connectionInfo: connectionInfo{
+			state:           stateNotReady,
+			retries:         0,
+			maxSyncRetries:  defaultMaxSyncRetries,
+			backoffDuration: 1 * time.Second,
+		},
+		ofEventChannel: make(chan of.Event),
+		logger:         logger.NewLogger(nil, false),
 	}
 	provider.applyDefaults()   // defaults have the lowest priority
 	FromEnv()(provider)        // env variables have higher priority than defaults
@@ -126,7 +156,12 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 
 func (p *Provider) startSyncSources(dataSync chan sync.DataSync) {
 	if err := p.syncSource.Sync(p.ctx, dataSync); err != nil {
-		p.logger.Error(fmt.Sprintf("Error during source sync: %v", err))
+		p.handleConnectionErr(
+			fmt.Errorf("error during source sync: %w", err),
+			func() {
+				p.startSyncSources(dataSync)
+			},
+		)
 	}
 }
 
@@ -139,11 +174,19 @@ func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {
 			// its source must match, preventing the opportunity for resync events to snowball
 			if resyncRequired := p.updateWithNotify(data); resyncRequired {
 				go func() {
-					err := p.syncSource.ReSync(p.ctx, dataSync)
-					if err != nil {
-						// TODO put provider in ERROR state
-						p.logger.Error(fmt.Sprintf("error resyncing sources: %v", err))
-					}
+					p.tryReSync(dataSync)
+					/*
+						TODO delete this block
+							err := p.syncSource.ReSync(p.ctx, dataSync)
+							if err != nil {
+								p.handleConnectionErr(
+									fmt.Errorf("error resyncing sources: %w", err),
+									func() {
+										p.tryReSync(dataSync)
+									},
+								)
+							}
+					*/
 				}()
 			}
 			if data.Type == sync.ALL {
@@ -155,13 +198,68 @@ func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {
 	}
 }
 
+func (p *Provider) tryReSync(dataSync chan sync.DataSync) {
+	err := p.syncSource.ReSync(p.ctx, dataSync)
+	if err != nil {
+		p.handleConnectionErr(
+			fmt.Errorf("error resyncing sources: %w", err),
+			func() {
+				p.tryReSync(dataSync)
+			},
+		)
+	} else {
+		p.handleProviderReady()
+	}
+}
+
+func (p *Provider) handleConnectionErr(err error, recoveryFunc func()) {
+	p.mu.Lock()
+	p.logger.Error(fmt.Sprintf("Encountered unexpected sync error: %v", err))
+	if p.connectionInfo.retries >= p.connectionInfo.maxSyncRetries {
+		p.logger.Error("Number of maximum retry attempts has been exceeded. Going into ERROR state.")
+		p.connectionInfo.state = stateError
+		p.sendProviderEvent(of.Event{
+			EventType: of.ProviderError,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+	if p.connectionInfo.state != stateStale {
+		p.logger.Warn("Going into STALE state")
+		p.connectionInfo.state = stateStale
+		p.sendProviderEvent(of.Event{
+			EventType: of.ProviderStale,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message: err.Error(),
+			},
+		})
+	}
+	p.connectionInfo.retries++
+	p.mu.Unlock()
+	if recoveryFunc != nil {
+		<-time.After(p.connectionInfo.backoffDuration)
+		recoveryFunc()
+	}
+}
+
 func (p *Provider) handleProviderReady() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.connectionInfo.retries = 0
+	p.connectionInfo.state = stateReady
 	select {
 	case <-p.isReady:
 		// avoids panic from closing already closed channel
 	default:
 		close(p.isReady)
 	}
+
+	p.sendProviderEvent(of.Event{
+		EventType: of.ProviderReady,
+	})
+
 }
 
 func (p *Provider) applyDefaults() {
@@ -184,7 +282,7 @@ func FromEnv() ProviderOption {
 					fmt.Sprintf("invalid env config for %s provided, using default value: %d",
 						flagdMaxSyncRetriesEnvironmentVariableName, defaultMaxSyncRetries))
 			} else {
-				p.syncConnectionMaxAttempts = maxSyncRetries
+				p.connectionInfo.maxSyncRetries = maxSyncRetries
 			}
 		}
 
@@ -238,7 +336,7 @@ func WithContext(ctx context.Context) ProviderOption {
 // On successful connection the attempts are reset.
 func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
 	return func(p *Provider) {
-		p.syncConnectionMaxAttempts = i
+		p.connectionInfo.maxSyncRetries = i
 	}
 }
 
@@ -271,6 +369,37 @@ func WithSyncSource(sourceConfig *runtime.SourceConfig) ProviderOption {
 	}
 }
 
+// Status returns the current provider status
+func (p *Provider) Status() of.State {
+	switch p.connectionInfo.state {
+	case stateNotReady:
+		return of.NotReadyState
+	case stateReady:
+		return of.ReadyState
+	case stateStale:
+		// currently there is no STALE state in the of API, so we also return ERROR for STALE
+		return of.ErrorState
+	case stateError:
+		return of.ErrorState
+	default:
+		return of.NotReadyState
+	}
+}
+
+//////////////////////////////////////////////////
+// OF API StateHandler interface implementation //
+//////////////////////////////////////////////////
+
+// Shutdown implements the shutdown logic for this provider
+func (p *Provider) Shutdown() {
+	p.cancelFunc()
+}
+
+// Init implements the Init method required for the OF API StateHandler interface
+func (p *Provider) Init(of.EvaluationContext) {
+
+}
+
 // Hooks flagd provider does not have any hooks, returns empty slice
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
@@ -281,6 +410,17 @@ func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
 		Name: "flagd",
 	}
+}
+
+//////////////////////////////////////////////////
+// OF API EventHandler interface implementation //
+//////////////////////////////////////////////////
+
+func (p *Provider) EventChannel() <-chan of.Event {
+	if p.ofEventChannel == nil {
+		p.ofEventChannel = make(chan of.Event)
+	}
+	return p.ofEventChannel
 }
 
 // Configuration returns the current configuration of the provider
@@ -473,7 +613,21 @@ func (p *Provider) updateWithNotify(payload sync.DataSync) bool {
 		return false
 	}
 
+	p.sendProviderEvent(of.Event{
+		EventType: of.ProviderConfigChange,
+	})
+
 	return resyncRequired
+}
+
+func (p *Provider) sendProviderEvent(event of.Event) {
+	go func() {
+		if p.ofEventChannel == nil {
+			return
+		}
+		event.ProviderName = providerName
+		p.ofEventChannel <- event
+	}()
 }
 
 // syncProviderFromConfig is a helper to build ISync implementations from SourceConfig
