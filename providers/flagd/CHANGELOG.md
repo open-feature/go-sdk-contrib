@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.16](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.15...providers/flagd/v0.1.16) (2023-09-05)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.6.0 ([#289](https://github.com/open-feature/go-sdk-contrib/issues/289)) ([13eeb48](https://github.com/open-feature/go-sdk-contrib/commit/13eeb482ee3d69c5fb8100563501c2250b6454f1))
+* **deps:** update module github.com/open-feature/go-sdk to v1.7.0 ([#315](https://github.com/open-feature/go-sdk-contrib/issues/315)) ([3f049ad](https://github.com/open-feature/go-sdk-contrib/commit/3f049ad34e93c3b9b9d4cf5a2e56f3777eb858e6))
+
+
+### ✨ New Features
+
+* Eventing support for flagd provider ([#317](https://github.com/open-feature/go-sdk-contrib/issues/317)) ([6b373cb](https://github.com/open-feature/go-sdk-contrib/commit/6b373cb393729c6f1f2a31b334cf06fac65dd369))
+
 ## [0.1.15](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.14...providers/flagd/v0.1.15) (2023-08-02)
 
 
