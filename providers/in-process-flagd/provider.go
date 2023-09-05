@@ -67,10 +67,7 @@ type Provider struct {
 	ofEventChannel        chan of.Event
 }
 type ProviderConfiguration struct {
-	Port            uint16
-	Host            string
 	CertificatePath string
-	SocketPath      string
 	TLSEnabled      bool
 	SourceConfig    *runtime.SourceConfig
 }
@@ -175,23 +172,14 @@ func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {
 			if resyncRequired := p.updateWithNotify(data); resyncRequired {
 				go func() {
 					p.tryReSync(dataSync)
-					/*
-						TODO delete this block
-							err := p.syncSource.ReSync(p.ctx, dataSync)
-							if err != nil {
-								p.handleConnectionErr(
-									fmt.Errorf("error resyncing sources: %w", err),
-									func() {
-										p.tryReSync(dataSync)
-									},
-								)
-							}
-					*/
 				}()
 			}
 			if data.Type == sync.ALL {
 				p.handleProviderReady()
 			}
+			p.sendProviderEvent(of.Event{
+				EventType: of.ProviderConfigChange,
+			})
 		case <-p.ctx.Done():
 			return nil
 		}
@@ -226,7 +214,9 @@ func (p *Provider) handleConnectionErr(err error, recoveryFunc func()) {
 		})
 		return
 	}
-	if p.connectionInfo.state != stateStale {
+	// go to STALE state, if we have been ready previously; otherwise
+	// we will stay in NOT_READY
+	if p.connectionInfo.state == stateReady {
 		p.logger.Warn("Going into STALE state")
 		p.connectionInfo.state = stateStale
 		p.sendProviderEvent(of.Event{
@@ -246,20 +236,22 @@ func (p *Provider) handleConnectionErr(err error, recoveryFunc func()) {
 
 func (p *Provider) handleProviderReady() {
 	p.mu.Lock()
-	defer p.mu.Unlock()
+	oldState := p.connectionInfo.state
 	p.connectionInfo.retries = 0
 	p.connectionInfo.state = stateReady
+	p.mu.Unlock()
+	// notify event channel listeners that we are now ready
+	if oldState != stateReady {
+		p.sendProviderEvent(of.Event{
+			EventType: of.ProviderReady,
+		})
+	}
 	select {
 	case <-p.isReady:
 		// avoids panic from closing already closed channel
 	default:
 		close(p.isReady)
 	}
-
-	p.sendProviderEvent(of.Event{
-		EventType: of.ProviderReady,
-	})
-
 }
 
 func (p *Provider) applyDefaults() {
@@ -310,20 +302,6 @@ func WithCertificatePath(path string) ProviderOption {
 	}
 }
 
-// WithPort specifies the port of the flagd server. Defaults to 8013
-func WithPort(port uint16) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Port = port
-	}
-}
-
-// WithHost specifies the host name of the flagd server. Defaults to localhost
-func WithHost(host string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Host = host
-	}
-}
-
 // WithContext supplies the given context to the event stream. Not to be confused with the context used in individual
 // flag evaluation requests.
 func WithContext(ctx context.Context) ProviderOption {
@@ -332,9 +310,9 @@ func WithContext(ctx context.Context) ProviderOption {
 	}
 }
 
-// WithEventStreamConnectionMaxAttempts sets the maximum number of attempts to connect to flagd's event stream.
+// WithSyncStreamConnectionMaxAttempts sets the maximum number of attempts to connect to flagd's event stream.
 // On successful connection the attempts are reset.
-func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
+func WithSyncStreamConnectionMaxAttempts(i int) ProviderOption {
 	return func(p *Provider) {
 		p.connectionInfo.maxSyncRetries = i
 	}
@@ -612,10 +590,6 @@ func (p *Provider) updateWithNotify(payload sync.DataSync) bool {
 		p.logger.Error(err.Error())
 		return false
 	}
-
-	p.sendProviderEvent(of.Event{
-		EventType: of.ProviderConfigChange,
-	})
 
 	return resyncRequired
 }

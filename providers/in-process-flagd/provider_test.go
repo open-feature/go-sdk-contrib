@@ -100,7 +100,7 @@ func TestProvider(t *testing.T) {
 	require.NotNil(t, prov)
 
 	// listen for the events emitted by the provider
-	receivedEvents := []of.Event{}
+	receivedEvents := []of.EventType{}
 	mtx := sync2.RWMutex{}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -110,7 +110,7 @@ func TestProvider(t *testing.T) {
 			select {
 			case event := <-prov.EventChannel():
 				mtx.Lock()
-				receivedEvents = append(receivedEvents, event)
+				receivedEvents = append(receivedEvents, event.EventType)
 				mtx.Unlock()
 			case <-ctx.Done():
 				break
@@ -134,8 +134,8 @@ func TestProvider(t *testing.T) {
 		return len(receivedEvents) == 2
 	}, 5*time.Second, 1*time.Millisecond)
 
-	require.Equal(t, of.ProviderReady, receivedEvents[0].EventType)
-	require.Equal(t, of.ProviderConfigChange, receivedEvents[1].EventType)
+	require.Contains(t, receivedEvents, of.ProviderReady)
+	require.Contains(t, receivedEvents, of.ProviderConfigChange)
 }
 
 func TestBooleanEvaluation(t *testing.T) {
@@ -721,7 +721,7 @@ func TestProvider_handleConnectionErrEndUpInErrorState(t *testing.T) {
 
 	p := &Provider{
 		connectionInfo: connectionInfo{
-			state:           0,
+			state:           stateReady,
 			retries:         0,
 			maxSyncRetries:  2,
 			backoffDuration: 1 * time.Millisecond,
@@ -771,7 +771,7 @@ func TestProvider_handleConnectionErrEndUpInErrorState(t *testing.T) {
 func TestProvider_handleConnectionErrRecoverFromStaleState(t *testing.T) {
 	p := &Provider{
 		connectionInfo: connectionInfo{
-			state:           0,
+			state:           stateReady,
 			retries:         0,
 			maxSyncRetries:  2,
 			backoffDuration: 1 * time.Millisecond,
