@@ -59,61 +59,10 @@ In the event that another configuration option is passed to the `flagd.NewProvid
 e.g. below the values set by `FromEnv()` overwrite the value set by `WithSourceURI("localhost:8015")`.
 ```go
 openfeature.SetProvider(flagd.NewProvider(
-        flagd.WithHost("localhost"),
+        flagd.WithSourceURI("localhost:8015"),
         flagd.FromEnv(),
     ))
 ```
-
-## Caching
-
-The provider attempts to establish a connection to flagd's event stream (up to 5 times by default). If the connection is successful and caching is enabled each flag returned with reason `STATIC` is cached until an event is received concerning the cached flag (at which point it is removed from cache).
-
-On invocation of a flag evaluation (if caching is available) an attempt is made to retrieve the entry from cache, if found the flag is returned with reason `CACHED`.
-
-By default, the provider is configured to use LRU caching with up to 1000 entries.
-
-### Configuration
-
-#### [Least recently used (LRU) caching](https://github.com/hashicorp/golang-lru)
-
-Configure the provider with this caching implementation to set a maximum number, n, of entries. Once the limit is reached each new entry replaces the least recently used entry.
-
-```go
-flagd.WithLRUCache(n)
-```
-
-#### Basic in memory caching
-
-Configure the provider with this caching implementation if memory limit is no concern.
-
-```go
-flagd.WithBasicInMemoryCache()
-```
-
-#### Disable caching
-
-```go
-flagd.WithoutCache()
-```
-
-## Logging
-
-If not configured, logging falls back to the standard Go log package at error level only.
-
-In order to avoid coupling to any particular logging implementation, the provider uses the structured logging [logr](https://github.com/go-logr/logr)
-API. This allows integration to any package that implements the layer between their logger and this API.
-Thankfully, there is already [integration implementations](https://github.com/go-logr/logr#implementations-non-exhaustive)
-for many of the popular logger packages.
-
-```go
-var l logr.Logger
-l = integratedlogr.New() // replace with your chosen integrator
-
-provider := flagd.NewProvider(flagd.WithLogger(l)) // set the provider's logger
-```
-
-[logr](https://github.com/go-logr/logr) uses incremental verbosity levels (akin to named levels but in integer form).
-The provider logs `warning` at level `0`, `info` at level `1` and `debug` at level `2`. Errors are always logged.
 
 ## License
 
