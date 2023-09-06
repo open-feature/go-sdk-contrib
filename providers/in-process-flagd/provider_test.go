@@ -92,12 +92,20 @@ func TestProvider(t *testing.T) {
 	go serve(&bufServer)
 
 	t.Setenv(flagdSourceURIEnvironmentVariableName, sURL)
-	t.Setenv(flagdSourceProviderEnvironmentVariableName, syncProviderGrpc)
+	t.Setenv(flagdSourceProviderEnvironmentVariableName, string(SourceTypeGrpc))
 	t.Setenv(flagdSourceSelectorEnvironmentVariableName, "my-selector")
+	t.Setenv(flagdMaxSyncRetriesEnvironmentVariableName, "10")
+	t.Setenv(flagdSyncRetryIntervalEnvironmentVariableName, "1s")
 
 	prov := NewProvider(context.TODO())
 
 	require.NotNil(t, prov)
+
+	require.Equal(t, sURL, prov.providerConfiguration.SourceConfig.URI)
+	require.Equal(t, string(SourceTypeGrpc), prov.providerConfiguration.SourceConfig.Provider)
+	require.Equal(t, "my-selector", prov.providerConfiguration.SourceConfig.Selector)
+	require.Equal(t, 10, prov.connectionInfo.maxSyncRetries)
+	require.Equal(t, 1*time.Second, prov.connectionInfo.backoffDuration)
 
 	// listen for the events emitted by the provider
 	receivedEvents := []of.EventType{}
@@ -124,6 +132,8 @@ func TestProvider(t *testing.T) {
 		t.Errorf("timed out waiting for the provider to be ready")
 	}
 
+	require.Equal(t, of.ReadyState, prov.Status())
+
 	evaluation := prov.BooleanEvaluation(context.Background(), "myBoolFlag", false, of.FlattenedContext{})
 
 	require.True(t, evaluation.Value)
@@ -136,6 +146,87 @@ func TestProvider(t *testing.T) {
 
 	require.Contains(t, receivedEvents, of.ProviderReady)
 	require.Contains(t, receivedEvents, of.ProviderConfigChange)
+
+	// call the shutdown method
+	prov.Shutdown()
+
+	// verify that we are now in NOT_READY state
+	require.Equal(t, of.NotReadyState, prov.Status())
+}
+
+func TestProviderNoServerRunning(t *testing.T) {
+	t.Setenv(flagdSourceURIEnvironmentVariableName, "localhost:8117")
+	t.Setenv(flagdSourceProviderEnvironmentVariableName, string(SourceTypeGrpc))
+	t.Setenv(flagdMaxSyncRetriesEnvironmentVariableName, "1")
+	t.Setenv(flagdSyncRetryIntervalEnvironmentVariableName, "1ms")
+
+	prov := NewProvider(context.TODO())
+
+	require.NotNil(t, prov)
+
+	require.Equal(t, "localhost:8117", prov.providerConfiguration.SourceConfig.URI)
+	require.Equal(t, string(SourceTypeGrpc), prov.providerConfiguration.SourceConfig.Provider)
+
+	require.Equal(t, of.NotReadyState, prov.Status())
+
+	// listen for the events emitted by the provider
+	receivedEvents := []of.EventType{}
+	mtx := sync2.RWMutex{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		for {
+			select {
+			case event := <-prov.EventChannel():
+				mtx.Lock()
+				receivedEvents = append(receivedEvents, event.EventType)
+				mtx.Unlock()
+			case <-ctx.Done():
+				break
+			}
+		}
+	}(ctx)
+
+	// verify that evaluations can still be executed and they return the default as a fallback
+	evaluation := prov.BooleanEvaluation(context.Background(), "myBoolFlag", false, of.FlattenedContext{})
+
+	require.False(t, evaluation.Value)
+
+	// eventually we would like to be informed about being in an error state due to no server being available
+	require.Eventually(t, func() bool {
+		mtx.RLock()
+		defer mtx.RUnlock()
+		return len(receivedEvents) == 1
+	}, 5*time.Second, 1*time.Millisecond)
+
+	require.Contains(t, receivedEvents, of.ProviderError)
+}
+
+func TestProviderOptions(t *testing.T) {
+
+	myCtx := context.Background()
+	prov := NewProvider(
+		context.TODO(),
+		WithSourceURI("localhost:8117"),
+		WithSourceType(SourceTypeGrpc),
+		WithSelector("my-selector"),
+		WithSyncStreamConnectionBackoff(3*time.Second),
+		WithSyncStreamConnectionMaxAttempts(42),
+		WithTLS("cert-path"),
+		WithLogger(logger.NewLogger(nil, false)),
+		WithContext(myCtx),
+	)
+
+	require.NotNil(t, prov)
+
+	require.Equal(t, "localhost:8117", prov.providerConfiguration.SourceConfig.URI)
+	require.Equal(t, string(SourceTypeGrpc), prov.providerConfiguration.SourceConfig.Provider)
+	require.Equal(t, "my-selector", prov.providerConfiguration.SourceConfig.Selector)
+	require.Equal(t, 42, prov.connectionInfo.maxSyncRetries)
+	require.Equal(t, 3*time.Second, prov.connectionInfo.backoffDuration)
+	require.Equal(t, myCtx, prov.ctx)
+	require.NotNil(t, prov.logger)
 }
 
 func TestBooleanEvaluation(t *testing.T) {
@@ -823,4 +914,67 @@ func TestProvider_handleConnectionErrRecoverFromStaleState(t *testing.T) {
 
 	require.Equal(t, of.ProviderStale, receivedEvents[0].EventType)
 	require.Equal(t, of.ProviderReady, receivedEvents[1].EventType)
+}
+
+func TestProvider_Status(t *testing.T) {
+	type fields struct {
+		connectionInfo connectionInfo
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   of.State
+	}{
+		{
+			name: "not ready",
+			fields: fields{
+				connectionInfo: connectionInfo{
+					state: stateNotReady,
+				},
+			},
+			want: of.NotReadyState,
+		},
+		{
+			name: "ready",
+			fields: fields{
+				connectionInfo: connectionInfo{
+					state: stateReady,
+				},
+			},
+			want: of.ReadyState,
+		},
+		{
+			name: "stale",
+			fields: fields{
+				connectionInfo: connectionInfo{
+					state: stateStale,
+				},
+			},
+			want: of.ErrorState,
+		},
+		{
+			name: "error",
+			fields: fields{
+				connectionInfo: connectionInfo{
+					state: stateError,
+				},
+			},
+			want: of.ErrorState,
+		},
+		{
+			name:   "default",
+			fields: fields{},
+			want:   of.NotReadyState,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Provider{
+				connectionInfo: tt.fields.connectionInfo,
+			}
+			if got := p.Status(); got != tt.want {
+				t.Errorf("Status() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

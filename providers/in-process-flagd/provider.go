@@ -18,9 +18,9 @@ import (
 	"strconv"
 )
 
-const (
-	providerName = "flagd-in-process-provider"
+type ProviderType string
 
+const (
 	defaultMaxSyncRetries      = 5
 	defaultTLS            bool = false
 
@@ -32,8 +32,8 @@ const (
 	flagdSourceProviderEnvironmentVariableName    = "FLAGD_SOURCE_PROVIDER_TYPE"
 	flagdSourceSelectorEnvironmentVariableName    = "FLAGD_SOURCE_SELECTOR"
 
-	syncProviderGrpc       = "grpc"
-	syncProviderKubernetes = "kubernetes"
+	SourceTypeGrpc       ProviderType = "grpc"
+	SourceTypeKubernetes ProviderType = "kubernetes"
 )
 
 const (
@@ -42,6 +42,8 @@ const (
 	stateError
 	stateStale
 )
+
+const defaultBackoffDuration = 5 * time.Second
 
 type connectionInfo struct {
 	state           connectionState
@@ -60,7 +62,6 @@ type Provider struct {
 	isReady               chan struct{}
 	connectionInfo        connectionInfo
 	logger                *logger.Logger
-	otelIntercept         bool
 	evaluator             eval.IEvaluator
 	syncSource            sync.ISync
 	mu                    sync2.Mutex
@@ -69,7 +70,7 @@ type Provider struct {
 type ProviderConfiguration struct {
 	CertificatePath string
 	TLSEnabled      bool
-	SourceConfig    *runtime.SourceConfig
+	SourceConfig    runtime.SourceConfig
 }
 
 type ProviderOption func(*Provider)
@@ -87,7 +88,7 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 			state:           stateNotReady,
 			retries:         0,
 			maxSyncRetries:  defaultMaxSyncRetries,
-			backoffDuration: 1 * time.Second,
+			backoffDuration: defaultBackoffDuration,
 		},
 		ofEventChannel: make(chan of.Event),
 		logger:         logger.NewLogger(nil, false),
@@ -98,7 +99,7 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
-	if provider.providerConfiguration.SourceConfig == nil {
+	if provider.providerConfiguration.SourceConfig.URI == "" {
 		log.Fatal(errors.New("no sync source configuration provided"))
 	}
 
@@ -111,7 +112,7 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 	}
 
 	var err error
-	provider.syncSource, err = syncProviderFromConfig(provider.logger, *provider.providerConfiguration.SourceConfig)
+	provider.syncSource, err = syncProviderFromConfig(provider.logger, provider.providerConfiguration.SourceConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -266,9 +267,9 @@ func FromEnv() ProviderOption {
 			WithTLS(certificatePath)(p)
 		}
 
-		maxSynccRetriesS := os.Getenv(flagdMaxSyncRetriesEnvironmentVariableName)
-		if maxSynccRetriesS != "" {
-			maxSyncRetries, err := strconv.Atoi(maxSynccRetriesS)
+		maxSyncRetriesStr := os.Getenv(flagdMaxSyncRetriesEnvironmentVariableName)
+		if maxSyncRetriesStr != "" {
+			maxSyncRetries, err := strconv.Atoi(maxSyncRetriesStr)
 			if err != nil {
 				p.logger.Error(
 					fmt.Sprintf("invalid env config for %s provided, using default value: %d",
@@ -278,12 +279,28 @@ func FromEnv() ProviderOption {
 			}
 		}
 
+		maxSyncRetryIntervalStr := os.Getenv(flagdSyncRetryIntervalEnvironmentVariableName)
+		if maxSyncRetryIntervalStr != "" {
+			maxSyncRetryInterval, err := time.ParseDuration(maxSyncRetryIntervalStr)
+			if err != nil {
+				p.logger.Error(
+					fmt.Sprintf(
+						"Invalid env config for %s provided, using default value: %s",
+						flagdSyncRetryIntervalEnvironmentVariableName,
+						defaultBackoffDuration.String(),
+					),
+				)
+			} else {
+				p.connectionInfo.backoffDuration = maxSyncRetryInterval
+			}
+		}
+
 		sourceURI := os.Getenv(flagdSourceURIEnvironmentVariableName)
 		sourceProvider := os.Getenv(flagdSourceProviderEnvironmentVariableName)
 		selector := os.Getenv(flagdSourceSelectorEnvironmentVariableName)
 
 		if sourceURI != "" && sourceProvider != "" {
-			p.providerConfiguration.SourceConfig = &runtime.SourceConfig{
+			p.providerConfiguration.SourceConfig = runtime.SourceConfig{
 				URI:      sourceURI,
 				Provider: sourceProvider,
 				Selector: selector,
@@ -294,11 +311,16 @@ func FromEnv() ProviderOption {
 	}
 }
 
-// WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials. If certificate loading fails insecure credentials will be used instead
-func WithCertificatePath(path string) ProviderOption {
+// WithSourceURI sets the URI of the sync source
+func WithSourceURI(uri string) ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.CertificatePath = path
-		p.providerConfiguration.TLSEnabled = true
+		p.providerConfiguration.SourceConfig.URI = uri
+	}
+}
+
+func WithSourceType(providerType ProviderType) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.SourceConfig.Provider = string(providerType)
 	}
 }
 
@@ -318,6 +340,13 @@ func WithSyncStreamConnectionMaxAttempts(i int) ProviderOption {
 	}
 }
 
+// WithSyncStreamConnectionBackoff sets the backoff duration between reattempts of connecting to the sync source.
+func WithSyncStreamConnectionBackoff(duration time.Duration) ProviderOption {
+	return func(p *Provider) {
+		p.connectionInfo.backoffDuration = duration
+	}
+}
+
 // WithLogger sets the logger used by the provider.
 func WithLogger(l *logger.Logger) ProviderOption {
 	return func(p *Provider) {
@@ -333,17 +362,10 @@ func WithTLS(certPath string) ProviderOption {
 	}
 }
 
-// WithOtelInterceptor enable/disable otel interceptor for flagd communication
-func WithOtelInterceptor(intercept bool) ProviderOption {
+// WithSelector sets the selector for the sync source
+func WithSelector(selector string) ProviderOption {
 	return func(p *Provider) {
-		p.otelIntercept = intercept
-	}
-}
-
-// WithSyncSource sets the sync source config of the provider
-func WithSyncSource(sourceConfig *runtime.SourceConfig) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.SourceConfig = sourceConfig
+		p.providerConfiguration.SourceConfig.Selector = selector
 	}
 }
 
@@ -370,6 +392,7 @@ func (p *Provider) Status() of.State {
 
 // Shutdown implements the shutdown logic for this provider
 func (p *Provider) Shutdown() {
+	p.connectionInfo.state = stateNotReady
 	p.cancelFunc()
 }
 
@@ -378,7 +401,7 @@ func (p *Provider) Init(of.EvaluationContext) {
 
 }
 
-// Hooks flagd provider does not have any hooks, returns empty slice
+// Hooks in-processflagd provider does not have any hooks, returns empty slice
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }
@@ -386,7 +409,7 @@ func (p *Provider) Hooks() []of.Hook {
 // Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
 func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
-		Name: "flagd",
+		Name: "flagd-in-process-provider",
 	}
 }
 
@@ -395,16 +418,12 @@ func (p *Provider) Metadata() of.Metadata {
 //////////////////////////////////////////////////
 
 func (p *Provider) EventChannel() <-chan of.Event {
-	if p.ofEventChannel == nil {
-		p.ofEventChannel = make(chan of.Event)
-	}
 	return p.ofEventChannel
 }
 
-// Configuration returns the current configuration of the provider
-func (p *Provider) Configuration() *ProviderConfiguration {
-	return p.providerConfiguration
-}
+//////////////////////////////////////////////
+// OF API Provider interface implementation //
+//////////////////////////////////////////////
 
 func (p *Provider) BooleanEvaluation(
 	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
@@ -599,7 +618,7 @@ func (p *Provider) sendProviderEvent(event of.Event) {
 		if p.ofEventChannel == nil {
 			return
 		}
-		event.ProviderName = providerName
+		event.ProviderName = p.Metadata().Name
 		p.ofEventChannel <- event
 	}()
 }
@@ -607,19 +626,19 @@ func (p *Provider) sendProviderEvent(event of.Event) {
 // syncProviderFromConfig is a helper to build ISync implementations from SourceConfig
 func syncProviderFromConfig(logger *logger.Logger, sourceConfig runtime.SourceConfig) (sync.ISync, error) {
 	switch sourceConfig.Provider {
-	case syncProviderKubernetes:
+	case string(SourceTypeKubernetes):
 		k8sSync, err := runtime.NewK8s(sourceConfig.URI, logger)
 		if err != nil {
 			return nil, err
 		}
 		logger.Debug(fmt.Sprintf("using kubernetes sync-provider for: %s", sourceConfig.URI))
 		return k8sSync, nil
-	case syncProviderGrpc:
+	case string(SourceTypeGrpc):
 		logger.Debug(fmt.Sprintf("using grpc sync-provider for: %s", sourceConfig.URI))
 		return runtime.NewGRPC(sourceConfig, logger), nil
 
 	default:
 		return nil, fmt.Errorf("invalid sync provider: %s, must be one of with '%s' or '%s'",
-			sourceConfig.Provider, syncProviderGrpc, syncProviderKubernetes)
+			sourceConfig.Provider, SourceTypeGrpc, SourceTypeKubernetes)
 	}
 }
