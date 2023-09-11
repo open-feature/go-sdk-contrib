@@ -30,7 +30,7 @@ func aFlagdProviderIsSet(ctx context.Context) (context.Context, error) {
 
 	callBack := func(details openfeature.EventDetails) {
 		// emit readiness
-		readyChan <- ""
+		close(readyChan)
 	}
 
 	openfeature.AddHandler(openfeature.ProviderReady, &callBack)
