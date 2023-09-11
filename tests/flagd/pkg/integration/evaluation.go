@@ -9,7 +9,6 @@ import (
 	"github.com/cucumber/godog"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func InitializeEvaluationScenario(pOptions ...flagd.ProviderOption) func(*godog.ScenarioContext) {
@@ -190,23 +189,23 @@ func anObjectFlagWithKeyIsEvaluatedWithANullDefaultValue(ctx context.Context, fl
 func theResolvedObjectValueShouldBeContainFieldsAndWithValuesAndRespectively(
 	ctx context.Context, field1, field2, field3, value1, value2 string, value3 int,
 ) error {
-	got, ok := ctx.Value(ctxStorageKey{}).(*structpb.Struct)
+	got, ok := ctx.Value(ctxStorageKey{}).(map[string]interface{})
 	if !ok {
 		return errors.New("no flag resolution result")
 	}
 
-	if err := compareValueToPotentialBool(got.Fields[field1].AsInterface(), value1); err != nil {
+	if err := compareValueToPotentialBool(got[field1], value1); err != nil {
 		return fmt.Errorf("field '%s': %w", field1, err)
 	}
 
-	if err := compareValueToPotentialBool(got.Fields[field2].AsInterface(), value2); err != nil {
+	if err := compareValueToPotentialBool(got[field2], value2); err != nil {
 		return fmt.Errorf("field '%s': %w", field2, err)
 	}
 
-	if int(got.Fields[field3].GetNumberValue()) != value3 {
+	if int(got[field3].(float64)) != value3 {
 		return fmt.Errorf(
-			"field '%s' expected to contain %d, got %d",
-			field3, value3, int(got.Fields[field3].GetNumberValue()),
+			"field '%s' expected to contain %d, got %v",
+			field3, value3, got[field3],
 		)
 	}
 
@@ -410,7 +409,7 @@ func theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectiv
 		return ctx, err
 	}
 
-	got, ok := gotResDetail.Value.(*structpb.Struct)
+	got, ok := gotResDetail.Value.(map[string]interface{})
 	if !ok {
 		return ctx, fmt.Errorf(
 			"expected object detail value to be of type map[string]interface{}, got type: %T",
@@ -418,18 +417,18 @@ func theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectiv
 		)
 	}
 
-	if err := compareValueToPotentialBool(got.Fields[field1].AsInterface(), value1); err != nil {
+	if err := compareValueToPotentialBool(got[field1], value1); err != nil {
 		return ctx, fmt.Errorf("field '%s': %w", field1, err)
 	}
 
-	if err := compareValueToPotentialBool(got.Fields[field2].AsInterface(), value2); err != nil {
+	if err := compareValueToPotentialBool(got[field2], value2); err != nil {
 		return ctx, fmt.Errorf("field '%s': %w", field2, err)
 	}
 
-	if int(got.Fields[field3].GetNumberValue()) != value3 {
+	if int(got[field3].(float64)) != value3 {
 		return ctx, fmt.Errorf(
-			"field '%s' expected to contain %d, got %d",
-			field3, value3, int(got.Fields[field3].GetNumberValue()),
+			"field '%s' expected to contain %d, got %v",
+			field3, value3, got[field3],
 		)
 	}
 
