@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/cucumber/godog"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
-	"strconv"
-	"time"
 )
 
 func InitializeEvaluationScenario(pOptions ...flagd.ProviderOption) func(*godog.ScenarioContext) {
@@ -20,7 +20,7 @@ func InitializeEvaluationScenario(pOptions ...flagd.ProviderOption) func(*godog.
 
 // InitializeEvaluationScenario initializes the evaluation test scenario
 func initializeEvaluationScenario(ctx *godog.ScenarioContext) {
-	ctx.Step(`^a provider is registered with cache disabled$`, aProviderIsRegisteredWithCacheDisabled)
+	ctx.Step(`^a provider is registered$`, aFlagdProviderIsSet)
 
 	ctx.Step(`^a boolean flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aBooleanFlagWithKeyIsEvaluatedWithDefaultValue)
 	ctx.Step(`^the resolved boolean value should be "([^"]*)"$`, theResolvedBooleanValueShouldBe)
@@ -65,8 +65,6 @@ func initializeEvaluationScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a string flag with key "([^"]*)" is evaluated as an integer, with details and a default value (\d+)$`, aStringFlagWithKeyIsEvaluatedAsAnIntegerWithDetailsAndADefaultValue)
 	ctx.Step(`^the default integer value should be returned$`, theDefaultIntegerValueShouldBeReturned)
 	ctx.Step(`^the reason should indicate an error and the error code should indicate a type mismatch with "([^"]*)"$`, theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWith)
-
-	ctx.Before(resetState)
 }
 
 func aBooleanFlagWithKeyIsEvaluatedWithDefaultValue(
@@ -247,7 +245,7 @@ func theResolvedBooleanDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldB
 		return errors.New("value must be of type bool")
 	}
 
-	got, err := firstBooleanEvaluationDetails(ctx)
+	got, err := booleanEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -287,7 +285,7 @@ func aStringFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 func theResolvedStringDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	ctx context.Context, value, variant, reason string,
 ) error {
-	got, err := firstStringEvaluationDetails(ctx)
+	got, err := stringEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -327,7 +325,7 @@ func anIntegerFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 func theResolvedIntegerDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	ctx context.Context, value int64, variant, reason string,
 ) error {
-	got, err := firstIntegerEvaluationDetails(ctx)
+	got, err := integerEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -367,7 +365,7 @@ func aFloatFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 func theResolvedFloatDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	ctx context.Context, value float64, variant, reason string,
 ) error {
-	got, err := firstFloatEvaluationDetails(ctx)
+	got, err := floatEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -407,7 +405,7 @@ func anObjectFlagWithKeyIsEvaluatedWithDetailsAndANullDefaultValue(
 func theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectively(
 	ctx context.Context, field1, field2, field3, value1, value2 string, value3 int,
 ) (context.Context, error) {
-	gotResDetail, err := firstInterfaceEvaluationDetails(ctx)
+	gotResDetail, err := interfaceEvaluationDetails(ctx)
 	if err != nil {
 		return ctx, err
 	}
@@ -439,7 +437,7 @@ func theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectiv
 }
 
 func theVariantShouldBeAndTheReasonShouldBe(ctx context.Context, variant, reason string) error {
-	got, err := firstInterfaceEvaluationDetails(ctx)
+	got, err := interfaceEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -614,6 +612,81 @@ func aStringFlagWithKeyIsEvaluatedAsAnIntegerWithDetailsAndADefaultValue(
 	}), nil
 }
 
+func booleanEvaluationDetails(ctx context.Context) (openfeature.BooleanEvaluationDetails, error) {
+	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.BooleanEvaluationDetails)
+	if !ok {
+		return openfeature.BooleanEvaluationDetails{}, errors.New("no flag resolution result")
+	}
+
+	var got openfeature.BooleanEvaluationDetails
+	for _, evalDetails := range store {
+		got = evalDetails
+		break
+	}
+
+	return got, nil
+}
+
+func stringEvaluationDetails(ctx context.Context) (openfeature.StringEvaluationDetails, error) {
+	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.StringEvaluationDetails)
+	if !ok {
+		return openfeature.StringEvaluationDetails{}, errors.New("no flag resolution result")
+	}
+
+	var got openfeature.StringEvaluationDetails
+	for _, evalDetails := range store {
+		got = evalDetails
+		break
+	}
+
+	return got, nil
+}
+
+func integerEvaluationDetails(ctx context.Context) (openfeature.IntEvaluationDetails, error) {
+	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.IntEvaluationDetails)
+	if !ok {
+		return openfeature.IntEvaluationDetails{}, errors.New("no flag resolution result")
+	}
+
+	var got openfeature.IntEvaluationDetails
+	for _, evalDetails := range store {
+		got = evalDetails
+		break
+	}
+
+	return got, nil
+}
+
+func floatEvaluationDetails(ctx context.Context) (openfeature.FloatEvaluationDetails, error) {
+	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.FloatEvaluationDetails)
+	if !ok {
+		return openfeature.FloatEvaluationDetails{}, errors.New("no flag resolution result")
+	}
+
+	var got openfeature.FloatEvaluationDetails
+	for _, evalDetails := range store {
+		got = evalDetails
+		break
+	}
+
+	return got, nil
+}
+
+func interfaceEvaluationDetails(ctx context.Context) (openfeature.InterfaceEvaluationDetails, error) {
+	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.InterfaceEvaluationDetails)
+	if !ok {
+		return openfeature.InterfaceEvaluationDetails{}, errors.New("no flag resolution result")
+	}
+
+	var got openfeature.InterfaceEvaluationDetails
+	for _, evalDetails := range store {
+		got = evalDetails
+		break
+	}
+
+	return got, nil
+}
+
 func theDefaultIntegerValueShouldBeReturned(ctx context.Context) (context.Context, error) {
 	typeErrData, ok := ctx.Value(ctxStorageKey{}).(typeErrorData)
 	if !ok {
@@ -653,35 +726,6 @@ func theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWit
 	}
 
 	return nil
-}
-
-func aProviderIsRegisteredWithCacheDisabled(ctx context.Context) (context.Context, error) {
-	pOptions := []flagd.ProviderOption{flagd.WithPort(8013), flagd.WithoutCache()}
-	pOptions = append(pOptions, providerOptions...)
-	provider := flagd.NewProvider(pOptions...)
-	readyChan := make(chan interface{})
-
-	err := openfeature.SetProvider(provider)
-	if err != nil {
-		return nil, err
-	}
-
-	callBack := func(details openfeature.EventDetails) {
-		// emit readiness
-		readyChan <- ""
-	}
-
-	openfeature.AddHandler(openfeature.ProviderReady, &callBack)
-
-	client := openfeature.NewClient("evaluation tests")
-
-	select {
-	case <-readyChan:
-	case <-time.After(500 * time.Millisecond):
-		return ctx, errors.New("provider not ready after 500 milliseconds")
-	}
-
-	return context.WithValue(ctx, ctxClientKey{}, client), nil
 }
 
 func compareValueToPotentialBool(got interface{}, expected string) error {
