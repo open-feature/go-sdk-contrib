@@ -10,14 +10,10 @@ openfeature.SetProvider(inprocessflagd.NewProvider())
 ```  
 You may also provide additional options to configure the provider client
 ```go
-inprocessflagd.WithHost(string)                  // defaults to localhost
-inprocessflagd.WithPort(uint16)                  // defaults to 8013
+WithSourceURI("localhost:8015")                  // sets the source URI
 inprocessflagd.FromEnv()                         // sets the provider configuration from environment variables
 inprocessflagd.WithSocketPath(string)            // no default, when set a unix socket connection is used (only available for GRPC)
 inprocessflagd.WithTLS(certPath string)          // default of false, if certPath is not given, system certs are used
-inprocessflagd.WithoutCache()                    // disables caching of flag evaluations
-inprocessflagd.WithLRUCache(1000)                // enables LRU caching (see configuring caching section)
-inprocessflagd.WithBasicInMemoryCache()          // enables basic in memory cache (see configuring caching section)
 inprocessflagd.WithLogger(logger)                // sets a custom logger (see logging section)
 inprocessflagd.WithOtelInterceptor(bool)         // enable or disable OpenTelemetry interceptor for flagd communication
 ```
@@ -32,7 +28,7 @@ import (
 
 func main() {
     openfeature.SetProvider(inprocessflagd.NewProvider(
-		inprocessflagd.WithSourcURI("localhost:8015"),
+		inprocessflagd.WithSourceURI("localhost:8015"),
 		inprocessflagd.WithSourceProviderType(inprocessflagd.SourceTypeGrpc),
     ))
 }

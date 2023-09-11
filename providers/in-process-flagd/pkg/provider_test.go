@@ -1,4 +1,4 @@
-package flagd
+package pkg
 
 import (
 	"buf.build/gen/go/open-feature/flagd/grpc/go/sync/v1/syncv1grpc"

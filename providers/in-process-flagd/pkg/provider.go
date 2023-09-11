@@ -1,4 +1,4 @@
-package flagd
+package pkg
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/runtime"
 	"github.com/open-feature/flagd/core/pkg/store"
-	"github.com/open-feature/flagd/core/pkg/sync"
+	ofsync "github.com/open-feature/flagd/core/pkg/sync"
 	"log"
-	sync2 "sync"
+	"sync"
 	"time"
 
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
@@ -63,8 +63,8 @@ type Provider struct {
 	connectionInfo        connectionInfo
 	logger                *logger.Logger
 	evaluator             eval.IEvaluator
-	syncSource            sync.ISync
-	mu                    sync2.Mutex
+	syncSource            ofsync.ISync
+	mu                    sync.Mutex
 	ofEventChannel        chan of.Event
 }
 type ProviderConfiguration struct {
@@ -138,7 +138,7 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 		),
 	)
 
-	dataSync := make(chan sync.DataSync, 1)
+	dataSync := make(chan ofsync.DataSync, 1)
 
 	go provider.watchForUpdates(dataSync)
 
@@ -147,23 +147,23 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 	}
 
 	// Start sync provider
-	go provider.startSyncSources(dataSync)
+	go provider.startSyncSource(dataSync)
 
 	return provider
 }
 
-func (p *Provider) startSyncSources(dataSync chan sync.DataSync) {
+func (p *Provider) startSyncSource(dataSync chan ofsync.DataSync) {
 	if err := p.syncSource.Sync(p.ctx, dataSync); err != nil {
 		p.handleConnectionErr(
 			fmt.Errorf("error during source sync: %w", err),
 			func() {
-				p.startSyncSources(dataSync)
+				p.startSyncSource(dataSync)
 			},
 		)
 	}
 }
 
-func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {
+func (p *Provider) watchForUpdates(dataSync chan ofsync.DataSync) error {
 	for {
 		select {
 		case data := <-dataSync:
@@ -175,8 +175,10 @@ func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {
 					p.tryReSync(dataSync)
 				}()
 			}
-			if data.Type == sync.ALL {
+			if data.Type == ofsync.ALL {
 				p.handleProviderReady()
+			} else {
+				p.logger.Warn(fmt.Sprintf("Received unexpected message type: %d", data.Type))
 			}
 			p.sendProviderEvent(of.Event{
 				EventType: of.ProviderConfigChange,
@@ -187,11 +189,11 @@ func (p *Provider) watchForUpdates(dataSync chan sync.DataSync) error {
 	}
 }
 
-func (p *Provider) tryReSync(dataSync chan sync.DataSync) {
+func (p *Provider) tryReSync(dataSync chan ofsync.DataSync) {
 	err := p.syncSource.ReSync(p.ctx, dataSync)
 	if err != nil {
 		p.handleConnectionErr(
-			fmt.Errorf("error resyncing sources: %w", err),
+			fmt.Errorf("error resyncing source: %w", err),
 			func() {
 				p.tryReSync(dataSync)
 			},
@@ -600,7 +602,7 @@ func (p *Provider) IsReady() <-chan struct{} {
 }
 
 // updateWithNotify helps to update state and notify listeners
-func (p *Provider) updateWithNotify(payload sync.DataSync) bool {
+func (p *Provider) updateWithNotify(payload ofsync.DataSync) bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -624,7 +626,7 @@ func (p *Provider) sendProviderEvent(event of.Event) {
 }
 
 // syncProviderFromConfig is a helper to build ISync implementations from SourceConfig
-func syncProviderFromConfig(logger *logger.Logger, sourceConfig runtime.SourceConfig) (sync.ISync, error) {
+func syncProviderFromConfig(logger *logger.Logger, sourceConfig runtime.SourceConfig) (ofsync.ISync, error) {
 	switch sourceConfig.Provider {
 	case string(SourceTypeKubernetes):
 		k8sSync, err := runtime.NewK8s(sourceConfig.URI, logger)
