@@ -215,6 +215,7 @@ func (p *Provider) handleConnectionErr(err error, recoveryFunc func()) {
 				Message: err.Error(),
 			},
 		})
+		p.mu.Unlock()
 		return
 	}
 	// go to STALE state, if we have been ready previously; otherwise

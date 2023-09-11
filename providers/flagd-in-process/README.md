@@ -22,7 +22,7 @@ for example:
 package main
 
 import (
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	inprocessflagd "github.com/open-feature/go-sdk-contrib/providers/flagd-in-process/pkg"
    	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
