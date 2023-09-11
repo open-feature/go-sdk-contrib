@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.4...tests/flagd/v1.3.0) (2023-09-11)
+
+
+### ✨ New Features
+
+* Eventing support for flagd provider ([#317](https://github.com/open-feature/go-sdk-contrib/issues/317)) ([6b373cb](https://github.com/open-feature/go-sdk-contrib/commit/6b373cb393729c6f1f2a31b334cf06fac65dd369))
+* flagd json eval suite ([#328](https://github.com/open-feature/go-sdk-contrib/issues/328)) ([d36f0c5](https://github.com/open-feature/go-sdk-contrib/commit/d36f0c50a003a7583bcfdd078219cd46fe7bd77d))
+
 ## [1.2.4](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.3...tests/flagd/v1.2.4) (2023-07-21)
 
 
