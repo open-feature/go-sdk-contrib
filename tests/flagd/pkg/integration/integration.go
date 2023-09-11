@@ -21,7 +21,7 @@ func aFlagdProviderIsSet(ctx context.Context) (context.Context, error) {
 	pOptions := []flagd.ProviderOption{flagd.WithPort(8013)}
 	pOptions = append(pOptions, providerOptions...)
 	provider := flagd.NewProvider(pOptions...)
-	readyChan := make(chan interface{})
+	readyChan := make(chan struct{})
 
 	err := openfeature.SetProvider(provider)
 	if err != nil {
