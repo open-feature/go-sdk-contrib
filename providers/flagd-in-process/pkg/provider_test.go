@@ -105,7 +105,7 @@ func TestProvider(t *testing.T) {
 	require.Equal(t, string(SourceTypeGrpc), prov.providerConfiguration.SourceConfig.Provider)
 	require.Equal(t, "my-selector", prov.providerConfiguration.SourceConfig.Selector)
 	require.Equal(t, 10, prov.connectionInfo.maxSyncRetries)
-	require.Equal(t, 1*time.Second, prov.connectionInfo.backoffDuration)
+	require.Equal(t, 1*time.Second, prov.connectionInfo.maxBackoffDuration)
 
 	// listen for the events emitted by the provider
 	receivedEvents := []of.EventType{}
@@ -224,7 +224,7 @@ func TestProviderOptions(t *testing.T) {
 	require.Equal(t, string(SourceTypeGrpc), prov.providerConfiguration.SourceConfig.Provider)
 	require.Equal(t, "my-selector", prov.providerConfiguration.SourceConfig.Selector)
 	require.Equal(t, 42, prov.connectionInfo.maxSyncRetries)
-	require.Equal(t, 3*time.Second, prov.connectionInfo.backoffDuration)
+	require.Equal(t, 3*time.Second, prov.connectionInfo.maxBackoffDuration)
 	require.Equal(t, myCtx, prov.ctx)
 	require.NotNil(t, prov.logger)
 }
@@ -802,20 +802,15 @@ func TestObjectEvaluation(t *testing.T) {
 	}
 }
 
-func failingFunc(p *Provider) {
-	p.handleConnectionErr(errors.New(""), func() {
-		failingFunc(p)
-	})
-}
-
 func TestProvider_handleConnectionErrEndUpInErrorState(t *testing.T) {
 
 	p := &Provider{
 		connectionInfo: connectionInfo{
-			state:           stateReady,
-			retries:         0,
-			maxSyncRetries:  2,
-			backoffDuration: 1 * time.Millisecond,
+			state:              stateReady,
+			retries:            0,
+			maxSyncRetries:     1,
+			backoffDuration:    1 * time.Millisecond,
+			maxBackoffDuration: 1 * time.Millisecond,
 		},
 		ofEventChannel: make(chan of.Event),
 		logger:         logger.NewLogger(nil, false),
@@ -839,15 +834,19 @@ func TestProvider_handleConnectionErrEndUpInErrorState(t *testing.T) {
 		}
 	}(ctx)
 
-	// call handleConnectionError with a function that keeps calling handleConnectionError again
-	// this is to verify that eventually we terminate after maxSyncRetries has been reached
-	p.handleConnectionErr(errors.New("oops"), func() {
-		failingFunc(p)
-	})
+	// call handleConnectionError to simulate a failure
+	p.handleConnectionErr(errors.New("oops"))
+
+	// verify that we first go into stale state
+	require.Equal(t, stateStale, p.connectionInfo.state)
+	require.Equal(t, 1, p.connectionInfo.retries)
+
+	// call handleConnectionError again to go beyond max retries
+	p.handleConnectionErr(errors.New("oops"))
 
 	// verify that we end up in the error state
 	require.Equal(t, stateError, p.connectionInfo.state)
-	require.Equal(t, p.connectionInfo.maxSyncRetries, p.connectionInfo.retries)
+	require.Equal(t, 1, p.connectionInfo.retries)
 
 	require.Eventually(t, func() bool {
 		mtx.RLock()
@@ -862,10 +861,11 @@ func TestProvider_handleConnectionErrEndUpInErrorState(t *testing.T) {
 func TestProvider_handleConnectionErrRecoverFromStaleState(t *testing.T) {
 	p := &Provider{
 		connectionInfo: connectionInfo{
-			state:           stateReady,
-			retries:         0,
-			maxSyncRetries:  2,
-			backoffDuration: 1 * time.Millisecond,
+			state:              stateReady,
+			retries:            0,
+			maxSyncRetries:     2,
+			backoffDuration:    10 * time.Millisecond,
+			maxBackoffDuration: 10 * time.Millisecond,
 		},
 		ofEventChannel: make(chan of.Event),
 		isReady:        make(chan struct{}),
@@ -894,13 +894,13 @@ func TestProvider_handleConnectionErrRecoverFromStaleState(t *testing.T) {
 
 	// call handleConnectionError with a function that keeps calling handleConnectionError again
 	// this is to verify that eventually we terminate after maxSyncRetries has been reached
-	p.handleConnectionErr(err, func() {
-		require.Equal(t, stateStale, p.connectionInfo.state)
-		require.Equal(t, 1, p.connectionInfo.retries)
+	p.handleConnectionErr(err)
 
-		// simulate successful recovery
-		p.handleProviderReady()
-	})
+	require.Equal(t, stateStale, p.connectionInfo.state)
+	require.Equal(t, 1, p.connectionInfo.retries)
+
+	// simulate successful recovery
+	p.handleProviderReady()
 
 	// verify that we are in ready state again
 	require.Equal(t, stateReady, p.connectionInfo.state)

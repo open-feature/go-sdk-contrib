@@ -43,13 +43,15 @@ const (
 	stateStale
 )
 
-const defaultBackoffDuration = 5 * time.Second
+const defaultInitBackoffDuration = 2 * time.Second
+const defaultMaxBackoffDuration = 120 * time.Second
 
 type connectionInfo struct {
-	state           connectionState
-	retries         int
-	maxSyncRetries  int
-	backoffDuration time.Duration
+	state              connectionState
+	retries            int
+	maxSyncRetries     int
+	backoffDuration    time.Duration
+	maxBackoffDuration time.Duration
 }
 
 type connectionState int
@@ -85,10 +87,11 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 		providerConfiguration: &ProviderConfiguration{},
 		isReady:               make(chan struct{}),
 		connectionInfo: connectionInfo{
-			state:           stateNotReady,
-			retries:         0,
-			maxSyncRetries:  defaultMaxSyncRetries,
-			backoffDuration: defaultBackoffDuration,
+			state:              stateNotReady,
+			retries:            0,
+			maxSyncRetries:     defaultMaxSyncRetries,
+			backoffDuration:    defaultInitBackoffDuration,
+			maxBackoffDuration: defaultMaxBackoffDuration,
 		},
 		ofEventChannel: make(chan of.Event),
 		logger:         logger.NewLogger(nil, false),
@@ -153,14 +156,12 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 }
 
 func (p *Provider) startSyncSource(dataSync chan ofsync.DataSync) {
-	if err := p.syncSource.Sync(p.ctx, dataSync); err != nil {
-		p.handleConnectionErr(
-			fmt.Errorf("error during source sync: %w", err),
-			func() {
-				p.startSyncSource(dataSync)
-			},
-		)
+	for {
+		if err := p.syncSource.Sync(p.ctx, dataSync); err != nil {
+			p.handleConnectionErr(fmt.Errorf("error during source sync: %w", err))
+		}
 	}
+
 }
 
 func (p *Provider) watchForUpdates(dataSync chan ofsync.DataSync) error {
@@ -190,23 +191,22 @@ func (p *Provider) watchForUpdates(dataSync chan ofsync.DataSync) error {
 }
 
 func (p *Provider) tryReSync(dataSync chan ofsync.DataSync) {
-	err := p.syncSource.ReSync(p.ctx, dataSync)
-	if err != nil {
-		p.handleConnectionErr(
-			fmt.Errorf("error resyncing source: %w", err),
-			func() {
-				p.tryReSync(dataSync)
-			},
-		)
-	} else {
-		p.handleProviderReady()
+	for {
+		err := p.syncSource.ReSync(p.ctx, dataSync)
+		if err != nil {
+			p.handleConnectionErr(fmt.Errorf("error resyncing source: %w", err))
+		} else {
+			p.handleProviderReady()
+			continue
+		}
 	}
+
 }
 
-func (p *Provider) handleConnectionErr(err error, recoveryFunc func()) {
+func (p *Provider) handleConnectionErr(err error) {
 	p.mu.Lock()
 	p.logger.Error(fmt.Sprintf("Encountered unexpected sync error: %v", err))
-	if p.connectionInfo.retries >= p.connectionInfo.maxSyncRetries {
+	if p.connectionInfo.retries >= p.connectionInfo.maxSyncRetries && p.connectionInfo.state != stateError {
 		p.logger.Error("Number of maximum retry attempts has been exceeded. Going into ERROR state.")
 		p.connectionInfo.state = stateError
 		p.sendProviderEvent(of.Event{
@@ -215,8 +215,6 @@ func (p *Provider) handleConnectionErr(err error, recoveryFunc func()) {
 				Message: err.Error(),
 			},
 		})
-		p.mu.Unlock()
-		return
 	}
 	// go to STALE state, if we have been ready previously; otherwise
 	// we will stay in NOT_READY
@@ -231,11 +229,13 @@ func (p *Provider) handleConnectionErr(err error, recoveryFunc func()) {
 		})
 	}
 	p.connectionInfo.retries++
-	p.mu.Unlock()
-	if recoveryFunc != nil {
-		<-time.After(p.connectionInfo.backoffDuration)
-		recoveryFunc()
+	if newBackoffDuration := p.connectionInfo.backoffDuration * 2; newBackoffDuration < p.connectionInfo.maxBackoffDuration {
+		p.connectionInfo.backoffDuration = newBackoffDuration
+	} else {
+		p.connectionInfo.backoffDuration = p.connectionInfo.maxBackoffDuration
 	}
+	p.mu.Unlock()
+	<-time.After(p.connectionInfo.backoffDuration)
 }
 
 func (p *Provider) handleProviderReady() {
@@ -243,6 +243,7 @@ func (p *Provider) handleProviderReady() {
 	oldState := p.connectionInfo.state
 	p.connectionInfo.retries = 0
 	p.connectionInfo.state = stateReady
+	p.connectionInfo.backoffDuration = defaultInitBackoffDuration
 	p.mu.Unlock()
 	// notify event channel listeners that we are now ready
 	if oldState != stateReady {
@@ -290,11 +291,11 @@ func FromEnv() ProviderOption {
 					fmt.Sprintf(
 						"Invalid env config for %s provided, using default value: %s",
 						flagdSyncRetryIntervalEnvironmentVariableName,
-						defaultBackoffDuration.String(),
+						defaultMaxBackoffDuration.String(),
 					),
 				)
 			} else {
-				p.connectionInfo.backoffDuration = maxSyncRetryInterval
+				p.connectionInfo.maxBackoffDuration = maxSyncRetryInterval
 			}
 		}
 
@@ -346,7 +347,7 @@ func WithSyncStreamConnectionMaxAttempts(i int) ProviderOption {
 // WithSyncStreamConnectionBackoff sets the backoff duration between reattempts of connecting to the sync source.
 func WithSyncStreamConnectionBackoff(duration time.Duration) ProviderOption {
 	return func(p *Provider) {
-		p.connectionInfo.backoffDuration = duration
+		p.connectionInfo.maxBackoffDuration = duration
 	}
 }
 
