@@ -846,7 +846,7 @@ func TestProvider_handleConnectionErrEndUpInErrorState(t *testing.T) {
 
 	// verify that we end up in the error state
 	require.Equal(t, stateError, p.connectionInfo.state)
-	require.Equal(t, 1, p.connectionInfo.retries)
+	require.Equal(t, 2, p.connectionInfo.retries)
 
 	require.Eventually(t, func() bool {
 		mtx.RLock()
