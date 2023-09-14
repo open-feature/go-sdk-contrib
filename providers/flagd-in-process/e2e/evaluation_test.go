@@ -3,16 +3,17 @@
 package e2e
 
 import (
+	"context"
 	"flag"
 	"testing"
 
 	"github.com/cucumber/godog"
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	in_process "github.com/open-feature/go-sdk-contrib/providers/flagd-in-process/pkg"
 	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
-func TestETestEvaluationFlagdInRPC(t *testing.T) {
+func TestEvaluationFlagdInProcess(t *testing.T) {
 	if testing.Short() {
 		// skip e2e if testing -short
 		t.Skip()
@@ -25,7 +26,7 @@ func TestETestEvaluationFlagdInRPC(t *testing.T) {
 	testSuite := godog.TestSuite{
 		Name: name,
 		ScenarioInitializer: integration.InitializeEvaluationScenario(func() openfeature.FeatureProvider {
-			return flagd.NewProvider(flagd.WithPort(8013))
+			return in_process.NewProvider(context.Background(), in_process.WithSourceURI("localhost:9090"), in_process.WithSourceType(in_process.SourceTypeGrpc))
 		}),
 		Options: &godog.Options{
 			Format:   "pretty",

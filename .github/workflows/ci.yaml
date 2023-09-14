@@ -46,9 +46,14 @@ jobs:
     services:
       # flagd-testbed for flagd-provider e2e tests
       flagd:
-        image: ghcr.io/open-feature/flagd-testbed:latest
+        image: ghcr.io/open-feature/flagd-testbed:v0.4.0
         ports:
           - 8013:8013
+      # sync-testbed for flagd-provider e2e tests
+      sync:
+        image: ghcr.io/open-feature/sync-testbed:v0.4.0
+        ports:
+          - 9090:9090
     steps:
       - name: Install Go
         uses: actions/setup-go@v4
