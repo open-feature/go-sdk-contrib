@@ -4,18 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/open-feature/flagd/core/pkg/eval"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/runtime"
 	"github.com/open-feature/flagd/core/pkg/store"
 	ofsync "github.com/open-feature/flagd/core/pkg/sync"
-	"log"
-	"sync"
-	"time"
+	"github.com/open-feature/flagd/pkg/model"
 
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"os"
 	"strconv"
+
+	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 type ProviderType string
@@ -436,15 +439,10 @@ func (p *Provider) BooleanEvaluation(
 	value, variant, reason, metadata, err := p.evaluator.ResolveBooleanValue(ctx, "", flagKey, evalCtx)
 
 	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
+				ResolutionError: mapError(err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -470,15 +468,10 @@ func (p *Provider) StringEvaluation(
 	value, variant, reason, metadata, err := p.evaluator.ResolveStringValue(ctx, "", flagKey, evalCtx)
 
 	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
 		return of.StringResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
+				ResolutionError: mapError(err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -503,15 +496,10 @@ func (p *Provider) FloatEvaluation(
 ) of.FloatResolutionDetail {
 	value, variant, reason, metadata, err := p.evaluator.ResolveFloatValue(ctx, "", flagKey, evalCtx)
 	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
+				ResolutionError: mapError(err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -536,15 +524,10 @@ func (p *Provider) IntEvaluation(
 ) of.IntResolutionDetail {
 	value, variant, reason, metadata, err := p.evaluator.ResolveIntValue(ctx, "", flagKey, evalCtx)
 	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
 		return of.IntResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
+				ResolutionError: mapError(err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -570,15 +553,10 @@ func (p *Provider) ObjectEvaluation(
 
 	value, variant, reason, metadata, err := p.evaluator.ResolveObjectValue(ctx, "", flagKey, evalCtx)
 	if err != nil {
-		var e of.ResolutionError
-		if !errors.As(err, &e) {
-			e = of.NewGeneralResolutionError(err.Error())
-		}
-
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: e,
+				ResolutionError: mapError(err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -644,5 +622,18 @@ func syncProviderFromConfig(logger *logger.Logger, sourceConfig runtime.SourceCo
 	default:
 		return nil, fmt.Errorf("invalid sync provider: %s, must be one of with '%s' or '%s'",
 			sourceConfig.Provider, SourceTypeGrpc, SourceTypeKubernetes)
+	}
+}
+
+func mapError(err error) of.ResolutionError {
+	switch err.Error() {
+	case model.FlagNotFoundErrorCode, model.FlagDisabledErrorCode:
+		return of.NewFlagNotFoundResolutionError(string(of.FlagNotFoundCode))
+	case model.TypeMismatchErrorCode:
+		return of.NewTypeMismatchResolutionError(string(of.TypeMismatchCode))
+	case model.ParseErrorCode:
+		return of.NewParseErrorResolutionError(string(of.ParseErrorCode))
+	default:
+		return of.NewGeneralResolutionError(string(of.GeneralCode))
 	}
 }

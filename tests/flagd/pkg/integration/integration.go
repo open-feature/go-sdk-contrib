@@ -5,11 +5,10 @@ import (
 	"errors"
 	"time"
 
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
-var providerOptions []flagd.ProviderOption
+var test_provider_supplier func() openfeature.FeatureProvider
 
 // ctxStorageKey is the key used to pass test data across context.Context
 type ctxStorageKey struct{}
@@ -18,12 +17,9 @@ type ctxStorageKey struct{}
 type ctxClientKey struct{}
 
 func aFlagdProviderIsSet(ctx context.Context) (context.Context, error) {
-	pOptions := []flagd.ProviderOption{flagd.WithPort(8013)}
-	pOptions = append(pOptions, providerOptions...)
-	provider := flagd.NewProvider(pOptions...)
 	readyChan := make(chan struct{})
 
-	err := openfeature.SetProvider(provider)
+	err := openfeature.SetProvider(test_provider_supplier())
 	if err != nil {
 		return nil, err
 	}
