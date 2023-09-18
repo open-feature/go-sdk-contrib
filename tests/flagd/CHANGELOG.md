@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.3.0...tests/flagd/v1.3.1) (2023-09-18)
+
+
+### 🐛 Bug Fixes
+
+* error handing, add e2e tests ([#334](https://github.com/open-feature/go-sdk-contrib/issues/334)) ([dfc3b5a](https://github.com/open-feature/go-sdk-contrib/commit/dfc3b5a73e6708aa852a2f2651468de96a754694))
+
 ## [1.3.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.2.4...tests/flagd/v1.3.0) (2023-09-11)
 
 
