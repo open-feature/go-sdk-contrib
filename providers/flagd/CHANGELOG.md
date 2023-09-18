@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.17](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.16...providers/flagd/v0.1.17) (2023-09-18)
+
+
+### 🐛 Bug Fixes
+
+* error handing, add e2e tests ([#334](https://github.com/open-feature/go-sdk-contrib/issues/334)) ([dfc3b5a](https://github.com/open-feature/go-sdk-contrib/commit/dfc3b5a73e6708aa852a2f2651468de96a754694))
+
+
+### 🧹 Chore
+
+* add flagd e2e tests ([#331](https://github.com/open-feature/go-sdk-contrib/issues/331)) ([b32ec64](https://github.com/open-feature/go-sdk-contrib/commit/b32ec64e212935d23e1302321bb60f1e5dc345dd))
+* add missing go-cmp dep ([#330](https://github.com/open-feature/go-sdk-contrib/issues/330)) ([c9c7d66](https://github.com/open-feature/go-sdk-contrib/commit/c9c7d66b745ce09e49069b67af9e3bf8a92dfa85))
+
 ## [0.1.16](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.15...providers/flagd/v0.1.16) (2023-09-05)
 
 
