@@ -10,6 +10,10 @@ components:
   providers/flagd:
     - Kavindu-Dodan
     - toddbaert
+  providers/flagd-in-process:
+    - bacherfl
+    - Kavindu-Dodan
+    - toddbaert
   providers/flagsmith:
     - gagantrivedi
     - matthewelwell
