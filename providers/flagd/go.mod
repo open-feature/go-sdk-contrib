@@ -11,16 +11,16 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/golang-lru/v2 v2.0.4
-	github.com/open-feature/flagd/core v0.6.2
+	github.com/open-feature/flagd/core v0.6.6
 	github.com/open-feature/go-sdk v1.7.0
-	golang.org/x/net v0.12.0
+	golang.org/x/net v0.15.0
 	google.golang.org/protobuf v1.31.0
 )
 
 require (
 	github.com/go-logr/stdr v1.2.2 // indirect
-	go.opentelemetry.io/otel v1.16.0 // indirect
-	go.opentelemetry.io/otel/metric v1.16.0 // indirect
-	go.opentelemetry.io/otel/trace v1.16.0 // indirect
+	go.opentelemetry.io/otel v1.18.0 // indirect
+	go.opentelemetry.io/otel/metric v1.18.0 // indirect
+	go.opentelemetry.io/otel/trace v1.18.0 // indirect
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
 )
