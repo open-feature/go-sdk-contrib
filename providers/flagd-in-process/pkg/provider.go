@@ -127,7 +127,7 @@ func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 		provider.logger,
 		s,
 		eval.WithEvaluator(
-			"fractionalEvaluation",
+			"fractional",
 			eval.NewFractionalEvaluator(provider.logger).FractionalEvaluation,
 		),
 		eval.WithEvaluator(

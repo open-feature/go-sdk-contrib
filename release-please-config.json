@@ -28,6 +28,14 @@
       "versioning": "default",
       "extra-files": []
     },
+    "providers/flagd-in-process": {
+      "release-type": "go",
+      "package-name": "providers/flagd-in-process",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
     "providers/launchdarkly": {
       "release-type": "go",
       "package-name": "providers/launchdarkly",
