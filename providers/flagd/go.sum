@@ -3,6 +3,8 @@ buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.9.0-20230720212818-36
 buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.9.0-20230720212818-3675556880a1.1/go.mod h1:7EjC+x8QSHYXzDCeYfDN3mS/46eboAZLXChIe8iUrF8=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230720212818-3675556880a1.1 h1:4KG4mmtBU0USgznO6QuhB3oTnCrlI+ayBaGjRfgsXeM=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230720212818-3675556880a1.1/go.mod h1:kmgvCcQsQkpZ5yNLgO2B22ysHjnfm3IyzymmFHB60vY=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230822184021-85780df4e019.1 h1:wUBsJv3Ay8PI+6acTN7DV2oVYQb+YjJd6z5bm5dNjxE=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230822184021-85780df4e019.1/go.mod h1:kmgvCcQsQkpZ5yNLgO2B22ysHjnfm3IyzymmFHB60vY=
 github.com/bufbuild/connect-go v1.10.0 h1:QAJ3G9A1OYQW2Jbk3DeoJbkCxuKArrvZgDt47mjdTbg=
 github.com/bufbuild/connect-go v1.10.0/go.mod h1:CAIePUgkDR5pAFaylSMtNK45ANQjp9JvpluG20rhpV8=
 github.com/bufbuild/connect-opentelemetry-go v0.4.0 h1:6JAn10SNqlQ/URhvRNGrIlczKw1wEXknBUUtmWqOiak=

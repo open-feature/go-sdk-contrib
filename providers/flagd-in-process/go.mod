@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.3.0-20230710190440-2333a9579c1a.1
-	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230720212818-3675556880a1.1
+	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230822184021-85780df4e019.1
 	github.com/cucumber/godog v0.12.6
 	github.com/golang/mock v1.6.0
 	github.com/open-feature/flagd v0.3.7-0.20230210161723-e906757a4bac
