@@ -30,7 +30,11 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 	err := unleash.Initialize(
 		p.providerConfig.Options...,
 	)
-	p.status = of.ReadyState
+	if err != nil {
+		p.status = of.ErrorState
+	} else {
+		p.status = of.ReadyState
+	}
 	return err
 }
 
@@ -81,7 +85,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewGeneralResolutionError(err.Error()),
+				ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
 				Reason:          of.ErrorReason,
 			},
 		}
