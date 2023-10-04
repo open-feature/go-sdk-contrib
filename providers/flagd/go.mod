@@ -3,8 +3,8 @@ module github.com/open-feature/go-sdk-contrib/providers/flagd
 go 1.18
 
 require (
-	buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.9.0-20230720212818-3675556880a1.1
-	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230720212818-3675556880a1.1
+	buf.build/gen/go/open-feature/flagd/bufbuild/connect-go v1.9.0-20231002171355-0601ac335d9b.1
+	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20231002171355-0601ac335d9b.1
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/bufbuild/connect-opentelemetry-go v0.4.0
 	github.com/go-logr/logr v1.2.4
