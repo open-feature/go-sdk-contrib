@@ -7,7 +7,7 @@ require (
 	github.com/launchdarkly/go-sdk-common/v3 v3.0.1
 	github.com/launchdarkly/go-server-sdk/v6 v6.1.0
 	github.com/open-feature/go-sdk v1.7.0
-	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 )
 
 require (
