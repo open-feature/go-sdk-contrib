@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.4
 	github.com/open-feature/flagd/core v0.6.6
 	github.com/open-feature/go-sdk v1.7.0
-	golang.org/x/net v0.15.0
+	golang.org/x/net v0.17.0
 	google.golang.org/protobuf v1.31.0
 )
 
