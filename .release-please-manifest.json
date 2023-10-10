@@ -8,6 +8,6 @@
     "providers/go-feature-flag": "0.1.29",
     "providers/flagsmith": "0.1.4",
     "providers/launchdarkly": "0.1.3",
-    "tests/flagd": "1.3.1",
-    "tests/unleash": "0.0.1-alpha"
+    "providers/unleash": "0.0.1-alpha",
+    "tests/flagd": "1.3.1"
 }
