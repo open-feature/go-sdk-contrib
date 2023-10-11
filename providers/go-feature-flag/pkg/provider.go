@@ -5,12 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/bluele/gcache"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	client "github.com/thomaspoignant/go-feature-flag"
-	"github.com/thomaspoignant/go-feature-flag/exporter"
-	"github.com/thomaspoignant/go-feature-flag/exporter/webhookexporter"
 	"github.com/thomaspoignant/go-feature-flag/ffcontext"
 	"io"
 	"net/http"
@@ -19,21 +16,19 @@ import (
 	"time"
 )
 
-const defaultCacheSize = 10000
-const defaultCacheTTL = 1 * time.Minute
 const defaultDataCacheMaxEventInMemory = 500
 const defaultDataCacheFlushInterval = 1 * time.Minute
 
 // Provider is the OpenFeature provider for GO Feature Flag.
 type Provider struct {
-	httpClient             HTTPClient
-	endpoint               string
-	goFeatureFlagInstance  *client.GoFeatureFlag
-	apiKey                 string
-	cache                  gcache.Cache
-	cacheTTL               time.Duration
-	cacheDisable           bool
-	dataCollectorScheduler *exporter.Scheduler
+	httpClient            HTTPClient
+	endpoint              string
+	goFeatureFlagInstance *client.GoFeatureFlag
+	apiKey                string
+	cache                 Cache
+	cacheTTL              time.Duration
+	cacheDisable          bool
+	dataCollectorHook     DataCollectorHook
 }
 
 // HTTPClient is a custom interface to be able to override it by any implementation
@@ -63,6 +58,9 @@ func NewProvider(options ProviderOptions) (*Provider, error) {
 
 // NewProviderWithContext is the easiest way of creating a new GO Feature Flag provider.
 func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Provider, error) {
+	hook := NewDataCollectorHook(options)
+	hook.Init(ctx)
+
 	if options.GOFeatureFlagConfig != nil {
 		goff, err := client.New(*options.GOFeatureFlagConfig)
 		if err != nil {
@@ -70,6 +68,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		}
 		return &Provider{
 			goFeatureFlagInstance: goff,
+			dataCollectorHook:     *hook,
 		}, nil
 	}
 
@@ -82,58 +81,18 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	if httpClient == nil {
 		httpClient = defaultHTTPClient()
 	}
-	if options.FlagCacheSize == 0 {
-		options.FlagCacheSize = defaultCacheSize
-	}
-	if options.DataMaxEventInMemory == 0 {
-		options.DataMaxEventInMemory = defaultDataCacheMaxEventInMemory
-	}
-	if options.DataFlushInterval == 0 {
-		options.DataFlushInterval = defaultDataCacheFlushInterval
-	}
-	if options.FlagCacheTTL == 0 {
-		options.FlagCacheTTL = defaultCacheTTL
-	}
-	scheduler := startDataCollector(ctx, options)
-	return &Provider{
-		apiKey:                 options.APIKey,
-		endpoint:               options.Endpoint,
-		httpClient:             httpClient,
-		cacheTTL:               options.FlagCacheTTL,
-		cacheDisable:           options.DisableCache,
-		cache:                  gcache.New(options.FlagCacheSize).LRU().Build(),
-		dataCollectorScheduler: scheduler,
-	}, nil
-}
-func startDataCollector(ctx context.Context, options ProviderOptions) *exporter.Scheduler {
-	if options.DisableCache {
-		return nil
+
+	p := &Provider{
+		apiKey:            options.APIKey,
+		endpoint:          options.Endpoint,
+		httpClient:        httpClient,
+		cacheTTL:          options.FlagCacheTTL,
+		cacheDisable:      options.DisableCache,
+		cache:             *NewCache(options.FlagCacheSize, options.FlagCacheTTL),
+		dataCollectorHook: *hook,
 	}
 
-	u, _ := url.Parse(options.Endpoint)
-	u.Path = path.Join(u.Path, "v1", "/")
-	u.Path = path.Join(u.Path, "data", "/")
-	u.Path = path.Join(u.Path, "collector", "/")
-
-	webhook := webhookexporter.Exporter{
-		EndpointURL: u.String(),
-		Meta: map[string]string{
-			"provider":    "go",
-			"openfeature": "true",
-		},
-	}
-	if options.APIKey != "" {
-		webhook.Headers = map[string][]string{
-			"Authorization": {fmt.Sprintf("Bearer %s", options.APIKey)},
-		}
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	scheduler := exporter.NewScheduler(ctx,
-		options.DataFlushInterval, options.DataMaxEventInMemory, &webhook, nil)
-	go scheduler.StartDaemon()
-	return scheduler
+	return p, nil
 }
 
 // Metadata returns the meta of the GO Feature Flag provider.
@@ -180,12 +139,12 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 }
 
 func (p *Provider) Shutdown() {
-	p.dataCollectorScheduler.Close()
+	p.dataCollectorHook.Shutdown()
 }
 
 // Hooks is returning an empty array because GO Feature Flag does not use any hooks.
 func (p *Provider) Hooks() []of.Hook {
-	return []of.Hook{}
+	return []of.Hook{&p.dataCollectorHook}
 }
 
 // genericEvaluation is doing evaluation for all types using generics.
@@ -328,15 +287,6 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 			// call to convertCache wouldn't result in the same error on the next call.
 			provider.cache.Remove(cacheKey)
 		} else {
-			event := exporter.NewFeatureEvent(
-				ffcontext.NewEvaluationContext(goffRequestBody.EvaluationContext.Key),
-				flagName,
-				cacheValue.Value,
-				cacheValue.Variant,
-				cacheValue.Reason == of.ErrorReason,
-				"",
-			)
-			provider.dataCollectorScheduler.AddEvent(event)
 			cacheValue.Reason = of.CachedReason
 			return cacheValue
 		}
@@ -477,11 +427,7 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 	}
 
 	if !provider.cacheDisable && evalResponse.Cacheable {
-		if provider.cacheTTL == -1 {
-			_ = provider.cache.Set(cacheKey, resDetail)
-		} else {
-			_ = provider.cache.SetWithExpire(cacheKey, resDetail, provider.cacheTTL)
-		}
+		provider.cache.Set(cacheKey, resDetail)
 	}
 	return resDetail
 }
