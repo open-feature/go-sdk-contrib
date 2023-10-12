@@ -91,6 +91,14 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
+    },
+    "providers/harness": {
+      "release-type": "go",
+      "package-name": "providers/harness",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
     }
   },
   "changelog-sections": [
