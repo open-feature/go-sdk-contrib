@@ -28,6 +28,9 @@ components:
   providers/unleash:
     - liran2000
     - sighphyre
+  providers/harness:
+    - liran2000
+    - davejohnston
 
 ignored-authors:
   - renovate-bot
