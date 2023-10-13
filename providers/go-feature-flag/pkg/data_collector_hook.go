@@ -2,22 +2,19 @@ package gofeatureflag
 
 import (
 	"context"
-	"fmt"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"github.com/thomaspoignant/go-feature-flag/exporter"
-	"github.com/thomaspoignant/go-feature-flag/exporter/webhookexporter"
 	"github.com/thomaspoignant/go-feature-flag/ffcontext"
-	"net/url"
-	"path"
 )
 
 type DataCollectorHook struct {
 	dataCollectorScheduler *exporter.Scheduler
 	options                ProviderOptions
 	isDisabled             bool
+	exporter               exporter.Exporter
 }
 
-func NewDataCollectorHook(options ProviderOptions) *DataCollectorHook {
+func NewDataCollectorHook(dataExporter exporter.Exporter, options ProviderOptions) *DataCollectorHook {
 	if options.DataMaxEventInMemory == 0 {
 		options.DataMaxEventInMemory = defaultDataCacheMaxEventInMemory
 	}
@@ -25,7 +22,8 @@ func NewDataCollectorHook(options ProviderOptions) *DataCollectorHook {
 		options.DataFlushInterval = defaultDataCacheFlushInterval
 	}
 	return &DataCollectorHook{
-		options: options,
+		exporter: dataExporter,
+		options:  options,
 		// We are not collecting data when using the lib or  if the cache is disabled.
 		isDisabled: options.GOFeatureFlagConfig != nil || options.DisableCache,
 	}
@@ -72,29 +70,11 @@ func (d *DataCollectorHook) Init(ctx context.Context) {
 	if d.options.DisableCache {
 		return
 	}
-
-	u, _ := url.Parse(d.options.Endpoint)
-	u.Path = path.Join(u.Path, "v1", "/")
-	u.Path = path.Join(u.Path, "data", "/")
-	u.Path = path.Join(u.Path, "collector", "/")
-
-	webhook := webhookexporter.Exporter{
-		EndpointURL: u.String(),
-		Meta: map[string]string{
-			"provider":    "go",
-			"openfeature": "true",
-		},
-	}
-	if d.options.APIKey != "" {
-		webhook.Headers = map[string][]string{
-			"Authorization": {fmt.Sprintf("Bearer %s", d.options.APIKey)},
-		}
-	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	d.dataCollectorScheduler = exporter.NewScheduler(ctx,
-		d.options.DataFlushInterval, d.options.DataMaxEventInMemory, &webhook, nil)
+		d.options.DataFlushInterval, d.options.DataMaxEventInMemory, d.exporter, nil)
 	go d.dataCollectorScheduler.StartDaemon()
 }
 

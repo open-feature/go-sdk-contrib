@@ -2,6 +2,7 @@ package gofeatureflag
 
 import (
 	ffclient "github.com/thomaspoignant/go-feature-flag"
+	"github.com/thomaspoignant/go-feature-flag/exporter"
 	"time"
 )
 
@@ -50,4 +51,8 @@ type ProviderOptions struct {
 	// when calling the evaluation API.
 	// default: 500
 	DataMaxEventInMemory int64
+
+	// DataCollectorCustomExporter (optional) if you want to export the data somewhere else than in the GO Feature Flag
+	// server, you can specify a custom data exporter.
+	DataCollectorCustomExporter exporter.Exporter
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	client "github.com/thomaspoignant/go-feature-flag"
+	"github.com/thomaspoignant/go-feature-flag/exporter"
+	"github.com/thomaspoignant/go-feature-flag/exporter/webhookexporter"
 	"github.com/thomaspoignant/go-feature-flag/ffcontext"
 	"io"
 	"net/http"
@@ -29,6 +31,8 @@ type Provider struct {
 	cacheTTL              time.Duration
 	cacheDisable          bool
 	dataCollectorHook     DataCollectorHook
+	status                of.State
+	context               context.Context
 }
 
 // HTTPClient is a custom interface to be able to override it by any implementation
@@ -58,9 +62,11 @@ func NewProvider(options ProviderOptions) (*Provider, error) {
 
 // NewProviderWithContext is the easiest way of creating a new GO Feature Flag provider.
 func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Provider, error) {
-	hook := NewDataCollectorHook(options)
-	hook.Init(ctx)
-
+	dataExp := options.DataCollectorCustomExporter
+	if dataExp == nil {
+		dataExp = getDefaultExporter(options)
+	}
+	hook := NewDataCollectorHook(dataExp, options)
 	if options.GOFeatureFlagConfig != nil {
 		goff, err := client.New(*options.GOFeatureFlagConfig)
 		if err != nil {
@@ -90,6 +96,8 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		cacheDisable:      options.DisableCache,
 		cache:             *NewCache(options.FlagCacheSize, options.FlagCacheTTL),
 		dataCollectorHook: *hook,
+		status:            of.NotReadyState,
+		context:           ctx,
 	}
 
 	return p, nil
@@ -100,6 +108,21 @@ func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
 		Name: "GO Feature Flag",
 	}
+}
+
+func (p *Provider) Status() of.State {
+	return p.status
+}
+
+func (p *Provider) Init(_ of.EvaluationContext) error {
+	p.dataCollectorHook.Init(p.context)
+	p.status = of.ReadyState
+	return nil
+}
+
+func (p *Provider) Shutdown() {
+	p.dataCollectorHook.Shutdown()
+	p.status = of.NotReadyState
 }
 
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
@@ -136,10 +159,6 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		Value:                    res.Value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
-}
-
-func (p *Provider) Shutdown() {
-	p.dataCollectorHook.Shutdown()
 }
 
 // Hooks is returning an empty array because GO Feature Flag does not use any hooks.
@@ -276,6 +295,15 @@ func convertCache[T model.JsonType](value interface{}) (model.GenericResolutionD
 
 // evaluateWithRelayProxy is calling GO Feature Flag relay proxy to evaluate the file.
 func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Context, goffRequestBody model.EvalFlagRequest, flagName string, defaultValue T) model.GenericResolutionDetail[T] {
+	if provider.status != of.ReadyState {
+		return model.GenericResolutionDetail[T]{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewProviderNotReadyResolutionError("Impossible to do a flag evaluation when provider is not ready"),
+				Reason:          of.ErrorReason,
+			},
+		}
+	}
 	cacheKey := fmt.Sprintf("%s-%+v", flagName, goffRequestBody.EvaluationContext)
 	// check if flag is available in the cache
 	cacheResInterface, err := provider.cache.Get(cacheKey)
@@ -430,4 +458,24 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 		provider.cache.Set(cacheKey, resDetail)
 	}
 	return resDetail
+}
+
+func getDefaultExporter(options ProviderOptions) exporter.Exporter {
+	u, _ := url.Parse(options.Endpoint)
+	u.Path = path.Join(u.Path, "v1", "/")
+	u.Path = path.Join(u.Path, "data", "/")
+	u.Path = path.Join(u.Path, "collector", "/")
+	webhook := webhookexporter.Exporter{
+		EndpointURL: u.String(),
+		Meta: map[string]string{
+			"provider":    "go",
+			"openfeature": "true",
+		},
+	}
+	if options.APIKey != "" {
+		webhook.Headers = map[string][]string{
+			"Authorization": {fmt.Sprintf("Bearer %s", options.APIKey)},
+		}
+	}
+	return &webhook
 }

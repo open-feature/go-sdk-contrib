@@ -8,7 +8,9 @@ import (
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thomaspoignant/go-feature-flag/exporter"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -24,7 +26,6 @@ func (m *mockClient) Do(req *http.Request) (*http.Response, error) {
 	m.callCount++
 	mockPath := "../testutils/mock_responses/%s.json"
 	flagName := strings.Replace(strings.Replace(req.URL.Path, "/v1/feature/", "", -1), "/eval", "", -1)
-
 	if flagName == "unauthorized" {
 		return &http.Response{
 			StatusCode: http.StatusUnauthorized,
@@ -41,6 +42,19 @@ func (m *mockClient) Do(req *http.Request) (*http.Response, error) {
 		StatusCode: http.StatusOK,
 		Body:       body,
 	}, nil
+}
+
+type mockExporter struct {
+	datacollectorCount int
+}
+
+func (m *mockExporter) IsBulk() bool {
+	return true
+}
+
+func (m *mockExporter) Export(context.Context, *log.Logger, []exporter.FeatureEvent) error {
+	m.datacollectorCount++
+	return nil
 }
 
 func defaultEvaluationCtx() of.EvaluationContext {
@@ -263,9 +277,11 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProvider(provider)
+			err = of.SetNamedProvider(t.Name(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = waitProvider(provider, of.ReadyState)
+			assert.NoError(t, err)
+			client := of.NewClient(t.Name())
 			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -277,6 +293,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.want, value)
+			of.Shutdown()
 		})
 	}
 }
@@ -392,9 +409,11 @@ func TestProvider_StringEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProvider(provider)
+			err = of.SetNamedProvider(t.Name(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = waitProvider(provider, of.ReadyState)
+			assert.NoError(t, err)
+			client := of.NewClient(t.Name())
 			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -521,9 +540,11 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProvider(provider)
+			err = of.SetNamedProvider(t.Name(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = waitProvider(provider, of.ReadyState)
+			assert.NoError(t, err)
+			client := of.NewClient(t.Name())
 			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -650,9 +671,11 @@ func TestProvider_IntEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProvider(provider)
+			err = of.SetNamedProvider(t.Name(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = waitProvider(provider, of.ReadyState)
+			assert.NoError(t, err)
+			client := of.NewClient(t.Name())
 			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -763,9 +786,11 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProvider(provider)
+			err = of.SetNamedProvider(t.Name(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = waitProvider(provider, of.ReadyState)
+			assert.NoError(t, err)
+			client := of.NewClient(t.Name())
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -796,9 +821,11 @@ func TestProvider_Cache_Calling_Flag_Multiple_Time_Same_User(t *testing.T) {
 	defer provider.Shutdown()
 	assert.NoError(t, err)
 
-	err = of.SetProvider(provider)
+	err = of.SetNamedProvider(t.Name(), provider)
 	assert.NoError(t, err)
-	client := of.NewClient("test-app")
+	err = waitProvider(provider, of.ReadyState)
+	assert.NoError(t, err)
+	client := of.NewClient(t.Name())
 	got1, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 	assert.NoError(t, err)
 	assert.Equal(t, got1.Reason, of.TargetingMatchReason)
@@ -829,9 +856,11 @@ func TestProvider_Cache_Calling_Flag_Multiple_Time_Different_EvalutationCtx(t *t
 	defer provider.Shutdown()
 	assert.NoError(t, err)
 
-	err = of.SetProvider(provider)
+	err = of.SetNamedProvider(t.Name(), provider)
 	assert.NoError(t, err)
-	client := of.NewClient("test-app")
+	err = waitProvider(provider, of.ReadyState)
+	assert.NoError(t, err)
+	client := of.NewClient(t.Name())
 	ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
 	ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
 	ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]interface{}{})
@@ -866,9 +895,11 @@ func TestProvider_Cache_Fill_All_Cache(t *testing.T) {
 	defer provider.Shutdown()
 	assert.NoError(t, err)
 
-	err = of.SetProvider(provider)
+	err = of.SetNamedProvider(t.Name(), provider)
 	assert.NoError(t, err)
-	client := of.NewClient("test-app")
+	err = waitProvider(provider, of.ReadyState)
+	assert.NoError(t, err)
+	client := of.NewClient(t.Name())
 	ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
 	ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
 	ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]interface{}{})
@@ -899,14 +930,103 @@ func TestProvider_Cache_TTL_Reached(t *testing.T) {
 	provider, err := gofeatureflag.NewProvider(options)
 	defer provider.Shutdown()
 	assert.NoError(t, err)
-
-	err = of.SetProvider(provider)
+	err = of.SetNamedProvider(t.Name(), provider)
 	assert.NoError(t, err)
-	client := of.NewClient("test-app")
+	err = waitProvider(provider, of.ReadyState)
+	assert.NoError(t, err)
+	client := of.NewClient(t.Name())
 	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 	assert.NoError(t, err)
 	time.Sleep(700 * time.Millisecond)
 	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 	assert.NoError(t, err)
 	assert.Equal(t, 2, mockedHttpClient.callCount)
+}
+
+func TestProvider_should_call_the_data_collector_when_closing_Open_Feature(t *testing.T) {
+	mockedHttpClient := mockClient{}
+	mockedExporter := mockExporter{}
+	options := gofeatureflag.ProviderOptions{
+		Endpoint:                    "https://gofeatureflag.org/",
+		HTTPClient:                  &mockedHttpClient,
+		DataFlushInterval:           100 * time.Millisecond,
+		DataCollectorCustomExporter: &mockedExporter,
+	}
+	provider, err := gofeatureflag.NewProvider(options)
+	assert.NoError(t, err)
+	err = of.SetNamedProvider(t.Name(), provider)
+	assert.NoError(t, err)
+	err = waitProvider(provider, of.ReadyState)
+	assert.NoError(t, err)
+	client := of.NewClient(t.Name())
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	provider.Shutdown()
+	err = waitProvider(provider, of.NotReadyState)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, mockedExporter.datacollectorCount)
+}
+
+func TestProvider_should_call_the_data_collector_when_waiting_more_than_the_dataFlushInterval(t *testing.T) {
+	mockedHttpClient := mockClient{}
+	mockedExporter := mockExporter{}
+	options := gofeatureflag.ProviderOptions{
+		Endpoint:                    "https://gofeatureflag.org/",
+		HTTPClient:                  &mockedHttpClient,
+		DisableCache:                false,
+		FlagCacheTTL:                time.Millisecond * 3000,
+		FlagCacheSize:               100,
+		DataFlushInterval:           100 * time.Millisecond,
+		DataCollectorCustomExporter: &mockedExporter,
+	}
+	provider, err := gofeatureflag.NewProvider(options)
+	assert.NoError(t, err)
+	err = of.SetNamedProvider(t.Name(), provider)
+	assert.NoError(t, err)
+	err = waitProvider(provider, of.ReadyState)
+	assert.NoError(t, err)
+	client := of.NewClient(t.Name())
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	time.Sleep(time.Millisecond * 130)
+	assert.Equal(t, 1, mockedExporter.datacollectorCount)
+	provider.Shutdown()
+}
+
+func TestProvider_should_not_call_the_data_collector_before_the_dataFlushInterval(t *testing.T) {
+	mockedHttpClient := mockClient{}
+	mockedExporter := mockExporter{}
+	options := gofeatureflag.ProviderOptions{
+		Endpoint:                    "https://gofeatureflag.org/",
+		HTTPClient:                  &mockedHttpClient,
+		DisableCache:                false,
+		FlagCacheTTL:                time.Millisecond * 3000,
+		FlagCacheSize:               100,
+		DataFlushInterval:           300 * time.Millisecond,
+		DataCollectorCustomExporter: &mockedExporter,
+	}
+	provider, err := gofeatureflag.NewProvider(options)
+	defer provider.Shutdown()
+	assert.NoError(t, err)
+	err = of.SetNamedProvider(t.Name(), provider)
+	assert.NoError(t, err)
+	err = waitProvider(provider, of.ReadyState)
+	assert.NoError(t, err)
+	client := of.NewClient(t.Name())
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	time.Sleep(time.Millisecond * 130)
+	assert.Equal(t, 0, mockedExporter.datacollectorCount)
+
+}
+
+func waitProvider(p *gofeatureflag.Provider, state of.State) error {
+	for i := 0; i < 100; i++ {
+		if p.Status() == state {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return fmt.Errorf("provider still in waiting state")
 }
