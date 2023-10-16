@@ -2,7 +2,7 @@ module github.com/open-feature/go-sdk-contrib/hooks/validator
 
 go 1.18
 
-require github.com/open-feature/go-sdk v1.7.0
+require github.com/open-feature/go-sdk v1.8.0
 
 require (
 	github.com/go-logr/logr v1.2.4 // indirect
