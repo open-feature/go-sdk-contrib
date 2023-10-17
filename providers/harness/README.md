@@ -18,7 +18,12 @@ go get github.com/open-feature/go-sdk-contrib/providers/harness
 ## Usage
 Harness OpenFeature Provider is using Harness GO SDK.
 
-## Usage Example
+### Evaluation Context
+Evaluation Context is mapped to Harness [target](https://developer.harness.io/docs/feature-flags/ff-sdks/server-sdks/feature-flag-sdks-go-application/#add-a-target).
+OpenFeature targetingKey is mapped to _Identifier_, _Name_ is mapped to _Name_ and other fields are mapped to Attributes 
+fields.
+
+### Usage Example
 
 ```go
 import (
@@ -48,16 +53,20 @@ if err != nil {
 
 ctx := context.Background()
 
-target := map[string]interface{}{
-    "Identifier": "john",
-    "Firstname":  "John",
-    "Lastname":   "Doe",
-    "Email":      "john@doe.com",
-}
+of.SetProvider(provider)
+ofClient := of.NewClient("my-app")
 
-resolution := provider.BooleanEvaluation(ctx, "TestTrueOn", false, target)
-if resolution.Value != true {
-    t.Fatalf("Expected one of the variant payloads")
+evalCtx := of.NewEvaluationContext(
+    "john",
+    map[string]interface{}{
+        "Firstname": "John",
+        "Lastname":  "Doe",
+        "Email":     "john@doe.com",
+    },
+)
+enabled, err := ofClient.BooleanValue(context.Background(), "TestTrueOn", false, evalCtx)
+if enabled == false {
+    t.Fatalf("Expected feature to be enabled")
 }
 
 ```

@@ -108,10 +108,10 @@ func TestBooleanEvaluation(t *testing.T) {
 	ctx := context.Background()
 
 	target := map[string]interface{}{
-		"Identifier": "john",
-		"Firstname":  "John",
-		"Lastname":   "Doe",
-		"Email":      "john@doe.com",
+		of.TargetingKey: "john",
+		"Firstname":     "John",
+		"Lastname":      "Doe",
+		"Email":         "john@doe.com",
 	}
 
 	resolution := provider.BooleanEvaluation(ctx, "TestTrueOn", false, target)
@@ -120,10 +120,25 @@ func TestBooleanEvaluation(t *testing.T) {
 	}
 
 	t.Run("evalCtx empty", func(t *testing.T) {
-
 		resolution := provider.BooleanEvaluation(ctx, "MadeUpIDontExist", false, nil)
 		require.Equal(t, false, resolution.Value)
 	})
+
+	of.SetProvider(provider)
+	ofClient := of.NewClient("my-app")
+
+	evalCtx := of.NewEvaluationContext(
+		"john",
+		map[string]interface{}{
+			"Firstname": "John",
+			"Lastname":  "Doe",
+			"Email":     "john@doe.com",
+		},
+	)
+	enabled, err := ofClient.BooleanValue(context.Background(), "TestTrueOn", false, evalCtx)
+	if enabled == false {
+		t.Fatalf("Expected feature to be enabled")
+	}
 
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/harness/ff-golang-server-sdk/client"
 	harness "github.com/harness/ff-golang-server-sdk/client"
 	"github.com/harness/ff-golang-server-sdk/evaluation"
 	"github.com/harness/ff-golang-server-sdk/types"
@@ -16,7 +15,7 @@ const generalError = "general error"
 
 type Provider struct {
 	providerConfig ProviderConfig
-	harnessClient  *client.CfClient
+	harnessClient  *harness.CfClient
 	status         of.State
 }
 
@@ -259,6 +258,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			},
 		}
 	}
+
 	res, _ := p.harnessClient.JSONVariation(flag, harnessTarget, defaultValueJson)
 	return of.InterfaceResolutionDetail{
 		Value:                    res,
@@ -281,7 +281,7 @@ func toHarnessTarget(evalCtx of.FlattenedContext) (*evaluation.Target, error) {
 		}
 
 		switch key {
-		case "Identifier":
+		case of.TargetingKey:
 			harnessTarget.Identifier = val
 		case "Name":
 			harnessTarget.Name = val
