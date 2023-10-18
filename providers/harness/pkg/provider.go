@@ -60,24 +60,9 @@ func (p *Provider) Metadata() of.Metadata {
 }
 
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
-	if p.status != of.ReadyState {
-		if p.status == of.NotReadyState {
-			return of.BoolResolutionDetail{
-				Value: defaultValue,
-				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
-					Reason:          of.ErrorReason,
-				},
-			}
-		} else {
-			return of.BoolResolutionDetail{
-				Value: defaultValue,
-				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					ResolutionError: of.NewGeneralResolutionError(generalError),
-					Reason:          of.ErrorReason,
-				},
-			}
-		}
+	shouldReturn, returnValue := verifyStateBoolean(p, defaultValue)
+	if shouldReturn {
+		return returnValue
 	}
 
 	harnessTarget, err := toHarnessTarget(evalCtx)
@@ -98,10 +83,10 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 	}
 }
 
-func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
+func verifyStateBoolean(p *Provider, defaultValue bool) (bool, of.BoolResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return of.FloatResolutionDetail{
+			return true, of.BoolResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -109,7 +94,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 				},
 			}
 		} else {
-			return of.FloatResolutionDetail{
+			return true, of.BoolResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -117,6 +102,14 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 				},
 			}
 		}
+	}
+	return false, of.BoolResolutionDetail{}
+}
+
+func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
+	shouldReturn, returnValue := verifyStateFloat(p, defaultValue)
+	if shouldReturn {
+		return returnValue
 	}
 
 	harnessTarget, err := toHarnessTarget(evalCtx)
@@ -137,10 +130,10 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 	}
 }
 
-func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
+func verifyStateFloat(p *Provider, defaultValue float64) (bool, of.FloatResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return of.IntResolutionDetail{
+			return true, of.FloatResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -148,7 +141,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 				},
 			}
 		} else {
-			return of.IntResolutionDetail{
+			return true, of.FloatResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -156,6 +149,14 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 				},
 			}
 		}
+	}
+	return false, of.FloatResolutionDetail{}
+}
+
+func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
+	shouldReturn, returnValue := verifyStateInt(p, defaultValue)
+	if shouldReturn {
+		return returnValue
 	}
 
 	harnessTarget, err := toHarnessTarget(evalCtx)
@@ -176,11 +177,10 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	}
 }
 
-func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
-
+func verifyStateInt(p *Provider, defaultValue int64) (bool, of.IntResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return of.StringResolutionDetail{
+			return true, of.IntResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -188,7 +188,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 				},
 			}
 		} else {
-			return of.StringResolutionDetail{
+			return true, of.IntResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -196,6 +196,15 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 				},
 			}
 		}
+	}
+	return false, of.IntResolutionDetail{}
+}
+
+func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
+
+	shouldReturn, returnValue := verifyStateString(p, defaultValue)
+	if shouldReturn {
+		return returnValue
 	}
 
 	harnessTarget, err := toHarnessTarget(evalCtx)
@@ -216,10 +225,10 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func verifyStateString(p *Provider, defaultValue string) (bool, of.StringResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return of.InterfaceResolutionDetail{
+			return true, of.StringResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -227,7 +236,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 				},
 			}
 		} else {
-			return of.InterfaceResolutionDetail{
+			return true, of.StringResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -235,6 +244,14 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 				},
 			}
 		}
+	}
+	return false, of.StringResolutionDetail{}
+}
+
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+	shouldReturn, returnValue := verifyStateObject(p, defaultValue)
+	if shouldReturn {
+		return returnValue
 	}
 
 	harnessTarget, err := toHarnessTarget(evalCtx)
@@ -264,6 +281,29 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		Value:                    res,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{},
 	}
+}
+
+func verifyStateObject(p *Provider, defaultValue interface{}) (bool, of.InterfaceResolutionDetail) {
+	if p.status != of.ReadyState {
+		if p.status == of.NotReadyState {
+			return true, of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
+					Reason:          of.ErrorReason,
+				},
+			}
+		} else {
+			return true, of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewGeneralResolutionError(generalError),
+					Reason:          of.ErrorReason,
+				},
+			}
+		}
+	}
+	return false, of.InterfaceResolutionDetail{}
 }
 
 func toHarnessTarget(evalCtx of.FlattenedContext) (*evaluation.Target, error) {
