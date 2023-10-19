@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/Unleash/unleash-client-go/v3 v3.8.0
-	github.com/open-feature/go-sdk v1.7.0
+	github.com/open-feature/go-sdk v1.8.0
 	github.com/stretchr/testify v1.8.4
 )
 
