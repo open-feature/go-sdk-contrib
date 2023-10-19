@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.0.1
-	github.com/launchdarkly/go-server-sdk/v6 v6.1.0
+	github.com/launchdarkly/go-server-sdk/v6 v6.1.1
 	github.com/open-feature/go-sdk v1.8.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 )
@@ -18,7 +18,7 @@ require (
 	github.com/launchdarkly/ccache v1.1.0 // indirect
 	github.com/launchdarkly/eventsource v1.6.2 // indirect
 	github.com/launchdarkly/go-jsonstream/v3 v3.0.0 // indirect
-	github.com/launchdarkly/go-sdk-events/v2 v2.0.1 // indirect
+	github.com/launchdarkly/go-sdk-events/v2 v2.0.2 // indirect
 	github.com/launchdarkly/go-semver v1.0.2 // indirect
 	github.com/launchdarkly/go-server-sdk-evaluation/v2 v2.0.2 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
