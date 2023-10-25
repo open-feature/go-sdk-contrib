@@ -12,7 +12,7 @@ require (
 	github.com/open-feature/go-sdk v1.8.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.1.0
 	github.com/stretchr/testify v1.8.4
-	google.golang.org/grpc v1.58.0
+	google.golang.org/grpc v1.58.3
 	google.golang.org/protobuf v1.31.0
 )
 
