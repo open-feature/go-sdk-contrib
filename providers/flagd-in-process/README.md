@@ -1,7 +1,7 @@
 # In-process Flagd Provider
 
 This provider implements parts of the functionality of [Flagd](https://github.com/open-feature/flagd), and follows its
-specification for [in-process providers](https://github.com/open-feature/flagd/blob/main/docs/other_resources/in-process-providers/specification.md).
+specification for [in-process providers](https://flagd.dev/reference/specifications/in-process-providers/).
 
 ## Setup
 To use flagd with the [OpenFeature SDK](https://github.com/open-feature/go-sdk) set the provider to the `openfeature` global singleton as shown below (using default values which align with those of `flagd`)
