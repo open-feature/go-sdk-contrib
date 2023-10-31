@@ -9,6 +9,6 @@
     "providers/flagsmith": "0.1.4",
     "providers/launchdarkly": "0.1.3",
     "providers/unleash": "0.0.2-alpha",
-    "providers/harness": "0.0.1-alpha",
+    "providers/harness": "0.0.2-alpha",
     "tests/flagd": "1.3.1"
 }
