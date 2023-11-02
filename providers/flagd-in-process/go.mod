@@ -7,10 +7,10 @@ require (
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230720212818-3675556880a1.1
 	github.com/cucumber/godog v0.13.0
 	github.com/golang/mock v1.6.0
-	github.com/open-feature/flagd v0.3.7-0.20230210161723-e906757a4bac
+	github.com/open-feature/flagd v0.4.2
 	github.com/open-feature/flagd/core v0.6.7
 	github.com/open-feature/go-sdk v1.8.0
-	github.com/open-feature/go-sdk-contrib/tests/flagd v1.1.0
+	github.com/open-feature/go-sdk-contrib/tests/flagd v1.2.1
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.58.3
 	google.golang.org/protobuf v1.31.0
