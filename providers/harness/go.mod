@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/harness
 go 1.19
 
 require (
-	github.com/harness/ff-golang-server-sdk v0.1.13
+	github.com/harness/ff-golang-server-sdk v0.1.15
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/open-feature/go-sdk v1.8.0
 	github.com/stretchr/testify v1.8.4
@@ -38,6 +38,7 @@ require (
 	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
