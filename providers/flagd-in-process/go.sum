@@ -675,6 +675,8 @@ github.com/onsi/ginkgo/v2 v2.11.0 h1:WgqUCUt/lT6yXoQ8Wef0fsNn5cAuMK7+KT9UFRz2tcU
 github.com/onsi/gomega v1.27.10 h1:naR28SdDFlqrG6kScpT8VWpu1xWY5nJRCF3XaYyBjhI=
 github.com/open-feature/flagd v0.3.7-0.20230210161723-e906757a4bac h1:OWj8wUHgkap4Bq5v8UAF65Wvdnils+WQPLFaOda7r1U=
 github.com/open-feature/flagd v0.3.7-0.20230210161723-e906757a4bac/go.mod h1:IQ/mfi0P0dL+4m9X9prbHc64fthbimr1CdZWppHcf70=
+github.com/open-feature/flagd v0.4.2 h1:2yTM4XtZsA5mtqgHFi7BorE7RjT3/WbQapck5xFbBLA=
+github.com/open-feature/flagd v0.4.2/go.mod h1:46zroy6YHvHzoHNcoKGXtllLqFcQ7fn/tf4QD6E+8uU=
 github.com/open-feature/flagd/core v0.6.6 h1:29+4CLCmyc3Jf94JXsRBmKuzPiHYEFx1ZmnT7Sb4uPw=
 github.com/open-feature/flagd/core v0.6.6/go.mod h1:92Re9hbBYXZLuOTO9CrThl5wrQsKNIC2IyECQHweNFI=
 github.com/open-feature/flagd/core v0.6.7 h1:60P4VYiNURl+TapDDVz2h05WQaizJ//UHOH21jM2NmQ=
@@ -687,6 +689,8 @@ github.com/open-feature/go-sdk-contrib/providers/flagd v0.1.14 h1:SJFFwsIRE/i0Q1
 github.com/open-feature/go-sdk-contrib/providers/flagd v0.1.14/go.mod h1:N4f+AHj58CaGQRRgkIcNnDkLjmiJucdql6jQwJ1cmEc=
 github.com/open-feature/go-sdk-contrib/tests/flagd v1.1.0 h1:lM+7hfFVwUxQPOyJ9rXn2UR4sCAfOQJKtCU29pU/B+4=
 github.com/open-feature/go-sdk-contrib/tests/flagd v1.1.0/go.mod h1:zw/xpuDy9ziBEKVA1t4VoQtzFc80btAAQCiZkX6y9oQ=
+github.com/open-feature/go-sdk-contrib/tests/flagd v1.2.1 h1:Tg712Egcqb5dsYxOGEaQbfD3g1mqPFdV4tSmKKKxDPk=
+github.com/open-feature/go-sdk-contrib/tests/flagd v1.2.1/go.mod h1:zw/xpuDy9ziBEKVA1t4VoQtzFc80btAAQCiZkX6y9oQ=
 github.com/open-feature/open-feature-operator v0.2.36 h1:dzyZh9JSIRvXkfpM9ynYplNk7vjQFLs9sd5aHhF48z4=
 github.com/open-feature/open-feature-operator v0.2.36/go.mod h1:nM7T4oGQukeGmcAFkQm0uwt8WFdDb5hYPjXkm7pHhX4=
 github.com/open-feature/schemas v0.2.8 h1:oA75hJXpOd9SFgmNI2IAxWZkwzQPUDm7Jyyh3q489wM=
