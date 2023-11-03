@@ -1,11 +1,12 @@
 package flagd
 
 import (
-	"github.com/golang/mock/gomock"
+	"testing"
+
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-	"testing"
+	"go.uber.org/mock/gomock"
 )
 
 func TestNewProvider(t *testing.T) {

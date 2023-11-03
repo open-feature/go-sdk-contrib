@@ -1,28 +1,27 @@
 package service
 
 import (
-	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/bufbuild/connect-go/schema/v1/schemav1connect"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/bufbuild/connect-go"
-	otelconnect "github.com/bufbuild/connect-opentelemetry-go"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
+	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/connectrpc/go/schema/v1/schemav1connect"
+	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	"github.com/go-logr/logr"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
-	"golang.org/x/net/context"
-	"net"
-	"net/http"
-	"os"
-	"time"
-
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
-
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
