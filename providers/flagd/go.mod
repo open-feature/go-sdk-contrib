@@ -9,7 +9,6 @@ require (
 	connectrpc.com/otelconnect v0.6.0
 	github.com/cucumber/godog v0.13.0
 	github.com/go-logr/logr v1.3.0
-	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/open-feature/flagd/core v0.6.7
@@ -21,6 +20,7 @@ require (
 )
 
 require (
+	github.com/bufbuild/connect-go v1.10.0 // indirect
 	github.com/cucumber/gherkin/go/v26 v26.2.0 // indirect
 	github.com/cucumber/messages/go/v21 v21.0.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
