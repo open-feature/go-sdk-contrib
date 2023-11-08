@@ -17,6 +17,8 @@ components:
   providers/flagsmith:
     - gagantrivedi
     - matthewelwell
+  providers/flipt:
+    - markphelps
   providers/from-env:
     - Kavindu-Dodan
     - toddbaert
