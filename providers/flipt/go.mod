@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/flipt
 
-go 1.21.3
+go 1.21
 
 require (
 	github.com/open-feature/go-sdk v1.8.0
