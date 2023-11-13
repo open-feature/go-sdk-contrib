@@ -7,7 +7,6 @@ require (
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20230720212818-3675556880a1.1
 	github.com/cucumber/godog v0.13.0
 	github.com/golang/mock v1.6.0
-	github.com/open-feature/flagd v0.4.2
 	github.com/open-feature/flagd/core v0.6.7
 	github.com/open-feature/go-sdk v1.8.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.2.1
@@ -23,9 +22,7 @@ require (
 	github.com/bufbuild/connect-opentelemetry-go v0.4.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cucumber/gherkin-go/v19 v19.0.3 // indirect
 	github.com/cucumber/gherkin/go/v26 v26.2.0 // indirect
-	github.com/cucumber/messages-go/v16 v16.0.1 // indirect
 	github.com/cucumber/messages/go/v21 v21.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/diegoholiveira/jsonlogic/v3 v3.3.0 // indirect
@@ -61,6 +58,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/open-feature/flagd v0.4.2 // indirect
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.1.14 // indirect
 	github.com/open-feature/open-feature-operator v0.2.36 // indirect
 	github.com/open-feature/schemas v0.2.8 // indirect
