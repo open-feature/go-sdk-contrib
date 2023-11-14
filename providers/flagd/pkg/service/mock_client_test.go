@@ -1,9 +1,10 @@
 package service
 
 import (
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
-	connect "github.com/bufbuild/connect-go"
+
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	"connectrpc.com/connect"
 )
 
 // MockClient is a test mock for service client

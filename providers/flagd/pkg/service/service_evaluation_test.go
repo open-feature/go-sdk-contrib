@@ -1,17 +1,18 @@
 package service
 
 import (
-	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/bufbuild/connect-go/schema/v1/schemav1connect"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"context"
+	"strings"
+	"testing"
+
+	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/connectrpc/go/schema/v1/schemav1connect"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
-	"strings"
-	"testing"
 )
 
 // Service tests for flag evaluation
