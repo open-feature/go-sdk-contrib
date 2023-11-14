@@ -3,6 +3,7 @@ package flagd
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
