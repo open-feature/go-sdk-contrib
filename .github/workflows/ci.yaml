@@ -8,10 +8,6 @@ on:
   pull_request:
     branches:
       - main
-env:
-  # Default minimum version of Go to support.
-  DEFAULT_GO_VERSION: "1.20"
-
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -22,7 +18,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: ${{ env.DEFAULT_GO_VERSION }}
+          go-version: 'stable'
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Environment
@@ -58,7 +54,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: ${{ env.DEFAULT_GO_VERSION }}
+          go-version: 'stable'
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
