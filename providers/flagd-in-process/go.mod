@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/open-feature/flagd/core v0.6.7
 	github.com/open-feature/go-sdk v1.8.0
-	github.com/open-feature/go-sdk-contrib/tests/flagd v1.2.1
+	github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.1
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.58.3
 	google.golang.org/protobuf v1.31.0
