@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagd
 
-go 1.18
+go 1.20
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.12.0-20231031123731-ac2ec0f39838.1
