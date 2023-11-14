@@ -7,12 +7,7 @@ require (
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20231031123731-ac2ec0f39838.2
 	github.com/cucumber/godog v0.13.0
 	github.com/golang/mock v1.6.0
-<<<<<<< HEAD
-	github.com/open-feature/flagd/core v0.6.7
-=======
-	github.com/open-feature/flagd v0.4.2
 	github.com/open-feature/flagd/core v0.6.8
->>>>>>> 6384b8e (fixup: update deps)
 	github.com/open-feature/go-sdk v1.8.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.2
 	github.com/stretchr/testify v1.8.4
@@ -62,11 +57,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-<<<<<<< HEAD
-	github.com/open-feature/flagd v0.4.2 // indirect
-	github.com/open-feature/go-sdk-contrib/providers/flagd v0.1.14 // indirect
-=======
->>>>>>> 6384b8e (fixup: update deps)
 	github.com/open-feature/open-feature-operator v0.2.36 // indirect
 	github.com/open-feature/schemas v0.2.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
