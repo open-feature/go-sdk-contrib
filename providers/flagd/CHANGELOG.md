@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.18](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.17...providers/flagd/v0.1.18) (2023-11-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/go-logr/logr to v1.3.0 ([#361](https://github.com/open-feature/go-sdk-contrib/issues/361)) ([d29fe69](https://github.com/open-feature/go-sdk-contrib/commit/d29fe69424c9a22f89a4147b70be090a1716981c))
+* **deps:** update module github.com/google/go-cmp to v0.6.0 ([#354](https://github.com/open-feature/go-sdk-contrib/issues/354)) ([dde96df](https://github.com/open-feature/go-sdk-contrib/commit/dde96df31dc96629857e1866c026236c1c4a1843))
+* **deps:** update module github.com/hashicorp/golang-lru/v2 to v2.0.7 ([#312](https://github.com/open-feature/go-sdk-contrib/issues/312)) ([cd2a830](https://github.com/open-feature/go-sdk-contrib/commit/cd2a83044ff88087a2d8ea03632e876b1cf00bd0))
+* **deps:** update module github.com/open-feature/flagd/core to v0.6.6 ([#307](https://github.com/open-feature/go-sdk-contrib/issues/307)) ([b735aa8](https://github.com/open-feature/go-sdk-contrib/commit/b735aa849dfc63bbea0dcacffeb089390d91c782))
+* **deps:** update module github.com/open-feature/flagd/core to v0.6.7 ([#350](https://github.com/open-feature/go-sdk-contrib/issues/350)) ([8bccc11](https://github.com/open-feature/go-sdk-contrib/commit/8bccc119f0f454adb3aa35e5c74bff43c50a80d3))
+* **deps:** update module github.com/open-feature/go-sdk to v1.8.0 ([#329](https://github.com/open-feature/go-sdk-contrib/issues/329)) ([c99b527](https://github.com/open-feature/go-sdk-contrib/commit/c99b52728bad9dce52bfb78a08ae5f4eea83a397))
+* **deps:** update module golang.org/x/net to v0.17.0 [security] ([#347](https://github.com/open-feature/go-sdk-contrib/issues/347)) ([a05689c](https://github.com/open-feature/go-sdk-contrib/commit/a05689cba2cea78c4741ae0e6a096fa370970b9c))
+
+
+### 🔄 Refactoring
+
+* migrate to connectrpc/connect-go ([#372](https://github.com/open-feature/go-sdk-contrib/issues/372)) ([aba4f4e](https://github.com/open-feature/go-sdk-contrib/commit/aba4f4e3cba0b9af23e665f0e736ec715d3f2fdc))
+
 ## [0.1.17](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.16...providers/flagd/v0.1.17) (2023-09-18)
 
 
