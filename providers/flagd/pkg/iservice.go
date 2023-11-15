@@ -2,6 +2,7 @@ package flagd
 
 import (
 	"context"
+
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
