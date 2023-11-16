@@ -59,6 +59,8 @@ evalCtx := of.NewEvaluationContext(
 )
 value, err := ofClient.StringValue(context.Background(), "variant-flag", "", evalCtx)
 
+of.Shutdown()
+
 ```
 See [provider_test.go](./pkg/provider_test.go) for more information.
 

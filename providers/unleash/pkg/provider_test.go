@@ -2,6 +2,7 @@ package unleash_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -12,35 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var provider *unleashProvider.Provider
+
 func TestBooleanEvaluation(t *testing.T) {
-	demoReader, err := os.Open("demo_app_toggles.json")
-	if err != nil {
-		t.Fail()
-	}
-
-	providerConfig := unleashProvider.ProviderConfig{
-		Options: []unleash.ConfigOption{
-			unleash.WithListener(&unleash.DebugListener{}),
-			unleash.WithAppName("my-application"),
-			unleash.WithRefreshInterval(5 * time.Second),
-			unleash.WithMetricsInterval(5 * time.Second),
-			unleash.WithStorage(&unleash.BootstrapStorage{Reader: demoReader}),
-			unleash.WithUrl("https://localhost:4242"),
-		},
-	}
-
-	provider, err := unleashProvider.NewProvider(providerConfig)
-	if err != nil {
-		t.Fail()
-	}
-	err = provider.Init(of.EvaluationContext{})
-	if err != nil {
-		t.Fail()
-	}
-
-	ctx := context.Background()
-
-	resolution := provider.BooleanEvaluation(ctx, "variant-flag", false, nil)
+	resolution := provider.BooleanEvaluation(context.Background(), "variant-flag", false, nil)
 	enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
 	if enabled == false {
 		t.Fatalf("Expected feature to be enabled")
@@ -50,42 +26,13 @@ func TestBooleanEvaluation(t *testing.T) {
 	}
 
 	t.Run("evalCtx empty", func(t *testing.T) {
-
-		resolution := provider.BooleanEvaluation(ctx, "non-existing-flag", false, nil)
+		resolution := provider.BooleanEvaluation(context.Background(), "non-existing-flag", false, nil)
 		require.Equal(t, false, resolution.Value)
 	})
-
 }
 
 func TestStringEvaluation(t *testing.T) {
-	demoReader, err := os.Open("demo_app_toggles.json")
-	if err != nil {
-		t.Fail()
-	}
-
-	providerOptions := unleashProvider.ProviderConfig{
-		Options: []unleash.ConfigOption{
-			unleash.WithListener(&unleash.DebugListener{}),
-			unleash.WithAppName("my-application"),
-			unleash.WithRefreshInterval(5 * time.Second),
-			unleash.WithMetricsInterval(5 * time.Second),
-			unleash.WithStorage(&unleash.BootstrapStorage{Reader: demoReader}),
-			unleash.WithUrl("https://localhost:4242"),
-		},
-	}
-
-	provider, err := unleashProvider.NewProvider(providerOptions)
-	if err != nil {
-		t.Fail()
-	}
-	err = provider.Init(of.EvaluationContext{})
-	if err != nil {
-		t.Fail()
-	}
-
-	ctx := context.Background()
-
-	resolution := provider.StringEvaluation(ctx, "variant-flag", "", nil)
+	resolution := provider.StringEvaluation(context.Background(), "variant-flag", "", nil)
 	enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
 	if enabled == false {
 		t.Fatalf("Expected feature to be enabled")
@@ -104,42 +51,14 @@ func TestStringEvaluation(t *testing.T) {
 		"",
 		map[string]interface{}{},
 	)
-	value, err := ofClient.StringValue(context.Background(), "variant-flag", "", evalCtx)
+	value, _ := ofClient.StringValue(context.Background(), "variant-flag", "", evalCtx)
 	if value == "" {
 		t.Fatalf("Expected a value")
 	}
-
 }
 
 func TestBooleanEvaluationByUser(t *testing.T) {
-	demoReader, err := os.Open("demo_app_toggles.json")
-	if err != nil {
-		t.Fail()
-	}
-
-	providerOptions := unleashProvider.ProviderConfig{
-		Options: []unleash.ConfigOption{
-			unleash.WithListener(&unleash.DebugListener{}),
-			unleash.WithAppName("my-application"),
-			unleash.WithRefreshInterval(5 * time.Second),
-			unleash.WithMetricsInterval(5 * time.Second),
-			unleash.WithStorage(&unleash.BootstrapStorage{Reader: demoReader}),
-			unleash.WithUrl("https://localhost:4242"),
-		},
-	}
-
-	provider, err := unleashProvider.NewProvider(providerOptions)
-	if err != nil {
-		t.Fail()
-	}
-	err = provider.Init(of.EvaluationContext{})
-	if err != nil {
-		t.Fail()
-	}
-
-	ctx := context.Background()
-
-	resolution := provider.BooleanEvaluation(ctx, "users-flag", false, map[string]interface{}{
+	resolution := provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]interface{}{
 		"UserId": "111",
 	})
 	enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
@@ -147,7 +66,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 		t.Fatalf("Expected feature to be enabled")
 	}
 
-	resolution = provider.BooleanEvaluation(ctx, "users-flag", false, map[string]interface{}{
+	resolution = provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]interface{}{
 		"UserId": "2",
 	})
 	enabled, _ = resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
@@ -164,8 +83,52 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 			"UserId": "111",
 		},
 	)
-	enabled, err = ofClient.BooleanValue(context.Background(), "users-flag", false, evalCtx)
+	enabled, _ = ofClient.BooleanValue(context.Background(), "users-flag", false, evalCtx)
 	if enabled == false {
 		t.Fatalf("Expected feature to be enabled")
 	}
+}
+
+// global cleanup
+func cleanup() {
+	provider.Shutdown()
+}
+
+func TestMain(m *testing.M) {
+
+	// global init
+	demoReader, err := os.Open("demo_app_toggles.json")
+	if err != nil {
+		fmt.Printf("Error during features file open: %v\n", err)
+	}
+
+	providerOptions := unleashProvider.ProviderConfig{
+		Options: []unleash.ConfigOption{
+			unleash.WithListener(&unleash.DebugListener{}),
+			unleash.WithAppName("my-application"),
+			unleash.WithRefreshInterval(5 * time.Second),
+			unleash.WithMetricsInterval(5 * time.Second),
+			unleash.WithStorage(&unleash.BootstrapStorage{Reader: demoReader}),
+			unleash.WithUrl("https://localhost:4242"),
+		},
+	}
+
+	provider, err = unleashProvider.NewProvider(providerOptions)
+
+	if err != nil {
+		fmt.Printf("Error during provider open: %v\n", err)
+	}
+	err = provider.Init(of.EvaluationContext{})
+	if err != nil {
+		fmt.Printf("Error during provider init: %v\n", err)
+	}
+
+	fmt.Printf("provider: %v\n", provider)
+
+	// Run the tests
+	exitCode := m.Run()
+
+	cleanup()
+
+	os.Exit(exitCode)
 }
