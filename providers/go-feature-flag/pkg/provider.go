@@ -335,6 +335,7 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 				cacheValue.Variant,
 				cacheValue.Reason == of.ErrorReason,
 				"",
+				"PROVIDER_CACHE",
 			)
 			provider.dataCollectorScheduler.AddEvent(event)
 			cacheValue.Reason = of.CachedReason
