@@ -96,6 +96,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/thomaspoignant/go-feature-flag v1.18.1 h1:q90IpKgb47WxI3OE5lQDCZiVrk3ksDMR8WFQ4fS3/pU=
 github.com/thomaspoignant/go-feature-flag v1.18.1/go.mod h1:1qhxkU9d0kmvOuZQ4LgkD7PUayZG6if1QeWse3+5hZ4=
+github.com/thomaspoignant/go-feature-flag v1.18.2 h1:EmU4Ja+xfVoHuTBlZmP6YzwTgmiuwHeCS8/GNymFkHI=
+github.com/thomaspoignant/go-feature-flag v1.18.2/go.mod h1:ePtHa9auiio7QHlWKUE8ggsgUtF9MvzLDKnIK6009sM=
 github.com/xitongsys/parquet-go v1.6.2 h1:MhCaXii4eqceKPu9BwrjLqyK10oX9WF+xGhwvwbw7xM=
 github.com/xitongsys/parquet-go v1.6.2/go.mod h1:IulAQyalCm0rPiZVNnCgm/PCL64X2tdSVGMQ/UeKqWA=
 github.com/xitongsys/parquet-go-source v0.0.0-20230830030807-0dd610dbff1d h1:VVWj8KWdzpebBaXpTVpOaQW32y2UCWy3JXJ5lVDa/e8=
