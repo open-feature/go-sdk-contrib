@@ -3,6 +3,7 @@ package flagd
 import (
 	"github.com/golang/mock/gomock"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
+	internal "github.com/open-feature/go-sdk-contrib/providers/flagd/internal/configuration"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"testing"
@@ -24,12 +25,12 @@ func TestNewProvider(t *testing.T) {
 	}{
 		{
 			name:                "default construction",
-			expectPort:          defaultPort,
-			expectHost:          defaultHost,
-			expectCacheType:     defaultCache,
+			expectPort:          internal.DefaultPort,
+			expectHost:          internal.DefaultHost,
+			expectCacheType:     internal.DefaultCache,
 			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
+			expectMaxRetries:    internal.DefaultMaxEventStreamRetries,
+			expectCacheSize:     internal.DefaultMaxCacheSize,
 			expectOtelIntercept: false,
 			expectSocketPath:    "",
 			expectTlsEnabled:    false,
@@ -38,7 +39,7 @@ func TestNewProvider(t *testing.T) {
 			name:                "with options",
 			expectPort:          9090,
 			expectHost:          "myHost",
-			expectCacheType:     cacheLRUValue,
+			expectCacheType:     cache.LRUValue,
 			expectCertPath:      "/path",
 			expectMaxRetries:    2,
 			expectCacheSize:     2500,

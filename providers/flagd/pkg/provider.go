@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/configuration"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
@@ -13,7 +14,7 @@ import (
 
 type Provider struct {
 	logger                logr.Logger
-	providerConfiguration *providerConfiguration
+	providerConfiguration *configuration.ProviderConfiguration
 	service               IService
 	status                of.State
 
@@ -24,15 +25,12 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
-	configuration := newDefaultConfiguration(log)
-
-	// env variables have higher priority than defaults
-	configuration.updateFromEnvVar()
+	providerConfiguration := configuration.NewDefaultConfiguration(log)
 
 	provider := &Provider{
 		eventStream:           make(chan of.Event),
 		logger:                log,
-		providerConfiguration: configuration,
+		providerConfiguration: providerConfiguration,
 		status:                of.NotReadyState,
 	}
 
@@ -184,14 +182,14 @@ func WithHost(host string) ProviderOption {
 // WithoutCache disables caching
 func WithoutCache() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.CacheType = cacheDisabledValue
+		p.providerConfiguration.CacheType = cache.DisabledValue
 	}
 }
 
 // WithBasicInMemoryCache applies a basic in memory cache store (with no memory limits)
 func WithBasicInMemoryCache() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.CacheType = cacheInMemValue
+		p.providerConfiguration.CacheType = cache.InMemValue
 	}
 }
 
@@ -203,7 +201,7 @@ func WithLRUCache(size int) ProviderOption {
 		if size > 0 {
 			p.providerConfiguration.MaxCacheSize = size
 		}
-		p.providerConfiguration.CacheType = cacheLRUValue
+		p.providerConfiguration.CacheType = cache.LRUValue
 	}
 }
 
@@ -240,6 +238,6 @@ func WithOtelInterceptor(intercept bool) ProviderOption {
 // FromEnv sets the provider configuration from environment variables (if set)
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.updateFromEnvVar()
+		p.providerConfiguration.UpdateFromEnvVar()
 	}
 }
