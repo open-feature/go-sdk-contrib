@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
@@ -46,8 +46,8 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		provider.providerConfiguration.MaxCacheSize,
 		provider.logger)
 
-	provider.service = service.NewService(
-		service.Configuration{
+	provider.service = rpc.NewService(
+		rpc.Configuration{
 			Host:            provider.providerConfiguration.Host,
 			Port:            provider.providerConfiguration.Port,
 			CertificatePath: provider.providerConfiguration.CertificatePath,

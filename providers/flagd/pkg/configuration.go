@@ -2,11 +2,10 @@ package flagd
 
 import (
 	"fmt"
+	"github.com/go-logr/logr"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"os"
 	"strconv"
-
-	"github.com/go-logr/logr"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 )
 
 // Naming and defaults must comply with flagd environment variables

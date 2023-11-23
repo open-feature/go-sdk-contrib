@@ -1,4 +1,4 @@
-package service
+package rpc
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
 )

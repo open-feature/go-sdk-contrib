@@ -1,4 +1,4 @@
-package service
+package rpc
 
 import (
 	"crypto/tls"
@@ -17,8 +17,8 @@ import (
 	"github.com/go-logr/logr"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/net/context"
