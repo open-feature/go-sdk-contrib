@@ -235,6 +235,27 @@ func WithOtelInterceptor(intercept bool) ProviderOption {
 	}
 }
 
+// WithRPCResolver sets flag resolver to RPC. RPC is the default resolving mechanism
+func WithRPCResolver() ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Resolver = configuration.RPC
+	}
+}
+
+// WithInProcessResolver sets flag resolver to InProcess
+func WithInProcessResolver() ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Resolver = configuration.InProcess
+	}
+}
+
+// WithSelector sets the selector to be used for InProcess flag sync calls
+func WithSelector(selector string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Selector = selector
+	}
+}
+
 // FromEnv sets the provider configuration from environment variables (if set)
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
