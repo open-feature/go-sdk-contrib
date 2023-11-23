@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+type ResolverType string
+
 // Naming and defaults must comply with flagd environment variables
 const (
 	DefaultMaxCacheSize          int  = 1000
@@ -16,7 +18,12 @@ const (
 	defaultTLS                   bool = false
 	DefaultCache                      = cache.LRUValue
 	DefaultHost                       = "localhost"
-	
+	DefaultResolver                   = RPC
+	DefaultSourceSelector             = ""
+
+	RPC       ResolverType = "rpc"
+	InProcess ResolverType = "in-process"
+
 	flagdHostEnvironmentVariableName                  = "FLAGD_HOST"
 	flagdPortEnvironmentVariableName                  = "FLAGD_PORT"
 	flagdTLSEnvironmentVariableName                   = "FLAGD_TLS"
@@ -25,6 +32,8 @@ const (
 	flagdCacheEnvironmentVariableName                 = "FLAGD_CACHE"
 	flagdMaxCacheSizeEnvironmentVariableName          = "FLAGD_MAX_CACHE_SIZE"
 	flagdMaxEventStreamRetriesEnvironmentVariableName = "FLAGD_MAX_EVENT_STREAM_RETRIES"
+	flagdResolverEnvironmentVariableName              = "FLAGD_RESOLVER"
+	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 )
 
 type ProviderConfiguration struct {
@@ -35,6 +44,8 @@ type ProviderConfiguration struct {
 	MaxCacheSize                     int
 	OtelIntercept                    bool
 	Port                             uint16
+	Resolver                         ResolverType
+	Selector                         string
 	SocketPath                       string
 	TLSEnabled                       bool
 
@@ -46,10 +57,11 @@ func NewDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		CacheType:                        DefaultCache,
 		EventStreamConnectionMaxAttempts: DefaultMaxEventStreamRetries,
 		Host:                             DefaultHost,
+		log:                              log,
 		MaxCacheSize:                     DefaultMaxCacheSize,
 		Port:                             DefaultPort,
+		Resolver:                         DefaultResolver,
 		TLSEnabled:                       defaultTLS,
-		log:                              log,
 	}
 
 	p.UpdateFromEnvVar()
@@ -124,6 +136,22 @@ func (cfg *ProviderConfiguration) UpdateFromEnvVar() {
 		} else {
 			cfg.EventStreamConnectionMaxAttempts = maxEventStreamRetries
 		}
+	}
+
+	if resolver := os.Getenv(flagdResolverEnvironmentVariableName); resolver != "" {
+		switch ResolverType(resolver) {
+		case RPC:
+			cfg.Resolver = RPC
+		case InProcess:
+			cfg.Resolver = InProcess
+		default:
+			cfg.log.Info("invalid resolver type: %s, falling back to default: %s", resolver, DefaultResolver)
+			cfg.Resolver = DefaultResolver
+		}
+	}
+
+	if selector := os.Getenv(flagdSourceSelectorEnvironmentVariableName); selector != "" {
+		cfg.Selector = selector
 	}
 
 }
