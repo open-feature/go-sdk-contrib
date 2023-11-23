@@ -1,4 +1,4 @@
-package in_process
+package process
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"github.com/open-feature/flagd/core/pkg/runtime"
 	"github.com/open-feature/flagd/core/pkg/store"
 	"github.com/open-feature/flagd/core/pkg/sync"
-	internal "github.com/open-feature/go-sdk-contrib/providers/flagd/internal/configuration"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/exp/maps"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -25,15 +24,22 @@ type InProcess struct {
 	sync         sync.ISync
 }
 
-func NewInProcessService(cfg internal.ProviderConfiguration) *InProcess {
+type Configuration struct {
+	Host       any
+	Port       any
+	Selector   string
+	TLSEnabled bool
+}
+
+func NewInProcessService(cfg Configuration) *InProcess {
 	log := logger.NewLogger(zap.NewRaw(), false)
 
 	// currently supports grpc syncs for in-process flag fetch
 	var uri string
 	if cfg.TLSEnabled {
-		uri = fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
-	} else {
 		uri = fmt.Sprintf("https://%s:%d", cfg.Host, cfg.Port)
+	} else {
+		uri = fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
 	}
 
 	grpcSync := runtime.NewGRPC(runtime.SourceConfig{

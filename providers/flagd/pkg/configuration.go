@@ -1,4 +1,4 @@
-package configuration
+package flagd
 
 import (
 	"fmt"
@@ -12,17 +12,17 @@ type ResolverType string
 
 // Naming and defaults must comply with flagd environment variables
 const (
-	DefaultMaxCacheSize          int  = 1000
-	DefaultPort                       = 8013
-	DefaultMaxEventStreamRetries      = 5
+	defaultMaxCacheSize          int  = 1000
+	defaultPort                       = 8013
+	defaultMaxEventStreamRetries      = 5
 	defaultTLS                   bool = false
-	DefaultCache                      = cache.LRUValue
-	DefaultHost                       = "localhost"
-	DefaultResolver                   = RPC
-	DefaultSourceSelector             = ""
+	defaultCache                      = cache.LRUValue
+	defaultHost                       = "localhost"
+	defaultResolver                   = rpc
+	defaultSourceSelector             = ""
 
-	RPC       ResolverType = "rpc"
-	InProcess ResolverType = "in-process"
+	rpc       ResolverType = "rpc"
+	inProcess ResolverType = "in-process"
 
 	flagdHostEnvironmentVariableName                  = "FLAGD_HOST"
 	flagdPortEnvironmentVariableName                  = "FLAGD_PORT"
@@ -36,7 +36,7 @@ const (
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 )
 
-type ProviderConfiguration struct {
+type providerConfiguration struct {
 	CacheType                        cache.Type
 	CertificatePath                  string
 	EventStreamConnectionMaxAttempts int
@@ -52,24 +52,24 @@ type ProviderConfiguration struct {
 	log logr.Logger
 }
 
-func NewDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
-	p := &ProviderConfiguration{
-		CacheType:                        DefaultCache,
-		EventStreamConnectionMaxAttempts: DefaultMaxEventStreamRetries,
-		Host:                             DefaultHost,
+func NewDefaultConfiguration(log logr.Logger) *providerConfiguration {
+	p := &providerConfiguration{
+		CacheType:                        defaultCache,
+		EventStreamConnectionMaxAttempts: defaultMaxEventStreamRetries,
+		Host:                             defaultHost,
 		log:                              log,
-		MaxCacheSize:                     DefaultMaxCacheSize,
-		Port:                             DefaultPort,
-		Resolver:                         DefaultResolver,
+		MaxCacheSize:                     defaultMaxCacheSize,
+		Port:                             defaultPort,
+		Resolver:                         defaultResolver,
 		TLSEnabled:                       defaultTLS,
 	}
 
-	p.UpdateFromEnvVar()
+	p.updateFromEnvVar()
 	return p
 }
 
-// UpdateFromEnvVar is a utility to update configurations based on current environment variables
-func (cfg *ProviderConfiguration) UpdateFromEnvVar() {
+// updateFromEnvVar is a utility to update configurations based on current environment variables
+func (cfg *providerConfiguration) updateFromEnvVar() {
 	portS := os.Getenv(flagdPortEnvironmentVariableName)
 	if portS != "" {
 		port, err := strconv.Atoi(portS)
@@ -77,7 +77,7 @@ func (cfg *ProviderConfiguration) UpdateFromEnvVar() {
 			cfg.log.Error(err,
 				fmt.Sprintf(
 					"invalid env config for %s provided, using default value: %d",
-					flagdPortEnvironmentVariableName, DefaultPort,
+					flagdPortEnvironmentVariableName, defaultPort,
 				))
 		} else {
 			cfg.Port = uint16(port)
@@ -104,7 +104,7 @@ func (cfg *ProviderConfiguration) UpdateFromEnvVar() {
 		if err != nil {
 			cfg.log.Error(err,
 				fmt.Sprintf("invalid env config for %s provided, using default value: %d",
-					flagdMaxCacheSizeEnvironmentVariableName, DefaultMaxCacheSize,
+					flagdMaxCacheSizeEnvironmentVariableName, defaultMaxCacheSize,
 				))
 		} else {
 			cfg.MaxCacheSize = maxCacheSizeFromEnv
@@ -120,8 +120,8 @@ func (cfg *ProviderConfiguration) UpdateFromEnvVar() {
 		case cache.DisabledValue:
 			cfg.CacheType = cache.DisabledValue
 		default:
-			cfg.log.Info("invalid cache type configured: %s, falling back to default: %s", cacheValue, DefaultCache)
-			cfg.CacheType = DefaultCache
+			cfg.log.Info("invalid cache type configured: %s, falling back to default: %s", cacheValue, defaultCache)
+			cfg.CacheType = defaultCache
 		}
 	}
 
@@ -132,7 +132,7 @@ func (cfg *ProviderConfiguration) UpdateFromEnvVar() {
 		if err != nil {
 			cfg.log.Error(err,
 				fmt.Sprintf("invalid env config for %s provided, using default value: %d",
-					flagdMaxEventStreamRetriesEnvironmentVariableName, DefaultMaxEventStreamRetries))
+					flagdMaxEventStreamRetriesEnvironmentVariableName, defaultMaxEventStreamRetries))
 		} else {
 			cfg.EventStreamConnectionMaxAttempts = maxEventStreamRetries
 		}
@@ -140,13 +140,13 @@ func (cfg *ProviderConfiguration) UpdateFromEnvVar() {
 
 	if resolver := os.Getenv(flagdResolverEnvironmentVariableName); resolver != "" {
 		switch ResolverType(resolver) {
-		case RPC:
-			cfg.Resolver = RPC
-		case InProcess:
-			cfg.Resolver = InProcess
+		case rpc:
+			cfg.Resolver = rpc
+		case inProcess:
+			cfg.Resolver = inProcess
 		default:
-			cfg.log.Info("invalid resolver type: %s, falling back to default: %s", resolver, DefaultResolver)
-			cfg.Resolver = DefaultResolver
+			cfg.log.Info("invalid resolver type: %s, falling back to default: %s", resolver, defaultResolver)
+			cfg.Resolver = defaultResolver
 		}
 	}
 

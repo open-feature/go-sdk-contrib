@@ -6,15 +6,15 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/configuration"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
+	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
 type Provider struct {
 	logger                logr.Logger
-	providerConfiguration *configuration.ProviderConfiguration
+	providerConfiguration *providerConfiguration
 	service               IService
 	status                of.State
 
@@ -25,7 +25,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
-	providerConfiguration := configuration.NewDefaultConfiguration(log)
+	providerConfiguration := NewDefaultConfiguration(log)
 
 	provider := &Provider{
 		eventStream:           make(chan of.Event),
@@ -44,18 +44,30 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		provider.providerConfiguration.MaxCacheSize,
 		provider.logger)
 
-	provider.service = rpc.NewService(
-		rpc.Configuration{
-			Host:            provider.providerConfiguration.Host,
-			Port:            provider.providerConfiguration.Port,
-			CertificatePath: provider.providerConfiguration.CertificatePath,
-			SocketPath:      provider.providerConfiguration.SocketPath,
-			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
-			OtelInterceptor: provider.providerConfiguration.OtelIntercept,
-		},
-		cacheService,
-		provider.logger,
-		provider.providerConfiguration.EventStreamConnectionMaxAttempts)
+	var service IService
+	if provider.providerConfiguration.Resolver == rpc {
+		service = rpcService.NewService(
+			rpcService.Configuration{
+				Host:            provider.providerConfiguration.Host,
+				Port:            provider.providerConfiguration.Port,
+				CertificatePath: provider.providerConfiguration.CertificatePath,
+				SocketPath:      provider.providerConfiguration.SocketPath,
+				TLSEnabled:      provider.providerConfiguration.TLSEnabled,
+				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
+			},
+			cacheService,
+			provider.logger,
+			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
+	} else {
+		service = process.NewInProcessService(process.Configuration{
+			Host:       provider.providerConfiguration.Host,
+			Port:       provider.providerConfiguration.Port,
+			Selector:   provider.providerConfiguration.Selector,
+			TLSEnabled: provider.providerConfiguration.TLSEnabled,
+		})
+	}
+
+	provider.service = service
 
 	return provider
 }
@@ -238,14 +250,14 @@ func WithOtelInterceptor(intercept bool) ProviderOption {
 // WithRPCResolver sets flag resolver to RPC. RPC is the default resolving mechanism
 func WithRPCResolver() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.Resolver = configuration.RPC
+		p.providerConfiguration.Resolver = rpc
 	}
 }
 
 // WithInProcessResolver sets flag resolver to InProcess
 func WithInProcessResolver() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.Resolver = configuration.InProcess
+		p.providerConfiguration.Resolver = inProcess
 	}
 }
 
@@ -259,6 +271,6 @@ func WithSelector(selector string) ProviderOption {
 // FromEnv sets the provider configuration from environment variables (if set)
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.UpdateFromEnvVar()
+		p.providerConfiguration.updateFromEnvVar()
 	}
 }
