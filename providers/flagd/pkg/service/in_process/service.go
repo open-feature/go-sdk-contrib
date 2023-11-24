@@ -12,16 +12,18 @@ import (
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"golang.org/x/exp/maps"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	parallel "sync"
 )
 
 // InProcess service implements flagd flag evaluation in-process.
 // Flag configurations are obtained from supported sources.
 type InProcess struct {
-	evaluator    eval.IEvaluator
-	events       chan of.Event
-	logger       *logger.Logger
-	shutdownHook chan interface{}
-	sync         sync.ISync
+	evaluator        eval.IEvaluator
+	events           chan of.Event
+	listenerShutdown chan interface{}
+	logger           *logger.Logger
+	sync             sync.ISync
+	syncEnd          context.CancelFunc
 }
 
 type Configuration struct {
@@ -37,9 +39,9 @@ func NewInProcessService(cfg Configuration) *InProcess {
 	// currently supports grpc syncs for in-process flag fetch
 	var uri string
 	if cfg.TLSEnabled {
-		uri = fmt.Sprintf("https://%s:%d", cfg.Host, cfg.Port)
+		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	} else {
-		uri = fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
+		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	}
 
 	grpcSync := runtime.NewGRPC(runtime.SourceConfig{
@@ -71,56 +73,75 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		))
 
 	return &InProcess{
-		evaluator:    jsonEvaluator,
-		events:       make(chan of.Event, 1),
-		logger:       log,
-		shutdownHook: make(chan interface{}),
-		sync:         grpcSync,
+		evaluator:        jsonEvaluator,
+		events:           make(chan of.Event, 1),
+		logger:           log,
+		listenerShutdown: make(chan interface{}),
+		sync:             grpcSync,
 	}
 }
 
 func (i *InProcess) Init() error {
-	ctx, cancelFunction := context.WithCancel(context.Background())
+	var ctx context.Context
+	ctx, i.syncEnd = context.WithCancel(context.Background())
 
 	err := i.sync.Init(ctx)
 	if err != nil {
-		cancelFunction()
 		return err
 	}
+
+	syncInitSuccess := make(chan interface{})
+	readyOnce := parallel.OnceFunc(func() {
+		syncInitSuccess <- nil
+	})
+	syncInitErr := make(chan error)
 
 	syncChan := make(chan sync.DataSync, 1)
-	err = i.sync.Sync(ctx, syncChan)
-	if err != nil {
-		cancelFunction()
-		return err
-	}
 
+	// start data sync
+	go func() {
+		err := i.sync.Sync(ctx, syncChan)
+		if err != nil {
+			syncInitErr <- err
+		}
+	}()
+
+	// start data sync listener and listen to listener shutdown hook
 	go func() {
 		for {
 			select {
 			case data := <-syncChan:
+				readyOnce()
 				// re-syncs are ignored as we only support single flag sync source
 				changes, _, err := i.evaluator.SetState(data)
 				if err != nil {
-					// emit error
 					i.events <- of.Event{
 						ProviderName: "flagd", EventType: of.ProviderError,
 						ProviderEventDetails: of.ProviderEventDetails{Message: "Error from flag sync " + err.Error()}}
 				}
-				// emit flag change event
 				i.events <- of.Event{
 					ProviderName: "flagd", EventType: of.ProviderConfigChange,
 					ProviderEventDetails: of.ProviderEventDetails{Message: "New flag sync", FlagChanges: maps.Keys(changes)}}
-			case <-i.shutdownHook:
-				cancelFunction()
+			case <-i.listenerShutdown:
+				i.logger.Info("Shutting down data sync listener")
+				return
 			}
 		}
 	}()
-	return nil
+
+	// wait for initialization or error
+	select {
+	case <-syncInitSuccess:
+		i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+		return nil
+	case err := <-syncInitErr:
+		return err
+	}
 }
 
 func (i *InProcess) Shutdown() {
-	i.shutdownHook <- nil
+	i.syncEnd()
+	i.listenerShutdown <- nil
 }
 
 func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue bool,
