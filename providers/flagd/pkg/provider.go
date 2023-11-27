@@ -93,6 +93,7 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 			p.eventStream <- event
 			switch event.EventType {
 			case of.ProviderReady:
+			case of.ProviderConfigChange:
 				p.status = of.ReadyState
 			case of.ProviderError:
 				p.status = of.ErrorState

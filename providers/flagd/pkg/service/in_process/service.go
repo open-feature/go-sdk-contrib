@@ -74,7 +74,7 @@ func NewInProcessService(cfg Configuration) *InProcess {
 
 	return &InProcess{
 		evaluator:        jsonEvaluator,
-		events:           make(chan of.Event, 1),
+		events:           make(chan of.Event, 5),
 		logger:           log,
 		listenerShutdown: make(chan interface{}),
 		sync:             grpcSync,
@@ -92,6 +92,7 @@ func (i *InProcess) Init() error {
 
 	syncInitSuccess := make(chan interface{})
 	readyOnce := parallel.OnceFunc(func() {
+		i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
 		syncInitSuccess <- nil
 	})
 	syncInitErr := make(chan error)
@@ -111,7 +112,6 @@ func (i *InProcess) Init() error {
 		for {
 			select {
 			case data := <-syncChan:
-				readyOnce()
 				// re-syncs are ignored as we only support single flag sync source
 				changes, _, err := i.evaluator.SetState(data)
 				if err != nil {
@@ -119,6 +119,7 @@ func (i *InProcess) Init() error {
 						ProviderName: "flagd", EventType: of.ProviderError,
 						ProviderEventDetails: of.ProviderEventDetails{Message: "Error from flag sync " + err.Error()}}
 				}
+				readyOnce()
 				i.events <- of.Event{
 					ProviderName: "flagd", EventType: of.ProviderConfigChange,
 					ProviderEventDetails: of.ProviderEventDetails{Message: "New flag sync", FlagChanges: maps.Keys(changes)}}
@@ -132,7 +133,6 @@ func (i *InProcess) Init() error {
 	// wait for initialization or error
 	select {
 	case <-syncInitSuccess:
-		i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
 		return nil
 	case err := <-syncInitErr:
 		return err
