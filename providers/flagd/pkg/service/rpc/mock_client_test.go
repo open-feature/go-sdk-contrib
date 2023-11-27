@@ -2,8 +2,8 @@ package rpc
 
 import (
 	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	"connectrpc.com/connect"
 	"context"
-	"github.com/bufbuild/connect-go"
 )
 
 // MockClient is a test mock for service client

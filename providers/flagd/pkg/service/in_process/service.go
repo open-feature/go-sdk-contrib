@@ -162,10 +162,9 @@ func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue
 	return of.BoolResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			ResolutionError: mapError(err),
-			Reason:          of.Reason(reason),
-			Variant:         variant,
-			FlagMetadata:    metadata,
+			Reason:       of.Reason(reason),
+			Variant:      variant,
+			FlagMetadata: metadata,
 		},
 	}
 }
@@ -188,10 +187,9 @@ func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue 
 	return of.StringResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			ResolutionError: mapError(err),
-			Reason:          of.Reason(reason),
-			Variant:         variant,
-			FlagMetadata:    metadata,
+			Reason:       of.Reason(reason),
+			Variant:      variant,
+			FlagMetadata: metadata,
 		},
 	}
 }
@@ -214,10 +212,9 @@ func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue f
 	return of.FloatResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			ResolutionError: mapError(err),
-			Reason:          of.Reason(reason),
-			Variant:         variant,
-			FlagMetadata:    metadata,
+			Reason:       of.Reason(reason),
+			Variant:      variant,
+			FlagMetadata: metadata,
 		},
 	}
 }
@@ -240,10 +237,9 @@ func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int
 	return of.IntResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			ResolutionError: mapError(err),
-			Reason:          of.Reason(reason),
-			Variant:         variant,
-			FlagMetadata:    metadata,
+			Reason:       of.Reason(reason),
+			Variant:      variant,
+			FlagMetadata: metadata,
 		},
 	}
 }
@@ -266,10 +262,9 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 	return of.InterfaceResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			ResolutionError: mapError(err),
-			Reason:          of.Reason(reason),
-			Variant:         variant,
-			FlagMetadata:    metadata,
+			Reason:       of.Reason(reason),
+			Variant:      variant,
+			FlagMetadata: metadata,
 		},
 	}
 }
