@@ -5,9 +5,10 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
+	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
@@ -24,15 +25,12 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
-	configuration := newDefaultConfiguration(log)
-
-	// env variables have higher priority than defaults
-	configuration.updateFromEnvVar()
+	providerConfiguration := NewDefaultConfiguration(log)
 
 	provider := &Provider{
 		eventStream:           make(chan of.Event),
 		logger:                log,
-		providerConfiguration: configuration,
+		providerConfiguration: providerConfiguration,
 		status:                of.NotReadyState,
 	}
 
@@ -46,18 +44,30 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		provider.providerConfiguration.MaxCacheSize,
 		provider.logger)
 
-	provider.service = service.NewService(
-		service.Configuration{
-			Host:            provider.providerConfiguration.Host,
-			Port:            provider.providerConfiguration.Port,
-			CertificatePath: provider.providerConfiguration.CertificatePath,
-			SocketPath:      provider.providerConfiguration.SocketPath,
-			TLSEnabled:      provider.providerConfiguration.TLSEnabled,
-			OtelInterceptor: provider.providerConfiguration.OtelIntercept,
-		},
-		cacheService,
-		provider.logger,
-		provider.providerConfiguration.EventStreamConnectionMaxAttempts)
+	var service IService
+	if provider.providerConfiguration.Resolver == rpc {
+		service = rpcService.NewService(
+			rpcService.Configuration{
+				Host:            provider.providerConfiguration.Host,
+				Port:            provider.providerConfiguration.Port,
+				CertificatePath: provider.providerConfiguration.CertificatePath,
+				SocketPath:      provider.providerConfiguration.SocketPath,
+				TLSEnabled:      provider.providerConfiguration.TLSEnabled,
+				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
+			},
+			cacheService,
+			provider.logger,
+			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
+	} else {
+		service = process.NewInProcessService(process.Configuration{
+			Host:       provider.providerConfiguration.Host,
+			Port:       provider.providerConfiguration.Port,
+			Selector:   provider.providerConfiguration.Selector,
+			TLSEnabled: provider.providerConfiguration.TLSEnabled,
+		})
+	}
+
+	provider.service = service
 
 	return provider
 }
@@ -83,6 +93,7 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 			p.eventStream <- event
 			switch event.EventType {
 			case of.ProviderReady:
+			case of.ProviderConfigChange:
 				p.status = of.ReadyState
 			case of.ProviderError:
 				p.status = of.ErrorState
@@ -184,14 +195,14 @@ func WithHost(host string) ProviderOption {
 // WithoutCache disables caching
 func WithoutCache() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.CacheType = cacheDisabledValue
+		p.providerConfiguration.CacheType = cache.DisabledValue
 	}
 }
 
 // WithBasicInMemoryCache applies a basic in memory cache store (with no memory limits)
 func WithBasicInMemoryCache() ProviderOption {
 	return func(p *Provider) {
-		p.providerConfiguration.CacheType = cacheInMemValue
+		p.providerConfiguration.CacheType = cache.InMemValue
 	}
 }
 
@@ -203,7 +214,7 @@ func WithLRUCache(size int) ProviderOption {
 		if size > 0 {
 			p.providerConfiguration.MaxCacheSize = size
 		}
-		p.providerConfiguration.CacheType = cacheLRUValue
+		p.providerConfiguration.CacheType = cache.LRUValue
 	}
 }
 
@@ -234,6 +245,27 @@ func WithTLS(certPath string) ProviderOption {
 func WithOtelInterceptor(intercept bool) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.OtelIntercept = intercept
+	}
+}
+
+// WithRPCResolver sets flag resolver to RPC. RPC is the default resolving mechanism
+func WithRPCResolver() ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Resolver = rpc
+	}
+}
+
+// WithInProcessResolver sets flag resolver to InProcess
+func WithInProcessResolver() ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Resolver = inProcess
+	}
+}
+
+// WithSelector sets the selector to be used for InProcess flag sync calls
+func WithSelector(selector string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Selector = selector
 	}
 }
 

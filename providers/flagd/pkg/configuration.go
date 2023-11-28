@@ -2,32 +2,38 @@ package flagd
 
 import (
 	"fmt"
+	"github.com/go-logr/logr"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"os"
 	"strconv"
-
-	"github.com/go-logr/logr"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 )
+
+type ResolverType string
 
 // Naming and defaults must comply with flagd environment variables
 const (
-	defaultMaxCacheSize                               int  = 1000
-	defaultPort                                            = 8013
-	defaultMaxEventStreamRetries                           = 5
-	defaultTLS                                        bool = false
-	defaultCache                                           = cache.LRUValue
-	defaultHost                                            = "localhost"
-	flagdHostEnvironmentVariableName                       = "FLAGD_HOST"
-	flagdPortEnvironmentVariableName                       = "FLAGD_PORT"
-	flagdTLSEnvironmentVariableName                        = "FLAGD_TLS"
-	flagdSocketPathEnvironmentVariableName                 = "FLAGD_SOCKET_PATH"
-	flagdServerCertPathEnvironmentVariableName             = "FLAGD_SERVER_CERT_PATH"
-	flagdCacheEnvironmentVariableName                      = "FLAGD_CACHE"
-	flagdMaxCacheSizeEnvironmentVariableName               = "FLAGD_MAX_CACHE_SIZE"
-	flagdMaxEventStreamRetriesEnvironmentVariableName      = "FLAGD_MAX_EVENT_STREAM_RETRIES"
-	cacheDisabledValue                                     = cache.DisabledValue
-	cacheLRUValue                                          = cache.LRUValue
-	cacheInMemValue                                        = cache.InMemValue
+	defaultMaxCacheSize          int  = 1000
+	defaultPort                       = 8013
+	defaultMaxEventStreamRetries      = 5
+	defaultTLS                   bool = false
+	defaultCache                      = cache.LRUValue
+	defaultHost                       = "localhost"
+	defaultResolver                   = rpc
+	defaultSourceSelector             = ""
+
+	rpc       ResolverType = "rpc"
+	inProcess ResolverType = "in-process"
+
+	flagdHostEnvironmentVariableName                  = "FLAGD_HOST"
+	flagdPortEnvironmentVariableName                  = "FLAGD_PORT"
+	flagdTLSEnvironmentVariableName                   = "FLAGD_TLS"
+	flagdSocketPathEnvironmentVariableName            = "FLAGD_SOCKET_PATH"
+	flagdServerCertPathEnvironmentVariableName        = "FLAGD_SERVER_CERT_PATH"
+	flagdCacheEnvironmentVariableName                 = "FLAGD_CACHE"
+	flagdMaxCacheSizeEnvironmentVariableName          = "FLAGD_MAX_CACHE_SIZE"
+	flagdMaxEventStreamRetriesEnvironmentVariableName = "FLAGD_MAX_EVENT_STREAM_RETRIES"
+	flagdResolverEnvironmentVariableName              = "FLAGD_RESOLVER"
+	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 )
 
 type providerConfiguration struct {
@@ -38,22 +44,28 @@ type providerConfiguration struct {
 	MaxCacheSize                     int
 	OtelIntercept                    bool
 	Port                             uint16
+	Resolver                         ResolverType
+	Selector                         string
 	SocketPath                       string
 	TLSEnabled                       bool
 
 	log logr.Logger
 }
 
-func newDefaultConfiguration(log logr.Logger) *providerConfiguration {
-	return &providerConfiguration{
+func NewDefaultConfiguration(log logr.Logger) *providerConfiguration {
+	p := &providerConfiguration{
 		CacheType:                        defaultCache,
 		EventStreamConnectionMaxAttempts: defaultMaxEventStreamRetries,
 		Host:                             defaultHost,
+		log:                              log,
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Port:                             defaultPort,
+		Resolver:                         defaultResolver,
 		TLSEnabled:                       defaultTLS,
-		log:                              log,
 	}
+
+	p.updateFromEnvVar()
+	return p
 }
 
 // updateFromEnvVar is a utility to update configurations based on current environment variables
@@ -124,6 +136,22 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 		} else {
 			cfg.EventStreamConnectionMaxAttempts = maxEventStreamRetries
 		}
+	}
+
+	if resolver := os.Getenv(flagdResolverEnvironmentVariableName); resolver != "" {
+		switch ResolverType(resolver) {
+		case rpc:
+			cfg.Resolver = rpc
+		case inProcess:
+			cfg.Resolver = inProcess
+		default:
+			cfg.log.Info("invalid resolver type: %s, falling back to default: %s", resolver, defaultResolver)
+			cfg.Resolver = defaultResolver
+		}
+	}
+
+	if selector := os.Getenv(flagdSourceSelectorEnvironmentVariableName); selector != "" {
+		cfg.Selector = selector
 	}
 
 }

@@ -1,12 +1,11 @@
 package flagd
 
 import (
-	"testing"
-
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/cache"
 	of "github.com/open-feature/go-sdk/pkg/openfeature"
 	"go.uber.org/mock/gomock"
+	"testing"
 )
 
 func TestNewProvider(t *testing.T) {
@@ -39,7 +38,7 @@ func TestNewProvider(t *testing.T) {
 			name:                "with options",
 			expectPort:          9090,
 			expectHost:          "myHost",
-			expectCacheType:     cacheLRUValue,
+			expectCacheType:     cache.LRUValue,
 			expectCertPath:      "/path",
 			expectMaxRetries:    2,
 			expectCacheSize:     2500,

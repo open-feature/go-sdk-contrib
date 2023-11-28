@@ -1,18 +1,16 @@
-//go:build e2e
-
 package e2e
 
 import (
 	"flag"
+	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"testing"
 
 	"github.com/cucumber/godog"
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
-func TestETestEvaluationFlagdInRPC(t *testing.T) {
+func TestJsonEvaluatorInRPC(t *testing.T) {
 	if testing.Short() {
 		// skip e2e if testing -short
 		t.Skip()
@@ -20,16 +18,16 @@ func TestETestEvaluationFlagdInRPC(t *testing.T) {
 
 	flag.Parse()
 
-	name := "evaluation.feature"
+	name := "flagd-json-evaluator.feature"
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		ScenarioInitializer: integration.InitializeEvaluationScenario(func() openfeature.FeatureProvider {
+		ScenarioInitializer: integration.InitializeFlagdJsonScenario(func() openfeature.FeatureProvider {
 			return flagd.NewProvider(flagd.WithPort(8013))
 		}),
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"../../../spec/specification/assets/gherkin/evaluation.feature"},
+			Paths:    []string{"../../../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
 			TestingT: t, // Testing instance that will run subtests.
 			Strict:   true,
 		},
@@ -40,7 +38,7 @@ func TestETestEvaluationFlagdInRPC(t *testing.T) {
 	}
 }
 
-func TestJsonEvaluatorFlagdInProcess(t *testing.T) {
+func TestJsonEvaluatorInProcess(t *testing.T) {
 	if testing.Short() {
 		// skip e2e if testing -short
 		t.Skip()
@@ -48,16 +46,16 @@ func TestJsonEvaluatorFlagdInProcess(t *testing.T) {
 
 	flag.Parse()
 
-	name := "evaluation.feature"
+	name := "flagd-json-evaluator.feature"
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		ScenarioInitializer: integration.InitializeEvaluationScenario(func() openfeature.FeatureProvider {
+		ScenarioInitializer: integration.InitializeFlagdJsonScenario(func() openfeature.FeatureProvider {
 			return flagd.NewProvider(flagd.WithInProcessResolver(), flagd.WithPort(9090))
 		}),
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"../../../spec/specification/assets/gherkin/evaluation.feature"},
+			Paths:    []string{"../../../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
 			TestingT: t, // Testing instance that will run subtests.
 			Strict:   true,
 		},
