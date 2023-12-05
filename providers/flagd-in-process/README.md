@@ -1,4 +1,8 @@
-# In-process Flagd Provider
+# DEPRECATED - In-process Flagd Provider 
+
+> [!IMPORTANT]
+> This provider is DEPRECATED and will be removed soon.
+> [flagd provider](../flagd/README.md) now supports in-process flag evaluation and it will be maintained as a single package.
 
 This provider implements parts of the functionality of [Flagd](https://github.com/open-feature/flagd), and follows its
 specification for [in-process providers](https://flagd.dev/reference/specifications/in-process-providers/).

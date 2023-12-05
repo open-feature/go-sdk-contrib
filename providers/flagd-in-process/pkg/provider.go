@@ -59,6 +59,7 @@ type connectionInfo struct {
 
 type connectionState int
 
+// Deprecated: Please use flagd with WithInProcessResolver option instead of this dedicated provider
 type Provider struct {
 	ctx                   context.Context
 	cancelFunc            context.CancelFunc
@@ -80,6 +81,7 @@ type ProviderConfiguration struct {
 
 type ProviderOption func(*Provider)
 
+// Deprecated : Please use flagd with WithInProcessResolver option instead of this dedicated provider
 func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 	ctx, cancel := context.WithCancel(ctx)
 	provider := &Provider{
