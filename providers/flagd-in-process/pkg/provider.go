@@ -59,7 +59,7 @@ type connectionInfo struct {
 
 type connectionState int
 
-// DEPRECATED : Please use flagd with WithInProcessResolver option instead of this dedicated provider
+// Deprecated: Please use flagd with WithInProcessResolver option instead of this dedicated provider
 type Provider struct {
 	ctx                   context.Context
 	cancelFunc            context.CancelFunc
