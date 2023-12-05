@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.18...providers/flagd/v0.1.19) (2023-12-05)
+
+
+### ✨ New Features
+
+* consolidate flagd in-process provider ([#394](https://github.com/open-feature/go-sdk-contrib/issues/394)) ([5f68c85](https://github.com/open-feature/go-sdk-contrib/commit/5f68c8520f2e2f480512c764ec39f6ecd0b30d1d))
+
 ## [0.1.18](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.17...providers/flagd/v0.1.18) (2023-11-14)
 
 
