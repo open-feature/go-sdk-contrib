@@ -81,7 +81,7 @@ type ProviderConfiguration struct {
 
 type ProviderOption func(*Provider)
 
-// DEPRECATED : Please use flagd with WithInProcessResolver option instead of this dedicated provider
+// Deprecated : Please use flagd with WithInProcessResolver option instead of this dedicated provider
 func NewProvider(ctx context.Context, opts ...ProviderOption) *Provider {
 	ctx, cancel := context.WithCancel(ctx)
 	provider := &Provider{
