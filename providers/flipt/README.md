@@ -84,7 +84,7 @@ func (t Token) ClientToken() (string, error) {
 }
 
 provider := flipt.NewProvider(
-    flipt.WithAddress("grpc://localhost:9000"),
+    flipt.WithAddress("localhost:9000"),
     flipt.WithCertificatePath("/path/to/cert.pem"), // optional
     flipt.WithClientProvider(Token("a-client-token")), // optional
 )
