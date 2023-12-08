@@ -18,15 +18,15 @@ type ctxDefaultKey struct{}
 // ctxValueKey is the key used to pass the value across context.Context
 type ctxValueKey struct{}
 
-func InitializeFlagdJsonScenario(providerSupplier func() openfeature.FeatureProvider) func(*godog.ScenarioContext) {
-
+// InitializeFlagdJsonTestSuite register provider supplier and register test steps
+func InitializeFlagdJsonTestSuite(providerSupplier func() openfeature.FeatureProvider) func(*godog.TestSuiteContext) {
 	test_provider_supplier = providerSupplier
 
-	return initializeFlagdJsonScenario
+	return func(suiteContext *godog.TestSuiteContext) {}
 }
 
-// initializeFlagdJsonScenario initializes the flagd json evaluator test scenario
-func initializeFlagdJsonScenario(ctx *godog.ScenarioContext) {
+// InitializeFlagdJsonScenario initializes the flagd json evaluator test scenario
+func InitializeFlagdJsonScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a flagd provider is set$`, aFlagdProviderIsSet)
 	ctx.Step(`^a string flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aFlagdStringFlagWithKeyIsEvaluatedWithDefaultValue)
 	ctx.Step(`^a context containing a key "([^"]*)", with value "([^"]*)"$`, aContextContainingAKeyWithValue)

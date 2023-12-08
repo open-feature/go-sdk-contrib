@@ -22,9 +22,10 @@ func TestJsonEvaluatorInRPC(t *testing.T) {
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		ScenarioInitializer: integration.InitializeFlagdJsonScenario(func() openfeature.FeatureProvider {
+		TestSuiteInitializer: integration.InitializeFlagdJsonTestSuite(func() openfeature.FeatureProvider {
 			return flagd.NewProvider(flagd.WithPort(8013))
 		}),
+		ScenarioInitializer: integration.InitializeFlagdJsonScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
 			Paths:    []string{"../../../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
@@ -50,9 +51,10 @@ func TestJsonEvaluatorInProcess(t *testing.T) {
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		ScenarioInitializer: integration.InitializeFlagdJsonScenario(func() openfeature.FeatureProvider {
+		TestSuiteInitializer: integration.InitializeFlagdJsonTestSuite(func() openfeature.FeatureProvider {
 			return flagd.NewProvider(flagd.WithInProcessResolver(), flagd.WithPort(9090))
 		}),
+		ScenarioInitializer: integration.InitializeFlagdJsonScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
 			Paths:    []string{"../../../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
