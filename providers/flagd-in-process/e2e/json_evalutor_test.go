@@ -23,9 +23,10 @@ func TestJsonEvaluatorFlagdInProcess(t *testing.T) {
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		ScenarioInitializer: integration.InitializeFlagdJsonScenario(func() openfeature.FeatureProvider {
+		TestSuiteInitializer: integration.InitializeFlagdJsonTestSuite(func() openfeature.FeatureProvider {
 			return in_process.NewProvider(context.Background(), in_process.WithSourceURI("localhost:9090"), in_process.WithSourceType(in_process.SourceTypeGrpc))
 		}),
+		ScenarioInitializer: integration.InitializeFlagdJsonScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
 			Paths:    []string{"../../../flagd-testbed/gherkin/flagd-json-evaluator.feature"},

@@ -10,14 +10,14 @@ import (
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 )
 
-func InitializeEvaluationScenario(providerSupplier func() openfeature.FeatureProvider) func(*godog.ScenarioContext) {
+// InitializeTestSuite register provider supplier for this test run
+func InitializeTestSuite(providerSupplier func() openfeature.FeatureProvider) func(*godog.TestSuiteContext) {
 	test_provider_supplier = providerSupplier
-
-	return initializeEvaluationScenario
+	return func(suiteContext *godog.TestSuiteContext) {}
 }
 
 // InitializeEvaluationScenario initializes the evaluation test scenario
-func initializeEvaluationScenario(ctx *godog.ScenarioContext) {
+func InitializeEvaluationScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a provider is registered$`, aFlagdProviderIsSet)
 
 	ctx.Step(`^a boolean flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aBooleanFlagWithKeyIsEvaluatedWithDefaultValue)
