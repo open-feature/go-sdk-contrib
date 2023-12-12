@@ -12,7 +12,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	openfeature "github.com/open-feature/go-sdk/pkg/openfeature"
+	openfeature "github.com/open-feature/go-sdk/openfeature"
 	gomock "go.uber.org/mock/gomock"
 )
 

@@ -19,8 +19,8 @@ import (
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/structpb"
 )

@@ -8,7 +8,7 @@ require (
 	github.com/cucumber/godog v0.13.0
 	github.com/golang/mock v1.6.0
 	github.com/open-feature/flagd/core v0.6.8
-	github.com/open-feature/go-sdk v1.8.0
+	github.com/open-feature/go-sdk v1.9.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.2
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.59.0

@@ -3,7 +3,7 @@ package flagd
 import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"go.uber.org/mock/gomock"
 	"testing"
 )

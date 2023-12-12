@@ -15,7 +15,7 @@ import (
 	"github.com/harness/ff-golang-server-sdk/test_helpers"
 	"github.com/jarcoal/httpmock"
 	harnessProvider "github.com/open-feature/go-sdk-contrib/providers/harness/pkg"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
 )
 

@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
 	"testing"
 	"time"

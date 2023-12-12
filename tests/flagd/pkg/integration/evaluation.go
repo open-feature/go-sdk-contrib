@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/cucumber/godog"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 // InitializeTestSuite register provider supplier for this test run

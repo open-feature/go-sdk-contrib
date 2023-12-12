@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	fromEnv "github.com/open-feature/go-sdk-contrib/providers/from-env/pkg"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 // this line will fail linting if this provider is no longer compatible with the openfeature sdk

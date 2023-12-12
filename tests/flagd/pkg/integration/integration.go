@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 var test_provider_supplier func() openfeature.FeatureProvider

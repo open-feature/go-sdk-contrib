@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	sdk "github.com/configcat/go-sdk/v8"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 var _ openfeature.FeatureProvider = (*Provider)(nil)

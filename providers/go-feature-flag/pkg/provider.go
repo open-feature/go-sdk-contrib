@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/bluele/gcache"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	client "github.com/thomaspoignant/go-feature-flag"
 	"github.com/thomaspoignant/go-feature-flag/exporter"
 	"github.com/thomaspoignant/go-feature-flag/exporter/webhookexporter"

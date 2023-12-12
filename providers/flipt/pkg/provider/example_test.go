@@ -4,7 +4,7 @@ import (
 	"context"
 
 	flipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/provider"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 func Example() {

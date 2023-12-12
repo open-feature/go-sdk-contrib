@@ -27,7 +27,7 @@ package main
 
 import (
 	inprocessflagd "github.com/open-feature/go-sdk-contrib/providers/flagd-in-process/pkg"
-   	"github.com/open-feature/go-sdk/pkg/openfeature"
+   	"github.com/open-feature/go-sdk/openfeature"
 )
 
 func main() {

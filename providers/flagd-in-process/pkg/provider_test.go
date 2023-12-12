@@ -18,7 +18,7 @@ import (
 	evalmock "github.com/open-feature/flagd/core/pkg/eval/mock"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"

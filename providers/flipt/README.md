@@ -28,7 +28,7 @@ import (
     "context"
 
     "github.com/open-feature/go-sdk-contrib/providers/flipt"
-    "github.com/open-feature/go-sdk/pkg/openfeature"
+    "github.com/open-feature/go-sdk/openfeature"
 )
 
 
