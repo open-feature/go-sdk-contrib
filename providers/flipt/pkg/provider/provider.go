@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service/transport"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
 	sdk "go.flipt.io/flipt/sdk/go"

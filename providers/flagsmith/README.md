@@ -17,7 +17,7 @@ Here's an example of how you can use the Flagsmith provider:
 ```go
 import (
     flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v3"
-    of "github.com/open-feature/go-sdk/pkg/openfeature"
+    of "github.com/open-feature/go-sdk/openfeature"
     flagsmith "github.com/open-feature/go-sdk-contrib/providers/flagsmith/pkg"
 )
     ...

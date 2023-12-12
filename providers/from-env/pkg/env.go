@@ -2,7 +2,7 @@ package from_env
 
 import (
 	"encoding/json"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 	"os"
 )
 

@@ -5,7 +5,7 @@ import (
 	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/sync/v1"
 	"context"
 	"fmt"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -123,7 +123,7 @@ func (b *bufferedServer) SyncFlags(_ *v1.SyncFlagsRequest, stream syncv1grpc.Fla
 
 	// delay EOF
 	time.Sleep(2 * time.Second)
-	
+
 	return nil
 }
 

@@ -3,7 +3,7 @@ package flagd
 import (
 	"context"
 
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 // IService abstract the service implementation for flagd provider

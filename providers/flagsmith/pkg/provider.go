@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v3"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"strconv"
 )
 

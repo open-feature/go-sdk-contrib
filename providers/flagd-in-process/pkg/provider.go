@@ -18,7 +18,7 @@ import (
 	"os"
 	"strconv"
 
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 type ProviderType string

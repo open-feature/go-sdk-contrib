@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/flipt
 go 1.21
 
 require (
-	github.com/open-feature/go-sdk v1.8.0
+	github.com/open-feature/go-sdk v1.9.0
 	github.com/stretchr/testify v1.8.4
 	go.flipt.io/flipt/rpc/flipt v1.30.0
 	go.flipt.io/flipt/sdk/go v0.7.0
@@ -30,7 +30,7 @@ require (
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto v0.0.0-20231030173426-d783a09b4405 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231030173426-d783a09b4405 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect

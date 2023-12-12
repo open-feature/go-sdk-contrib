@@ -2,7 +2,7 @@ package regex
 
 import (
 	"errors"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"regexp"
 )
 

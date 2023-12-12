@@ -10,7 +10,7 @@ go get github.com/launchdarkly/go-sdk-common/v3/...
 go get github.com/launchdarkly/go-server-sdk/v6/...
 
 # Open Feature SDK
-go get github.com/open-feature/go-sdk/pkg/openfeature
+go get github.com/open-feature/go-sdk/openfeature
 go get github.com/open-feature/go-sdk-contrib/providers/launchdarkly/pkg
 ```
 

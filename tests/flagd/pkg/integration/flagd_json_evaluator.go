@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/cucumber/godog"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 // ctxKeyKey is the key used to pass flag key across context.Context

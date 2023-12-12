@@ -7,7 +7,7 @@ import (
 	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/Unleash/unleash-client-go/v3/api"
 	unleashContext "github.com/Unleash/unleash-client-go/v3/context"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 const providerNotReady = "Provider not ready"

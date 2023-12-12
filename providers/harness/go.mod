@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/harness/ff-golang-server-sdk v0.1.15
 	github.com/jarcoal/httpmock v1.3.1
-	github.com/open-feature/go-sdk v1.8.0
+	github.com/open-feature/go-sdk v1.9.0
 	github.com/stretchr/testify v1.8.4
 )
 

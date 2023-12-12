@@ -1,7 +1,7 @@
 package model
 
 import (
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 const targetingKey = "targetingKey"

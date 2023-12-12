@@ -7,7 +7,7 @@ import (
 
 	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 func TestJsonEvaluatorInRPC(t *testing.T) {

@@ -9,7 +9,7 @@ OpenFeature Go provider implementation for [ConfigCat](https://configcat.com) th
 go get github.com/configcat/go-sdk/v7
 
 # OpenFeature SDK
-go get github.com/open-feature/go-sdk/pkg/openfeature
+go get github.com/open-feature/go-sdk/openfeature
 go get github.com/open-feature/go-sdk-contrib/providers/configcat
 ```
 
@@ -24,7 +24,7 @@ import (
 
 	sdk "github.com/configcat/go-sdk/v7"
 	configcat "github.com/open-feature/go-sdk-contrib/providers/configcat/pkg"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 func main() {

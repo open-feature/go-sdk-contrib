@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"

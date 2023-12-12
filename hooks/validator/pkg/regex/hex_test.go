@@ -2,7 +2,7 @@ package regex_test
 
 import (
 	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/regex"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"testing"
 )
 

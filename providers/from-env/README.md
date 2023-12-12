@@ -58,7 +58,7 @@ import (
 	"fmt"
 
 	fromEnv "github.com/open-feature/go-sdk-contrib/providers/from-env/pkg"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 func main() {

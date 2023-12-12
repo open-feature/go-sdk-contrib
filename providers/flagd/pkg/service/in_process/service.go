@@ -9,7 +9,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/runtime"
 	"github.com/open-feature/flagd/core/pkg/store"
 	"github.com/open-feature/flagd/core/pkg/sync"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/exp/maps"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	parallel "sync"

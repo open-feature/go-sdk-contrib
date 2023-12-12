@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/regex"
 	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/validator"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 	"log"
 )
 
@@ -58,7 +58,7 @@ import (
 	"fmt"
 	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/regex"
 	"github.com/open-feature/go-sdk-contrib/hooks/validator/pkg/validator"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 	"log"
 )
 

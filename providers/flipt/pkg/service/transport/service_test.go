@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	mock "github.com/stretchr/testify/mock"
 

@@ -4,14 +4,14 @@ go 1.19
 
 require (
 	github.com/Unleash/unleash-client-go/v3 v3.9.0
-	github.com/open-feature/go-sdk v1.8.0
+	github.com/open-feature/go-sdk v1.9.0
 	github.com/stretchr/testify v1.8.4
 )
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
+	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect

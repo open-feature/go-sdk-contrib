@@ -9,7 +9,7 @@ import (
 
 	"github.com/Unleash/unleash-client-go/v3"
 	unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
-	of "github.com/open-feature/go-sdk/pkg/openfeature"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
 )
 
