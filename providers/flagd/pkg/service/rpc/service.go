@@ -27,7 +27,10 @@ import (
 
 const (
 	ReasonCached = "CACHED"
+	ClientMsg    = "client did not yet finish the initialization"
 )
+
+var ErrClient = of.NewGeneralResolutionError(ClientMsg)
 
 type Configuration struct {
 	Port            uint16
@@ -109,6 +112,15 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 		}
 	}
 
+	if s.client == nil {
+		return of.BoolResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: ErrClient,
+			},
+		}
+	}
+
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveBooleanRequest, schemaV1.ResolveBooleanResponse](
 		ctx, s.logger, s.client.ResolveBoolean, key, evalCtx,
@@ -155,6 +167,15 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
 			}
+		}
+	}
+
+	if s.client == nil {
+		return of.StringResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: ErrClient,
+			},
 		}
 	}
 
@@ -207,6 +228,15 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 		}
 	}
 
+	if s.client == nil {
+		return of.FloatResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: ErrClient,
+			},
+		}
+	}
+
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveFloatRequest, schemaV1.ResolveFloatResponse](
 		ctx, s.logger, s.client.ResolveFloat, key, evalCtx,
@@ -256,6 +286,15 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 		}
 	}
 
+	if s.client == nil {
+		return of.IntResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: ErrClient,
+			},
+		}
+	}
+
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveIntRequest, schemaV1.ResolveIntResponse](
 		ctx, s.logger, s.client.ResolveInt, key, evalCtx,
@@ -301,6 +340,15 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
 			}
+		}
+	}
+
+	if s.client == nil {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: ErrClient,
+			},
 		}
 	}
 
