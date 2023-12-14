@@ -3,13 +3,14 @@ package flagd
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/openfeature"
-	"sync"
 )
 
 type Provider struct {
