@@ -3,13 +3,13 @@ package flagd
 import (
 	"context"
 	"fmt"
-
 	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/openfeature"
+	"sync"
 )
 
 type Provider struct {
@@ -17,6 +17,7 @@ type Provider struct {
 	providerConfiguration *providerConfiguration
 	service               IService
 	status                of.State
+	mtx                   sync.RWMutex
 
 	eventStream chan of.Event
 }
@@ -94,9 +95,9 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 			switch event.EventType {
 			case of.ProviderReady:
 			case of.ProviderConfigChange:
-				p.status = of.ReadyState
+				p.setStatus(of.ReadyState)
 			case of.ProviderError:
-				p.status = of.ErrorState
+				p.setStatus(of.ErrorState)
 			}
 		}
 	}()
@@ -105,6 +106,8 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 }
 
 func (p *Provider) Status() of.State {
+	p.mtx.RLock()
+	defer p.mtx.RUnlock()
 	return p.status
 }
 
@@ -156,6 +159,12 @@ func (p *Provider) ObjectEvaluation(
 	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
 ) of.InterfaceResolutionDetail {
 	return p.service.ResolveObject(ctx, flagKey, defaultValue, evalCtx)
+}
+
+func (p *Provider) setStatus(status of.State) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	p.status = status
 }
 
 // ProviderOptions

@@ -26,11 +26,11 @@ import (
 )
 
 const (
-	ReasonCached = "CACHED"
-	ClientMsg    = "client did not yet finish the initialization"
+	ReasonCached      = "CACHED"
+	ClientNotReadyMsg = "client did not yet finish the initialization"
 )
 
-var ErrClient = of.NewGeneralResolutionError(ClientMsg)
+var ErrClientNotReady = of.NewProviderNotReadyResolutionError(ClientNotReadyMsg)
 
 type Configuration struct {
 	Port            uint16
@@ -94,7 +94,9 @@ func (s *Service) Init() error {
 }
 
 func (s *Service) Shutdown() {
-	s.cancelHook()
+	if s.cancelHook != nil {
+		s.cancelHook()
+	}
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
@@ -112,11 +114,11 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 		}
 	}
 
-	if s.client == nil {
+	if !s.isInitialised() {
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: ErrClient,
+				ResolutionError: ErrClientNotReady,
 			},
 		}
 	}
@@ -170,11 +172,11 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 		}
 	}
 
-	if s.client == nil {
+	if !s.isInitialised() {
 		return of.StringResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: ErrClient,
+				ResolutionError: ErrClientNotReady,
 			},
 		}
 	}
@@ -228,11 +230,11 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 		}
 	}
 
-	if s.client == nil {
+	if !s.isInitialised() {
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: ErrClient,
+				ResolutionError: ErrClientNotReady,
 			},
 		}
 	}
@@ -286,11 +288,11 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 		}
 	}
 
-	if s.client == nil {
+	if !s.isInitialised() {
 		return of.IntResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: ErrClient,
+				ResolutionError: ErrClientNotReady,
 			},
 		}
 	}
@@ -343,11 +345,11 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		}
 	}
 
-	if s.client == nil {
+	if !s.isInitialised() {
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: ErrClient,
+				ResolutionError: ErrClientNotReady,
 			},
 		}
 	}
@@ -384,6 +386,10 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	}
 
 	return detail
+}
+
+func (s *Service) isInitialised() bool {
+	return s.client != nil
 }
 
 func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraints](
