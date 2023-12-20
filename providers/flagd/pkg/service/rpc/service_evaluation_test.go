@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -151,6 +152,23 @@ func TestBooleanEvaluation(t *testing.T) {
 			isCached:  false,
 			errorText: string(of.FlagNotFoundCode),
 		},
+		{
+			name: "simple error check - client not initialised",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 0, log)
+			},
+			getMockClient: func() schemaConnectV1.ServiceClient {
+				return nil
+			},
+			expectResponse: of.BoolResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+				},
+			},
+			isCached:  false,
+			errorText: string(of.ProviderNotReadyCode),
+		},
 	}
 
 	for _, test := range tests {
@@ -268,6 +286,23 @@ func TestStringEvaluation(t *testing.T) {
 			},
 			isCached:  false,
 			errorText: string(of.FlagNotFoundCode),
+		},
+		{
+			name: "simple error check - client not initialised",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 0, log)
+			},
+			getMockClient: func() schemaConnectV1.ServiceClient {
+				return nil
+			},
+			expectResponse: of.StringResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+				},
+			},
+			isCached:  false,
+			errorText: string(of.ProviderNotReadyCode),
 		},
 	}
 
@@ -387,6 +422,23 @@ func TestFloatEvaluation(t *testing.T) {
 			isCached:  false,
 			errorText: string(of.FlagNotFoundCode),
 		},
+		{
+			name: "simple error check - client not initialised",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 0, log)
+			},
+			getMockClient: func() schemaConnectV1.ServiceClient {
+				return nil
+			},
+			expectResponse: of.FloatResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+				},
+			},
+			isCached:  false,
+			errorText: string(of.ProviderNotReadyCode),
+		},
 	}
 
 	for _, test := range tests {
@@ -504,6 +556,23 @@ func TestIntEvaluation(t *testing.T) {
 			},
 			isCached:  false,
 			errorText: string(of.FlagNotFoundCode),
+		},
+		{
+			name: "simple error check - client not initialised",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 0, log)
+			},
+			getMockClient: func() schemaConnectV1.ServiceClient {
+				return nil
+			},
+			expectResponse: of.IntResolutionDetail{
+				Value: int64(defaultValue),
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+				},
+			},
+			isCached:  false,
+			errorText: string(of.ProviderNotReadyCode),
 		},
 	}
 
@@ -636,6 +705,23 @@ func TestObjectEvaluation(t *testing.T) {
 			isCached:  false,
 			errorText: string(of.FlagNotFoundCode),
 		},
+		{
+			name: "simple error check - client not ready",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 0, log)
+			},
+			getMockClient: func() schemaConnectV1.ServiceClient {
+				return nil
+			},
+			expectResponse: of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+				},
+			},
+			isCached:  false,
+			errorText: string(of.ProviderNotReadyCode),
+		},
 	}
 
 	for _, test := range tests {
@@ -670,5 +756,41 @@ func validate[T responseType](t *testing.T, test testStruct[T], resolutionDetail
 	if test.errorText != "" && strings.Contains(test.errorText, error.Error()) {
 		t.Errorf("test %s: expected error to contain %s, but error was %s",
 			test.name, test.errorText, error.Error())
+	}
+}
+
+func TestService_isInitialised(t *testing.T) {
+	type fields struct {
+		client schemaConnectV1.ServiceClient
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "not initialised",
+			fields: fields{
+				client: nil,
+			},
+			want: false,
+		},
+		{
+			name: "initialised",
+			fields: fields{
+				client: schemaConnectV1.NewServiceClient(http.DefaultClient, ""),
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{
+				client: tt.fields.client,
+			}
+			if got := s.isInitialised(); got != tt.want {
+				t.Errorf("isInitialised() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
