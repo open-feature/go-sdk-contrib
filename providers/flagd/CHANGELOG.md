@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.20](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.19...providers/flagd/v0.1.20) (2023-12-20)
+
+
+### 🐛 Bug Fixes
+
+* nil client causes panic ([#408](https://github.com/open-feature/go-sdk-contrib/issues/408)) ([74df958](https://github.com/open-feature/go-sdk-contrib/commit/74df9580ee627a5eb15427c9888b72ca10bf57e8))
+
+
+### 🧹 Chore
+
+* improve e2e test registration ([#400](https://github.com/open-feature/go-sdk-contrib/issues/400)) ([b22105c](https://github.com/open-feature/go-sdk-contrib/commit/b22105c392e24ce592020a5f1f652547bb5a89e0))
+* update to go-sdk 1.9.0 ([#404](https://github.com/open-feature/go-sdk-contrib/issues/404)) ([11fa3ab](https://github.com/open-feature/go-sdk-contrib/commit/11fa3aba065a6dd81caca30e76efc16fb64a25e3))
+
 ## [0.1.19](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.18...providers/flagd/v0.1.19) (2023-12-05)
 
 
