@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd-in-process/v0.1.2...providers/flagd-in-process/v0.1.3) (2023-12-22)
+
+
+### 🧹 Chore
+
+* improve e2e test registration ([#400](https://github.com/open-feature/go-sdk-contrib/issues/400)) ([b22105c](https://github.com/open-feature/go-sdk-contrib/commit/b22105c392e24ce592020a5f1f652547bb5a89e0))
+* update to go-sdk 1.9.0 ([#404](https://github.com/open-feature/go-sdk-contrib/issues/404)) ([11fa3ab](https://github.com/open-feature/go-sdk-contrib/commit/11fa3aba065a6dd81caca30e76efc16fb64a25e3))
+
 ## [0.1.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd-in-process/v0.1.1...providers/flagd-in-process/v0.1.2) (2023-12-05)
 
 
