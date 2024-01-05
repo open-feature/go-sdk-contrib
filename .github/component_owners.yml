@@ -8,9 +8,6 @@ components:
   providers/configcat:
     - rcrowe
   providers/flagd:
-    - Kavindu-Dodan
-    - toddbaert
-  providers/flagd-in-process:
     - bacherfl
     - Kavindu-Dodan
     - toddbaert
