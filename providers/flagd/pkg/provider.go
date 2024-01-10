@@ -13,6 +13,7 @@ import (
 )
 
 type Provider struct {
+	initialized           bool
 	logger                logr.Logger
 	providerConfiguration *providerConfiguration
 	service               IService
@@ -73,7 +74,15 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	return provider
 }
 
-func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
+func (p *Provider) Init(_ of.EvaluationContext) error {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
+	// avoid reinitialization if initialized
+	if p.initialized {
+		return nil
+	}
+
 	err := p.service.Init()
 	if err != nil {
 		return err
@@ -86,6 +95,7 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 	}
 
 	p.status = of.ReadyState
+	p.initialized = true
 
 	// start event handling after the first ready event
 	go func() {
@@ -112,6 +122,10 @@ func (p *Provider) Status() of.State {
 }
 
 func (p *Provider) Shutdown() {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
+	p.initialized = false
 	p.service.Shutdown()
 }
 
