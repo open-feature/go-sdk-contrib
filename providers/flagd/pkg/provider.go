@@ -30,6 +30,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	providerConfiguration := NewDefaultConfiguration(log)
 
 	provider := &Provider{
+		initialized:           false,
 		eventStream:           make(chan of.Event),
 		logger:                log,
 		providerConfiguration: providerConfiguration,
