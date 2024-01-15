@@ -122,7 +122,7 @@ func TestEventHandling(t *testing.T) {
 
 	svcMock := mock.NewMockIService(ctrl)
 	svcMock.EXPECT().EventChannel().Return(customChan).AnyTimes()
-	svcMock.EXPECT().Init().AnyTimes()
+	svcMock.EXPECT().Init().Times(1)
 
 	provider := NewProvider()
 	provider.service = svcMock
@@ -173,6 +173,45 @@ func TestEventHandling(t *testing.T) {
 
 	if provider.Status() != of.ErrorState {
 		t.Errorf("expected status to be error, but got %v", provider.Status())
+	}
+}
+
+func TestInitializeOnlyOnce(t *testing.T) {
+	// given
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	svcMock := mock.NewMockIService(ctrl)
+	svcMock.EXPECT().Init().Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).Times(1)
+	svcMock.EXPECT().Shutdown().Times(1)
+
+	provider := NewProvider()
+	provider.service = svcMock
+
+	// make service ready with events
+	go func() {
+		eventChan <- of.Event{
+			ProviderName: "mock provider",
+			EventType:    of.ProviderReady,
+		}
+	}()
+
+	// multiple init invokes
+	_ = provider.Init(of.EvaluationContext{})
+	_ = provider.Init(of.EvaluationContext{})
+
+	if !provider.initialized {
+		t.Errorf("expected provider to be ready, but got not ready")
+	}
+
+	// shutdown should make provider uninitialized
+	provider.Shutdown()
+
+	if provider.initialized {
+		t.Errorf("expected provider to be not ready, but got ready")
 	}
 
 }
