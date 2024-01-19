@@ -22,6 +22,7 @@ type InProcess struct {
 	events           chan of.Event
 	listenerShutdown chan interface{}
 	logger           *logger.Logger
+	serviceMetadata  map[string]interface{}
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
 }
@@ -50,6 +51,13 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		Selector: cfg.Selector,
 	}, log)
 
+	// service specific metadata
+	var svcMetadata map[string]interface{}
+	if cfg.Selector != "" {
+		svcMetadata = make(map[string]interface{}, 1)
+		svcMetadata["scope"] = cfg.Selector
+	}
+
 	flagStore := store.NewFlags()
 	flagStore.FlagSources = append(flagStore.FlagSources, uri)
 
@@ -77,6 +85,7 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		events:           make(chan of.Event, 5),
 		logger:           log,
 		listenerShutdown: make(chan interface{}),
+		serviceMetadata:  svcMetadata,
 		sync:             grpcSync,
 	}
 }
@@ -147,6 +156,7 @@ func (i *InProcess) Shutdown() {
 func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue bool,
 	evalCtx map[string]interface{}) of.BoolResolutionDetail {
 	value, variant, reason, metadata, err := i.evaluator.ResolveBooleanValue(ctx, "", key, evalCtx)
+	i.appendMetadata(metadata)
 	if err != nil {
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
@@ -172,6 +182,7 @@ func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue
 func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue string,
 	evalCtx map[string]interface{}) of.StringResolutionDetail {
 	value, variant, reason, metadata, err := i.evaluator.ResolveStringValue(ctx, "", key, evalCtx)
+	i.appendMetadata(metadata)
 	if err != nil {
 		return of.StringResolutionDetail{
 			Value: defaultValue,
@@ -197,6 +208,7 @@ func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue 
 func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue float64,
 	evalCtx map[string]interface{}) of.FloatResolutionDetail {
 	value, variant, reason, metadata, err := i.evaluator.ResolveFloatValue(ctx, "", key, evalCtx)
+	i.appendMetadata(metadata)
 	if err != nil {
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
@@ -222,6 +234,7 @@ func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue f
 func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int64,
 	evalCtx map[string]interface{}) of.IntResolutionDetail {
 	value, variant, reason, metadata, err := i.evaluator.ResolveIntValue(ctx, "", key, evalCtx)
+	i.appendMetadata(metadata)
 	if err != nil {
 		return of.IntResolutionDetail{
 			Value: defaultValue,
@@ -247,6 +260,7 @@ func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int
 func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue interface{},
 	evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
 	value, variant, reason, metadata, err := i.evaluator.ResolveObjectValue(ctx, "", key, evalCtx)
+	i.appendMetadata(metadata)
 	if err != nil {
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
@@ -271,6 +285,13 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 
 func (i *InProcess) EventChannel() <-chan of.Event {
 	return i.events
+}
+
+func (i *InProcess) appendMetadata(evalMetadata map[string]interface{}) {
+	// For a nil slice, the number of iterations is 0
+	for k, v := range i.serviceMetadata {
+		evalMetadata[k] = v
+	}
 }
 
 // mapError is a helper to map evaluation errors to OF errors
