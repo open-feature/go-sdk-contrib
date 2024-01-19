@@ -6,7 +6,7 @@ require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.12.0-20231031123731-ac2ec0f39838.1
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.3.0-20230710190440-2333a9579c1a.1
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.31.0-20231031123731-ac2ec0f39838.2
-	connectrpc.com/connect v1.12.0
+	connectrpc.com/connect v1.14.0
 	connectrpc.com/otelconnect v0.6.0
 	github.com/cucumber/godog v0.13.0
 	github.com/go-logr/logr v1.4.1
@@ -19,7 +19,7 @@ require (
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	golang.org/x/net v0.18.0
 	google.golang.org/grpc v1.59.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 	sigs.k8s.io/controller-runtime v0.16.3
 )
 
