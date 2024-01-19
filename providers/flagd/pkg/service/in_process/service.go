@@ -8,6 +8,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/flagd/core/pkg/store"
 	"github.com/open-feature/flagd/core/pkg/sync"
+	"github.com/open-feature/flagd/core/pkg/sync/file"
 	"github.com/open-feature/flagd/core/pkg/sync/grpc"
 	"github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -29,30 +30,17 @@ type InProcess struct {
 }
 
 type Configuration struct {
-	Host       any
-	Port       any
-	Selector   string
-	TLSEnabled bool
+	Host              any
+	Port              any
+	Selector          string
+	TLSEnabled        bool
+	OfflineFlagSource string
 }
 
 func NewInProcessService(cfg Configuration) *InProcess {
 	log := logger.NewLogger(zap.NewRaw(), false)
 
-	// currently supports grpc syncs for in-process flag fetch
-	var uri string
-	if cfg.TLSEnabled {
-		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	} else {
-		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	}
-
-	grpcSync := &grpc.Sync{
-		CredentialBuilder: &credentials.CredentialBuilder{},
-		Logger:            log,
-		Secure:            cfg.TLSEnabled,
-		Selector:          cfg.Selector,
-		URI:               uri,
-	}
+	iSync, uri := makeSyncProvider(cfg, log)
 
 	// service specific metadata
 	var svcMetadata map[string]interface{}
@@ -89,7 +77,7 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		logger:           log,
 		listenerShutdown: make(chan interface{}),
 		serviceMetadata:  svcMetadata,
-		sync:             grpcSync,
+		sync:             iSync,
 	}
 }
 
@@ -295,6 +283,34 @@ func (i *InProcess) appendMetadata(evalMetadata map[string]interface{}) {
 	for k, v := range i.serviceMetadata {
 		evalMetadata[k] = v
 	}
+}
+
+// makeSyncProvider is a helper to create sync.ISync and return the underlying uri used by it to the caller
+func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string) {
+	if cfg.OfflineFlagSource != "" {
+		// file sync provider
+		return &file.Sync{
+			URI:    cfg.OfflineFlagSource,
+			Logger: log,
+			Mux:    &parallel.RWMutex{},
+		}, cfg.OfflineFlagSource
+	}
+
+	// grpc sync provider
+	var uri string
+	if cfg.TLSEnabled {
+		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	} else {
+		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	}
+
+	return &grpc.Sync{
+		CredentialBuilder: &credentials.CredentialBuilder{},
+		Logger:            log,
+		Secure:            cfg.TLSEnabled,
+		Selector:          cfg.Selector,
+		URI:               uri,
+	}, uri
 }
 
 // mapError is a helper to map evaluation errors to OF errors

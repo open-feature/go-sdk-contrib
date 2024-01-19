@@ -19,7 +19,6 @@ const (
 	defaultCache                      = cache.LRUValue
 	defaultHost                       = "localhost"
 	defaultResolver                   = rpc
-	defaultSourceSelector             = ""
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -34,6 +33,7 @@ const (
 	flagdMaxEventStreamRetriesEnvironmentVariableName = "FLAGD_MAX_EVENT_STREAM_RETRIES"
 	flagdResolverEnvironmentVariableName              = "FLAGD_RESOLVER"
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
+	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
 )
 
 type providerConfiguration struct {
@@ -42,6 +42,7 @@ type providerConfiguration struct {
 	EventStreamConnectionMaxAttempts int
 	Host                             string
 	MaxCacheSize                     int
+	OfflineFlagSourcePath            string
 	OtelIntercept                    bool
 	Port                             uint16
 	Resolver                         ResolverType
@@ -52,7 +53,7 @@ type providerConfiguration struct {
 	log logr.Logger
 }
 
-func NewDefaultConfiguration(log logr.Logger) *providerConfiguration {
+func newDefaultConfiguration(log logr.Logger) *providerConfiguration {
 	p := &providerConfiguration{
 		CacheType:                        defaultCache,
 		EventStreamConnectionMaxAttempts: defaultMaxEventStreamRetries,
@@ -148,6 +149,10 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 			cfg.log.Info("invalid resolver type: %s, falling back to default: %s", resolver, defaultResolver)
 			cfg.Resolver = defaultResolver
 		}
+	}
+
+	if offlinePath := os.Getenv(flagdOfflinePathEnvironmentVariableName); offlinePath != "" {
+		cfg.OfflineFlagSourcePath = offlinePath
 	}
 
 	if selector := os.Getenv(flagdSourceSelectorEnvironmentVariableName); selector != "" {
