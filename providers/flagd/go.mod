@@ -9,7 +9,7 @@ require (
 	connectrpc.com/connect v1.12.0
 	connectrpc.com/otelconnect v0.6.0
 	github.com/cucumber/godog v0.13.0
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/open-feature/flagd/core v0.6.8
