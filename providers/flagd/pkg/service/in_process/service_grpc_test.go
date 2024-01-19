@@ -17,6 +17,7 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 	// given
 	host := "localhost"
 	port := 8090
+	scope := "app=myapp"
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
@@ -51,7 +52,7 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 	inProcessService := NewInProcessService(Configuration{
 		Host:       host,
 		Port:       port,
-		Selector:   "",
+		Selector:   scope,
 		TLSEnabled: false,
 	})
 
@@ -101,6 +102,15 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 
 	if !detail.Value {
 		t.Fatal("Expected true, but got false")
+	}
+
+	// check for metadata - scope from grpc sync
+	if len(detail.FlagMetadata) == 0 && detail.FlagMetadata["scope"] == "" {
+		t.Fatal("Expected scope to be present, but got none")
+	}
+
+	if scope != detail.FlagMetadata["scope"] {
+		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
 }
 
