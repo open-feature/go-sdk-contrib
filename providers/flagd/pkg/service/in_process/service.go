@@ -297,12 +297,7 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 	}
 
 	// grpc sync provider
-	var uri string
-	if cfg.TLSEnabled {
-		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	} else {
-		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	}
+	uri := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
 	return &grpc.Sync{
 		CredentialBuilder: &credentials.CredentialBuilder{},
