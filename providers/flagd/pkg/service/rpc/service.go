@@ -579,9 +579,12 @@ func newClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
 	var options []connect.ClientOption
 
 	if cfg.OtelInterceptor {
-		options = append(options, connect.WithInterceptors(
-			otelconnect.NewInterceptor(),
-		))
+		interceptor, err := otelconnect.NewInterceptor()
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, connect.WithInterceptors(interceptor))
 	}
 
 	return schemaConnectV1.NewServiceClient(
