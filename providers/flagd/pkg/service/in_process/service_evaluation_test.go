@@ -3,7 +3,7 @@ package process
 import (
 	"context"
 	"errors"
-	"github.com/open-feature/flagd/core/pkg/eval"
+	"github.com/open-feature/flagd/core/pkg/evaluator"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk/openfeature"
 	"testing"
@@ -319,7 +319,7 @@ func (m MockEvaluator) SetState(payload sync.DataSync) (map[string]interface{}, 
 	return make(map[string]interface{}), false, nil
 }
 
-func (m MockEvaluator) ResolveAllValues(ctx context.Context, reqID string, context map[string]any) (values []eval.AnyValue) {
+func (m MockEvaluator) ResolveAllValues(ctx context.Context, reqID string, context map[string]any) (values []evaluator.AnyValue) {
 	// ignored
 	return nil
 }
