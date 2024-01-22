@@ -3,12 +3,13 @@ package process
 import (
 	"context"
 	"fmt"
-	"github.com/open-feature/flagd/core/pkg/eval"
+	"github.com/open-feature/flagd/core/pkg/evaluator"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/model"
-	"github.com/open-feature/flagd/core/pkg/runtime"
 	"github.com/open-feature/flagd/core/pkg/store"
 	"github.com/open-feature/flagd/core/pkg/sync"
+	"github.com/open-feature/flagd/core/pkg/sync/grpc"
+	"github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/exp/maps"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -18,7 +19,7 @@ import (
 // InProcess service implements flagd flag evaluation in-process.
 // Flag configurations are obtained from supported sources.
 type InProcess struct {
-	evaluator        eval.IEvaluator
+	evaluator        evaluator.IEvaluator
 	events           chan of.Event
 	listenerShutdown chan interface{}
 	logger           *logger.Logger
@@ -45,11 +46,13 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		uri = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	}
 
-	grpcSync := runtime.NewGRPC(runtime.SourceConfig{
-		URI:      uri,
-		TLS:      cfg.TLSEnabled,
-		Selector: cfg.Selector,
-	}, log)
+	grpcSync := &grpc.Sync{
+		CredentialBuilder: &credentials.CredentialBuilder{},
+		Logger:            log,
+		Secure:            cfg.TLSEnabled,
+		Selector:          cfg.Selector,
+		URI:               uri,
+	}
 
 	// service specific metadata
 	var svcMetadata map[string]interface{}
@@ -61,23 +64,23 @@ func NewInProcessService(cfg Configuration) *InProcess {
 	flagStore := store.NewFlags()
 	flagStore.FlagSources = append(flagStore.FlagSources, uri)
 
-	jsonEvaluator := eval.NewJSONEvaluator(log,
+	jsonEvaluator := evaluator.NewJSON(log,
 		flagStore,
-		eval.WithEvaluator(
+		evaluator.WithEvaluator(
 			"fractional",
-			eval.NewFractionalEvaluator(log).FractionalEvaluation,
+			evaluator.NewFractional(log).Evaluate,
 		),
-		eval.WithEvaluator(
+		evaluator.WithEvaluator(
 			"starts_with",
-			eval.NewStringComparisonEvaluator(log).StartsWithEvaluation,
+			evaluator.NewStringComparisonEvaluator(log).StartsWithEvaluation,
 		),
-		eval.WithEvaluator(
+		evaluator.WithEvaluator(
 			"ends_with",
-			eval.NewStringComparisonEvaluator(log).EndsWithEvaluation,
+			evaluator.NewStringComparisonEvaluator(log).EndsWithEvaluation,
 		),
-		eval.WithEvaluator(
+		evaluator.WithEvaluator(
 			"sem_ver",
-			eval.NewSemVerComparisonEvaluator(log).SemVerEvaluation,
+			evaluator.NewSemVerComparison(log).SemVerEvaluation,
 		))
 
 	return &InProcess{

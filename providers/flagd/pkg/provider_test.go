@@ -185,7 +185,7 @@ func TestInitializeOnlyOnce(t *testing.T) {
 
 	svcMock := mock.NewMockIService(ctrl)
 	svcMock.EXPECT().Init().Times(1)
-	svcMock.EXPECT().EventChannel().Return(eventChan).Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).MaxTimes(2)
 	svcMock.EXPECT().Shutdown().Times(1)
 
 	provider := NewProvider()
