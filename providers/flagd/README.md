@@ -45,7 +45,7 @@ In the above example, in-process handlers attempt to connect to a sync service o
 #### Offline mode
 
 In-process resolvers can also work in an offline mode.
-To enable this mode, you should provide a valid flag configuration file with the option `WithOfflineFilePath`.
+To enable this mode, you should provide a [valid flag configuration](https://flagd.dev/reference/flag-definitions/) file with the option `WithOfflineFilePath`.
 
 ```go
 provider := flagd.NewProvider(
