@@ -4,6 +4,8 @@ github.com/Flagsmith/flagsmith-go-client/v3 v3.1.1 h1:qJUs8atv+A/bs1mBp0w9Fv7cK/
 github.com/Flagsmith/flagsmith-go-client/v3 v3.1.1/go.mod h1:U8qNVxrzZ6WRde1npc0dM/Is7tMFRkv2e4NppD412RI=
 github.com/Flagsmith/flagsmith-go-client/v3 v3.2.0 h1:fwFMWQ6tEny070r3f+zAi3X3GoYrdhealI//8tbtjQY=
 github.com/Flagsmith/flagsmith-go-client/v3 v3.2.0/go.mod h1:QcEqbXE3usekGMccBvlPac4y7JG/5kF9Qlh7PUMW5ms=
+github.com/Flagsmith/flagsmith-go-client/v3 v3.3.0 h1:HWzv17XTVLtdKJHVViKo7aukilViM9ihRZRP37IIS28=
+github.com/Flagsmith/flagsmith-go-client/v3 v3.3.0/go.mod h1:QcEqbXE3usekGMccBvlPac4y7JG/5kF9Qlh7PUMW5ms=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
