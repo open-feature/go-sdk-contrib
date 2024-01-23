@@ -54,9 +54,12 @@ provider := flagd.NewProvider(
 openfeature.SetProvider(provider)
 ```
 
-Provider will attempt to detect file changes but this is a best effort attempt as file system events are different from os to os.
+Provider will attempt to detect file changes, but this is a best effort attempt as file system events are different between operating systems.
 This mode is useful for local development, tests and offline applications.
-For a full-featured, production-ready file-based implementation, use the RPC evaluator in combination with the flagd standalone application, which can be configured to watch files for changes.
+
+> [!IMPORTANT]
+> Note that you can only use a single flag source (either gRPC or offline file) for the in-process resolver. 
+> If both sources are configured, offline mode will be selected.
 
 ## Configuration options
 
