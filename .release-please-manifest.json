@@ -10,5 +10,5 @@
     "providers/launchdarkly": "0.1.4",
     "providers/unleash": "0.0.3-alpha",
     "providers/harness": "0.0.4-alpha",
-    "tests/flagd": "1.3.2"
+    "tests/flagd": "1.3.3"
 }
