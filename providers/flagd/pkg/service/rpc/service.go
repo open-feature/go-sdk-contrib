@@ -54,6 +54,7 @@ type Service struct {
 }
 
 func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, retries int) *Service {
+	logger.Info("operating in rpc mode with flags sourced from " + fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
 	return &Service{
 		cache:        cache,
 		cfg:          cfg,

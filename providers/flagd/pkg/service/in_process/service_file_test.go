@@ -32,8 +32,8 @@ func TestInProcessOfflineMode(t *testing.T) {
 
 	select {
 	case event := <-channel:
-		if event.EventType == of.ProviderError {
-			t.Fatalf("Provider initialization failed, %s", event.Message)
+		if event.EventType != of.ProviderReady {
+			t.Fatalf("Provider initialization failed. Got event type %s with message %s", event.EventType, event.Message)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("Provider initialization did not complete within acceptable timeframe ")

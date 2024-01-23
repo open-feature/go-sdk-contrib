@@ -289,6 +289,7 @@ func (i *InProcess) appendMetadata(evalMetadata map[string]interface{}) {
 func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string) {
 	if cfg.OfflineFlagSource != "" {
 		// file sync provider
+		log.Info("operating in in-process mode with offline flags sourced from " + cfg.OfflineFlagSource)
 		return &file.Sync{
 			URI:    cfg.OfflineFlagSource,
 			Logger: log,
@@ -298,6 +299,7 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 
 	// grpc sync provider
 	uri := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	log.Info("operating in in-process mode with flags sourced from " + uri)
 
 	return &grpc.Sync{
 		CredentialBuilder: &credentials.CredentialBuilder{},
