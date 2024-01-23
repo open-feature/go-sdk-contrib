@@ -54,7 +54,7 @@ provider := flagd.NewProvider(
 openfeature.SetProvider(provider)
 ```
 
-Provider will attempt to detect file changes, but this is a best effort attempt as file system events are different between operating systems.
+The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
 This mode is useful for local development, tests and offline applications.
 
 > [!IMPORTANT]
