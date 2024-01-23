@@ -13,18 +13,8 @@ import (
 	"time"
 )
 
-func TestInProcessProviderEvaluation(t *testing.T) {
-	// given
-	host := "localhost"
-	port := 8090
-	scope := "app=myapp"
-
-	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	flagRsp := `{
+// shared flag for tests
+var flagRsp = `{
 		"flags": {
 		  "myBoolFlag": {
 			"state": "ENABLED",
@@ -36,6 +26,17 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		  }
 		}
 	}`
+
+func TestInProcessProviderEvaluation(t *testing.T) {
+	// given
+	host := "localhost"
+	port := 8090
+	scope := "app=myapp"
+
+	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	bufServ := &bufferedServer{
 		listener: listen,

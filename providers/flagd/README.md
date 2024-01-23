@@ -42,19 +42,40 @@ openfeature.SetProvider(provider)
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
 
+#### Offline mode
+
+In-process resolvers can also work in an offline mode.
+To enable this mode, you should provide a [valid flag configuration](https://flagd.dev/reference/flag-definitions/) file with the option `WithOfflineFilePath`.
+
+```go
+provider := flagd.NewProvider(
+        flagd.WithInProcessResolver(),
+        flagd.WithOfflineFilePath(OFFLINE_FLAG_PATH))
+openfeature.SetProvider(provider)
+```
+
+The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
+This mode is useful for local development, tests and offline applications.
+
+> [!IMPORTANT]
+> Note that you can only use a single flag source (either gRPC or offline file) for the in-process resolver. 
+> If both sources are configured, offline mode will be selected.
+
 ## Configuration options
 
 Configuration can be provided as constructor options or as environment variables, where constructor options having the highest precedence.
 
 | Option name                                              | Environment variable name      | Type & supported value      | Default   | Compatible resolver |
 |----------------------------------------------------------|--------------------------------|-----------------------------|-----------|---------------------|
-| WithHost                                                 | FLAGD_HOST                     | string                      | localhost | RPC & in-process    |
-| WithPort                                                 | FLAGD_PORT                     | number                      | 8013      | RPC & in-process    |
-| WithTLS                                                  | FLAGD_TLS                      | boolean                     | false     | RPC & in-process    |
-| WithSocketPath                                           | FLAGD_SOCKET_PATH              | string                      | ""        | RPC & in-process    |
-| WithCertificatePath                                      | FLAGD_SERVER_CERT_PATH         | string                      | ""        | RPC & in-process    |
-| WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | RPC                 |
-| WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | RPC                 |
+| WithHost                                                 | FLAGD_HOST                     | string                      | localhost | rpc & in-process    |
+| WithPort                                                 | FLAGD_PORT                     | number                      | 8013      | rpc & in-process    |
+| WithTLS                                                  | FLAGD_TLS                      | boolean                     | false     | rpc & in-process    |
+| WithSocketPath                                           | FLAGD_SOCKET_PATH              | string                      | ""        | rpc & in-process    |
+| WithCertificatePath                                      | FLAGD_SERVER_CERT_PATH         | string                      | ""        | rpc & in-process    |
+| WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | rpc                 |
+| WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
+| WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
+| WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | in-process          |
 
 ### Overriding behavior
 

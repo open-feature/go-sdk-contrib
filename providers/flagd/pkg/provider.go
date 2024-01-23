@@ -27,7 +27,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
-	providerConfiguration := NewDefaultConfiguration(log)
+	providerConfiguration := newDefaultConfiguration(log)
 
 	provider := &Provider{
 		initialized:           false,
@@ -63,10 +63,11 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
 	} else {
 		service = process.NewInProcessService(process.Configuration{
-			Host:       provider.providerConfiguration.Host,
-			Port:       provider.providerConfiguration.Port,
-			Selector:   provider.providerConfiguration.Selector,
-			TLSEnabled: provider.providerConfiguration.TLSEnabled,
+			Host:              provider.providerConfiguration.Host,
+			Port:              provider.providerConfiguration.Port,
+			Selector:          provider.providerConfiguration.Selector,
+			TLSEnabled:        provider.providerConfiguration.TLSEnabled,
+			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
 		})
 	}
 
@@ -283,6 +284,14 @@ func WithRPCResolver() ProviderOption {
 func WithInProcessResolver() ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Resolver = inProcess
+	}
+}
+
+// WithOfflineFilePath file path to obtain flags to run provider in offline mode with in-process evaluations.
+// This is only useful with inProcess resolver type
+func WithOfflineFilePath(path string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.OfflineFlagSourcePath = path
 	}
 }
 
