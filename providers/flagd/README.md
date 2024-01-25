@@ -74,7 +74,6 @@ Configuration can be provided as constructor options or as environment variables
 | WithCertificatePath                                      | FLAGD_SERVER_CERT_PATH         | string                      | ""        | rpc & in-process    |
 | WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | rpc                 |
 | WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
-| WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
 | WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | in-process          |
 
 ### Overriding behavior

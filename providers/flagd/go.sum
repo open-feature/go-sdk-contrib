@@ -456,6 +456,8 @@ github.com/envoyproxy/go-control-plane v0.10.3/go.mod h1:fJJn/j26vwOu972OllsvAgJ
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/envoyproxy/protoc-gen-validate v0.6.7/go.mod h1:dyJXwwfPK2VSqiB9Klm1J6romD608Ba7Hij42vrOBCo=
 github.com/envoyproxy/protoc-gen-validate v0.9.1/go.mod h1:OKNgG7TCp5pF4d6XftA0++PMirau2/yoOwVac3AbF2w=
+github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
+github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
@@ -636,8 +638,8 @@ github.com/open-feature/flagd/core v0.7.4 h1:UwwNRT9aabxnf8RGit9NJrqA3f607zWnlYs
 github.com/open-feature/flagd/core v0.7.4/go.mod h1:uuQwVFNIg2IbZKrKKTd/Pt8SW1K+ijtG/VgwowwXvUk=
 github.com/open-feature/go-sdk v1.9.0 h1:1Nyj+XNHfL0rRGZgGCbZ29CHDD57PQJL7Q/2ZbW/E8c=
 github.com/open-feature/go-sdk v1.9.0/go.mod h1:n5BM4DfvIiKaWWquZnL/yVihcGM5aLsz7rNYE3BkXAM=
-github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.2 h1:eGpaOZhFyW0/inEgpxm4fioIfP9CHj+vMFxhLQWmZu8=
-github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.2/go.mod h1:qj2NLZM9eFvO5HtWTCfHjWaMwMMqd8vBV+NoKHijDCs=
+github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.3 h1:+wyVLv3HO0YybanRFgsu99S3hi5FMsU/GJdDVCrHL7U=
+github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.3/go.mod h1:6UNdd5nC4507WHLADDIfyhjP7XmfkBeBtN4ZpSSCjhg=
 github.com/open-feature/schemas v0.2.8 h1:oA75hJXpOd9SFgmNI2IAxWZkwzQPUDm7Jyyh3q489wM=
 github.com/open-feature/schemas v0.2.8/go.mod h1:vj+rfTsOLlh5PtGGkAbitnJmFPYuTHXTjOy13kzNgKQ=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
