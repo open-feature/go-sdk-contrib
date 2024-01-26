@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.21](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.20...providers/flagd/v0.1.21) (2024-01-26)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module connectrpc.com/connect to v1.14.0 ([#412](https://github.com/open-feature/go-sdk-contrib/issues/412)) ([f1ea55f](https://github.com/open-feature/go-sdk-contrib/commit/f1ea55feee1773f2582f8074044b36ca51480f36))
+* **deps:** update module connectrpc.com/otelconnect to v0.7.0 ([#422](https://github.com/open-feature/go-sdk-contrib/issues/422)) ([a7a1540](https://github.com/open-feature/go-sdk-contrib/commit/a7a1540003298968b86b90ecfb80062e2a6f3671))
+* **deps:** update module github.com/go-logr/logr to v1.4.1 ([#415](https://github.com/open-feature/go-sdk-contrib/issues/415)) ([77c597f](https://github.com/open-feature/go-sdk-contrib/commit/77c597f6d660b0c9920b809183aa9bb9fadf6238))
+* **deps:** update module github.com/open-feature/flagd/core to v0.7.4 ([#384](https://github.com/open-feature/go-sdk-contrib/issues/384)) ([09b4224](https://github.com/open-feature/go-sdk-contrib/commit/09b42243885c1d74bb1d02d08aa3c5621ede7330))
+
+
+### ✨ New Features
+
+* flagd - make sure provider initialize only once ([#418](https://github.com/open-feature/go-sdk-contrib/issues/418)) ([c061cf4](https://github.com/open-feature/go-sdk-contrib/commit/c061cf4ac1e76cfe2aef9af52746fe0c14f6f610))
+* flagd add scope to flag metadata ([#420](https://github.com/open-feature/go-sdk-contrib/issues/420)) ([b3949fe](https://github.com/open-feature/go-sdk-contrib/commit/b3949fe00318bee037fd2bd4e1655182f1fcdc31))
+* flagd offline in-process support with flags sources from file ([#421](https://github.com/open-feature/go-sdk-contrib/issues/421)) ([8685cc0](https://github.com/open-feature/go-sdk-contrib/commit/8685cc0c1c4bee83ea38fa76e189c1a10840ec71))
+
+
+### 📚 Documentation
+
+* remove duplicate in doc ([#428](https://github.com/open-feature/go-sdk-contrib/issues/428)) ([b9a27d9](https://github.com/open-feature/go-sdk-contrib/commit/b9a27d9277b7e261d58cb76a34162033dbf5b971))
+
 ## [0.1.20](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.19...providers/flagd/v0.1.20) (2023-12-20)
 
 
