@@ -90,24 +90,38 @@ func (i *InProcess) Init() error {
 		return err
 	}
 
-	syncInitSuccess := make(chan interface{})
-	readyOnce := parallel.OnceFunc(func() {
-		i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
-		syncInitSuccess <- nil
-	})
-	syncInitErr := make(chan error)
-
 	syncChan := make(chan sync.DataSync, 1)
+	syncErrorChan := make(chan error, 1)
 
 	// start data sync
 	go func() {
 		err := i.sync.Sync(ctx, syncChan)
 		if err != nil {
-			syncInitErr <- err
+			syncErrorChan <- err
 		}
 	}()
 
-	// start data sync listener and listen to listener shutdown hook
+	// initial data sync listener
+	select {
+	case data := <-syncChan:
+		changes, _, err := i.evaluator.SetState(data)
+		if err != nil {
+			i.logger.Info(fmt.Sprintf("error from sync provider %s", err.Error()))
+			return err
+		}
+		i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+		i.events <- of.Event{
+			ProviderName: "flagd", EventType: of.ProviderConfigChange,
+			ProviderEventDetails: of.ProviderEventDetails{Message: "New flag sync", FlagChanges: maps.Keys(changes)}}
+	case err := <-syncErrorChan:
+		i.logger.Info(fmt.Sprintf("error from sync provider %s", err.Error()))
+		return err
+	case <-i.listenerShutdown:
+		i.logger.Info("shutting down data sync listener")
+		return nil
+	}
+
+	// subsequent syncs are handled concurrently
 	go func() {
 		for {
 			select {
@@ -119,24 +133,17 @@ func (i *InProcess) Init() error {
 						ProviderName: "flagd", EventType: of.ProviderError,
 						ProviderEventDetails: of.ProviderEventDetails{Message: "Error from flag sync " + err.Error()}}
 				}
-				readyOnce()
 				i.events <- of.Event{
 					ProviderName: "flagd", EventType: of.ProviderConfigChange,
 					ProviderEventDetails: of.ProviderEventDetails{Message: "New flag sync", FlagChanges: maps.Keys(changes)}}
 			case <-i.listenerShutdown:
-				i.logger.Info("Shutting down data sync listener")
+				i.logger.Info("shutting down data sync listener")
 				return
 			}
 		}
 	}()
 
-	// wait for initialization or error
-	select {
-	case <-syncInitSuccess:
-		return nil
-	case err := <-syncInitErr:
-		return err
-	}
+	return nil
 }
 
 func (i *InProcess) Shutdown() {
