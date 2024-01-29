@@ -150,18 +150,45 @@ func (p *Provider) Metadata() of.Metadata {
 func (p *Provider) BooleanEvaluation(
 	ctx context.Context, flagKey string, defaultValue bool, evalCtx of.FlattenedContext,
 ) of.BoolResolutionDetail {
+	if p.status != of.ReadyState {
+		return of.BoolResolutionDetail{
+			Value: false,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason: of.Reason(of.ProviderNotReadyCode),
+			},
+		}
+	}
+
 	return p.service.ResolveBoolean(ctx, flagKey, defaultValue, evalCtx)
 }
 
 func (p *Provider) StringEvaluation(
 	ctx context.Context, flagKey string, defaultValue string, evalCtx of.FlattenedContext,
 ) of.StringResolutionDetail {
+	if p.status != of.ReadyState {
+		return of.StringResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason: of.Reason(of.ProviderNotReadyCode),
+			},
+		}
+	}
+
 	return p.service.ResolveString(ctx, flagKey, defaultValue, evalCtx)
 }
 
 func (p *Provider) FloatEvaluation(
 	ctx context.Context, flagKey string, defaultValue float64, evalCtx of.FlattenedContext,
 ) of.FloatResolutionDetail {
+	if p.status != of.ReadyState {
+		return of.FloatResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason: of.Reason(of.ProviderNotReadyCode),
+			},
+		}
+	}
+
 	return p.service.ResolveFloat(ctx, flagKey, defaultValue, evalCtx)
 }
 
