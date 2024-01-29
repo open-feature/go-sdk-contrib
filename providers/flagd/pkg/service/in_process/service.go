@@ -152,7 +152,7 @@ func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: mapError(err),
+				ResolutionError: mapError(key, err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -178,7 +178,7 @@ func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue 
 		return of.StringResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: mapError(err),
+				ResolutionError: mapError(key, err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -204,7 +204,7 @@ func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue f
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: mapError(err),
+				ResolutionError: mapError(key, err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -230,7 +230,7 @@ func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int
 		return of.IntResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: mapError(err),
+				ResolutionError: mapError(key, err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -256,7 +256,7 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: mapError(err),
+				ResolutionError: mapError(key, err),
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
@@ -311,15 +311,17 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 }
 
 // mapError is a helper to map evaluation errors to OF errors
-func mapError(err error) of.ResolutionError {
+func mapError(flagKey string, err error) of.ResolutionError {
 	switch err.Error() {
-	case model.FlagNotFoundErrorCode, model.FlagDisabledErrorCode:
-		return of.NewFlagNotFoundResolutionError(string(of.FlagNotFoundCode))
+	case model.FlagNotFoundErrorCode:
+		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: " + flagKey + " not found"))
+	case model.FlagDisabledErrorCode:
+		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: " + flagKey + " is disabled"))
 	case model.TypeMismatchErrorCode:
-		return of.NewTypeMismatchResolutionError(string(of.TypeMismatchCode))
+		return of.NewTypeMismatchResolutionError(fmt.Sprintf("flag: " + flagKey + " evaluated type not valid"))
 	case model.ParseErrorCode:
-		return of.NewParseErrorResolutionError(string(of.ParseErrorCode))
+		return of.NewParseErrorResolutionError(fmt.Sprintf("flag: " + flagKey + " parsing error"))
 	default:
-		return of.NewGeneralResolutionError(string(of.GeneralCode))
+		return of.NewGeneralResolutionError(fmt.Sprintf("flag: " + flagKey + " unable to evaluate"))
 	}
 }
