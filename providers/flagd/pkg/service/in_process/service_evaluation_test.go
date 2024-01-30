@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"github.com/open-feature/flagd/core/pkg/evaluator"
+	"github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk/openfeature"
+	"strings"
 	"testing"
 )
 
@@ -253,6 +255,50 @@ func TestObjectEvaluation(t *testing.T) {
 		if test.isError && objEval.Error() == nil {
 			t.Logf("Test failed:  %s", test.name)
 			t.Fatal("Expected error in resolution but got none")
+		}
+	}
+}
+
+func TestErrorMapping(t *testing.T) {
+	// validate correct error mapping from flagd to OF
+	tests := []struct {
+		name         string
+		errorType    string
+		expectedCode openfeature.ErrorCode
+	}{
+		{
+			name:         "Flag not found",
+			errorType:    model.FlagNotFoundErrorCode,
+			expectedCode: openfeature.FlagNotFoundCode,
+		},
+		{
+			name:         "Flag disabled",
+			errorType:    model.FlagDisabledErrorCode,
+			expectedCode: openfeature.FlagNotFoundCode,
+		},
+		{
+			name:         "Type mismatch",
+			errorType:    model.TypeMismatchErrorCode,
+			expectedCode: openfeature.TypeMismatchCode,
+		},
+		{
+			name:         "Parsing error",
+			errorType:    model.ParseErrorCode,
+			expectedCode: openfeature.ParseErrorCode,
+		},
+		{
+			name:         "General error",
+			errorType:    model.GeneralErrorCode,
+			expectedCode: openfeature.GeneralCode,
+		},
+	}
+
+	for _, test := range tests {
+		resolution := mapError("someFlag", errors.New(test.errorType))
+
+		if !strings.HasPrefix(resolution.Error(), string(test.expectedCode)) {
+			t.Errorf("Test %s: Expected resolution error to contain prefix %s, but error was %s",
+				test.name, test.expectedCode, resolution.Error())
 		}
 	}
 }
