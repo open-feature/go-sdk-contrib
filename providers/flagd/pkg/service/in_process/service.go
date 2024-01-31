@@ -141,7 +141,7 @@ func (i *InProcess) Init() error {
 
 func (i *InProcess) Shutdown() {
 	i.syncEnd()
-	i.listenerShutdown <- nil
+	close(i.listenerShutdown)
 }
 
 func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue bool,
