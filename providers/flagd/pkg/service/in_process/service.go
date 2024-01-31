@@ -90,11 +90,8 @@ func (i *InProcess) Init() error {
 		return err
 	}
 
+	initOnce := parallel.Once{}
 	syncInitSuccess := make(chan interface{})
-	readyOnce := parallel.OnceFunc(func() {
-		i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
-		syncInitSuccess <- nil
-	})
 	syncInitErr := make(chan error)
 
 	syncChan := make(chan sync.DataSync, 1)
@@ -119,7 +116,10 @@ func (i *InProcess) Init() error {
 						ProviderName: "flagd", EventType: of.ProviderError,
 						ProviderEventDetails: of.ProviderEventDetails{Message: "Error from flag sync " + err.Error()}}
 				}
-				readyOnce()
+				initOnce.Do(func() {
+					i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+					syncInitSuccess <- nil
+				})
 				i.events <- of.Event{
 					ProviderName: "flagd", EventType: of.ProviderConfigChange,
 					ProviderEventDetails: of.ProviderEventDetails{Message: "New flag sync", FlagChanges: maps.Keys(changes)}}
