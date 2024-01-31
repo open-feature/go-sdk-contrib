@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.3.3...tests/flagd/v1.4.0) (2024-01-31)
+
+
+### ✨ New Features
+
+* domain specific provider for e2e tests ([#443](https://github.com/open-feature/go-sdk-contrib/issues/443)) ([b77d0f5](https://github.com/open-feature/go-sdk-contrib/commit/b77d0f533cbb93a4f4056c392cd8f4a6b47501c0))
+
 ## [1.3.3](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.3.2...tests/flagd/v1.3.3) (2024-01-23)
 
 
