@@ -15,11 +15,12 @@ type ctxStorageKey struct{}
 
 // ctxClientKey is the key used to pass the openfeature client across context.Context
 type ctxClientKey struct{}
+var domain = "flagd-e2e-tests"
 
 func aFlagdProviderIsSet(ctx context.Context) (context.Context, error) {
 	readyChan := make(chan struct{})
 
-	err := openfeature.SetProvider(test_provider_supplier())
+	err := openfeature.SetNamedProvider(domain, test_provider_supplier())
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +30,8 @@ func aFlagdProviderIsSet(ctx context.Context) (context.Context, error) {
 		close(readyChan)
 	}
 
-	openfeature.AddHandler(openfeature.ProviderReady, &callBack)
-
-	client := openfeature.NewClient("evaluation tests")
+	client := openfeature.NewClient(domain)
+	client.AddHandler(openfeature.ProviderReady, &callBack)
 
 	select {
 	case <-readyChan:
