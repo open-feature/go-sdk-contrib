@@ -640,6 +640,8 @@ github.com/open-feature/go-sdk v1.9.0 h1:1Nyj+XNHfL0rRGZgGCbZ29CHDD57PQJL7Q/2ZbW
 github.com/open-feature/go-sdk v1.9.0/go.mod h1:n5BM4DfvIiKaWWquZnL/yVihcGM5aLsz7rNYE3BkXAM=
 github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.3 h1:+wyVLv3HO0YybanRFgsu99S3hi5FMsU/GJdDVCrHL7U=
 github.com/open-feature/go-sdk-contrib/tests/flagd v1.3.3/go.mod h1:6UNdd5nC4507WHLADDIfyhjP7XmfkBeBtN4ZpSSCjhg=
+github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.0 h1:jeW3EY5p3PAs67YzwcsHE/A7GfmntOu7+1pV5R6lc2g=
+github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.0/go.mod h1:6UNdd5nC4507WHLADDIfyhjP7XmfkBeBtN4ZpSSCjhg=
 github.com/open-feature/schemas v0.2.8 h1:oA75hJXpOd9SFgmNI2IAxWZkwzQPUDm7Jyyh3q489wM=
 github.com/open-feature/schemas v0.2.8/go.mod h1:vj+rfTsOLlh5PtGGkAbitnJmFPYuTHXTjOy13kzNgKQ=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
