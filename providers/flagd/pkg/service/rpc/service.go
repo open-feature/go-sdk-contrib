@@ -84,12 +84,11 @@ func (s *Service) Init() error {
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
+	s.cancelHook = cancelFunc
 
 	go func() {
 		s.startEventStream(ctx)
 	}()
-
-	s.cancelHook = cancelFunc
 
 	return nil
 }
@@ -444,6 +443,12 @@ func (s *Service) startEventStream(ctx context.Context) {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
 		err := s.streamClient(ctx)
 		if err != nil {
+			// first check for ctx close and exit retrying as this is a shutdown
+			if errors.Is(ctx.Err(), context.Canceled) {
+				s.logger.V(logger.Debug).Info("context cancelled, exiting")
+				return
+			}
+
 			// error in stream handler, purge cache if available and retry
 			s.logger.V(logger.Warn).Info("connection to event stream failed, attempting again")
 			if s.cache.IsEnabled() {
