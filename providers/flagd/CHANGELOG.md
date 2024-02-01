@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.22](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.21...providers/flagd/v0.1.22) (2024-02-01)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update golang.org/x/exp digest to 1b97071 ([#379](https://github.com/open-feature/go-sdk-contrib/issues/379)) ([d2b2f1e](https://github.com/open-feature/go-sdk-contrib/commit/d2b2f1e19d5d6e9168174dc2d0196453a57ecac1))
+* improvements to the shutdown of provider & support go 1.20 ([#442](https://github.com/open-feature/go-sdk-contrib/issues/442)) ([6056a8a](https://github.com/open-feature/go-sdk-contrib/commit/6056a8a6854d486a476ccd581ca4570148e1e025))
+
+
+### ✨ New Features
+
+* improve in-process error mapping ([#440](https://github.com/open-feature/go-sdk-contrib/issues/440)) ([1dee30b](https://github.com/open-feature/go-sdk-contrib/commit/1dee30b849fd93694d1945490b7aa53b82669770))
+
 ## [0.1.21](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.20...providers/flagd/v0.1.21) (2024-01-26)
 
 
