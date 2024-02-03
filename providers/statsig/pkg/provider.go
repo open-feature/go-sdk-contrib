@@ -316,16 +316,5 @@ func toFeatureConfig(evalCtx of.FlattenedContext) (*FeatureConfig, error) {
 		return nil, fmt.Errorf("`%s` not found at evaluation context.", featureConfigKey)
 	}
 
-	// if featureConfigType, ok := featureConfigMap["type"].(string); ok {
-	// 	featureConfig.FeatureConfigType = FeatureConfigType(featureConfigType)
-	// } else {
-	// 	return nil, fmt.Errorf("`%s` `%s` not found at evaluation context.", featureConfigKey, "type")
-	// }
-	// if name, ok := featureConfigMap["name"].(string); ok {
-	// 	featureConfig.Name = name
-	// } else {
-	// 	return nil, fmt.Errorf("`%s` `%s` not found at evaluation context.", featureConfigKey, "name")
-	// }
-
 	return &featureConfig, nil
 }
