@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	//github.com/statsig-io/go-sdk v1.17.0
 	of "github.com/open-feature/go-sdk/openfeature"
 	statsig "github.com/statsig-io/go-sdk"
 )
@@ -28,7 +27,7 @@ func NewProvider(providerConfig ProviderConfig) (*Provider, error) {
 }
 
 func (p *Provider) Init(evaluationContext of.EvaluationContext) {
-	statsig.InitializeWithOptions("server-secret-key", &p.providerConfig.Options)
+	statsig.InitializeWithOptions(p.providerConfig.SdkKey, &p.providerConfig.Options)
 	p.status = of.ReadyState
 }
 
@@ -167,28 +166,28 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			},
 		}
 	}
-	if featureConfig.featureConfigType == CONFIG {
-		config := statsig.GetConfig(*statsigUser, flag)
+	if featureConfig.FeatureConfigType == CONFIG {
+		config := statsig.GetConfig(*statsigUser, featureConfig.Name)
 		flagMetadata := make(map[string]interface{})
 		flagMetadata["GroupName"] = config.GroupName
 		flagMetadata["LogExposure"] = config.LogExposure
 		flagMetadata["Name"] = config.Name
 		flagMetadata["RuleID"] = config.RuleID
 		return of.InterfaceResolutionDetail{
-			Value: config.Value,
+			Value: config.Value[flag],
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				FlagMetadata: flagMetadata,
 			},
 		}
 	} else {
-		layer := statsig.GetLayer(*statsigUser, flag)
+		layer := statsig.GetLayer(*statsigUser, featureConfig.Name)
 		flagMetadata := make(map[string]interface{})
 		flagMetadata["GroupName"] = layer.GroupName
 		flagMetadata["LogExposure"] = layer.LogExposure
 		flagMetadata["Name"] = layer.Name
 		flagMetadata["RuleID"] = layer.RuleID
 		return of.InterfaceResolutionDetail{
-			Value: layer.Value,
+			Value: layer.Value[flag],
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				FlagMetadata: flagMetadata,
 			},
@@ -270,6 +269,7 @@ func toStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 			} else {
 				return nil, fmt.Errorf("key `%s` can not be converted to map", key)
 			}
+		case featureConfigKey:
 		default:
 			return nil, fmt.Errorf("key `%s` is not mapped", key)
 		}
@@ -301,8 +301,8 @@ const (
 )
 
 type FeatureConfig struct {
-	featureConfigType FeatureConfigType
-	name              string
+	FeatureConfigType FeatureConfigType
+	Name              string
 }
 
 func toFeatureConfig(evalCtx of.FlattenedContext) (*FeatureConfig, error) {
@@ -310,22 +310,22 @@ func toFeatureConfig(evalCtx of.FlattenedContext) (*FeatureConfig, error) {
 		return &FeatureConfig{}, nil
 	}
 
-	featureConfig := &FeatureConfig{}
-	featureConfigMap, ok := evalCtx[featureConfigKey].(map[string]interface{})
+	// featureConfig := &FeatureConfig{}
+	featureConfig, ok := evalCtx[featureConfigKey].(FeatureConfig)
 	if !ok {
 		return nil, fmt.Errorf("`%s` not found at evaluation context.", featureConfigKey)
 	}
 
-	if featureConfigType, ok := featureConfigMap["type"].(string); ok {
-		featureConfig.featureConfigType = FeatureConfigType(featureConfigType)
-	} else {
-		return nil, fmt.Errorf("`%s` `%s` not found at evaluation context.", featureConfigKey, "type")
-	}
-	if name, ok := featureConfigMap["name"].(string); ok {
-		featureConfig.name = name
-	} else {
-		return nil, fmt.Errorf("`%s` `%s` not found at evaluation context.", featureConfigKey, "name")
-	}
+	// if featureConfigType, ok := featureConfigMap["type"].(string); ok {
+	// 	featureConfig.FeatureConfigType = FeatureConfigType(featureConfigType)
+	// } else {
+	// 	return nil, fmt.Errorf("`%s` `%s` not found at evaluation context.", featureConfigKey, "type")
+	// }
+	// if name, ok := featureConfigMap["name"].(string); ok {
+	// 	featureConfig.Name = name
+	// } else {
+	// 	return nil, fmt.Errorf("`%s` `%s` not found at evaluation context.", featureConfigKey, "name")
+	// }
 
-	return featureConfig, nil
+	return &featureConfig, nil
 }

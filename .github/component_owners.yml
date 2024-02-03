@@ -30,6 +30,8 @@ components:
   providers/harness:
     - liran2000
     - davejohnston
+  providers/statsig:
+    - liran2000
 
 ignored-authors:
   - renovate-bot

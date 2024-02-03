@@ -1,10 +1,11 @@
-package unleash
+package statsig
 
 import (
-	"github.com/Unleash/unleash-client-go/v3"
+	statsig "github.com/statsig-io/go-sdk"
 )
 
 // ProviderConfig is the struct containing the provider options.
 type ProviderConfig struct {
-	Options []unleash.ConfigOption
+	Options statsig.Options
+	SdkKey  string
 }
