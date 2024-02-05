@@ -68,7 +68,7 @@ To start e2e test helpers use the command:
 make e2e-start-helpers
 ```
 
-Then, you can run all tests including e2e tests using command,
+Then, you can run all tests, including e2e tests using the command:
 
 ```shell
 make e2e
