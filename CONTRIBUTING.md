@@ -23,7 +23,7 @@ make workspace-update
 The project provides `makefile` targets for creating [hooks](https://openfeature.dev/docs/reference/concepts/hooks) and [providers](https://openfeature.dev/docs/reference/concepts/provider).
 To contribute a new hook or provider, fork this repository and create a new go module, it will then be discoverable by `make workspace-init` and `make workspace-update`.
 
-To automatically create and setup new provider directory  use following command (requires jq),
+To automatically create and set up a new provider directory, use the following command (requires [jq](https://jqlang.github.io/jq/)):
 
 ```shell
 make MODULE_NAME=NAME new-provider
