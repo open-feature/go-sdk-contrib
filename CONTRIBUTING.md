@@ -74,7 +74,7 @@ Then, you can run all tests, including e2e tests using the command:
 make e2e
 ```
 
-Once tests are complete, you can remove e2e test helpers using command,
+Once tests are complete, you can remove e2e test helpers using the command:
 
 ```shell
 make e2e-remove-helpers
