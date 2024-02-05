@@ -52,7 +52,7 @@ Instructions for how to develop a module should also be included (required syste
 
 Any published modules must have reasonable test coverage.
 
-To run tests in all existing go modules, use command,
+To run tests in all existing go modules, use the command:
 
 ```shell
 make test
