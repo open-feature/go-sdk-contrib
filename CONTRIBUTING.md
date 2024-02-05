@@ -8,7 +8,7 @@ go 1.19+  is recommended.
  
 Run the following command to set up the go workspace,
 
-```
+```shell
 make workspace-init
 ```
 
