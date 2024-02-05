@@ -12,7 +12,7 @@ Run the following command to set up the go workspace,
 make workspace-init
 ```
 
-To sync go.work with current modules,
+To sync `go.work` with the current modules, run:
 
 ```shell
 make workspace-update
