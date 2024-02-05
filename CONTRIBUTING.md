@@ -62,7 +62,7 @@ It is recommended to include end-to-end (e2e) tests in your provider when possib
 If you have dependency services for your e2e tests, make sure to add them as service in the build pipeline.
 Also, make sure to include them in the makefile for easy use by contributors.
 
-To start e2e test helpers use command,
+To start e2e test helpers use the command:
 
 ```shell
 make e2e-start-helpers
