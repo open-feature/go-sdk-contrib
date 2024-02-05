@@ -29,7 +29,7 @@ To automatically create and setup new provider directory  use following command 
 make MODULE_NAME=NAME new-provider
 ```
 
-To automatically create and setup new hook directory, use following command (requires jq),
+To automatically create and set up a new hook directory, use the following command (requires [jq](https://jqlang.github.io/jq/)):
 
 ```
 make MODULE_NAME=NAME new-hook 
