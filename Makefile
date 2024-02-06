@@ -1,5 +1,7 @@
 ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | sort)
 MODULE_TYPE ?= providers
+FLAGD_TESTBED = flagd-testbed
+FLAGD_SYNC = sync-testbed
 
 workspace-init:
 	go work init
@@ -10,6 +12,16 @@ workspace-update:
 
 test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
+
+e2e-start-helpers:
+	docker run --name $(FLAGD_TESTBED) -d -p 8013:8013 ghcr.io/open-feature/flagd-testbed:v0.4.11
+	docker run --name $(FLAGD_SYNC) -d -p 9090:9090 ghcr.io/open-feature/sync-testbed:v0.4.11
+
+e2e-remove-helpers:
+	docker stop $(FLAGD_TESTBED)
+	docker stop $(FLAGD_SYNC)
+	docker rm $(FLAGD_TESTBED)
+	docker rm $(FLAGD_SYNC)
 
 e2e:
 	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -tags=e2e -v {}
