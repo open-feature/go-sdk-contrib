@@ -30,7 +30,7 @@ func TestJsonEvaluatorInRPC(t *testing.T) {
 		ScenarioInitializer: integration.InitializeFlagdJsonScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"../../../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
+			Paths:    []string{"../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
 			TestingT: t, // Testing instance that will run subtests.
 			Strict:   true,
 		},
@@ -59,7 +59,7 @@ func TestJsonEvaluatorInProcess(t *testing.T) {
 		ScenarioInitializer: integration.InitializeFlagdJsonScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"../../../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
+			Paths:    []string{"../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
 			TestingT: t, // Testing instance that will run subtests.
 			Strict:   true,
 		},

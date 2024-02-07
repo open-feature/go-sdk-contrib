@@ -30,7 +30,7 @@ func TestETestEvaluationFlagdInRPC(t *testing.T) {
 		ScenarioInitializer: integration.InitializeEvaluationScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"../../../spec/specification/assets/gherkin/evaluation.feature"},
+			Paths:    []string{"../spec/specification/assets/gherkin/evaluation.feature"},
 			TestingT: t, // Testing instance that will run subtests.
 			Strict:   true,
 		},
@@ -59,7 +59,7 @@ func TestJsonEvaluatorFlagdInProcess(t *testing.T) {
 		ScenarioInitializer: integration.InitializeEvaluationScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"../../../spec/specification/assets/gherkin/evaluation.feature"},
+			Paths:    []string{"../spec/specification/assets/gherkin/evaluation.feature"},
 			TestingT: t, // Testing instance that will run subtests.
 			Strict:   true,
 		},
