@@ -179,7 +179,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 				FlagMetadata: flagMetadata,
 			},
 		}
-	} else {
+	} else if featureConfig.FeatureConfigType == LAYER {
 		layer := statsig.GetLayer(*statsigUser, featureConfig.Name)
 		flagMetadata := make(map[string]interface{})
 		flagMetadata["GroupName"] = layer.GroupName
@@ -190,6 +190,14 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			Value: layer.Value[flag],
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				FlagMetadata: flagMetadata,
+			},
+		}
+	} else {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("not implemented FeatureConfigType: %s", featureConfig.FeatureConfigType)),
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
