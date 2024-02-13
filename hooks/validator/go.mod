@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/hooks/validator
 
-go 1.18
+go 1.21
 
 require github.com/open-feature/go-sdk v1.9.0
 

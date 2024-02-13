@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/harness
 
-go 1.19
+go 1.21
 
 require (
 	github.com/harness/ff-golang-server-sdk v0.1.17
@@ -33,7 +33,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/r3labs/sse v0.0.0-20201126193848-34e640891548 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/configcat
 
-go 1.18
+go 1.21
 
 require (
 	github.com/configcat/go-sdk/v8 v8.0.1
