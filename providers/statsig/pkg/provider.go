@@ -95,17 +95,35 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 
 func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+	if v, ok := res.Value.(float64); ok {
+		return of.FloatResolutionDetail{
+			Value:                    v,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
 	return of.FloatResolutionDetail{
-		Value:                    res.Value.(float64),
-		ProviderResolutionDetail: res.ProviderResolutionDetail,
+		Value: defaultValue,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			ResolutionError: of.NewGeneralResolutionError("evaluated value is from incompatible type"),
+			Reason:          of.ErrorReason,
+		},
 	}
 }
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+	if v, ok := res.Value.(int64); ok {
+		return of.IntResolutionDetail{
+			Value:                    v,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
 	return of.IntResolutionDetail{
-		Value:                    res.Value.(int64),
-		ProviderResolutionDetail: res.ProviderResolutionDetail,
+		Value: defaultValue,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			ResolutionError: of.NewGeneralResolutionError("evaluated value is from incompatible type"),
+			Reason:          of.ErrorReason,
+		},
 	}
 }
 
