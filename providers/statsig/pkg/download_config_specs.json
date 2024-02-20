@@ -1,6 +1,70 @@
 {
   "dynamic_configs": [
     {
+      "name": "valid_flag",
+      "type": "dynamic_config",
+      "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
+      "enabled": true,
+      "defaultValue": { "number": 42.0, "float": 1.5, "string": "expected_value", "boolean": true, "object": {
+        "key1": "value1"
+      }},
+      "rules": [
+        
+      ]
+    },
+    {
+      "name": "valid_config",
+      "type": "dynamic_config",
+      "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
+      "enabled": true,
+      "defaultValue": { "number": 4, "float": 1.2, "string": "default", "boolean": true },
+      "rules": [
+        {
+          "name": "6N6Z8ODekNYZ7F8gFdoLP5",
+          "groupName": "everyone",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "public",
+              "targetValue": null,
+              "operator": null,
+              "field": null,
+              "additionalValues": {}
+            }
+          ],
+          "returnValue": true,
+          "id": "6N6Z8ODekNYZ7F8gFdoLP5",
+          "salt": "14862979-1468-4e49-9b2a-c8bb100eed8f"
+        }
+      ]
+    },
+    {
+      "name": "valid_config2",
+      "type": "dynamic_config",
+      "salt": "3e361046-bc69-4dfd-bbb1-538afe609157",
+      "enabled": true,
+      "defaultValue": {
+        "boolean": true
+      },
+      "rules": [],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "config"
+    },
+    {
+      "name": "TEMP",
+      "type": "dynamic_config",
+      "salt": "3e361046-bc69-4dfd-bbb1-538afe609157",
+      "enabled": true,
+      "defaultValue": {
+        "b_param": "layer_default"
+      },
+      "rules": [],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "layer"
+    },
+    {
       "name": "test_config",
       "type": "dynamic_config",
       "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
@@ -295,6 +359,18 @@
     }
   ],
   "layer_configs": [
+    {
+      "name": "valid_layer",
+      "type": "dynamic_config",
+      "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
+      "enabled": true,
+      "defaultValue": { "number": 42.0, "float": 1.5, "string": "expected_value", "boolean": true, "object": {
+        "key1": "value1"
+      }},
+      "rules": [
+        
+      ]
+    },
     {
       "name": "a_layer",
       "type": "dynamic_config",

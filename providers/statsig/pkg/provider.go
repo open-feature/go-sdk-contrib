@@ -112,6 +112,15 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+
+	// statsig evaluator treats int as float64
+	// https://github.com/statsig-io/go-sdk/blob/5af41eea1f4729a0571147f9ea188378e47c1d42/evaluator.go#L614
+	if v, ok := res.Value.(float64); ok {
+		return of.IntResolutionDetail{
+			Value:                    int64(v),
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
 	if v, ok := res.Value.(int64); ok {
 		return of.IntResolutionDetail{
 			Value:                    v,
@@ -336,7 +345,6 @@ func toFeatureConfig(evalCtx of.FlattenedContext) (*FeatureConfig, error) {
 		return &FeatureConfig{}, nil
 	}
 
-	// featureConfig := &FeatureConfig{}
 	featureConfig, ok := evalCtx[featureConfigKey].(FeatureConfig)
 	if !ok {
 		return nil, fmt.Errorf("`%s` not found at evaluation context.", featureConfigKey)
