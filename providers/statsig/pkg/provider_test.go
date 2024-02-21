@@ -123,6 +123,7 @@ func TestEvaluationMethods(t *testing.T) {
 
 		{"invalid_flag", false, of.FlattenedContext{"UserID": "123"}, false, "flag not found"},
 
+		// expected to succeed when https://github.com/statsig-io/go-sdk/issues/32 is resolved and adopted
 		// {"invalid_flag", true, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "test"}}, true, "flag not found"},
 
 		{"float", 1.23, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "invalid_flag"}}, 1.23, "flag not found"},

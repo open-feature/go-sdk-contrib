@@ -12,10 +12,12 @@ go get github.com/open-feature/go-sdk-contrib/providers/statsig
 ```
 
 ## Concepts
-* Boolean evaluation gets [gate](https://docs.statsig.com/server/golangSDK#checking-a-gate) status.
 * String/Integer/Float evaluations evaluation gets [Dynamic config](https://docs.statsig.com/server/golangSDK#reading-a-dynamic-config) or [Layer](https://docs.statsig.com/server/golangSDK#getting-an-layerexperiment) evaluation.
   As the key represents an inner attribute, feature config is required as a parameter with data needed for evaluation.
   For an example of dynamic config of product alias, need to differentiate between dynamic config or layer, and the dynamic config name.
+* Boolean evaluation gets [gate](https://docs.statsig.com/server/golangSDK#checking-a-gate) status when feature config is not passed.
+  When feature config exists, it evaluates to the config/layer attribute, similar to String/Integer/Float evaluations.
+
 * Object evaluation gets a structure representing the dynamic config or layer.
 * [Private Attributes](https://docs.statsig.com/server/golangSDK#private-attributes) are supported as 'privateAttributes' context key.
 
@@ -74,3 +76,6 @@ Unit test based on Statsig [BootstrapValues](https://docs.statsig.com/server/gol
 As it is limited, evaluation context based tests are limited.
 See [provider_test.go](./pkg/provider_test.go) for more information.
 
+## Known issues
+- Gate BooleanEvaluation with default value true cannot fallback to true.
+  https://github.com/statsig-io/go-sdk/issues/32
