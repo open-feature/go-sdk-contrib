@@ -3,6 +3,7 @@ package statsig
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	of "github.com/open-feature/go-sdk/openfeature"
 	statsig "github.com/statsig-io/go-sdk"
@@ -86,10 +87,28 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		}
 	}
 
-	res := statsig.CheckGate(*statsigUser, flag)
+	_, err = toFeatureConfig(evalCtx)
+	if err != nil {
+		res := statsig.GetGate(*statsigUser, flag)
+		return of.BoolResolutionDetail{
+			Value:                    res.Value,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{},
+		}
+	}
+
+	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+	if v, ok := res.Value.(bool); ok {
+		return of.BoolResolutionDetail{
+			Value:                    v,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
 	return of.BoolResolutionDetail{
-		Value:                    res,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{},
+		Value: defaultValue,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			ResolutionError: of.NewGeneralResolutionError("evaluated value is from incompatible type"),
+			Reason:          of.ErrorReason,
+		},
 	}
 }
 
@@ -193,32 +212,88 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			},
 		}
 	}
+	var value interface{}
+	flagMetadata := make(map[string]interface{})
 	if featureConfig.FeatureConfigType == CONFIG {
 		config := statsig.GetConfig(*statsigUser, featureConfig.Name)
-		flagMetadata := make(map[string]interface{})
+		defaultValueV := reflect.ValueOf(defaultValue)
+		switch defaultValueV.Kind() {
+		case reflect.Bool:
+			value = config.GetBool(flag, defaultValueV.Bool())
+		case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
+			value = config.GetNumber(flag, float64(defaultValueV.Int()))
+		case reflect.Float32, reflect.Float64:
+			value = config.GetNumber(flag, defaultValueV.Float())
+		case reflect.String:
+			value = config.GetString(flag, defaultValueV.String())
+		case reflect.Array, reflect.Slice:
+			sliceDefaultValue, _ := defaultValueV.Interface().([]interface{})
+			value = config.GetSlice(flag, sliceDefaultValue)
+		case reflect.Map:
+			mapValue, ok := defaultValueV.Interface().(map[string]interface{})
+			if !ok {
+				return of.InterfaceResolutionDetail{
+					Value: defaultValue,
+					ProviderResolutionDetail: of.ProviderResolutionDetail{
+						ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("default value is from unexpected type: %s", defaultValueV.Kind())),
+						Reason:          of.ErrorReason,
+					},
+				}
+			}
+			value = config.GetMap(flag, mapValue)
+		default:
+			return of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("not implemented default value type: %s", defaultValueV.Kind())),
+					Reason:          of.ErrorReason,
+				},
+			}
+		}
 		flagMetadata["GroupName"] = config.GroupName
 		flagMetadata["LogExposure"] = config.LogExposure
 		flagMetadata["Name"] = config.Name
 		flagMetadata["RuleID"] = config.RuleID
-		return of.InterfaceResolutionDetail{
-			Value: config.Value[flag],
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				FlagMetadata: flagMetadata,
-			},
-		}
 	} else if featureConfig.FeatureConfigType == LAYER {
 		layer := statsig.GetLayer(*statsigUser, featureConfig.Name)
-		flagMetadata := make(map[string]interface{})
+		defaultValueV := reflect.ValueOf(defaultValue)
+		switch defaultValueV.Kind() {
+		case reflect.Bool:
+			value = layer.GetBool(flag, defaultValueV.Bool())
+		case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
+			value = layer.GetNumber(flag, float64(defaultValueV.Int()))
+		case reflect.Float32, reflect.Float64:
+			value = layer.GetNumber(flag, defaultValueV.Float())
+		case reflect.String:
+			value = layer.GetString(flag, defaultValueV.String())
+		case reflect.Array, reflect.Slice:
+			sliceDefaultValue, _ := defaultValueV.Interface().([]interface{})
+			value = layer.GetSlice(flag, sliceDefaultValue)
+		case reflect.Map:
+			mapValue, ok := defaultValueV.Interface().(map[string]interface{})
+			if !ok {
+				return of.InterfaceResolutionDetail{
+					Value: defaultValue,
+					ProviderResolutionDetail: of.ProviderResolutionDetail{
+						ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("default value is from unexpected type: %s", defaultValueV.Kind())),
+						Reason:          of.ErrorReason,
+					},
+				}
+			}
+			value = layer.GetMap(flag, mapValue)
+		default:
+			return of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("not implemented default value type: %s", defaultValueV.Kind())),
+					Reason:          of.ErrorReason,
+				},
+			}
+		}
 		flagMetadata["GroupName"] = layer.GroupName
 		flagMetadata["LogExposure"] = layer.LogExposure
 		flagMetadata["Name"] = layer.Name
 		flagMetadata["RuleID"] = layer.RuleID
-		return of.InterfaceResolutionDetail{
-			Value: layer.Value[flag],
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				FlagMetadata: flagMetadata,
-			},
-		}
 	} else {
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
@@ -227,6 +302,13 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 				Reason:          of.ErrorReason,
 			},
 		}
+	}
+
+	return of.InterfaceResolutionDetail{
+		Value: value,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			FlagMetadata: flagMetadata,
+		},
 	}
 }
 
@@ -342,7 +424,7 @@ type FeatureConfig struct {
 
 func toFeatureConfig(evalCtx of.FlattenedContext) (*FeatureConfig, error) {
 	if len(evalCtx) == 0 {
-		return &FeatureConfig{}, nil
+		return nil, fmt.Errorf("`%s` not found at evaluation context.", featureConfigKey)
 	}
 
 	featureConfig, ok := evalCtx[featureConfigKey].(FeatureConfig)

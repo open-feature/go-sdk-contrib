@@ -5,9 +5,19 @@
       "type": "dynamic_config",
       "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
       "enabled": true,
-      "defaultValue": { "number": 42.0, "float": 1.5, "string": "expected_value", "boolean": true, "object": {
-        "key1": "value1"
-      }},
+      "defaultValue": {
+        "number": 42,
+        "float": 1.5,
+        "string": "expected_value",
+        "boolean": true,
+        "object": {
+            "key1": "value1"
+        },
+        "slice": [
+            "v1",
+            "v2"
+        ]
+      },
       "rules": [
         
       ]
@@ -364,9 +374,19 @@
       "type": "dynamic_config",
       "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
       "enabled": true,
-      "defaultValue": { "number": 42.0, "float": 1.5, "string": "expected_value", "boolean": true, "object": {
-        "key1": "value1"
-      }},
+      "defaultValue": {
+        "number": 42,
+        "float": 1.5,
+        "string": "expected_value",
+        "boolean": true,
+        "object": {
+            "key1": "value1"
+        },
+        "slice": [
+            "v1",
+            "v2"
+        ]
+      },
       "rules": [
         
       ]
