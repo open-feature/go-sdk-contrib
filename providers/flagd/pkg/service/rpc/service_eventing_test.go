@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
 	"context"
 	"errors"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"

@@ -1,8 +1,8 @@
 package process
 
 import (
-	"buf.build/gen/go/open-feature/flagd/grpc/go/sync/v1/syncv1grpc"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/sync/v1"
+	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
 	"fmt"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -43,7 +43,6 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		mockResponses: []*v1.SyncFlagsResponse{
 			{
 				FlagConfiguration: flagRsp,
-				State:             v1.SyncState_SYNC_STATE_ALL,
 			},
 		},
 		fetchAllFlagsResponse: nil,
@@ -140,6 +139,10 @@ func (b *bufferedServer) SyncFlags(_ *v1.SyncFlagsRequest, stream syncv1grpc.Fla
 
 func (b *bufferedServer) FetchAllFlags(_ context.Context, _ *v1.FetchAllFlagsRequest) (*v1.FetchAllFlagsResponse, error) {
 	return b.fetchAllFlagsResponse, b.fetchAllFlagsError
+}
+
+func (b *bufferedServer) GetMetadata(_ context.Context, _ *v1.GetMetadataRequest) (*v1.GetMetadataResponse, error) {
+	return &v1.GetMetadataResponse{}, nil
 }
 
 // serve serves a bufferedServer. This is a blocking call

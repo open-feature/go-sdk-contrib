@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/schema/v1"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
 	"connectrpc.com/connect"
 	"context"
 )
