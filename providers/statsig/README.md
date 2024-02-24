@@ -30,8 +30,8 @@ Statsig OpenFeature Provider is using Statsig GO SDK.
 ```go
 import (
   statsigProvider "github.com/open-feature/go-sdk-contrib/providers/statsig/pkg"
-	of "github.com/open-feature/go-sdk/openfeature"
-	statsig "github.com/statsig-io/go-sdk"
+  of "github.com/open-feature/go-sdk/openfeature"
+  statsig "github.com/statsig-io/go-sdk"
 )
 
 of.SetProvider(provider)
