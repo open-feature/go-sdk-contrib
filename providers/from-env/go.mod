@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/from-env
 
-go 1.19
+go 1.21
 
 require github.com/open-feature/go-sdk v1.9.0
 
