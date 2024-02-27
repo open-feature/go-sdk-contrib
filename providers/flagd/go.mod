@@ -18,8 +18,8 @@ require (
 	github.com/open-feature/go-sdk v1.10.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.0
 	go.uber.org/mock v0.3.0
-	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
-	golang.org/x/net v0.21.0
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
+	golang.org/x/net v0.19.0
 	google.golang.org/grpc v1.61.1
 	google.golang.org/protobuf v1.32.0
 	sigs.k8s.io/controller-runtime v0.16.3
