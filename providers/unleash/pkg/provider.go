@@ -3,6 +3,7 @@ package unleash
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/Unleash/unleash-client-go/v3/api"
@@ -16,6 +17,7 @@ const generalError = "general error"
 type Provider struct {
 	providerConfig ProviderConfig
 	status         of.State
+	lock           sync.Mutex
 }
 
 func NewProvider(providerConfig ProviderConfig) (*Provider, error) {
@@ -27,6 +29,13 @@ func NewProvider(providerConfig ProviderConfig) (*Provider, error) {
 }
 
 func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if p.status == of.ReadyState {
+		return nil
+	}
+
 	err := unleash.Initialize(
 		p.providerConfig.Options...,
 	)
