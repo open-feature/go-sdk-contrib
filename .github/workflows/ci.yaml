@@ -46,7 +46,7 @@ jobs:
     services:
       # flagd-testbed for flagd-provider e2e tests
       flagd:
-        image: ghcr.io/open-feature/flagd-testbed:v0.5.1
+        image: ghcr.io/open-feature/flagd-testbed:v0.5.2
         ports:
           - 8013:8013
       # sync-testbed for flagd-provider e2e tests
