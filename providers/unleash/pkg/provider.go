@@ -3,6 +3,7 @@ package unleash
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/Unleash/unleash-client-go/v3"
 	"github.com/Unleash/unleash-client-go/v3/api"
@@ -106,9 +107,21 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 
 func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+	if strValue, ok := res.Value.(string); ok {
+		value, err := strconv.ParseFloat(strValue, 64)
+		if err == nil {
+			return of.FloatResolutionDetail{
+				Value:                    value,
+				ProviderResolutionDetail: res.ProviderResolutionDetail,
+			}
+		}
+	}
 	return of.FloatResolutionDetail{
-		Value:                    res.Value.(float64),
-		ProviderResolutionDetail: res.ProviderResolutionDetail,
+		Value: defaultValue,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			Reason:          of.ErrorReason,
+			ResolutionError: of.NewFlagNotFoundResolutionError(fmt.Sprintf("FloatEvaluation type error for %s", flag)),
+		},
 	}
 }
 
