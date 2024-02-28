@@ -9,14 +9,17 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// ctxKeyKey is the key used to pass flag key across context.Context
+// ctxKeyKey is the key used to pass flag key across tests
 type ctxKeyKey struct{}
 
-// ctxKeyKey is the key used to pass the default across context.Context
+// ctxKeyKey is the key used to pass the default value across tests
 type ctxDefaultKey struct{}
 
-// ctxValueKey is the key used to pass the value across context.Context
-type ctxValueKey struct{}
+// ctxEvaluationCtxKey is the key used to pass openfeature evaluation context across tests
+type ctxEvaluationCtxKey struct{}
+
+// ctxReasonKey is the key used to pass the evaluation reason across tests
+type ctxReasonKey struct{}
 
 // InitializeFlagdJsonTestSuite register provider supplier and register test steps
 func InitializeFlagdJsonTestSuite(providerSupplier func() openfeature.FeatureProvider) func(*godog.TestSuiteContext) {
@@ -28,11 +31,24 @@ func InitializeFlagdJsonTestSuite(providerSupplier func() openfeature.FeaturePro
 // InitializeFlagdJsonScenario initializes the flagd json evaluator test scenario
 func InitializeFlagdJsonScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a flagd provider is set$`, aFlagdProviderIsSet)
+
 	ctx.Step(`^a string flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aFlagdStringFlagWithKeyIsEvaluatedWithDefaultValue)
-	ctx.Step(`^a context containing a key "([^"]*)", with value "([^"]*)"$`, aContextContainingAKeyWithValue)
-	ctx.Step(`^a context containing a nested property with outer key "([^"]*)" and inner key "([^"]*)", with value "([^"]*)"$`, aContextContainingANestedPropertyWithOuterKeyAndInnerKeyWithValue)
-	ctx.Step(`^the returned value should be "([^"]*)"$`, theReturnedValueShouldBe)
+	ctx.Step(`^an integer flag with key "([^"]*)" is evaluated with default value (\d+)$`, aFlagdIntegerFlagWithKeyIsEvaluatedWithDefaultValue)
+
+	ctx.Step(`^a context containing a key "([^"]*)", with value "([^"]*)"$`, aContextContainingAKeyWitStringValue)
+	ctx.Step(`^a context containing a key "([^"]*)", with value (\d+)$`, aContextContainingAKeyWithIntValue)
+	ctx.Step(`^a context containing a targeting key with value "([^"]*)"$`, aContextContainingATargetingKey)
+	ctx.Step(`^a context containing a nested property with outer key "([^"]*)" and inner key "([^"]*)", with value "([^"]*)"$`, aContextContainingANestedPropertyWithOuterKeyAndInnerKeyWithStringValue)
+	ctx.Step(`^a context containing a nested property with outer key "([^"]*)" and inner key "([^"]*)", with value (\d+)$`, aContextContainingANestedPropertyWithOuterKeyAndInnerKeyWithIntValue)
+
+	ctx.Step(`^the returned value should be "([^"]*)"$`, theReturnedValueShouldBeString)
+	ctx.Step(`^the returned value should be (\d+)$`, theReturnedValueShouldBeInt)
+	ctx.Step(`^the returned value should be -(\d+)$`, theReturnedValueShouldBeNegativeInt)
+
+	ctx.Step(`^the returned reason should be "([^"]*)"$`, theReturnedReasonShouldBe)
 }
+
+// setup
 
 func aFlagdStringFlagWithKeyIsEvaluatedWithDefaultValue(ctx context.Context, key, defaultValue string) (context.Context, error) {
 	ctx = context.WithValue(ctx, ctxKeyKey{}, key)
@@ -40,43 +56,118 @@ func aFlagdStringFlagWithKeyIsEvaluatedWithDefaultValue(ctx context.Context, key
 	return ctx, nil
 }
 
-func aContextContainingAKeyWithValue(ctx context.Context, evalContextKey, evalContextValue string) (context.Context, error) {
-	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
-	key := ctx.Value(ctxKeyKey{}).(string)
-	defaultValue := ctx.Value(ctxDefaultKey{}).(string)
-	ec := openfeature.NewEvaluationContext("", map[string]interface{}{
+func aFlagdIntegerFlagWithKeyIsEvaluatedWithDefaultValue(ctx context.Context, key string, defaultValue int64) (context.Context, error) {
+	ctx = context.WithValue(ctx, ctxKeyKey{}, key)
+	ctx = context.WithValue(ctx, ctxDefaultKey{}, defaultValue)
+	return ctx, nil
+}
+
+// set contexts
+
+func aContextContainingAKeyWitStringValue(ctx context.Context, evalContextKey, evalContextValue string) (context.Context, error) {
+	evalCtx := openfeature.NewEvaluationContext("", map[string]interface{}{
 		evalContextKey: evalContextValue,
 	})
-	got, err := client.StringValue(ctx, key, defaultValue, ec)
-	if err != nil {
-		return ctx, fmt.Errorf("error: %w", err)
-	}
-	return context.WithValue(ctx, ctxValueKey{}, got), nil
+
+	return context.WithValue(ctx, ctxEvaluationCtxKey{}, evalCtx), nil
 }
 
-func aContextContainingANestedPropertyWithOuterKeyAndInnerKeyWithValue(ctx context.Context, outerKey, innerKey, name string) (context.Context, error) {
+func aContextContainingAKeyWithIntValue(ctx context.Context, evalContextKey string, evalContextValue int64) (context.Context, error) {
+	evalCtx := openfeature.NewEvaluationContext("", map[string]interface{}{
+		evalContextKey: evalContextValue,
+	})
+
+	return context.WithValue(ctx, ctxEvaluationCtxKey{}, evalCtx), nil
+}
+
+func aContextContainingATargetingKey(ctx context.Context, targetingKet string) (context.Context, error) {
+	evalCtx := openfeature.NewEvaluationContext(targetingKet, map[string]interface{}{})
+
+	return context.WithValue(ctx, ctxEvaluationCtxKey{}, evalCtx), nil
+}
+
+func aContextContainingANestedPropertyWithOuterKeyAndInnerKeyWithStringValue(ctx context.Context, outerKey, innerKey, value string) (context.Context, error) {
+	evalCtx := openfeature.NewEvaluationContext("", map[string]interface{}{
+		outerKey: map[string]interface{}{
+			innerKey: value,
+		},
+	})
+
+	return context.WithValue(ctx, ctxEvaluationCtxKey{}, evalCtx), nil
+}
+
+func aContextContainingANestedPropertyWithOuterKeyAndInnerKeyWithIntValue(ctx context.Context, outerKey string, innerKey string, value int) (context.Context, error) {
+	evalCtx := openfeature.NewEvaluationContext("", map[string]interface{}{
+		outerKey: map[string]interface{}{
+			innerKey: value,
+		},
+	})
+
+	return context.WithValue(ctx, ctxEvaluationCtxKey{}, evalCtx), nil
+}
+
+// validate
+
+func theReturnedValueShouldBeString(ctx context.Context, expectedValue string) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
 	key := ctx.Value(ctxKeyKey{}).(string)
 	defaultValue := ctx.Value(ctxDefaultKey{}).(string)
-	ec := openfeature.NewEvaluationContext("", map[string]interface{}{
-		outerKey: map[string]interface{}{
-			innerKey: name,
-		},
-	})
-	got, err := client.StringValue(ctx, key, defaultValue, ec)
-	if err != nil {
-		return ctx, fmt.Errorf("error: %w", err)
+
+	var evalCtx openfeature.EvaluationContext
+	if ctx.Value(ctxEvaluationCtxKey{}) != nil {
+		evalCtx = ctx.Value(ctxEvaluationCtxKey{}).(openfeature.EvaluationContext)
 	}
-	return context.WithValue(ctx, ctxValueKey{}, got), nil
+
+	// error from evaluation are ignored as we only check for detail content
+	details, _ := client.StringValueDetails(ctx, key, defaultValue, evalCtx)
+
+	if details.Value != expectedValue {
+		return ctx, fmt.Errorf("expected resolved int value to be %s, got %s", expectedValue, details.Value)
+	}
+
+	return context.WithValue(ctx, ctxReasonKey{}, details.Reason), nil
 }
 
-func theReturnedValueShouldBe(ctx context.Context, expectedValue string) (context.Context, error) {
-	got, ok := ctx.Value(ctxValueKey{}).(string)
-	if !ok {
-		return ctx, errors.New("no flag resolution result")
+func theReturnedValueShouldBeInt(ctx context.Context, expectedValue int64) (context.Context, error) {
+	return validateInteger(ctx, expectedValue, false)
+}
+
+func theReturnedValueShouldBeNegativeInt(ctx context.Context, expectedValue int64) (context.Context, error) {
+	return validateInteger(ctx, expectedValue, true)
+}
+
+func validateInteger(ctx context.Context, expectedValue int64, isNegative bool) (context.Context, error) {
+	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
+	key := ctx.Value(ctxKeyKey{}).(string)
+	defaultValue := ctx.Value(ctxDefaultKey{}).(int64)
+
+	var evalCtx openfeature.EvaluationContext
+	if ctx.Value(ctxEvaluationCtxKey{}) != nil {
+		evalCtx = ctx.Value(ctxEvaluationCtxKey{}).(openfeature.EvaluationContext)
 	}
-	if got != expectedValue {
-		return ctx, fmt.Errorf("expected resolved int value to be %s, got %s", expectedValue, got)
+
+	// error from evaluation are ignored as we only check for detail content
+	details, _ := client.IntValueDetails(ctx, key, defaultValue, evalCtx)
+
+	if isNegative {
+		expectedValue = -(expectedValue)
+	}
+
+	if details.Value != expectedValue {
+		return ctx, fmt.Errorf("expected resolved int value to be %d, got %d", expectedValue, details.Value)
+	}
+
+	return context.WithValue(ctx, ctxReasonKey{}, details.Reason), nil
+}
+
+func theReturnedReasonShouldBe(ctx context.Context, expectedReason string) (context.Context, error) {
+	evaluatedReason, ok := ctx.Value(ctxReasonKey{}).(openfeature.Reason)
+	if !ok {
+		return ctx, errors.New("no flag resolution reason set")
+	}
+
+	if string(evaluatedReason) != expectedReason {
+		return ctx, fmt.Errorf("expected resolved int value to be %s, got %s", expectedReason, evaluatedReason)
 	}
 	return ctx, nil
 }
