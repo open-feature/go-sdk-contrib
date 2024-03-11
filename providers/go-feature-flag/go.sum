@@ -94,6 +94,8 @@ github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZV
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
+github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
+github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/thomaspoignant/go-feature-flag v1.18.2 h1:EmU4Ja+xfVoHuTBlZmP6YzwTgmiuwHeCS8/GNymFkHI=
 github.com/thomaspoignant/go-feature-flag v1.18.2/go.mod h1:ePtHa9auiio7QHlWKUE8ggsgUtF9MvzLDKnIK6009sM=
 github.com/thomaspoignant/go-feature-flag v1.21.0 h1:r+D2oiS+nxxCFhaEX+dMK4nNj7e2lpZTT7rvlZ95Kl8=
