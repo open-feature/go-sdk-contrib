@@ -4,18 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"io"
 	"net/http"
-
-	of "github.com/open-feature/go-sdk/openfeature"
+	"strconv"
+	"time"
 )
 
 type Outbound interface {
-	Post(context.Context, string, []byte) (*http.Response, error)
-}
-
-type resolver interface {
-	resolve(ctx context.Context, key string, evalCtx map[string]interface{}) (*successDto, *of.ResolutionError)
+	PostSingle(ctx context.Context, key string, payload []byte) (*http.Response, error)
 }
 
 type OutboundResolver struct {
@@ -26,7 +23,7 @@ func NewOutboundResolver(client Outbound) *OutboundResolver {
 	return &OutboundResolver{client}
 }
 
-func (g *OutboundResolver) resolve(ctx context.Context, key string, evalCtx map[string]interface{}) (
+func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (
 	*successDto, *of.ResolutionError) {
 
 	b, err := json.Marshal(requestFrom(evalCtx))
@@ -35,7 +32,7 @@ func (g *OutboundResolver) resolve(ctx context.Context, key string, evalCtx map[
 		return nil, &resErr
 	}
 
-	rsp, err := g.client.Post(ctx, key, b)
+	rsp, err := g.client.PostSingle(ctx, key, b)
 	if err != nil {
 		resErr := of.NewGeneralResolutionError(fmt.Sprintf("ofrep request error: %v", err))
 		return nil, &resErr
@@ -60,7 +57,15 @@ func (g *OutboundResolver) resolve(ctx context.Context, key string, evalCtx map[
 		resErr := of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag for key '%s' does not exist", key))
 		return nil, &resErr
 	case 429:
-		resErr := of.NewGeneralResolutionError("rate limit exceeded, try again later")
+		after := parse429(rsp)
+		var resErr of.ResolutionError
+		if after == 0 {
+			resErr = of.NewGeneralResolutionError("rate limit exceeded")
+		} else {
+			// todo - we may introduce a request blocker with derived time
+			resErr = of.NewGeneralResolutionError(
+				fmt.Sprintf("rate limit exceeded, try again after %f seconds", after.Seconds()))
+		}
 		return nil, &resErr
 	case 500:
 		return nil, parseError500(rsp.Body)
@@ -89,11 +94,28 @@ func parseError400(body io.ReadCloser) *of.ResolutionError {
 	case string(of.GeneralCode):
 		resErr = of.NewGeneralResolutionError(evalError.ErrorDetails)
 	default:
-		// we do not expect other error codes from ofrep, hence wrap as a general error
 		resErr = of.NewGeneralResolutionError(evalError.ErrorDetails)
 	}
 
 	return &resErr
+}
+
+func parse429(rsp *http.Response) time.Duration {
+	retryHeader := rsp.Header.Get("Retry-After")
+	if retryHeader == "" {
+		return 0
+	}
+
+	if i, err := strconv.Atoi(retryHeader); err == nil {
+		return time.Duration(i) * time.Second
+	}
+
+	parsed, err := http.ParseTime(retryHeader)
+	if err != nil {
+		return 0
+	}
+
+	return parsed.Sub(time.Now())
 }
 
 func parseError500(body io.ReadCloser) *of.ResolutionError {
@@ -109,6 +131,8 @@ func parseError500(body io.ReadCloser) *of.ResolutionError {
 
 	return &resErr
 }
+
+// DTOs and OFREP models
 
 type successDto struct {
 	Value    interface{}

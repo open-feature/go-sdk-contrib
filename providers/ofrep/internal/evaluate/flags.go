@@ -8,6 +8,10 @@ import (
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
+type resolver interface {
+	resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (*successDto, *of.ResolutionError)
+}
+
 type Flags struct {
 	resolver resolver
 }
@@ -21,7 +25,7 @@ func NewFlagsEvaluator(uri string, callback outbound.AuthCallback) *Flags {
 }
 
 func (h Flags) ResolveBoolean(ctx context.Context, key string, defaultValue bool, evalCtx map[string]interface{}) of.BoolResolutionDetail {
-	evalSuccess, resolutionError := h.resolver.resolve(ctx, key, evalCtx)
+	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
@@ -55,7 +59,7 @@ func (h Flags) ResolveBoolean(ctx context.Context, key string, defaultValue bool
 }
 
 func (h Flags) ResolveString(ctx context.Context, key string, defaultValue string, evalCtx map[string]interface{}) of.StringResolutionDetail {
-	evalSuccess, resolutionError := h.resolver.resolve(ctx, key, evalCtx)
+	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.StringResolutionDetail{
 			Value: defaultValue,
@@ -89,7 +93,7 @@ func (h Flags) ResolveString(ctx context.Context, key string, defaultValue strin
 }
 
 func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float64, evalCtx map[string]interface{}) of.FloatResolutionDetail {
-	evalSuccess, resolutionError := h.resolver.resolve(ctx, key, evalCtx)
+	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
@@ -123,7 +127,7 @@ func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float6
 }
 
 func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, evalCtx map[string]interface{}) of.IntResolutionDetail {
-	evalSuccess, resolutionError := h.resolver.resolve(ctx, key, evalCtx)
+	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.IntResolutionDetail{
 			Value: defaultValue,
@@ -157,7 +161,7 @@ func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, e
 }
 
 func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue interface{}, evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
-	evalSuccess, resolutionError := h.resolver.resolve(ctx, key, evalCtx)
+	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
