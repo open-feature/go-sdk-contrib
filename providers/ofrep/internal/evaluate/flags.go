@@ -3,7 +3,6 @@ package evaluate
 import (
 	"context"
 	"fmt"
-
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
 	of "github.com/open-feature/go-sdk/openfeature"
 )
@@ -104,8 +103,14 @@ func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float6
 		}
 	}
 
-	b, ok := evalSuccess.Value.(float64)
-	if !ok {
+	var value float64
+
+	switch evalSuccess.Value.(type) {
+	case float32:
+		value = float64(evalSuccess.Value.(float32))
+	case float64:
+		value = evalSuccess.Value.(float64)
+	default:
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -117,7 +122,7 @@ func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float6
 	}
 
 	return of.FloatResolutionDetail{
-		Value: b,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:       of.Reason(evalSuccess.Reason),
 			Variant:      evalSuccess.Variant,
@@ -138,8 +143,14 @@ func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, e
 		}
 	}
 
-	b, ok := evalSuccess.Value.(int64)
-	if !ok {
+	var value int64
+
+	switch evalSuccess.Value.(type) {
+	case int:
+		value = int64(evalSuccess.Value.(int))
+	case int64:
+		value = evalSuccess.Value.(int64)
+	default:
 		return of.IntResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -151,7 +162,7 @@ func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, e
 	}
 
 	return of.IntResolutionDetail{
-		Value: b,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:       of.Reason(evalSuccess.Reason),
 			Variant:      evalSuccess.Variant,
