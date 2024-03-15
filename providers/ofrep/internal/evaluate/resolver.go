@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"io"
 	"net/http"
 	"strconv"
 	"time"
+
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 type Outbound interface {
