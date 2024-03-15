@@ -8,15 +8,18 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
+// Configuration of the OFREP provider
 type Configuration struct {
 	BasePath           string
 	AuthHeaderProvider outbound.AuthCallback
 }
 
+// Provider implementation for OFREP
 type Provider struct {
 	evaluator Evaluator
 }
 
+// NewProvider returns a provider configured with provided Configuration
 func NewProvider(cfg Configuration) *Provider {
 	provider := &Provider{
 		evaluator: evaluate.NewFlagsEvaluator(cfg.BasePath, cfg.AuthHeaderProvider),

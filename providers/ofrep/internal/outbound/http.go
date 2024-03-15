@@ -36,7 +36,7 @@ func NewOutbound(baseUri string, callback AuthCallback) *Outbound {
 
 }
 
-func (h *Outbound) Post(ctx context.Context, key string, payload []byte) (*http.Response, error) {
+func (h *Outbound) PostSingle(ctx context.Context, key string, payload []byte) (*http.Response, error) {
 	path, err := url.JoinPath(h.baseURI, ofrepV1, key)
 	if err != nil {
 		return nil, fmt.Errorf("error building request path: %w", err)
