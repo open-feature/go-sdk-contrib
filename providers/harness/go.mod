@@ -6,7 +6,7 @@ require (
 	github.com/harness/ff-golang-server-sdk v0.1.17
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/open-feature/go-sdk v1.9.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 )
 
 require (
