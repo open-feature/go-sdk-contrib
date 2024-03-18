@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.4.0...tests/flagd/v1.4.1) (2024-03-18)
+
+
+### 🧹 Chore
+
+* bump Go to version 1.21 ([#452](https://github.com/open-feature/go-sdk-contrib/issues/452)) ([7ec90ce](https://github.com/open-feature/go-sdk-contrib/commit/7ec90ce4f9b06670187561afd9e342eed4228be1))
+* update flagd e2e tests ([#466](https://github.com/open-feature/go-sdk-contrib/issues/466)) ([a8ee306](https://github.com/open-feature/go-sdk-contrib/commit/a8ee3068bd3b174bc75a6aeefa0441c61a5b43f7))
+
 ## [1.4.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.3.3...tests/flagd/v1.4.0) (2024-01-31)
 
 
