@@ -2,34 +2,38 @@ package ofrep
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/evaluate"
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// Configuration of the OFREP provider
-type Configuration struct {
-	BasePath           string
-	AuthHeaderProvider outbound.AuthCallback
-}
-
 // Provider implementation for OFREP
 type Provider struct {
 	evaluator Evaluator
 }
 
-// NewProvider returns a provider configured with provided Configuration
-func NewProvider(cfg Configuration) *Provider {
+type option func(*outbound.Configuration)
+
+// NewProvider returns a provider configured with provided configuration
+func NewProvider(baseUri string, options ...option) *Provider {
+	cfg := outbound.Configuration{
+		BaseURI: baseUri,
+	}
+
+	for _, option := range options {
+		option(&cfg)
+	}
+
 	provider := &Provider{
-		evaluator: evaluate.NewFlagsEvaluator(cfg.BasePath, cfg.AuthHeaderProvider),
+		evaluator: evaluate.NewFlagsEvaluator(cfg),
 	}
 
 	return provider
 }
 
 func (p Provider) Metadata() openfeature.Metadata {
-
 	return openfeature.Metadata{
 		Name: "OFREP provider",
 	}
@@ -57,4 +61,31 @@ func (p Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValu
 
 func (p Provider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
+}
+
+// options of the OFREP provider
+
+// WithHeaderProvider allows to configure a custom header callback to set a custom authorization header
+func WithHeaderProvider(callback outbound.HeaderCallback) func(*outbound.Configuration) {
+	return func(c *outbound.Configuration) {
+		c.Callbacks = append(c.Callbacks, callback)
+	}
+}
+
+// WithBearerToken allows to set token to be used for bearer token authorization
+func WithBearerToken(token string) func(*outbound.Configuration) {
+	return func(c *outbound.Configuration) {
+		c.Callbacks = append(c.Callbacks, func() (string, string) {
+			return "Authorization", fmt.Sprintf("Bearer %s", token)
+		})
+	}
+}
+
+// WithApiKeyAuth allows to set token to be used for api key authorization
+func WithApiKeyAuth(token string) func(*outbound.Configuration) {
+	return func(c *outbound.Configuration) {
+		c.Callbacks = append(c.Callbacks, func() (string, string) {
+			return "X-API-Key", token
+		})
+	}
 }

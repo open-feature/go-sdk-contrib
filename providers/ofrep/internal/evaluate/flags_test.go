@@ -316,7 +316,5 @@ func genericValidator[T knownTypes](test testDefinition[T], resolvedValue T, rea
 		if !reflect.DeepEqual(test.expect, resolvedValue) {
 			t.Error(fmt.Sprintf("expected value %v, but got %v", test.expect, resolvedValue))
 		}
-
 	}
-
 }
