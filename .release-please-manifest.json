@@ -10,6 +10,6 @@
     "providers/launchdarkly": "0.1.4",
     "providers/unleash": "0.0.3-alpha",
     "providers/harness": "0.0.4-alpha",
-    "providers/statsig": "0.0.1",
+    "providers/statsig": "0.0.2",
     "tests/flagd": "1.4.0"
 }
