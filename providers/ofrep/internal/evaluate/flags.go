@@ -3,7 +3,7 @@ package evaluate
 import (
 	"context"
 	"fmt"
-	
+
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
 	of "github.com/open-feature/go-sdk/openfeature"
 )
@@ -16,8 +16,8 @@ type Flags struct {
 	resolver resolver
 }
 
-func NewFlagsEvaluator(uri string, callback outbound.AuthCallback) *Flags {
-	client := outbound.NewOutbound(uri, callback)
+func NewFlagsEvaluator(cfg outbound.Configuration) *Flags {
+	client := outbound.NewHttp(cfg)
 
 	return &Flags{
 		resolver: NewOutboundResolver(client),

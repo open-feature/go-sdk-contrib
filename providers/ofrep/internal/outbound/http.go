@@ -13,27 +13,32 @@ import (
 
 const ofrepV1 = "/ofrep/v1/evaluate/flags/"
 
-type AuthCallback func() (key string, value string)
+// HeaderCallback is a callback returning header name and header value
+type HeaderCallback func() (name string, value string)
+
+type Configuration struct {
+	Callbacks []HeaderCallback
+	BaseURI   string
+}
 
 // Outbound client for http communication
 type Outbound struct {
-	auth    AuthCallback
-	baseURI string
+	headerProvider []HeaderCallback
+	baseURI        string
 
 	client http.Client
 }
 
-func NewOutbound(baseUri string, callback AuthCallback) *Outbound {
+func NewHttp(cfg Configuration) *Outbound {
 	client := http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	return &Outbound{
-		baseURI: baseUri,
-		client:  client,
-		auth:    callback,
+		headerProvider: cfg.Callbacks,
+		baseURI:        cfg.BaseURI,
+		client:         client,
 	}
-
 }
 
 func (h *Outbound) PostSingle(ctx context.Context, key string, payload []byte) (*http.Response, error) {
@@ -48,9 +53,8 @@ func (h *Outbound) PostSingle(ctx context.Context, key string, payload []byte) (
 		return nil, &resErr
 	}
 
-	if h.auth != nil {
-		// set authentication headers
-		req.Header.Set(h.auth())
+	for _, callback := range h.headerProvider {
+		req.Header.Set(callback())
 	}
 
 	return h.client.Do(req)
