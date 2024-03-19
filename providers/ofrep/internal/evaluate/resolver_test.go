@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -36,17 +35,17 @@ func TestSuccess200(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		client := mockOutbound{
+		resolver := OutboundResolver{client: mockOutbound{
 			rsp: http.Response{
 				StatusCode: http.StatusOK,
 				Body:       io.NopCloser(bytes.NewReader(successBytes)),
 			},
-		}
+		}}
 
-		successDto, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
+		successDto, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
 		if resolutionError != nil {
-			t.Error(fmt.Sprintf("expected no errors, but got error: %v", err))
+			t.Errorf("expected no errors, but got error: %v", err)
 		}
 
 		if successDto == nil {
@@ -54,27 +53,31 @@ func TestSuccess200(t *testing.T) {
 		}
 
 		if successDto.Value != success.Value {
-			t.Errorf(fmt.Sprintf("expected value %v, but got %v", success.Value, successDto.Value))
+			t.Errorf("expected value %v, but got %v", success.Value, successDto.Value)
 		}
 
 		if successDto.Variant != success.Variant {
-			t.Errorf(fmt.Sprintf("expected variant %v, but got %v", success.Variant, successDto.Variant))
+			t.Errorf("expected variant %v, but got %v", success.Variant, successDto.Variant)
 		}
 
 		if successDto.Reason != success.Reason {
-			t.Errorf(fmt.Sprintf("expected reason %s, but got %s", success.Reason, successDto.Reason))
+			t.Errorf("expected reason %s, but got %s", success.Reason, successDto.Reason)
+		}
+
+		if successDto.Metadata["key"] != "value" {
+			t.Errorf("expected key to contain value %s, but got %s", "value", successDto.Metadata["key"])
 		}
 	})
 
 	t.Run("invalid payload type results in general error", func(t *testing.T) {
-		client := mockOutbound{
+		resolver := OutboundResolver{client: mockOutbound{
 			rsp: http.Response{
 				StatusCode: http.StatusOK,
 				Body:       io.NopCloser(bytes.NewReader([]byte("some payload"))),
 			},
-		}
+		}}
+		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-		success, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
 		validateErrorCode(success, resolutionError, of.GeneralCode, t)
 	})
 }
@@ -116,8 +119,9 @@ func TestResolveGeneralErrors(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// when
-			success, resolutionError := NewOutboundResolver(test.client).resolveSingle(context.Background(), "key", map[string]interface{}{})
+			resolver := OutboundResolver{client: test.client}
+			success, resolutionError := resolver.resolveSingle(context.Background(), "key", map[string]interface{}{})
+
 			validateErrorCode(success, resolutionError, of.GeneralCode, t)
 		})
 	}
@@ -166,31 +170,27 @@ func TestEvaluationError4xx(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			client := mockOutbound{
+			resolver := OutboundResolver{client: mockOutbound{
 				rsp: http.Response{
 					StatusCode: http.StatusBadRequest,
 					Body:       io.NopCloser(bytes.NewReader(errBytes)),
 				},
-			}
-			// when
-			success, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
+			}}
+			success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-			// then
 			validateErrorCode(success, resolutionError, test.expectCode, t)
 		})
 	}
 }
 
 func TestFlagNotFound404(t *testing.T) {
-	client := mockOutbound{
+	resolver := OutboundResolver{client: mockOutbound{
 		rsp: http.Response{
 			StatusCode: http.StatusNotFound,
 		},
-	}
-	// when
-	success, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
+	}}
+	success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-	// then
 	validateErrorCode(success, resolutionError, of.FlagNotFoundCode, t)
 }
 
@@ -225,12 +225,9 @@ func Test429(t *testing.T) {
 				}
 			}
 
-			client := mockOutbound{
-				rsp: response,
-			}
+			resolver := OutboundResolver{client: mockOutbound{rsp: response}}
+			success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-			// when
-			success, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
 			validateErrorCode(success, resolutionError, of.GeneralCode, t)
 		})
 	}
@@ -238,16 +235,14 @@ func Test429(t *testing.T) {
 
 func TestEvaluationError5xx(t *testing.T) {
 	t.Run("without body", func(t *testing.T) {
-		client := mockOutbound{
+		resolver := OutboundResolver{client: mockOutbound{
 			rsp: http.Response{
 				StatusCode: http.StatusInternalServerError,
 				Body:       io.NopCloser(bytes.NewReader([]byte{})),
 			},
-		}
-		// when
-		success, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
+		}}
+		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-		// then
 		validateErrorCode(success, resolutionError, of.GeneralCode, t)
 	})
 
@@ -257,30 +252,26 @@ func TestEvaluationError5xx(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		client := mockOutbound{
+		resolver := OutboundResolver{client: mockOutbound{
 			rsp: http.Response{
 				StatusCode: http.StatusInternalServerError,
 				Body:       io.NopCloser(bytes.NewReader(errorBytes)),
 			},
-		}
-		// when
-		success, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
+		}}
+		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-		// then
 		validateErrorCode(success, resolutionError, of.GeneralCode, t)
 	})
 
 	t.Run("with invalid body", func(t *testing.T) {
-		client := mockOutbound{
+		resolver := OutboundResolver{client: mockOutbound{
 			rsp: http.Response{
 				StatusCode: http.StatusInternalServerError,
 				Body:       io.NopCloser(bytes.NewReader([]byte("some error"))),
 			},
-		}
-		// when
-		success, resolutionError := NewOutboundResolver(client).resolveSingle(context.Background(), "", make(map[string]interface{}))
+		}}
+		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-		// then
 		validateErrorCode(success, resolutionError, of.GeneralCode, t)
 	})
 }

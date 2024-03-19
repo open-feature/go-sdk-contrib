@@ -2,7 +2,6 @@
 
 This is the Go implementation of the OFREP provider.
 The provider works by evaluating flags against OFREP single flag evaluation endpoint.
-And there is no caching layer in this version.
 
 ## Installation
 

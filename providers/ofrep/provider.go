@@ -16,7 +16,8 @@ type Provider struct {
 
 type option func(*outbound.Configuration)
 
-// NewProvider returns a provider configured with provided configuration
+// NewProvider returns an OFREP provider configured with provided configuration.
+// The only mandatory configuration is the baseUri, which is the base path of the OFREP service implementation.
 func NewProvider(baseUri string, options ...option) *Provider {
 	cfg := outbound.Configuration{
 		BaseURI: baseUri,

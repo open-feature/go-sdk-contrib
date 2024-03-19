@@ -2,7 +2,6 @@ package evaluate
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -302,19 +301,19 @@ func genericValidator[T knownTypes](test testDefinition[T], resolvedValue T, rea
 		}
 
 		if !reflect.DeepEqual(test.defaultValue, resolvedValue) {
-			t.Error(fmt.Sprintf("expected deafault value %v, but got %v", test.defaultValue, resolvedValue))
+			t.Errorf("expected deafault value %v, but got %v", test.defaultValue, resolvedValue)
 		}
 
 		if reason != of.ErrorReason {
-			t.Error(fmt.Sprintf("expected reason %v, but got %v", of.ErrorReason, reason))
+			t.Errorf("expected reason %v, but got %v", of.ErrorReason, reason)
 		}
 	} else {
 		if err != nil {
-			t.Fatal(fmt.Sprintf("expected no error, but got none nil error: %v", err))
+			t.Fatalf("expected no error, but got none nil error: %v", err)
 		}
 
 		if !reflect.DeepEqual(test.expect, resolvedValue) {
-			t.Error(fmt.Sprintf("expected value %v, but got %v", test.expect, resolvedValue))
+			t.Errorf("expected value %v, but got %v", test.expect, resolvedValue)
 		}
 	}
 }
