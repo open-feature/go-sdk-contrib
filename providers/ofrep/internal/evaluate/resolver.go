@@ -9,19 +9,22 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
 	of "github.com/open-feature/go-sdk/openfeature"
 )
+
+// OutboundResolver is responsible for resolving flags with outbound communications.
+// It contains domain logic of the OFREP specification.
+type OutboundResolver struct {
+	client Outbound
+}
 
 type Outbound interface {
 	PostSingle(ctx context.Context, key string, payload []byte) (*http.Response, error)
 }
 
-type OutboundResolver struct {
-	client Outbound
-}
-
-func NewOutboundResolver(client Outbound) *OutboundResolver {
-	return &OutboundResolver{client}
+func NewOutboundResolver(cfg outbound.Configuration) *OutboundResolver {
+	return &OutboundResolver{client: outbound.NewHttp(cfg)}
 }
 
 func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (
@@ -116,7 +119,7 @@ func parse429(rsp *http.Response) time.Duration {
 		return 0
 	}
 
-	return parsed.Sub(time.Now())
+	return time.Until(parsed)
 }
 
 func parseError500(body io.ReadCloser) *of.ResolutionError {

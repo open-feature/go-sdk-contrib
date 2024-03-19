@@ -8,19 +8,18 @@ import (
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
-type resolver interface {
-	resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (*successDto, *of.ResolutionError)
-}
-
+// Flags is the flag evaluator implementation. It contains domain logic of the OpenFeature flag evaluation.
 type Flags struct {
 	resolver resolver
 }
 
-func NewFlagsEvaluator(cfg outbound.Configuration) *Flags {
-	client := outbound.NewHttp(cfg)
+type resolver interface {
+	resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (*successDto, *of.ResolutionError)
+}
 
+func NewFlagsEvaluator(cfg outbound.Configuration) *Flags {
 	return &Flags{
-		resolver: NewOutboundResolver(client),
+		resolver: NewOutboundResolver(cfg),
 	}
 }
 

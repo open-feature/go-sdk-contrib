@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestHttpOutbound(t *testing.T) {
 	// given
+	host := "localhost:18181"
 	key := "flag"
+
 	server := http.Server{
-		Addr: "localhost:18181",
+		Addr: host,
 		Handler: mockHandler{
 			t:   t,
 			key: key,
@@ -19,8 +22,14 @@ func TestHttpOutbound(t *testing.T) {
 	}
 
 	go func() {
-		server.ListenAndServe()
+		err := server.ListenAndServe()
+		if err != nil {
+			t.Logf("error starting mock server: %v", err)
+			return
+		}
 	}()
+
+	<-time.After(3 * time.Second)
 
 	outbound := NewHttp(Configuration{
 		Callbacks: []HeaderCallback{
@@ -28,23 +37,26 @@ func TestHttpOutbound(t *testing.T) {
 				return "Authorization", "Token"
 			},
 		},
-		BaseURI: "http://localhost:18181",
+		BaseURI: fmt.Sprintf("http://%s", host),
 	})
 
 	// when
 	response, err := outbound.PostSingle(context.Background(), key, []byte{})
 	if err != nil {
+		t.Fatalf("error from request: %v", err)
 		return
 	}
 
-	// then - expect a ok response
+	// then - expect an ok response
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, but got %d", response.StatusCode)
 	}
 
 	// cleanup
-	server.Close()
-	server.Shutdown(context.Background())
+	err = server.Shutdown(context.Background())
+	if err != nil {
+		t.Errorf("error shuttting down mock server: %v", err)
+	}
 }
 
 type mockHandler struct {
@@ -73,5 +85,4 @@ func (r mockHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	resp.WriteHeader(http.StatusOK)
-	return
 }
