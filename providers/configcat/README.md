@@ -22,7 +22,7 @@ import (
 	"context"
 	"fmt"
 
-	sdk "github.com/configcat/go-sdk/v7"
+	sdk "github.com/configcat/go-sdk/v8"
 	configcat "github.com/open-feature/go-sdk-contrib/providers/configcat/pkg"
 	"github.com/open-feature/go-sdk/openfeature"
 )
