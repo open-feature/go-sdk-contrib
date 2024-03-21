@@ -6,7 +6,7 @@ OpenFeature Go provider implementation for [ConfigCat](https://configcat.com) th
 
 ```shell
 # ConfigCat SDK
-go get github.com/configcat/go-sdk/v7
+go get github.com/configcat/go-sdk/v8
 
 # OpenFeature SDK
 go get github.com/open-feature/go-sdk/openfeature
