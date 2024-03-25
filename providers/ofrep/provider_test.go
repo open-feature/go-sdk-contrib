@@ -83,9 +83,15 @@ func TestWiringE2E(t *testing.T) {
 		}
 	}()
 
+	// time for server to be ready
 	<-time.After(3 * time.Second)
 
-	provider := NewProvider(fmt.Sprintf("http://%s", host))
+	// custom client with reduced timeout
+	customClient := &http.Client{
+		Timeout: 1 * time.Second,
+	}
+
+	provider := NewProvider(fmt.Sprintf("http://%s", host), WithClient(customClient))
 	booleanEvaluation := provider.BooleanEvaluation(context.Background(), "flag", false, nil)
 
 	if booleanEvaluation.Value != true {

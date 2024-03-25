@@ -3,6 +3,7 @@ package ofrep
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/evaluate"
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
@@ -88,5 +89,12 @@ func WithApiKeyAuth(token string) func(*outbound.Configuration) {
 		c.Callbacks = append(c.Callbacks, func() (string, string) {
 			return "X-API-Key", token
 		})
+	}
+}
+
+// WithClient allows to provide a pre-configured http.Client for the communication with the OFREP service
+func WithClient(client *http.Client) func(configuration *outbound.Configuration) {
+	return func(configuration *outbound.Configuration) {
+		configuration.Client = client
 	}
 }

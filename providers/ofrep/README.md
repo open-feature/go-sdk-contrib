@@ -32,8 +32,9 @@ You can configure the provider using following configuration options,
 
 | Configuration option | Details                                                                                                                 |
 |----------------------|-------------------------------------------------------------------------------------------------------------------------|
-| WithBearerToken      | Set the token to be used with "Bearer" HTTP Authorization schema                                                        |
 | WithApiKeyAuth       | Set the token to be used with "X-API-Key" header                                                                        |
+| WithBearerToken      | Set the token to be used with "Bearer" HTTP Authorization schema                                                        |
+| WithClient           | Provider a custom, pre-configured http.Client for OFREP service communication                                           |
 | WithHeaderProvider   | Register a custom header provider for OFREP calls. You may utilize this for custom authentication/authorization headers |
 
 

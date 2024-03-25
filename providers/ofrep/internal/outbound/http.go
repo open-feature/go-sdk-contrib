@@ -17,27 +17,29 @@ const ofrepV1 = "/ofrep/v1/evaluate/flags/"
 type HeaderCallback func() (name string, value string)
 
 type Configuration struct {
-	Callbacks []HeaderCallback
 	BaseURI   string
+	Callbacks []HeaderCallback
+	Client    *http.Client
 }
 
 // Outbound client for http communication
 type Outbound struct {
-	headerProvider []HeaderCallback
 	baseURI        string
-
-	client http.Client
+	client         *http.Client
+	headerProvider []HeaderCallback
 }
 
 func NewHttp(cfg Configuration) *Outbound {
-	client := http.Client{
-		Timeout: 10 * time.Second,
+	if cfg.Client == nil {
+		cfg.Client = &http.Client{
+			Timeout: 10 * time.Second,
+		}
 	}
 
 	return &Outbound{
 		headerProvider: cfg.Callbacks,
 		baseURI:        cfg.BaseURI,
-		client:         client,
+		client:         cfg.Client,
 	}
 }
 
