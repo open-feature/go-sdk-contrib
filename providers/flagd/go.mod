@@ -22,7 +22,7 @@ require (
 	golang.org/x/net v0.21.0
 	google.golang.org/grpc v1.61.1
 	google.golang.org/protobuf v1.32.0
-	sigs.k8s.io/controller-runtime v0.16.3
+	sigs.k8s.io/controller-runtime v0.17.2
 )
 
 require (
@@ -31,7 +31,7 @@ require (
 	github.com/diegoholiveira/jsonlogic/v3 v3.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-logr/zapr v1.2.4 // indirect
+	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/gofrs/uuid v4.3.1+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
