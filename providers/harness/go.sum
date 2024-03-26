@@ -54,6 +54,8 @@ github.com/harness-community/sse/v3 v3.1.0 h1:uaLxXzC9DjpWEV/qTYU3uJV3eLMTRhMY2P
 github.com/harness-community/sse/v3 v3.1.0/go.mod h1:v4ft76Eaj+kAsUcc29zIspInWgpzsMLlHLb4x/PYVX0=
 github.com/harness/ff-golang-server-sdk v0.1.17 h1:h5Grbfgh/7Hisrt30Fo/7UIo7oCVVMc2yahQe9MYVr4=
 github.com/harness/ff-golang-server-sdk v0.1.17/go.mod h1:rgZU38pqz49d4Gs/oF5tBmyhOWQUjiSl3ZnRd2UespA=
+github.com/harness/ff-golang-server-sdk v0.1.18 h1:PLOPTjU797Mx3EoVFJS2VluKTuMrXIiO7M7VJQRIlSY=
+github.com/harness/ff-golang-server-sdk v0.1.18/go.mod h1:rgZU38pqz49d4Gs/oF5tBmyhOWQUjiSl3ZnRd2UespA=
 github.com/hashicorp/go-cleanhttp v0.5.2 h1:035FKYIWjmULyFRBKPs8TBQoi0x6d9G4xc9neXJWAZQ=
 github.com/hashicorp/go-cleanhttp v0.5.2/go.mod h1:kO/YDlP8L1346E6Sodw+PrpBSV4/SoxCXGY6BqNFT48=
 github.com/hashicorp/go-hclog v0.9.2 h1:CG6TE5H9/JXsFWJCfoIVpKFIkFe6ysEuHirp4DxCsHI=
