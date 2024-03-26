@@ -14,14 +14,14 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/open-feature/flagd/core v0.8.0
+	github.com/open-feature/flagd/core v0.8.1
 	github.com/open-feature/go-sdk v1.10.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
 	golang.org/x/net v0.21.0
 	google.golang.org/grpc v1.62.1
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 	sigs.k8s.io/controller-runtime v0.17.2
 )
 
