@@ -6,12 +6,12 @@ require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.1.0
 	github.com/launchdarkly/go-server-sdk/v6 v6.1.1
-	github.com/open-feature/go-sdk v1.9.0
+	github.com/open-feature/go-sdk v1.10.0
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 )
 
 require (
-	github.com/go-logr/logr v1.3.0 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20171119193500-2bcd89a1743f // indirect
 	github.com/josharian/intern v1.0.0 // indirect
