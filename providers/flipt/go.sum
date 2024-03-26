@@ -89,6 +89,8 @@ go.flipt.io/flipt/rpc/flipt v1.30.0 h1:UWEM/mlN0rfpZymYYe6zeI0w7MTG9LQdXWKNIeJtg
 go.flipt.io/flipt/rpc/flipt v1.30.0/go.mod h1:QhlPBygpAfbTiP4ObarhJj+xgwWi+MVzoSkINy/8o9I=
 go.flipt.io/flipt/rpc/flipt v1.35.0 h1:erhqeh/iNR9dicsL+A2kscPQtsvxGCgcXjnUZc/lbV8=
 go.flipt.io/flipt/rpc/flipt v1.35.0/go.mod h1:SyWdUD3mIgBC501vFp9jAZSX2tYpGJQHVV+MvOtqC5I=
+go.flipt.io/flipt/rpc/flipt v1.38.0 h1:ukHaGzcZv2jcH6w05wOfwsLodL3EvpHXjbn1kV1VU7Y=
+go.flipt.io/flipt/rpc/flipt v1.38.0/go.mod h1:SyWdUD3mIgBC501vFp9jAZSX2tYpGJQHVV+MvOtqC5I=
 go.flipt.io/flipt/sdk/go v0.7.0 h1:eIj92tr7es/zlI5qByApvetiPEdzGx/lc71IA69wUM8=
 go.flipt.io/flipt/sdk/go v0.7.0/go.mod h1:fNdGLgm9IFSRY/og+S/9V08Wnhq//6E0AKZ2Upj1JSQ=
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.0 h1:PzIubN4/sjByhDRHLviCjJuweBXWFZWhghjg7cS28+M=
