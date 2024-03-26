@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/from-env/v0.1.4...providers/from-env/v0.1.5) (2024-03-26)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.10.0 ([#469](https://github.com/open-feature/go-sdk-contrib/issues/469)) ([21810af](https://github.com/open-feature/go-sdk-contrib/commit/21810afc33fce9a3940ec9dc59e65f140fcbaa57))
+
 ## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/from-env/v0.1.3...providers/from-env/v0.1.4) (2024-03-22)
 
 
