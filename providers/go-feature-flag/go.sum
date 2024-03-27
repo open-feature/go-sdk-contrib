@@ -107,6 +107,8 @@ github.com/thomaspoignant/go-feature-flag v1.21.0 h1:r+D2oiS+nxxCFhaEX+dMK4nNj7e
 github.com/thomaspoignant/go-feature-flag v1.21.0/go.mod h1:lG+lAUiWuXsR5Rga6L5Bihlz2qyr/TTEr2Siljjwnec=
 github.com/thomaspoignant/go-feature-flag v1.24.0 h1:jB3QDkynJuhvhhU4DEa3tqVzMzRq7w0vOFdjmLhoQg4=
 github.com/thomaspoignant/go-feature-flag v1.24.0/go.mod h1:4IyAMQujXyeQi4qP33COnMpQREHLdzuQHCHCov0MxWA=
+github.com/thomaspoignant/go-feature-flag v1.24.2 h1:nIapGGFI4nhMCzGcsdLxI+nyL2gnAz8IvySM0IygCRU=
+github.com/thomaspoignant/go-feature-flag v1.24.2/go.mod h1:fLM/Ojhj8fhTj/XnNWTEjD70YAwy1FJJjLd4MSRazXk=
 github.com/xitongsys/parquet-go v1.6.2 h1:MhCaXii4eqceKPu9BwrjLqyK10oX9WF+xGhwvwbw7xM=
 github.com/xitongsys/parquet-go v1.6.2/go.mod h1:IulAQyalCm0rPiZVNnCgm/PCL64X2tdSVGMQ/UeKqWA=
 github.com/xitongsys/parquet-go-source v0.0.0-20230830030807-0dd610dbff1d h1:VVWj8KWdzpebBaXpTVpOaQW32y2UCWy3JXJ5lVDa/e8=
