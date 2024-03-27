@@ -107,6 +107,14 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
+    },
+    "providers/ofrep": {
+      "release-type": "go",
+      "package-name": "providers/ofrep",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
     }
   },
   "changelog-sections": [
