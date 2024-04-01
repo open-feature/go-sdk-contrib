@@ -28,6 +28,14 @@ var success = evaluationSuccess{
 	},
 }
 
+var successWithInvalidMetadata = evaluationSuccess{
+	Value:    true,
+	Key:      "flagA",
+	Reason:   string(of.StaticReason),
+	Variant:  "true",
+	Metadata: "metadata",
+}
+
 func TestSuccess200(t *testing.T) {
 	t.Run("success evaluation response", func(t *testing.T) {
 		successBytes, err := json.Marshal(success)
@@ -79,6 +87,23 @@ func TestSuccess200(t *testing.T) {
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
 		validateErrorCode(success, resolutionError, of.GeneralCode, t)
+	})
+
+	t.Run("invalid metadata results in a parsing error", func(t *testing.T) {
+		b, err := json.Marshal(successWithInvalidMetadata)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		resolver := OutboundResolver{client: mockOutbound{
+			rsp: http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader(b)),
+			},
+		}}
+		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
+
+		validateErrorCode(success, resolutionError, of.ParseErrorCode, t)
 	})
 }
 

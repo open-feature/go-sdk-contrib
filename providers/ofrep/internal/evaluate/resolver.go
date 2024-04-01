@@ -51,7 +51,7 @@ func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCt
 			resErr := of.NewGeneralResolutionError(fmt.Sprintf("error parsing the response: %v", err))
 			return nil, &resErr
 		}
-		return toSuccessDto(success), nil
+		return toSuccessDto(success)
 	case 400:
 		return nil, parseError400(rsp.Body)
 	case 401, 403:
@@ -145,15 +145,19 @@ type successDto struct {
 	Metadata map[string]interface{}
 }
 
-func toSuccessDto(e evaluationSuccess) *successDto {
-	m, _ := e.Metadata.(map[string]interface{})
+func toSuccessDto(e evaluationSuccess) (*successDto, *of.ResolutionError) {
+	m, ok := e.Metadata.(map[string]interface{})
+	if !ok {
+		resErr := of.NewParseErrorResolutionError("metadata must be a map of string keys and arbitrary values")
+		return nil, &resErr
+	}
 
 	return &successDto{
 		Value:    e.Value,
 		Reason:   e.Reason,
 		Variant:  e.Variant,
 		Metadata: m,
-	}
+	}, nil
 }
 
 type request struct {
