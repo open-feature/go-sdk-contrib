@@ -1,15 +1,14 @@
 package evaluate
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -44,9 +43,9 @@ func TestSuccess200(t *testing.T) {
 		}
 
 		resolver := OutboundResolver{client: mockOutbound{
-			rsp: http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(bytes.NewReader(successBytes)),
+			rsp: outbound.Resolution{
+				Status: http.StatusOK,
+				Data:   successBytes,
 			},
 		}}
 
@@ -79,9 +78,9 @@ func TestSuccess200(t *testing.T) {
 
 	t.Run("invalid payload type results in general error", func(t *testing.T) {
 		resolver := OutboundResolver{client: mockOutbound{
-			rsp: http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(bytes.NewReader([]byte("some payload"))),
+			rsp: outbound.Resolution{
+				Status: http.StatusOK,
+				Data:   []byte("some payload"),
 			},
 		}}
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
@@ -96,9 +95,9 @@ func TestSuccess200(t *testing.T) {
 		}
 
 		resolver := OutboundResolver{client: mockOutbound{
-			rsp: http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(bytes.NewReader(b)),
+			rsp: outbound.Resolution{
+				Status: http.StatusOK,
+				Data:   b,
 			},
 		}}
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
@@ -113,30 +112,30 @@ func TestResolveGeneralErrors(t *testing.T) {
 			name: "http error results in a general error",
 			client: mockOutbound{
 				err: errors.New("some http error"),
-				rsp: http.Response{},
+				rsp: outbound.Resolution{},
 			},
 		},
 		{
 			name: "non ofrep http status codes results in general error",
 			client: mockOutbound{
-				rsp: http.Response{
-					StatusCode: http.StatusServiceUnavailable,
+				rsp: outbound.Resolution{
+					Status: http.StatusServiceUnavailable,
 				},
 			},
 		},
 		{
 			name: "http 401",
 			client: mockOutbound{
-				rsp: http.Response{
-					StatusCode: http.StatusUnauthorized,
+				rsp: outbound.Resolution{
+					Status: http.StatusUnauthorized,
 				},
 			},
 		},
 		{
 			name: "http 403",
 			client: mockOutbound{
-				rsp: http.Response{
-					StatusCode: http.StatusForbidden,
+				rsp: outbound.Resolution{
+					Status: http.StatusForbidden,
 				},
 			},
 		},
@@ -196,9 +195,9 @@ func TestEvaluationError4xx(t *testing.T) {
 			}
 
 			resolver := OutboundResolver{client: mockOutbound{
-				rsp: http.Response{
-					StatusCode: http.StatusBadRequest,
-					Body:       io.NopCloser(bytes.NewReader(errBytes)),
+				rsp: outbound.Resolution{
+					Status: http.StatusBadRequest,
+					Data:   errBytes,
 				},
 			}}
 			success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
@@ -210,8 +209,8 @@ func TestEvaluationError4xx(t *testing.T) {
 
 func TestFlagNotFound404(t *testing.T) {
 	resolver := OutboundResolver{client: mockOutbound{
-		rsp: http.Response{
-			StatusCode: http.StatusNotFound,
+		rsp: outbound.Resolution{
+			Status: http.StatusNotFound,
 		},
 	}}
 	success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
@@ -240,12 +239,12 @@ func Test429(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// derive test specific handler
-			response := http.Response{
-				StatusCode: http.StatusTooManyRequests,
+			response := outbound.Resolution{
+				Status: http.StatusTooManyRequests,
 			}
 
 			if test.retryAfter != "" {
-				response.Header = map[string][]string{
+				response.Headers = map[string][]string{
 					"Retry-After": {test.retryAfter},
 				}
 			}
@@ -261,9 +260,9 @@ func Test429(t *testing.T) {
 func TestEvaluationError5xx(t *testing.T) {
 	t.Run("without body", func(t *testing.T) {
 		resolver := OutboundResolver{client: mockOutbound{
-			rsp: http.Response{
-				StatusCode: http.StatusInternalServerError,
-				Body:       io.NopCloser(bytes.NewReader([]byte{})),
+			rsp: outbound.Resolution{
+				Status: http.StatusInternalServerError,
+				Data:   []byte{},
 			},
 		}}
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
@@ -278,9 +277,9 @@ func TestEvaluationError5xx(t *testing.T) {
 		}
 
 		resolver := OutboundResolver{client: mockOutbound{
-			rsp: http.Response{
-				StatusCode: http.StatusInternalServerError,
-				Body:       io.NopCloser(bytes.NewReader(errorBytes)),
+			rsp: outbound.Resolution{
+				Status: http.StatusInternalServerError,
+				Data:   errorBytes,
 			},
 		}}
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
@@ -290,9 +289,9 @@ func TestEvaluationError5xx(t *testing.T) {
 
 	t.Run("with invalid body", func(t *testing.T) {
 		resolver := OutboundResolver{client: mockOutbound{
-			rsp: http.Response{
-				StatusCode: http.StatusInternalServerError,
-				Body:       io.NopCloser(bytes.NewReader([]byte("some error"))),
+			rsp: outbound.Resolution{
+				Status: http.StatusInternalServerError,
+				Data:   []byte("some error"),
 			},
 		}}
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
@@ -317,9 +316,9 @@ func validateErrorCode(success *successDto, resolutionError *of.ResolutionError,
 
 type mockOutbound struct {
 	err error
-	rsp http.Response
+	rsp outbound.Resolution
 }
 
-func (m mockOutbound) PostSingle(_ context.Context, _ string, _ []byte) (*http.Response, error) {
+func (m mockOutbound) Single(_ context.Context, _ string, _ []byte) (*outbound.Resolution, error) {
 	return &m.rsp, m.err
 }

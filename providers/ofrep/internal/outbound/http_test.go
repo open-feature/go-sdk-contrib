@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -23,7 +24,7 @@ func TestHttpOutbound(t *testing.T) {
 
 	go func() {
 		err := server.ListenAndServe()
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			t.Logf("error starting mock server: %v", err)
 			return
 		}
@@ -41,15 +42,15 @@ func TestHttpOutbound(t *testing.T) {
 	})
 
 	// when
-	response, err := outbound.PostSingle(context.Background(), key, []byte{})
+	response, err := outbound.Single(context.Background(), key, []byte{})
 	if err != nil {
 		t.Fatalf("error from request: %v", err)
 		return
 	}
 
 	// then - expect an ok response
-	if response.StatusCode != http.StatusOK {
-		t.Errorf("expected 200, but got %d", response.StatusCode)
+	if response.Status != http.StatusOK {
+		t.Errorf("expected 200, but got %d", response.Status)
 	}
 
 	// cleanup

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,8 +18,10 @@ type OutboundResolver struct {
 	client Outbound
 }
 
+// Outbound defines the contract for resolver's outbound communication, matching OFREP API.
 type Outbound interface {
-	PostSingle(ctx context.Context, key string, payload []byte) (*http.Response, error)
+	// Single flag resolving
+	Single(ctx context.Context, key string, payload []byte) (*outbound.Resolution, error)
 }
 
 func NewOutboundResolver(cfg outbound.Configuration) *OutboundResolver {
@@ -36,24 +37,24 @@ func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCt
 		return nil, &resErr
 	}
 
-	rsp, err := g.client.PostSingle(ctx, key, b)
+	rsp, err := g.client.Single(ctx, key, b)
 	if err != nil {
 		resErr := of.NewGeneralResolutionError(fmt.Sprintf("ofrep request error: %v", err))
 		return nil, &resErr
 	}
 
 	// detect handler based on known ofrep status codes
-	switch rsp.StatusCode {
+	switch rsp.Status {
 	case 200:
 		var success evaluationSuccess
-		err := json.NewDecoder(rsp.Body).Decode(&success)
+		err := json.Unmarshal(rsp.Data, &success)
 		if err != nil {
 			resErr := of.NewGeneralResolutionError(fmt.Sprintf("error parsing the response: %v", err))
 			return nil, &resErr
 		}
 		return toSuccessDto(success)
 	case 400:
-		return nil, parseError400(rsp.Body)
+		return nil, parseError400(rsp.Data)
 	case 401, 403:
 		resErr := of.NewGeneralResolutionError("authentication/authorization error")
 		return nil, &resErr
@@ -72,16 +73,16 @@ func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCt
 		}
 		return nil, &resErr
 	case 500:
-		return nil, parseError500(rsp.Body)
+		return nil, parseError500(rsp.Data)
 	default:
 		resErr := of.NewGeneralResolutionError("invalid response")
 		return nil, &resErr
 	}
 }
 
-func parseError400(body io.ReadCloser) *of.ResolutionError {
+func parseError400(data []byte) *of.ResolutionError {
 	var evalError evaluationError
-	err := json.NewDecoder(body).Decode(&evalError)
+	err := json.Unmarshal(data, &evalError)
 	if err != nil {
 		resErr := of.NewGeneralResolutionError(fmt.Sprintf("error parsing error payload: %v", err))
 		return &resErr
@@ -104,8 +105,8 @@ func parseError400(body io.ReadCloser) *of.ResolutionError {
 	return &resErr
 }
 
-func parse429(rsp *http.Response) time.Duration {
-	retryHeader := rsp.Header.Get("Retry-After")
+func parse429(rsp *outbound.Resolution) time.Duration {
+	retryHeader := rsp.Headers.Get("Retry-After")
 	if retryHeader == "" {
 		return 0
 	}
@@ -122,11 +123,11 @@ func parse429(rsp *http.Response) time.Duration {
 	return time.Until(parsed)
 }
 
-func parseError500(body io.ReadCloser) *of.ResolutionError {
+func parseError500(data []byte) *of.ResolutionError {
 	var evalError errorResponse
 	var resErr of.ResolutionError
 
-	err := json.NewDecoder(body).Decode(&evalError)
+	err := json.Unmarshal(data, &evalError)
 	if err != nil {
 		resErr = of.NewGeneralResolutionError(fmt.Sprintf("error parsing error payload: %v", err))
 	} else {

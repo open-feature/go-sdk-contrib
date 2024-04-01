@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -20,6 +21,12 @@ type Configuration struct {
 	BaseURI   string
 	Callbacks []HeaderCallback
 	Client    *http.Client
+}
+
+type Resolution struct {
+	Data    []byte
+	Status  int
+	Headers http.Header
 }
 
 // Outbound client for http communication
@@ -43,7 +50,7 @@ func NewHttp(cfg Configuration) *Outbound {
 	}
 }
 
-func (h *Outbound) PostSingle(ctx context.Context, key string, payload []byte) (*http.Response, error) {
+func (h *Outbound) Single(ctx context.Context, key string, payload []byte) (*Resolution, error) {
 	path, err := url.JoinPath(h.baseURI, ofrepV1, key)
 	if err != nil {
 		return nil, fmt.Errorf("error building request path: %w", err)
@@ -59,5 +66,19 @@ func (h *Outbound) PostSingle(ctx context.Context, key string, payload []byte) (
 		req.Header.Set(callback())
 	}
 
-	return h.client.Do(req)
+	rsp, err := h.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := io.ReadAll(rsp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Resolution{
+		Data:    b,
+		Status:  rsp.StatusCode,
+		Headers: rsp.Header,
+	}, nil
 }
