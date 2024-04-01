@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/open-feature/flagd/core v0.8.1
 	github.com/open-feature/go-sdk v1.10.0
-	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.0
+	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.1
 	go.uber.org/mock v0.4.0
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
 	golang.org/x/net v0.21.0
