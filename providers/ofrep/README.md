@@ -38,3 +38,13 @@ You can configure the provider using following configuration options,
 | WithHeaderProvider   | Register a custom header provider for OFREP calls. You may utilize this for custom authentication/authorization headers |
 
 
+For example, consider below example which set bearer token and provider a customized http client,
+
+```go
+provider := ofrep.NewProvider(
+    "http://localhost:8016",
+    ofrep.WithBearerToken("TOKEN"),
+    ofrep.WithClient(&http.Client{
+        Timeout: 1 * time.Second,
+    }))
+```
