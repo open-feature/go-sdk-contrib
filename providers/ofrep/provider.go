@@ -37,7 +37,7 @@ func NewProvider(baseUri string, options ...option) *Provider {
 
 func (p Provider) Metadata() openfeature.Metadata {
 	return openfeature.Metadata{
-		Name: "OFREP provider",
+		Name: "OpenFeature Remote Evaluation Protocol Provider",
 	}
 }
 
