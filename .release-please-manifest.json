@@ -5,7 +5,7 @@
     "providers/flagd": "0.1.22",
     "providers/flipt": "0.1.1",
     "providers/from-env": "0.1.4",
-    "providers/go-feature-flag": "0.1.33",
+    "providers/go-feature-flag": "0.1.34",
     "providers/flagsmith": "0.1.4",
     "providers/launchdarkly": "0.1.4",
     "providers/unleash": "0.0.3-alpha",
