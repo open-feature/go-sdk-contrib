@@ -2,692 +2,814 @@ package configcat_test
 
 import (
 	"context"
-	"errors"
+	"github.com/configcat/go-sdk/v9/configcattest"
+	"net/http/httptest"
 	"testing"
+	"time"
 
-	sdk "github.com/configcat/go-sdk/v8"
-	"github.com/open-feature/go-sdk-contrib/providers/configcat/internal/clienttest"
+	sdk "github.com/configcat/go-sdk/v9"
 	configcat "github.com/open-feature/go-sdk-contrib/providers/configcat/pkg"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMetadata(t *testing.T) {
-	provider := configcat.NewProvider(clienttest.NewClient())
+	client, _, _, _ := newTestServer(t)
+	provider := configcat.NewProvider(client)
 	require.Equal(t, openfeature.Metadata{
 		Name: "ConfigCat",
 	}, provider.Metadata())
 }
 
 func TestHooks(t *testing.T) {
-	provider := configcat.NewProvider(clienttest.NewClient())
+	client, _, _, _ := newTestServer(t)
+	provider := configcat.NewProvider(client)
 	require.Len(t, provider.Hooks(), 0)
 }
 
 func TestBooleanEvaluation(t *testing.T) {
 	ctx := context.Background()
-	client := clienttest.NewClient()
+	client, flagSrv, hooks, sdkKey := newTestServer(t)
 	provider := configcat.NewProvider(client)
+	defaultFlag := configcattest.Flag{Default: true}
 
-	t.Run("evalCtx empty", func(t *testing.T) {
-		defer client.Reset()
-		expectedVariant := "ksljf"
-		client.WithBoolEvaluation(func(req clienttest.Request) sdk.BoolEvaluationDetails {
-			return sdk.BoolEvaluationDetails{
-				Value: true,
-				Data: sdk.EvaluationDetailsData{
-					VariationID: expectedVariant,
-				},
-			}
+	tests := []struct {
+		name       string
+		key        string
+		defaultVal bool
+		expVal     bool
+		expVariant string
+		errMsg     string
+		errCode    openfeature.ErrorCode
+		reason     openfeature.Reason
+		evalCtx    map[string]interface{}
+		flag       configcattest.Flag
+	}{
+		{
+			name:       "evalCtx empty",
+			key:        "flag",
+			defaultVal: false,
+			expVal:     true,
+			expVariant: "v_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.DefaultReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "key not found",
+			key:        "non-existing",
+			defaultVal: false,
+			expVal:     false,
+			expVariant: "",
+			errMsg:     "failed to evaluate setting 'non-existing' (the key was not found in config JSON); available keys: ['flag']",
+			errCode:    openfeature.FlagNotFoundCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "type mismatch",
+			key:        "flag",
+			defaultVal: false,
+			expVal:     false,
+			expVariant: "",
+			errMsg:     "the type of the setting 'flag' doesn't match with the expected type; setting's type was 'int' but the expected type was 'bool'",
+			errCode:    openfeature.TypeMismatchCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       configcattest.Flag{Default: 5},
+		},
+		{
+			name:       "unknown error",
+			key:        "flag",
+			defaultVal: false,
+			expVal:     false,
+			expVariant: "",
+			errMsg:     "comparison value '<nil>' is invalid",
+			errCode:    openfeature.GeneralCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: true,
+				Rules: []configcattest.Rule{{
+					Value:               true,
+					Comparator:          sdk.OpStartsWithAnyOfHashed,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "invalidnothashed",
+				}},
+			},
+		},
+		{
+			name:       "matched evaluation rule",
+			key:        "flag",
+			defaultVal: false,
+			expVal:     true,
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: false,
+				Rules: []configcattest.Rule{{
+					Value:               true,
+					Comparator:          sdk.OpEq,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "val",
+				}},
+			},
+		},
+		{
+			name:       "matched percentage rule",
+			key:        "flag",
+			defaultVal: false,
+			expVal:     true,
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default:                 false,
+				PercentageEvalAttribute: "attr",
+				Percentages: []configcattest.PercentageOption{{
+					Percentage: 50,
+					Value:      true,
+				}, {
+					Percentage: 50,
+					Value:      false,
+				}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+				"flag": &test.flag,
+			})
+			_ = client.Refresh(ctx)
+
+			resolution := provider.BooleanEvaluation(ctx, test.key, test.defaultVal, test.evalCtx)
+			require.Equal(t, test.expVal, resolution.Value)
+			require.Equal(t, test.expVariant, resolution.Variant)
+			require.Equal(t, test.reason, resolution.Reason)
+			require.Equal(t, test.errCode, resolution.ResolutionDetail().ErrorCode)
+			require.Equal(t, test.errMsg, resolution.ResolutionDetail().ErrorMessage)
 		})
-
-		resolution := provider.BooleanEvaluation(ctx, "flag", false, nil)
-		require.Equal(t, true, resolution.Value)
-		require.Equal(t, expectedVariant, resolution.Variant)
-		require.Equal(t, openfeature.DefaultReason, resolution.Reason)
-	})
-
-	t.Run("evalCtx non-stringer value", func(t *testing.T) {
-		testEvalCtxNotString(t, func(evalCtx openfeature.FlattenedContext) openfeature.ProviderResolutionDetail {
-			resolution := provider.BooleanEvaluation(ctx, "flag", false, evalCtx)
-			return resolution.ProviderResolutionDetail
-		})
-	})
-
-	t.Run("evalCtx stringer", func(t *testing.T) {
-		testEvalCtxStringer(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
-
-			provider.BooleanEvaluation(ctx, "flag", true, evalCtx)
-			return client.GetRequests()
-		})
-	})
+	}
 
 	t.Run("evalCtx keys set", func(t *testing.T) {
-		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
+		_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+			"flag": {
+				Default: true,
+			},
+		})
+		_ = client.Refresh(ctx)
 
+		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) *sdk.EvaluationDetails {
+			defer func() { hooks.OnFlagEvaluated = nil }()
+			ch := make(chan *sdk.EvaluationDetails)
+			hooks.OnFlagEvaluated = func(d *sdk.EvaluationDetails) {
+				ch <- d
+			}
 			provider.BooleanEvaluation(ctx, "flag", false, evalCtx)
-			return client.GetRequests()
+			return waitForChanMax(t, 1*time.Second, ch)
 		})
-	})
-
-	t.Run("key not found", func(t *testing.T) {
-		defer client.Reset()
-
-		resolution := provider.BooleanEvaluation(ctx, "flag", false, nil)
-		require.False(t, resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.FlagNotFoundCode)
-	})
-
-	t.Run("unknown error", func(t *testing.T) {
-		defer client.Reset()
-		client.WithBoolEvaluation(func(req clienttest.Request) sdk.BoolEvaluationDetails {
-			return sdk.BoolEvaluationDetails{
-				Value: true,
-				Data: sdk.EvaluationDetailsData{
-					Error: errors.New("something went wrong"),
-				},
-			}
-		})
-
-		resolution := provider.BooleanEvaluation(ctx, "flag", false, nil)
-		require.True(t, resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.GeneralCode)
-	})
-
-	t.Run("matched evaluation rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithBoolEvaluation(func(req clienttest.Request) sdk.BoolEvaluationDetails {
-			return sdk.BoolEvaluationDetails{
-				Value: true,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationRule: &sdk.RolloutRule{
-						ComparisonAttribute: "attr",
-						ComparisonValue:     "val",
-						Comparator:          1,
-					},
-				},
-			}
-		})
-
-		resolution := provider.BooleanEvaluation(ctx, "flag", false, nil)
-		require.True(t, resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
-	})
-
-	t.Run("matched percentage rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithBoolEvaluation(func(req clienttest.Request) sdk.BoolEvaluationDetails {
-			return sdk.BoolEvaluationDetails{
-				Value: true,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationPercentageRule: &sdk.PercentageRule{
-						Percentage: 50,
-					},
-				},
-			}
-		})
-
-		resolution := provider.BooleanEvaluation(ctx, "flag", false, nil)
-		require.True(t, resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
 	})
 }
 
 func TestStringEvaluation(t *testing.T) {
 	ctx := context.Background()
-	client := clienttest.NewClient()
+	client, flagSrv, hooks, sdkKey := newTestServer(t)
 	provider := configcat.NewProvider(client)
+	defaultFlag := configcattest.Flag{Default: "hi"}
 
-	t.Run("evalCtx empty", func(t *testing.T) {
-		defer client.Reset()
-		expectedVariant := "ksljf"
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: "hi",
-				Data: sdk.EvaluationDetailsData{
-					VariationID: expectedVariant,
-				},
-			}
+	tests := []struct {
+		name       string
+		key        string
+		defaultVal string
+		expVal     string
+		expVariant string
+		errMsg     string
+		errCode    openfeature.ErrorCode
+		reason     openfeature.Reason
+		evalCtx    map[string]interface{}
+		flag       configcattest.Flag
+	}{
+		{
+			name:       "evalCtx empty",
+			key:        "flag",
+			defaultVal: "hello",
+			expVal:     "hi",
+			expVariant: "v_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.DefaultReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "key not found",
+			key:        "non-existing",
+			defaultVal: "hello",
+			expVal:     "hello",
+			expVariant: "",
+			errMsg:     "failed to evaluate setting 'non-existing' (the key was not found in config JSON); available keys: ['flag']",
+			errCode:    openfeature.FlagNotFoundCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "type mismatch",
+			key:        "flag",
+			defaultVal: "hello",
+			expVal:     "hello",
+			expVariant: "",
+			errMsg:     "the type of the setting 'flag' doesn't match with the expected type; setting's type was 'int' but the expected type was 'string'",
+			errCode:    openfeature.TypeMismatchCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       configcattest.Flag{Default: 5},
+		},
+		{
+			name:       "unknown error",
+			key:        "flag",
+			defaultVal: "hello",
+			expVal:     "hello",
+			expVariant: "",
+			errMsg:     "comparison value '<nil>' is invalid",
+			errCode:    openfeature.GeneralCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: "a",
+				Rules: []configcattest.Rule{{
+					Value:               "b",
+					Comparator:          sdk.OpStartsWithAnyOfHashed,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "invalidnothashed",
+				}},
+			},
+		},
+		{
+			name:       "matched evaluation rule",
+			key:        "flag",
+			defaultVal: "hello",
+			expVal:     "hi",
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: "a",
+				Rules: []configcattest.Rule{{
+					Value:               "hi",
+					Comparator:          sdk.OpEq,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "val",
+				}},
+			},
+		},
+		{
+			name:       "matched percentage rule",
+			key:        "flag",
+			defaultVal: "hello",
+			expVal:     "hi",
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default:                 "a",
+				PercentageEvalAttribute: "attr",
+				Percentages: []configcattest.PercentageOption{{
+					Percentage: 50,
+					Value:      "hi",
+				}, {
+					Percentage: 50,
+					Value:      "aloha",
+				}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+				"flag": &test.flag,
+			})
+			_ = client.Refresh(ctx)
+
+			resolution := provider.StringEvaluation(ctx, test.key, test.defaultVal, test.evalCtx)
+			require.Equal(t, test.expVal, resolution.Value)
+			require.Equal(t, test.expVariant, resolution.Variant)
+			require.Equal(t, test.reason, resolution.Reason)
+			require.Equal(t, test.errCode, resolution.ResolutionDetail().ErrorCode)
+			require.Equal(t, test.errMsg, resolution.ResolutionDetail().ErrorMessage)
 		})
-
-		resolution := provider.StringEvaluation(ctx, "flag", "hello", nil)
-		require.Equal(t, "hi", resolution.Value)
-		require.Equal(t, expectedVariant, resolution.Variant)
-		require.Equal(t, openfeature.DefaultReason, resolution.Reason)
-	})
-
-	t.Run("evalCtx non-stringer value", func(t *testing.T) {
-		testEvalCtxNotString(t, func(evalCtx openfeature.FlattenedContext) openfeature.ProviderResolutionDetail {
-			resolution := provider.StringEvaluation(ctx, "flag", "hello", evalCtx)
-			return resolution.ProviderResolutionDetail
-		})
-	})
-
-	t.Run("evalCtx stringer", func(t *testing.T) {
-		testEvalCtxStringer(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
-
-			provider.StringEvaluation(ctx, "flag", "hello", evalCtx)
-			return client.GetRequests()
-		})
-	})
+	}
 
 	t.Run("evalCtx keys set", func(t *testing.T) {
-		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
+		_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+			"flag": {
+				Default: "hi",
+			},
+		})
+		_ = client.Refresh(ctx)
 
+		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) *sdk.EvaluationDetails {
+			defer func() { hooks.OnFlagEvaluated = nil }()
+			ch := make(chan *sdk.EvaluationDetails)
+			hooks.OnFlagEvaluated = func(d *sdk.EvaluationDetails) {
+				ch <- d
+			}
 			provider.StringEvaluation(ctx, "flag", "hello", evalCtx)
-			return client.GetRequests()
+			return waitForChanMax(t, 1*time.Second, ch)
 		})
-	})
-
-	t.Run("key not found", func(t *testing.T) {
-		defer client.Reset()
-
-		resolution := provider.StringEvaluation(ctx, "flag", "hello", nil)
-		require.Equal(t, "hello", resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.FlagNotFoundCode)
-	})
-
-	t.Run("unknown error", func(t *testing.T) {
-		defer client.Reset()
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: "hello",
-				Data: sdk.EvaluationDetailsData{
-					Error: errors.New("something went wrong"),
-				},
-			}
-		})
-
-		resolution := provider.StringEvaluation(ctx, "flag", "hello", nil)
-		require.Equal(t, "hello", resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.GeneralCode)
-	})
-
-	t.Run("matched evaluation rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: "hello",
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationRule: &sdk.RolloutRule{
-						ComparisonAttribute: "attr",
-						ComparisonValue:     "val",
-						Comparator:          1,
-					},
-				},
-			}
-		})
-
-		resolution := provider.StringEvaluation(ctx, "flag", "hello", nil)
-		require.Equal(t, "hello", resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
-	})
-
-	t.Run("matched percentage rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: "hello",
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationPercentageRule: &sdk.PercentageRule{
-						Percentage: 50,
-					},
-				},
-			}
-		})
-
-		resolution := provider.StringEvaluation(ctx, "flag", "hello", nil)
-		require.Equal(t, "hello", resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
 	})
 }
 
 func TestFloatEvaluation(t *testing.T) {
 	ctx := context.Background()
-	client := clienttest.NewClient()
+	client, flagSrv, hooks, sdkKey := newTestServer(t)
 	provider := configcat.NewProvider(client)
+	defaultFlag := configcattest.Flag{Default: 1.1}
 
-	t.Run("evalCtx empty", func(t *testing.T) {
-		defer client.Reset()
-		expectedVariant := "ksljf"
-		client.WithFloatEvaluation(func(req clienttest.Request) sdk.FloatEvaluationDetails {
-			return sdk.FloatEvaluationDetails{
-				Value: 1.1,
-				Data: sdk.EvaluationDetailsData{
-					VariationID: expectedVariant,
-				},
-			}
+	tests := []struct {
+		name       string
+		key        string
+		defaultVal float64
+		expVal     float64
+		expVariant string
+		errMsg     string
+		errCode    openfeature.ErrorCode
+		reason     openfeature.Reason
+		evalCtx    map[string]interface{}
+		flag       configcattest.Flag
+	}{
+		{
+			name:       "evalCtx empty",
+			key:        "flag",
+			defaultVal: 2.2,
+			expVal:     1.1,
+			expVariant: "v_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.DefaultReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "key not found",
+			key:        "non-existing",
+			defaultVal: 2.2,
+			expVal:     2.2,
+			expVariant: "",
+			errMsg:     "failed to evaluate setting 'non-existing' (the key was not found in config JSON); available keys: ['flag']",
+			errCode:    openfeature.FlagNotFoundCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "type mismatch",
+			key:        "flag",
+			defaultVal: 2.2,
+			expVal:     2.2,
+			expVariant: "",
+			errMsg:     "the type of the setting 'flag' doesn't match with the expected type; setting's type was 'string' but the expected type was 'float'",
+			errCode:    openfeature.TypeMismatchCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       configcattest.Flag{Default: "a"},
+		},
+		{
+			name:       "unknown error",
+			key:        "flag",
+			defaultVal: 2.2,
+			expVal:     2.2,
+			expVariant: "",
+			errMsg:     "comparison value '<nil>' is invalid",
+			errCode:    openfeature.GeneralCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: 3.3,
+				Rules: []configcattest.Rule{{
+					Value:               4.4,
+					Comparator:          sdk.OpStartsWithAnyOfHashed,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "invalidnothashed",
+				}},
+			},
+		},
+		{
+			name:       "matched evaluation rule",
+			key:        "flag",
+			defaultVal: 2.2,
+			expVal:     4.4,
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: 3.3,
+				Rules: []configcattest.Rule{{
+					Value:               4.4,
+					Comparator:          sdk.OpEq,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "val",
+				}},
+			},
+		},
+		{
+			name:       "matched percentage rule",
+			key:        "flag",
+			defaultVal: 2.2,
+			expVal:     4.4,
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default:                 3.3,
+				PercentageEvalAttribute: "attr",
+				Percentages: []configcattest.PercentageOption{{
+					Percentage: 50,
+					Value:      4.4,
+				}, {
+					Percentage: 50,
+					Value:      5.5,
+				}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+				"flag": &test.flag,
+			})
+			_ = client.Refresh(ctx)
+
+			resolution := provider.FloatEvaluation(ctx, test.key, test.defaultVal, test.evalCtx)
+			require.Equal(t, test.expVal, resolution.Value)
+			require.Equal(t, test.expVariant, resolution.Variant)
+			require.Equal(t, test.reason, resolution.Reason)
+			require.Equal(t, test.errCode, resolution.ResolutionDetail().ErrorCode)
+			require.Equal(t, test.errMsg, resolution.ResolutionDetail().ErrorMessage)
 		})
-
-		resolution := provider.FloatEvaluation(ctx, "flag", 2.2, nil)
-		require.Equal(t, 1.1, resolution.Value)
-		require.Equal(t, expectedVariant, resolution.Variant)
-		require.Equal(t, openfeature.DefaultReason, resolution.Reason)
-	})
-
-	t.Run("evalCtx non-stringer value", func(t *testing.T) {
-		testEvalCtxNotString(t, func(evalCtx openfeature.FlattenedContext) openfeature.ProviderResolutionDetail {
-			resolution := provider.FloatEvaluation(ctx, "flag", 1.7, evalCtx)
-			return resolution.ProviderResolutionDetail
-		})
-	})
-
-	t.Run("evalCtx stringer", func(t *testing.T) {
-		testEvalCtxStringer(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
-
-			provider.FloatEvaluation(ctx, "flag", 1.7, evalCtx)
-			return client.GetRequests()
-		})
-	})
+	}
 
 	t.Run("evalCtx keys set", func(t *testing.T) {
-		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
+		_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+			"flag": {
+				Default: 1.1,
+			},
+		})
+		_ = client.Refresh(ctx)
 
+		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) *sdk.EvaluationDetails {
+			defer func() { hooks.OnFlagEvaluated = nil }()
+			ch := make(chan *sdk.EvaluationDetails)
+			hooks.OnFlagEvaluated = func(d *sdk.EvaluationDetails) {
+				ch <- d
+			}
 			provider.FloatEvaluation(ctx, "flag", 1.7, evalCtx)
-			return client.GetRequests()
+			return waitForChanMax(t, 1*time.Second, ch)
 		})
-	})
-
-	t.Run("key not found", func(t *testing.T) {
-		defer client.Reset()
-
-		resolution := provider.FloatEvaluation(ctx, "flag", 1.7, nil)
-		require.Equal(t, 1.7, resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.FlagNotFoundCode)
-	})
-
-	t.Run("unknown error", func(t *testing.T) {
-		defer client.Reset()
-		client.WithFloatEvaluation(func(req clienttest.Request) sdk.FloatEvaluationDetails {
-			return sdk.FloatEvaluationDetails{
-				Value: 3.4,
-				Data: sdk.EvaluationDetailsData{
-					Error: errors.New("something went wrong"),
-				},
-			}
-		})
-
-		resolution := provider.FloatEvaluation(ctx, "flag", 3.4, nil)
-		require.Equal(t, 3.4, resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.GeneralCode)
-	})
-
-	t.Run("matched evaluation rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithFloatEvaluation(func(req clienttest.Request) sdk.FloatEvaluationDetails {
-			return sdk.FloatEvaluationDetails{
-				Value: 3.9,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationRule: &sdk.RolloutRule{
-						ComparisonAttribute: "attr",
-						ComparisonValue:     "val",
-						Comparator:          1,
-					},
-				},
-			}
-		})
-
-		resolution := provider.FloatEvaluation(ctx, "flag", 3.9, nil)
-		require.Equal(t, 3.9, resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
-	})
-
-	t.Run("matched percentage rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithFloatEvaluation(func(req clienttest.Request) sdk.FloatEvaluationDetails {
-			return sdk.FloatEvaluationDetails{
-				Value: 3.9,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationPercentageRule: &sdk.PercentageRule{
-						Percentage: 50,
-					},
-				},
-			}
-		})
-
-		resolution := provider.FloatEvaluation(ctx, "flag", 3.9, nil)
-		require.Equal(t, 3.9, resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
 	})
 }
 
 func TestIntEvaluation(t *testing.T) {
 	ctx := context.Background()
-	client := clienttest.NewClient()
+	client, flagSrv, hooks, sdkKey := newTestServer(t)
 	provider := configcat.NewProvider(client)
+	defaultFlag := configcattest.Flag{Default: 1}
 
-	t.Run("evalCtx empty", func(t *testing.T) {
-		defer client.Reset()
-		expectedVariant := "ksljf"
-		client.WithIntEvaluation(func(req clienttest.Request) sdk.IntEvaluationDetails {
-			return sdk.IntEvaluationDetails{
-				Value: 1,
-				Data: sdk.EvaluationDetailsData{
-					VariationID: expectedVariant,
-				},
-			}
+	tests := []struct {
+		name       string
+		key        string
+		defaultVal int64
+		expVal     int64
+		expVariant string
+		errMsg     string
+		errCode    openfeature.ErrorCode
+		reason     openfeature.Reason
+		evalCtx    map[string]interface{}
+		flag       configcattest.Flag
+	}{
+		{
+			name:       "evalCtx empty",
+			key:        "flag",
+			defaultVal: int64(0),
+			expVal:     int64(1),
+			expVariant: "v_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.DefaultReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "key not found",
+			key:        "non-existing",
+			defaultVal: int64(0),
+			expVal:     int64(0),
+			expVariant: "",
+			errMsg:     "failed to evaluate setting 'non-existing' (the key was not found in config JSON); available keys: ['flag']",
+			errCode:    openfeature.FlagNotFoundCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "type mismatch",
+			key:        "flag",
+			defaultVal: int64(0),
+			expVal:     int64(0),
+			expVariant: "",
+			errMsg:     "the type of the setting 'flag' doesn't match with the expected type; setting's type was 'string' but the expected type was 'int'",
+			errCode:    openfeature.TypeMismatchCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       configcattest.Flag{Default: "a"},
+		},
+		{
+			name:       "unknown error",
+			key:        "flag",
+			defaultVal: int64(0),
+			expVal:     int64(0),
+			expVariant: "",
+			errMsg:     "comparison value '<nil>' is invalid",
+			errCode:    openfeature.GeneralCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: 2,
+				Rules: []configcattest.Rule{{
+					Value:               3,
+					Comparator:          sdk.OpStartsWithAnyOfHashed,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "invalidnothashed",
+				}},
+			},
+		},
+		{
+			name:       "matched evaluation rule",
+			key:        "flag",
+			defaultVal: int64(0),
+			expVal:     int64(3),
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: 2,
+				Rules: []configcattest.Rule{{
+					Value:               3,
+					Comparator:          sdk.OpEq,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "val",
+				}},
+			},
+		},
+		{
+			name:       "matched percentage rule",
+			key:        "flag",
+			defaultVal: int64(0),
+			expVal:     int64(3),
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default:                 2,
+				PercentageEvalAttribute: "attr",
+				Percentages: []configcattest.PercentageOption{{
+					Percentage: 50,
+					Value:      3,
+				}, {
+					Percentage: 50,
+					Value:      4,
+				}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+				"flag": &test.flag,
+			})
+			_ = client.Refresh(ctx)
+
+			resolution := provider.IntEvaluation(ctx, test.key, test.defaultVal, test.evalCtx)
+			require.Equal(t, test.expVal, resolution.Value)
+			require.Equal(t, test.expVariant, resolution.Variant)
+			require.Equal(t, test.reason, resolution.Reason)
+			require.Equal(t, test.errCode, resolution.ResolutionDetail().ErrorCode)
+			require.Equal(t, test.errMsg, resolution.ResolutionDetail().ErrorMessage)
 		})
-
-		resolution := provider.IntEvaluation(ctx, "flag", 2, nil)
-		require.Equal(t, int64(1), resolution.Value)
-		require.Equal(t, expectedVariant, resolution.Variant)
-		require.Equal(t, openfeature.DefaultReason, resolution.Reason)
-	})
-
-	t.Run("evalCtx non-stringer value", func(t *testing.T) {
-		testEvalCtxNotString(t, func(evalCtx openfeature.FlattenedContext) openfeature.ProviderResolutionDetail {
-			resolution := provider.IntEvaluation(ctx, "flag", 1, evalCtx)
-			return resolution.ProviderResolutionDetail
-		})
-	})
-
-	t.Run("evalCtx stringer", func(t *testing.T) {
-		testEvalCtxStringer(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
-
-			provider.IntEvaluation(ctx, "flag", 1, evalCtx)
-			return client.GetRequests()
-		})
-	})
+	}
 
 	t.Run("evalCtx keys set", func(t *testing.T) {
-		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
+		_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+			"flag": {
+				Default: 1,
+			},
+		})
+		_ = client.Refresh(ctx)
 
+		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) *sdk.EvaluationDetails {
+			defer func() { hooks.OnFlagEvaluated = nil }()
+			ch := make(chan *sdk.EvaluationDetails)
+			hooks.OnFlagEvaluated = func(d *sdk.EvaluationDetails) {
+				ch <- d
+			}
 			provider.IntEvaluation(ctx, "flag", 1, evalCtx)
-			return client.GetRequests()
+			return waitForChanMax(t, 1*time.Second, ch)
 		})
-	})
-
-	t.Run("key not found", func(t *testing.T) {
-		defer client.Reset()
-
-		resolution := provider.IntEvaluation(ctx, "flag", 1, nil)
-		require.Equal(t, int64(1), resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.FlagNotFoundCode)
-	})
-
-	t.Run("unknown error", func(t *testing.T) {
-		defer client.Reset()
-		client.WithIntEvaluation(func(req clienttest.Request) sdk.IntEvaluationDetails {
-			return sdk.IntEvaluationDetails{
-				Value: 3,
-				Data: sdk.EvaluationDetailsData{
-					Error: errors.New("something went wrong"),
-				},
-			}
-		})
-
-		resolution := provider.IntEvaluation(ctx, "flag", 3, nil)
-		require.Equal(t, int64(3), resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.GeneralCode)
-	})
-
-	t.Run("matched evaluation rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithIntEvaluation(func(req clienttest.Request) sdk.IntEvaluationDetails {
-			return sdk.IntEvaluationDetails{
-				Value: 3,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationRule: &sdk.RolloutRule{
-						ComparisonAttribute: "attr",
-						ComparisonValue:     "val",
-						Comparator:          1,
-					},
-				},
-			}
-		})
-
-		resolution := provider.IntEvaluation(ctx, "flag", 3, nil)
-		require.Equal(t, int64(3), resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
-	})
-
-	t.Run("matched percentage rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithIntEvaluation(func(req clienttest.Request) sdk.IntEvaluationDetails {
-			return sdk.IntEvaluationDetails{
-				Value: 3,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationPercentageRule: &sdk.PercentageRule{
-						Percentage: 50,
-					},
-				},
-			}
-		})
-
-		resolution := provider.IntEvaluation(ctx, "flag", 3, nil)
-		require.Equal(t, int64(3), resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
 	})
 }
 
 func TestObjectEvaluation(t *testing.T) {
 	ctx := context.Background()
-	client := clienttest.NewClient()
+	client, flagSrv, hooks, sdkKey := newTestServer(t)
 	provider := configcat.NewProvider(client)
+	defaultFlag := configcattest.Flag{Default: `{"name":"test"}`}
 
-	t.Run("evalCtx empty", func(t *testing.T) {
-		defer client.Reset()
-		expectedVariant := "ksljf"
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: `{"name":"test"}`,
-				Data: sdk.EvaluationDetailsData{
-					VariationID: expectedVariant,
-				},
-			}
+	tests := []struct {
+		name       string
+		key        string
+		defaultVal interface{}
+		expVal     interface{}
+		expVariant string
+		errMsg     string
+		errCode    openfeature.ErrorCode
+		reason     openfeature.Reason
+		evalCtx    map[string]interface{}
+		flag       configcattest.Flag
+	}{
+		{
+			name:       "evalCtx empty",
+			key:        "flag",
+			defaultVal: nil,
+			expVal:     map[string]interface{}{"name": "test"},
+			expVariant: "v_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.DefaultReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "key not found",
+			key:        "non-existing",
+			defaultVal: nil,
+			expVal:     nil,
+			expVariant: "",
+			errMsg:     "failed to evaluate setting 'non-existing' (the key was not found in config JSON); available keys: ['flag']",
+			errCode:    openfeature.FlagNotFoundCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       defaultFlag,
+		},
+		{
+			name:       "type mismatch",
+			key:        "flag",
+			defaultVal: nil,
+			expVal:     nil,
+			expVariant: "",
+			errMsg:     "the type of the setting 'flag' doesn't match with the expected type; setting's type was 'int' but the expected type was 'string'",
+			errCode:    openfeature.TypeMismatchCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    nil,
+			flag:       configcattest.Flag{Default: 5},
+		},
+		{
+			name:       "unknown error",
+			key:        "flag",
+			defaultVal: nil,
+			expVal:     nil,
+			expVariant: "",
+			errMsg:     "comparison value '<nil>' is invalid",
+			errCode:    openfeature.GeneralCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: `{"name":"test1"}`,
+				Rules: []configcattest.Rule{{
+					Value:               `{"name":"test2"}`,
+					Comparator:          sdk.OpStartsWithAnyOfHashed,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "invalidnothashed",
+				}},
+			},
+		},
+		{
+			name:       "invalid json",
+			key:        "flag",
+			defaultVal: nil,
+			expVal:     nil,
+			expVariant: "",
+			errMsg:     "failed to unmarshal string flag as json: invalid character '}' after object key",
+			errCode:    openfeature.TypeMismatchCode,
+			reason:     openfeature.ErrorReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag:       configcattest.Flag{Default: `{"invalid"}`},
+		},
+		{
+			name:       "matched evaluation rule",
+			key:        "flag",
+			defaultVal: nil,
+			expVal:     map[string]interface{}{"domain": "example.org"},
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default: `{"some":"default"}`,
+				Rules: []configcattest.Rule{{
+					Value:               `{"domain":"example.org"}`,
+					Comparator:          sdk.OpEq,
+					ComparisonAttribute: "attr",
+					ComparisonValue:     "val",
+				}},
+			},
+		},
+		{
+			name:       "matched percentage rule",
+			key:        "flag",
+			defaultVal: nil,
+			expVal:     map[string]interface{}{"domain": "example.org"},
+			expVariant: "v0_flag",
+			errMsg:     "",
+			errCode:    "",
+			reason:     openfeature.TargetingMatchReason,
+			evalCtx:    openfeature.FlattenedContext{"attr": "val"},
+			flag: configcattest.Flag{
+				Default:                 `{"some":"default"}`,
+				PercentageEvalAttribute: "attr",
+				Percentages: []configcattest.PercentageOption{{
+					Percentage: 50,
+					Value:      `{"domain":"example.org"}`,
+				}, {
+					Percentage: 50,
+					Value:      `{"domain":"example2.org"}`,
+				}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+				"flag": &test.flag,
+			})
+			_ = client.Refresh(ctx)
+
+			resolution := provider.ObjectEvaluation(ctx, test.key, test.defaultVal, test.evalCtx)
+			require.Equal(t, test.expVal, resolution.Value)
+			require.Equal(t, test.expVariant, resolution.Variant)
+			require.Equal(t, test.reason, resolution.Reason)
+			require.Equal(t, test.errCode, resolution.ResolutionDetail().ErrorCode)
+			require.Equal(t, test.errMsg, resolution.ResolutionDetail().ErrorMessage)
 		})
-
-		resolution := provider.ObjectEvaluation(ctx, "flag", map[string]string{"name": "test"}, nil)
-		require.Equal(t, map[string]interface{}{"name": "test"}, resolution.Value)
-		require.Equal(t, expectedVariant, resolution.Variant)
-		require.Equal(t, openfeature.DefaultReason, resolution.Reason)
-	})
-
-	t.Run("evalCtx non-stringer value", func(t *testing.T) {
-		testEvalCtxNotString(t, func(evalCtx openfeature.FlattenedContext) openfeature.ProviderResolutionDetail {
-			resolution := provider.ObjectEvaluation(ctx, "flag", 1, evalCtx)
-			return resolution.ProviderResolutionDetail
-		})
-	})
-
-	t.Run("evalCtx stringer", func(t *testing.T) {
-		testEvalCtxStringer(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
-
-			provider.ObjectEvaluation(ctx, "flag", 1, evalCtx)
-			return client.GetRequests()
-		})
-	})
+	}
 
 	t.Run("evalCtx keys set", func(t *testing.T) {
-		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) []clienttest.Request {
-			defer client.Reset()
+		_ = flagSrv.SetFlags(sdkKey, map[string]*configcattest.Flag{
+			"flag": {
+				Default: `{"name":"test"}`,
+			},
+		})
+		_ = client.Refresh(ctx)
 
+		testEvalCtxUserData(t, func(evalCtx openfeature.FlattenedContext) *sdk.EvaluationDetails {
+			defer func() { hooks.OnFlagEvaluated = nil }()
+			ch := make(chan *sdk.EvaluationDetails)
+			hooks.OnFlagEvaluated = func(d *sdk.EvaluationDetails) {
+				ch <- d
+			}
 			provider.ObjectEvaluation(ctx, "flag", 1, evalCtx)
-			return client.GetRequests()
+			return waitForChanMax(t, 1*time.Second, ch)
 		})
-	})
-
-	t.Run("key not found", func(t *testing.T) {
-		defer client.Reset()
-
-		expected := map[string]interface{}{"some": "default"}
-
-		resolution := provider.ObjectEvaluation(ctx, "flag", expected, nil)
-		require.Equal(t, expected, resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.FlagNotFoundCode)
-	})
-
-	t.Run("unknown error", func(t *testing.T) {
-		defer client.Reset()
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: "",
-				Data: sdk.EvaluationDetailsData{
-					Error: errors.New("something went wrong"),
-				},
-			}
-		})
-
-		resolution := provider.ObjectEvaluation(ctx, "flag", nil, nil)
-		require.Equal(t, nil, resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.GeneralCode)
-	})
-
-	t.Run("invalid json", func(t *testing.T) {
-		defer client.Reset()
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: `{"invalid"}`,
-			}
-		})
-
-		resolution := provider.ObjectEvaluation(ctx, "flag", nil, nil)
-		require.Equal(t, nil, resolution.Value)
-		require.Equal(t, openfeature.ErrorReason, resolution.Reason)
-		require.Contains(t, resolution.ResolutionError.Error(), openfeature.TypeMismatchCode)
-		require.Contains(t, resolution.ResolutionError.Error(), "failed to unmarshal")
-	})
-
-	t.Run("matched evaluation rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: `{"domain":"example.org"}`,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationRule: &sdk.RolloutRule{
-						ComparisonAttribute: "attr",
-						ComparisonValue:     "val",
-						Comparator:          1,
-					},
-				},
-			}
-		})
-
-		resolution := provider.ObjectEvaluation(ctx, "flag", nil, nil)
-		require.Equal(t, map[string]interface{}{"domain": "example.org"}, resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
-	})
-
-	t.Run("matched percentage rule", func(t *testing.T) {
-		defer client.Reset()
-		client.WithStringEvaluation(func(req clienttest.Request) sdk.StringEvaluationDetails {
-			return sdk.StringEvaluationDetails{
-				Value: `{"domain":"example.org"}`,
-				Data: sdk.EvaluationDetailsData{
-					MatchedEvaluationPercentageRule: &sdk.PercentageRule{
-						Percentage: 50,
-					},
-				},
-			}
-		})
-
-		resolution := provider.ObjectEvaluation(ctx, "flag", nil, nil)
-		require.Equal(t, map[string]interface{}{"domain": "example.org"}, resolution.Value)
-		require.Equal(t, openfeature.TargetingMatchReason, resolution.Reason)
 	})
 }
 
-func testEvalCtxNotString(t *testing.T, cb func(evalCtx openfeature.FlattenedContext) openfeature.ProviderResolutionDetail) {
-	t.Helper()
-
-	inputs := []struct {
-		name    string
-		evalCtx map[string]interface{}
-	}{
-		{
-			name: "targeting",
-			evalCtx: map[string]interface{}{
-				openfeature.TargetingKey: new(configcat.Provider),
-			},
-		},
-		{
-			name: "identifier",
-			evalCtx: map[string]interface{}{
-				configcat.IdentifierKey: new(configcat.Provider),
-			},
-		},
-		{
-			name: "email",
-			evalCtx: map[string]interface{}{
-				configcat.EmailKey: new(configcat.Provider),
-			},
-		},
-		{
-			name: "country",
-			evalCtx: map[string]interface{}{
-				configcat.CountryKey: new(configcat.Provider),
-			},
-		},
-		{
-			name: "custom",
-			evalCtx: map[string]interface{}{
-				"some-key": new(configcat.Provider),
-			},
-		},
-	}
-
-	for _, input := range inputs {
-		t.Run(input.name, func(t *testing.T) {
-			detail := cb(input.evalCtx)
-			require.Equal(t, openfeature.ErrorReason, detail.Reason)
-			require.Contains(t, detail.ResolutionError.Error(), openfeature.InvalidContextCode)
-		})
-	}
-}
-
-func testEvalCtxStringer(t *testing.T, cb func(evalCtx openfeature.FlattenedContext) []clienttest.Request) {
-	t.Helper()
-
-	inputs := []struct {
-		name     string
-		val      interface{}
-		expected string
-	}{
-		{name: "string", val: "some-string", expected: "some-string"},
-		{name: "int", val: int(1), expected: "1"},
-		{name: "int8", val: int8(1), expected: "1"},
-		{name: "int16", val: int16(1), expected: "1"},
-		{name: "int32", val: int32(1), expected: "1"},
-		{name: "int64", val: int64(1), expected: "1"},
-		{name: "float32", val: float32(1), expected: "1.000000"},
-		{name: "float64", val: float64(1), expected: "1.000000"},
-		{name: "true", val: true, expected: "true"},
-		{name: "false", val: false, expected: "false"},
-	}
-
-	for _, input := range inputs {
-		t.Run(input.name, func(t *testing.T) {
-			requests := cb(map[string]interface{}{
-				openfeature.TargetingKey: input.val,
-			})
-			require.Len(t, requests, 1)
-
-			request := requests[0]
-			require.Equal(t, input.expected, request.UserData().Identifier)
-		})
-	}
-}
-
-func testEvalCtxUserData(t *testing.T, cb func(evalCtx openfeature.FlattenedContext) []clienttest.Request) {
+func testEvalCtxUserData(t *testing.T, cb func(evalCtx openfeature.FlattenedContext) *sdk.EvaluationDetails) {
 	t.Helper()
 
 	expectedIdentifier := "123"
@@ -695,18 +817,53 @@ func testEvalCtxUserData(t *testing.T, cb func(evalCtx openfeature.FlattenedCont
 	expectedCountry := "AQ"
 	expectedSomeKey := "some-value"
 
-	requests := cb(map[string]interface{}{
+	details := cb(map[string]interface{}{
 		openfeature.TargetingKey: expectedIdentifier,
 		configcat.EmailKey:       expectedEmail,
 		configcat.CountryKey:     expectedCountry,
 		"some-key":               expectedSomeKey,
 	})
-	require.Len(t, requests, 1)
 
-	request := requests[0]
-	require.Equal(t, expectedIdentifier, request.UserData().Identifier)
-	require.Equal(t, expectedEmail, request.UserData().Email)
-	require.Equal(t, expectedCountry, request.UserData().Country)
-	require.Len(t, request.UserData().Custom, 1)
-	require.Equal(t, expectedSomeKey, request.UserData().Custom["some-key"])
+	user, ok := details.Data.User.(sdk.UserAttributes)
+	require.True(t, ok)
+
+	require.Equal(t, expectedIdentifier, user.GetAttribute("Identifier"))
+	require.Equal(t, expectedEmail, user.GetAttribute("Email"))
+	require.Equal(t, expectedCountry, user.GetAttribute("Country"))
+	require.Equal(t, expectedSomeKey, user.GetAttribute("some-key"))
+}
+
+func newTestServer(t *testing.T) (*sdk.Client, *configcattest.Handler, *sdk.Hooks, string) {
+	key := configcattest.RandomSDKKey()
+	var handler configcattest.Handler
+	hooks := sdk.Hooks{}
+	srv := httptest.NewServer(&handler)
+	cfg := sdk.Config{
+		LogLevel:    sdk.LogLevelDebug,
+		BaseURL:     srv.URL,
+		SDKKey:      key,
+		PollingMode: sdk.Manual,
+		Hooks:       &hooks,
+	}
+	client := sdk.NewCustomClient(cfg)
+	t.Cleanup(func() {
+		srv.Close()
+		client.Close()
+	})
+	return client, &handler, &hooks, key
+}
+
+func waitForChanMax[T any](t *testing.T, timeout time.Duration, ch <-chan *T) *T {
+	ti := time.After(timeout)
+	done := make(chan *T)
+	go func() {
+		select {
+		case <-ti:
+			t.Errorf("timed out waiting for %v", timeout)
+			done <- nil
+		case res := <-ch:
+			done <- res
+		}
+	}()
+	return <-done
 }
