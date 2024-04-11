@@ -19,7 +19,7 @@ require (
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.1
 	go.uber.org/mock v0.4.0
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
-	golang.org/x/net v0.21.0
+	golang.org/x/net v0.24.0
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
 	sigs.k8s.io/controller-runtime v0.17.2
@@ -59,7 +59,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
