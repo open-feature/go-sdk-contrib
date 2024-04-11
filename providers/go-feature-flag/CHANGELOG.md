@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.34](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.33...providers/go-feature-flag/v0.1.34) (2024-04-05)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.10.0 ([#469](https://github.com/open-feature/go-sdk-contrib/issues/469)) ([21810af](https://github.com/open-feature/go-sdk-contrib/commit/21810afc33fce9a3940ec9dc59e65f140fcbaa57))
+* **deps:** update module github.com/stretchr/testify to v1.9.0 ([#470](https://github.com/open-feature/go-sdk-contrib/issues/470)) ([5263567](https://github.com/open-feature/go-sdk-contrib/commit/52635679b633e01e23196885a4a98d3cecbc8822))
+* **deps:** update module github.com/thomaspoignant/go-feature-flag to v1.24.0 ([#472](https://github.com/open-feature/go-sdk-contrib/issues/472)) ([dfd254e](https://github.com/open-feature/go-sdk-contrib/commit/dfd254eeeadd7333d24a87b90407766613bebd68))
+* **deps:** update module github.com/thomaspoignant/go-feature-flag to v1.24.2 ([#485](https://github.com/open-feature/go-sdk-contrib/issues/485)) ([eb092d4](https://github.com/open-feature/go-sdk-contrib/commit/eb092d4637b8ee2160b36928ea0e50425dad2752))
+
 ## [0.1.33](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.32...providers/go-feature-flag/v0.1.33) (2024-01-23)
 
 

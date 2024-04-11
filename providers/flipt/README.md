@@ -27,7 +27,7 @@ package main
 import (
     "context"
 
-    "github.com/open-feature/go-sdk-contrib/providers/flipt"
+    flipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/provider"
     "github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -37,12 +37,12 @@ func main() {
     openfeature.SetProvider(flipt.NewProvider())
 
     client := openfeature.NewClient("my-app")
-    value, err := client.BooleanValue(context.Background(), "v2_enabled", false, openfeature.EvaluationContext{
-        TargetingKey: "tim@apple.com",
-        Attributes: map[string]interface{}{
+    value, err := client.BooleanValue(context.Background(), "v2_enabled", false, openfeature.NewEvaluationContext(
+        "tim@apple.com",
+        map[string]interface{}{
             "favorite_color": "blue",
         },
-    })
+    ))
 
     if err != nil {
         panic(err)
