@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.2](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.1...hooks/open-telemetry/v0.3.2) (2024-04-11)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.10.0 ([#469](https://github.com/open-feature/go-sdk-contrib/issues/469)) ([21810af](https://github.com/open-feature/go-sdk-contrib/commit/21810afc33fce9a3940ec9dc59e65f140fcbaa57))
+* **deps:** update opentelemetry-go monorepo to v1.25.0 ([#493](https://github.com/open-feature/go-sdk-contrib/issues/493)) ([6241825](https://github.com/open-feature/go-sdk-contrib/commit/62418255a6a0c48cd6ad8b94c9fd5a4c6943b1da))
+
+
+### 🧹 Chore
+
+* bump Go to version 1.21 ([#452](https://github.com/open-feature/go-sdk-contrib/issues/452)) ([7ec90ce](https://github.com/open-feature/go-sdk-contrib/commit/7ec90ce4f9b06670187561afd9e342eed4228be1))
+
 ## [0.3.1](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.0...hooks/open-telemetry/v0.3.1) (2024-02-08)
 
 
