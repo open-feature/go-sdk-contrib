@@ -8,7 +8,7 @@
     "providers/go-feature-flag": "0.1.34",
     "providers/flagsmith": "0.1.4",
     "providers/launchdarkly": "0.1.4",
-    "providers/unleash": "0.0.3-alpha",
+    "providers/unleash": "0.0.4-alpha",
     "providers/harness": "0.0.4-alpha",
     "providers/statsig": "0.0.2",
     "providers/ofrep": "0.1.1",
