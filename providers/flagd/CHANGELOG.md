@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.2.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.22...providers/flagd/v0.2.0) (2024-04-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* use new eval/sync protos (requires flagd v0.7.3+) ([#451](https://github.com/open-feature/go-sdk-contrib/issues/451))
+
+### 🐛 Bug Fixes
+
+* **deps:** update golang.org/x/exp digest to 814bf88 ([#453](https://github.com/open-feature/go-sdk-contrib/issues/453)) ([80cdaaa](https://github.com/open-feature/go-sdk-contrib/commit/80cdaaa9fa5ffa25eee3dd0de98588ad66aa5f2e))
+* **deps:** update golang.org/x/exp digest to a685a6e ([#479](https://github.com/open-feature/go-sdk-contrib/issues/479)) ([e55c610](https://github.com/open-feature/go-sdk-contrib/commit/e55c610e419589d9bfc3a90089391cbe615d71c7))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/protocolbuffers/go to v1.33.0-20240215170432-1e611e2999cc.1 ([#468](https://github.com/open-feature/go-sdk-contrib/issues/468)) ([aebf9d0](https://github.com/open-feature/go-sdk-contrib/commit/aebf9d0a7cc514f66dc26d50104bc4656408cb44))
+* **deps:** update module github.com/open-feature/flagd/core to v0.8.1 ([#483](https://github.com/open-feature/go-sdk-contrib/issues/483)) ([4c3f005](https://github.com/open-feature/go-sdk-contrib/commit/4c3f005f587902b239ea904c8d050d054dc8afe7))
+* **deps:** update module github.com/open-feature/go-sdk-contrib/tests/flagd to v1.4.1 ([#484](https://github.com/open-feature/go-sdk-contrib/issues/484)) ([6f4e7b7](https://github.com/open-feature/go-sdk-contrib/commit/6f4e7b746e8854b999ec6ece6a8259a5c9e77fdc))
+* **deps:** update module go.uber.org/mock to v0.4.0 ([#425](https://github.com/open-feature/go-sdk-contrib/issues/425)) ([91f70c0](https://github.com/open-feature/go-sdk-contrib/commit/91f70c0dba1e1ff8d7214b05de8b86eead43a922))
+* **deps:** update module google.golang.org/grpc to v1.62.1 ([#430](https://github.com/open-feature/go-sdk-contrib/issues/430)) ([c20613c](https://github.com/open-feature/go-sdk-contrib/commit/c20613c5079f2a9871c451771aca2b8ab56d7bcb))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.17.2 ([#434](https://github.com/open-feature/go-sdk-contrib/issues/434)) ([acaf0cb](https://github.com/open-feature/go-sdk-contrib/commit/acaf0cb8c479ff6978be4753cc192fdaac077ecb))
+
+
+### ✨ New Features
+
+* update to latest flagd core release ([#495](https://github.com/open-feature/go-sdk-contrib/issues/495)) ([4034850](https://github.com/open-feature/go-sdk-contrib/commit/40348500c7adc433bd2387f43bebcad83ae65153))
+* use new eval/sync protos (requires flagd v0.7.3+) ([#451](https://github.com/open-feature/go-sdk-contrib/issues/451)) ([308bba1](https://github.com/open-feature/go-sdk-contrib/commit/308bba1656dfe05993b83bc9f2059082b41e79f0))
+
+
+### 🧹 Chore
+
+* improve contrib guide with e2e test details ([#447](https://github.com/open-feature/go-sdk-contrib/issues/447)) ([8dd5fc6](https://github.com/open-feature/go-sdk-contrib/commit/8dd5fc6a317665918b3432d6e4d7a4ba0598f554))
+* move flagd specific submodule to flagd module ([#449](https://github.com/open-feature/go-sdk-contrib/issues/449)) ([243a69c](https://github.com/open-feature/go-sdk-contrib/commit/243a69cad40f1a36b302de3247a1de0068096867))
+* update flagd e2e tests ([#466](https://github.com/open-feature/go-sdk-contrib/issues/466)) ([a8ee306](https://github.com/open-feature/go-sdk-contrib/commit/a8ee3068bd3b174bc75a6aeefa0441c61a5b43f7))
+
 ## [0.1.22](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.21...providers/flagd/v0.1.22) (2024-02-01)
 
 
