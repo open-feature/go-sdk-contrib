@@ -369,3 +369,8 @@ func (m MockEvaluator) ResolveAllValues(ctx context.Context, reqID string, conte
 	// ignored
 	return nil
 }
+
+func (m MockEvaluator) ResolveAsAnyValue(ctx context.Context, reqID string, flagKey string, context map[string]any) evaluator.AnyValue {
+	// ignored
+	return evaluator.AnyValue{}
+}
