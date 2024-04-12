@@ -2,7 +2,7 @@ module github.com/open-feature/go-sdk-contrib/providers/ofrep
 
 go 1.21.0
 
-require github.com/open-feature/go-sdk v1.10.0
+require github.com/open-feature/go-sdk v1.11.0
 
 require (
 	github.com/go-logr/logr v1.4.1 // indirect

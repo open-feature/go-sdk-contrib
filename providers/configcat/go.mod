@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/configcat/go-sdk/v8 v8.0.1
-	github.com/open-feature/go-sdk v1.10.0
+	github.com/open-feature/go-sdk v1.11.0
 	github.com/stretchr/testify v1.9.0
 )
 
