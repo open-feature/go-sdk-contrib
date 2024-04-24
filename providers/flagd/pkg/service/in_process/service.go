@@ -51,28 +51,8 @@ func NewInProcessService(cfg Configuration) *InProcess {
 
 	flagStore := store.NewFlags()
 	flagStore.FlagSources = append(flagStore.FlagSources, uri)
-
-	jsonEvaluator := evaluator.NewJSON(log,
-		flagStore,
-		evaluator.WithEvaluator(
-			"fractional",
-			evaluator.NewFractional(log).Evaluate,
-		),
-		evaluator.WithEvaluator(
-			"starts_with",
-			evaluator.NewStringComparisonEvaluator(log).StartsWithEvaluation,
-		),
-		evaluator.WithEvaluator(
-			"ends_with",
-			evaluator.NewStringComparisonEvaluator(log).EndsWithEvaluation,
-		),
-		evaluator.WithEvaluator(
-			"sem_ver",
-			evaluator.NewSemVerComparison(log).SemVerEvaluation,
-		))
-
 	return &InProcess{
-		evaluator:        jsonEvaluator,
+		evaluator:        evaluator.NewJSON(log, flagStore),
 		events:           make(chan of.Event, 5),
 		logger:           log,
 		listenerShutdown: make(chan interface{}),
