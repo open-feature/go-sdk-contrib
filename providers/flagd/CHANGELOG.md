@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.0...providers/flagd/v0.2.1) (2024-05-08)
+
+
+### ✨ New Features
+
+* update flagd core along with removal of deprecated methods ([#509](https://github.com/open-feature/go-sdk-contrib/issues/509)) ([ae16e3b](https://github.com/open-feature/go-sdk-contrib/commit/ae16e3b18ff5d839c883ae0f0ebe06d68c013290))
+
 ## [0.2.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.1.22...providers/flagd/v0.2.0) (2024-04-11)
 
 
