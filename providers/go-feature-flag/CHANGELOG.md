@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.37](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.36...providers/go-feature-flag/v0.1.37) (2024-05-25)
+
+
+### 🧹 Chore
+
+* **deps:** update dependency go to v1.22.3 ([#500](https://github.com/open-feature/go-sdk-contrib/issues/500)) ([54e6bd8](https://github.com/open-feature/go-sdk-contrib/commit/54e6bd897b38d4491037f832345f30cf38e03bd5))
+
 ## [0.1.36](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.35...providers/go-feature-flag/v0.1.36) (2024-04-24)
 
 
