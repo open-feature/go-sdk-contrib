@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	statsigProvider "github.com/open-feature/go-sdk-contrib/providers/statsig/pkg"
@@ -85,6 +86,88 @@ func TestBoolLayerEvaluation(t *testing.T) {
 	value, _ := ofClient.StringValue(context.Background(), "b_param", "fallback", evalCtx)
 	if value != expected {
 		t.Fatalf("Expected: %s, actual: %s", expected, value)
+	}
+}
+
+func TestConvertsValidUserIDToString(t *testing.T) {
+	evalCtx := of.FlattenedContext{
+		"UserID": "test_user",
+	}
+
+	user, err := statsigProvider.ToStatsigUser(evalCtx)
+	assert.NoError(t, err)
+	assert.Equal(t, "test_user", user.UserID)
+}
+
+// Converts valid EvaluationContext with all fields correctly to statsig.User
+func TestConvertsValidEvaluationContextToStatsigUser(t *testing.T) {
+	evalCtx := of.FlattenedContext{
+		of.TargetingKey:      "test-key",
+		"Email":              "user@example.com",
+		"IpAddress":          "192.168.1.1",
+		"UserAgent":          "Mozilla/5.0",
+		"Country":            "US",
+		"Locale":             "en-US",
+		"AppVersion":         "1.0.0",
+		"Custom":             map[string]interface{}{"customKey": "customValue"},
+		"PrivateAttributes":  map[string]interface{}{"privateKey": "privateValue"},
+		"StatsigEnvironment": map[string]string{"envKey": "envValue"},
+		"CustomIDs":          map[string]string{"customIDKey": "customIDValue"},
+		"custom-key":         "custom-value",
+	}
+
+	user, err := statsigProvider.ToStatsigUser(evalCtx)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if user.UserID != "test-key" {
+		t.Errorf("expected UserID to be 'test-key', got %v", user.UserID)
+	}
+	if user.Email != "user@example.com" {
+		t.Errorf("expected Email to be 'user@example.com', got %v", user.Email)
+	}
+	if user.IpAddress != "192.168.1.1" {
+		t.Errorf("expected IpAddress to be '192.168.1.1', got %v", user.IpAddress)
+	}
+	if user.UserAgent != "Mozilla/5.0" {
+		t.Errorf("expected UserAgent to be 'Mozilla/5.0', got %v", user.UserAgent)
+	}
+	if user.Country != "US" {
+		t.Errorf("expected Country to be 'US', got %v", user.Country)
+	}
+	if user.Locale != "en-US" {
+		t.Errorf("expected Locale to be 'en-US', got %v", user.Locale)
+	}
+	if user.AppVersion != "1.0.0" {
+		t.Errorf("expected AppVersion to be '1.0.0', got %v", user.AppVersion)
+	}
+	if user.Custom["customKey"] != "customValue" {
+		t.Errorf("expected Custom['customKey'] to be 'customValue', got %v", user.Custom["customKey"])
+	}
+	if user.PrivateAttributes["privateKey"] != "privateValue" {
+		t.Errorf("expected PrivateAttributes['privateKey'] to be 'privateValue', got %v", user.PrivateAttributes["privateKey"])
+	}
+	if user.StatsigEnvironment["envKey"] != "envValue" {
+		t.Errorf("expected StatsigEnvironment['envKey'] to be 'envValue', got %v", user.StatsigEnvironment["envKey"])
+	}
+	if user.CustomIDs["customIDKey"] != "customIDValue" {
+		t.Errorf("expected CustomIDs['customIDKey'] to be 'customIDValue', got %v", user.CustomIDs["customIDKey"])
+	}
+	if user.Custom["custom-key"] != "custom-value" {
+		t.Errorf("expected CustomIDs['custom-key'] to be 'custom_value', got %v", user.Custom["custom-key"])
+	}
+}
+
+// Handles missing TargetingKey by checking for "key" in EvaluationContext
+func TestHandlesMissingTargetingKey(t *testing.T) {
+	evalCtx := of.FlattenedContext{
+		"dummy-key": "test-key",
+	}
+
+	_, err := statsigProvider.ToStatsigUser(evalCtx)
+	if err == nil {
+		t.Fatalf("expected error")
 	}
 }
 
