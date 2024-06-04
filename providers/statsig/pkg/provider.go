@@ -76,7 +76,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		}
 	}
 
-	statsigUser, err := toStatsigUser(evalCtx)
+	statsigUser, err := ToStatsigUser(evalCtx)
 	if err != nil {
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
@@ -191,7 +191,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		}
 	}
 
-	statsigUser, err := toStatsigUser(evalCtx)
+	statsigUser, err := ToStatsigUser(evalCtx)
 	if err != nil {
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
@@ -312,7 +312,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func toStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
+func ToStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 	if len(evalCtx) == 0 {
 		return &statsig.User{}, nil
 	}
@@ -320,7 +320,7 @@ func toStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 	statsigUser := statsig.User{}
 	for key, origVal := range evalCtx {
 		switch key {
-		case "UserID":
+		case of.TargetingKey, "UserID":
 			val, ok := toStr(origVal)
 			if !ok {
 				return nil, fmt.Errorf("key `%s` can not be converted to string", key)
@@ -364,7 +364,13 @@ func toStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 			statsigUser.AppVersion = val
 		case "Custom":
 			if val, ok := origVal.(map[string]interface{}); ok {
-				statsigUser.Custom = val
+				if statsigUser.Custom == nil {
+					statsigUser.Custom = val
+				} else {
+					for k, v := range val {
+						statsigUser.Custom[k] = v
+					}
+				}
 			} else {
 				return nil, fmt.Errorf("key `%s` can not be converted to map", key)
 			}
@@ -388,8 +394,14 @@ func toStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 			}
 		case featureConfigKey:
 		default:
-			return nil, fmt.Errorf("key `%s` is not mapped", key)
+			if statsigUser.Custom == nil {
+				statsigUser.Custom = make(map[string]interface{})
+			}
+			statsigUser.Custom[key] = origVal
 		}
+	}
+	if statsigUser.UserID == "" {
+		return nil, of.NewTargetingKeyMissingResolutionError("UserID/targetingKey is missing")
 	}
 
 	return &statsigUser, nil

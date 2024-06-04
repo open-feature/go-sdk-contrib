@@ -4,7 +4,7 @@
 
 # Installation
 
-To use the provider, you'll need to install [Statsig Go client](github.com/statsig-io/go-sdk) and Statsig provider. You can install the packages using the following command
+To use the provider, you'll need to install [Statsig Go client](https://github.com/statsig-io/go-sdk) and Statsig provider. You can install the packages using the following command
 
 ```shell
 go get github.com/statsig-io/go-sdk
@@ -53,7 +53,7 @@ featureConfig := statsigProvider.FeatureConfig{
 evalCtx := of.NewEvaluationContext(
   "",
   map[string]interface{}{
-    "UserID":         "123",
+    "UserID":         "123", // can use "UserID" or of.TargetingKey ("targetingKey") 
     "Email":          "testuser1@statsig.com",
     "feature_config": featureConfig,
   },
