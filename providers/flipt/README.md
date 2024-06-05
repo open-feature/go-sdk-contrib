@@ -58,7 +58,7 @@ func main() {
 
 ## Configuration
 
-The Flipt provider allows you to change the namespace that the evaluation is performed against. If not provided, it defaults to the `Default` namespace:
+The Flipt provider allows you to change the [namespace](https://docs.flipt.io/concepts#namespaces) that the evaluation is performed against. If not provided, it defaults to the `Default` namespace:
 
 ### Target Namespace
 
