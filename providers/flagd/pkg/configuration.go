@@ -12,8 +12,11 @@ type ResolverType string
 
 // Naming and defaults must comply with flagd environment variables
 const (
-	defaultMaxCacheSize          int  = 1000
-	defaultPort                       = 8013
+	defaultMaxCacheSize  int = 1000
+	defaultRpcPort           = 8013
+	defaultInProcessPort     = 8015
+	// Deprecated: defaultPort is deprecated, please use either `defaultRpcPort` or `defaultInProcessPort`
+	defaultPort                       = defaultRpcPort
 	defaultMaxEventStreamRetries      = 5
 	defaultTLS                   bool = false
 	defaultCache                      = cache.LRUValue
@@ -60,7 +63,6 @@ func newDefaultConfiguration(log logr.Logger) *providerConfiguration {
 		Host:                             defaultHost,
 		log:                              log,
 		MaxCacheSize:                     defaultMaxCacheSize,
-		Port:                             defaultPort,
 		Resolver:                         defaultResolver,
 		TLSEnabled:                       defaultTLS,
 	}
