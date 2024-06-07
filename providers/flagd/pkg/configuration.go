@@ -12,16 +12,14 @@ type ResolverType string
 
 // Naming and defaults must comply with flagd environment variables
 const (
-	defaultMaxCacheSize  int = 1000
-	defaultRpcPort           = 8013
-	defaultInProcessPort     = 8015
-	// Deprecated: defaultPort is deprecated, please use either `defaultRpcPort` or `defaultInProcessPort`
-	defaultPort                       = defaultRpcPort
-	defaultMaxEventStreamRetries      = 5
-	defaultTLS                   bool = false
-	defaultCache                      = cache.LRUValue
-	defaultHost                       = "localhost"
-	defaultResolver                   = rpc
+	defaultMaxCacheSize          int    = 1000
+	defaultRpcPort               uint16 = 8013
+	defaultInProcessPort         uint16 = 8015
+	defaultMaxEventStreamRetries        = 5
+	defaultTLS                   bool   = false
+	defaultCache                        = cache.LRUValue
+	defaultHost                         = "localhost"
+	defaultResolver                     = rpc
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -79,8 +77,8 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 		if err != nil {
 			cfg.log.Error(err,
 				fmt.Sprintf(
-					"invalid env config for %s provided, using default value: %d",
-					flagdPortEnvironmentVariableName, defaultPort,
+					"invalid env config for %s provided, using default value: %d or %d depending on resolver",
+					flagdPortEnvironmentVariableName, defaultRpcPort, defaultInProcessPort,
 				))
 		} else {
 			cfg.Port = uint16(port)
