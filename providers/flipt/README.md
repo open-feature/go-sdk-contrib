@@ -58,23 +58,33 @@ func main() {
 
 ## Configuration
 
+The Flipt provider allows you to change the [namespace](https://docs.flipt.io/concepts#namespaces) that the evaluation is performed against. If not provided, it defaults to the `Default` namespace:
+
+### Target Namespace
+
+```go
+provider := flipt.NewProvider(flipt.ForNamespace("your-namespace"))
+```
+
+### Protocol
+
 The Flipt provider allows you to communicate with Flipt over either HTTP(S) or GRPC, depending on the address provided.
 
-### HTTP(S)
+#### HTTP(S)
 
 ```go
 provider := flipt.NewProvider(flipt.WithAddress("https://localhost:443"))
 ```
 
-#### Unix Socket
+##### Unix Socket
 
 ```go
 provider := flipt.NewProvider(flipt.WithAddress("unix:///path/to/socket"))
 ```
 
-### GRPC
+#### GRPC
 
-#### HTTP/2
+##### HTTP/2
 
 ```go
 type Token string
@@ -90,7 +100,7 @@ provider := flipt.NewProvider(
 )
 ```
 
-#### Unix Socket
+##### Unix Socket
 
 ```go
 provider := flipt.NewProvider(
