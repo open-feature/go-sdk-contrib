@@ -13,7 +13,7 @@ import (
 	"github.com/launchdarkly/go-sdk-common/v3/ldvalue"
 	"github.com/open-feature/go-sdk/openfeature"
 
-	ld "github.com/launchdarkly/go-server-sdk/v6"
+	ld "github.com/launchdarkly/go-server-sdk/v7"
 )
 
 var errKeyMissing = errors.New("key and targetingKey attributes are missing, at least 1 required")
