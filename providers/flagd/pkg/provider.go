@@ -42,6 +42,14 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
+	if provider.providerConfiguration.Port == 0 {
+		if provider.providerConfiguration.Resolver == inProcess {
+			provider.providerConfiguration.Port = defaultInProcessPort
+		} else {
+			provider.providerConfiguration.Port = defaultRpcPort
+		}
+	}
+
 	cacheService := cache.NewCacheService(
 		provider.providerConfiguration.CacheType,
 		provider.providerConfiguration.MaxCacheSize,
