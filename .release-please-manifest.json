@@ -4,7 +4,7 @@
     "providers/configcat": "0.2.1",
     "providers/flagd": "0.2.1",
     "providers/flipt": "0.1.1",
-    "providers/from-env": "0.1.4",
+    "providers/from-env": "0.1.5",
     "providers/go-feature-flag": "0.1.37",
     "providers/flagsmith": "0.1.4",
     "providers/launchdarkly": "0.1.4",
