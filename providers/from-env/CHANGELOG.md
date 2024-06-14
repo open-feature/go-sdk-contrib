@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/from-env/v0.1.4...providers/from-env/v0.1.5) (2024-06-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.10.0 ([#469](https://github.com/open-feature/go-sdk-contrib/issues/469)) ([21810af](https://github.com/open-feature/go-sdk-contrib/commit/21810afc33fce9a3940ec9dc59e65f140fcbaa57))
+* **deps:** update module github.com/open-feature/go-sdk to v1.11.0 ([#501](https://github.com/open-feature/go-sdk-contrib/issues/501)) ([3f0eaa5](https://github.com/open-feature/go-sdk-contrib/commit/3f0eaa575500baa663dc24dbfc6cf8214565471f))
+
+
+### ✨ New Features
+
+* **from_env:** option for mapping flag to env name ([#528](https://github.com/open-feature/go-sdk-contrib/issues/528)) ([cede073](https://github.com/open-feature/go-sdk-contrib/commit/cede073056c39346c660b3289459f38464786cea))
+
 ## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/from-env/v0.1.3...providers/from-env/v0.1.4) (2024-03-22)
 
 
