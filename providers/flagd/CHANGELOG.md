@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.1...providers/flagd/v0.2.2) (2024-06-14)
+
+
+### ✨ New Features
+
+* Default port to 8015 if in-process resolver is used. [#523](https://github.com/open-feature/go-sdk-contrib/issues/523) ([#524](https://github.com/open-feature/go-sdk-contrib/issues/524)) ([7db1ce3](https://github.com/open-feature/go-sdk-contrib/commit/7db1ce3c579c6e5072059c3159fa12f26e79393e))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency go to v1.22.3 ([#500](https://github.com/open-feature/go-sdk-contrib/issues/500)) ([54e6bd8](https://github.com/open-feature/go-sdk-contrib/commit/54e6bd897b38d4491037f832345f30cf38e03bd5))
+
 ## [0.2.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.0...providers/flagd/v0.2.1) (2024-05-08)
 
 
