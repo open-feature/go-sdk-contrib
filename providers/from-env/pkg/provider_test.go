@@ -3,7 +3,9 @@ package from_env_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	fromEnv "github.com/open-feature/go-sdk-contrib/providers/from-env/pkg"
@@ -12,6 +14,72 @@ import (
 
 // this line will fail linting if this provider is no longer compatible with the openfeature sdk
 var _ openfeature.FeatureProvider = &fromEnv.FromEnvProvider{}
+
+func TestNewProvider(t *testing.T) {
+	p := fromEnv.NewProvider()
+
+	if reflect.TypeOf(p) != reflect.TypeOf(&fromEnv.FromEnvProvider{}) {
+		t.Fatalf("expected NewProvider to return a &from_env.FromEnvProvider, got %T", p)
+	}
+}
+
+func TestWithFlagToEnvMapper(t *testing.T) {
+	mapper := func(flagKey string) string {
+		return fmt.Sprintf("MY_%s", strings.ToUpper(strings.ReplaceAll(flagKey, "-", "_")))
+	}
+
+	p := fromEnv.NewProvider(fromEnv.WithFlagToEnvMapper(mapper))
+	testFlag := "some-flag-enabled"
+	flagValue := fromEnv.StoredFlag{
+		DefaultVariant: "not-yellow",
+		Variants: []fromEnv.Variant{
+			{
+				Name:         "yellow",
+				TargetingKey: "",
+				Value:        true,
+				Criteria: []fromEnv.Criteria{
+					{
+						Key:   "color",
+						Value: "yellow",
+					},
+				},
+			},
+			{
+				Name:         "not-yellow",
+				TargetingKey: "",
+				Value:        false,
+				Criteria: []fromEnv.Criteria{
+					{
+						Key:   "color",
+						Value: "not yellow",
+					},
+				},
+			},
+		},
+	}
+	evalCtx := map[string]interface{}{
+		"color":                  "yellow",
+		openfeature.TargetingKey: "user1",
+	}
+
+	flagM, _ := json.Marshal(flagValue)
+
+	t.Setenv(mapper(testFlag), string(flagM))
+
+	res := p.BooleanEvaluation(context.Background(), testFlag, false, evalCtx)
+
+	if res.Error() != nil {
+		t.Fatalf("expected no error, got %s", res.Error())
+	}
+
+	if !res.Value {
+		t.Fatalf("expected true value, got false")
+	}
+
+	if res.Variant != "yellow" {
+		t.Fatalf("expected yellow variant, got %s", res.Variant)
+	}
+}
 
 func TestBoolFromEnv(t *testing.T) {
 	tests := map[string]struct {
