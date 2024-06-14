@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/launchdarkly/go-sdk-common/v3/ldlog"
-	"github.com/launchdarkly/go-server-sdk/v6/ldcomponents"
+	"github.com/launchdarkly/go-server-sdk/v7/ldcomponents"
 	"github.com/open-feature/go-sdk/openfeature"
 
-	ld "github.com/launchdarkly/go-server-sdk/v6"
+	ld "github.com/launchdarkly/go-server-sdk/v7"
 	ofld "github.com/open-feature/go-sdk-contrib/providers/launchdarkly/pkg"
 )
 
