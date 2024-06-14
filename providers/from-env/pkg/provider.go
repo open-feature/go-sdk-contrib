@@ -3,13 +3,9 @@ package from_env
 import (
 	"context"
 	"errors"
+
 	"github.com/open-feature/go-sdk/openfeature"
 )
-
-// FromEnvProvider implements the FeatureProvider interface and provides functions for evaluating flags
-type FromEnvProvider struct {
-	envFetch envFetch
-}
 
 const (
 	ReasonStatic = "static"
@@ -18,6 +14,31 @@ const (
 	ErrorParse        = "parse error"
 	ErrorFlagNotFound = "flag not found"
 )
+
+// FromEnvProvider implements the FeatureProvider interface and provides functions for evaluating flags
+type FromEnvProvider struct {
+	envFetch envFetch
+}
+
+type ProviderOption func(*FromEnvProvider)
+
+type FlagToEnvMapper func(string) string
+
+func WithFlagToEnvMapper(mapper FlagToEnvMapper) ProviderOption {
+	return func(p *FromEnvProvider) {
+		p.envFetch.mapper = mapper
+	}
+}
+
+func NewProvider(opts ...ProviderOption) *FromEnvProvider {
+	p := &FromEnvProvider{}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	return p
+}
 
 // Metadata returns the metadata of the provider
 func (p *FromEnvProvider) Metadata() openfeature.Metadata {
