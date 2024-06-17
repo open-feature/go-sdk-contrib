@@ -2,10 +2,11 @@ package otel
 
 import (
 	"context"
+
 	"github.com/open-feature/go-sdk/openfeature"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/sdk/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
 )
 
@@ -30,8 +31,14 @@ type MetricsHook struct {
 
 var _ openfeature.Hook = &MetricsHook{}
 
+// NewMetricsHook builds a metric hook backed by a globally set metric.MeterProvider.
+// Use otel.SetMeterProvider to set the global provider or use NewMetricsHookForProvider.
+func NewMetricsHook(opts ...MetricOptions) (*MetricsHook, error) {
+	return NewMetricsHookForProvider(otel.GetMeterProvider(), opts...)
+}
+
 // NewMetricsHookForProvider builds a metric hook backed by metric.MeterProvider.
-func NewMetricsHookForProvider(provider *metric.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
+func NewMetricsHookForProvider(provider api.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
 	meter := provider.Meter(meterName)
 
 	activeCounter, err := meter.Int64UpDownCounter(evaluationActive, api.WithDescription("active flag evaluations counter"))

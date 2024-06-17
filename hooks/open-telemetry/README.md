@@ -15,14 +15,31 @@ This hook performs metric collection by tapping into various hook stages. Given 
 - `feature_flag.evaluation_error_total`
 - `feature_flag.evaluation_active_count`
 
-Consider example below for usage,
+There are two ways to create hooks:
+
+### Using Global MeterProvider
+
+Global provider should be set somewhere using `otel.SetMeterProvider` before calling this constructor.
+
+```go
+// Derive metric hook from reader
+metricsHook, err := hooks.NewMetricsHook()
+if err != nil {
+    return err
+}
+
+// Register OpenFeature API level hooks
+openfeature.AddHooks(metricsHook)
+```
+
+### Passing MeterProvider to Constructor
 
 ```go
 // provider must be configured and provided to constructor based on application configurations
 var provider *metric.MeterProvider
-        
+
 // Derive metric hook from reader
-metricsHook, _ := hooks.NewMetricsHookForProvider(provider)
+metricsHook, err := hooks.NewMetricsHookForProvider(provider)
 if err != nil {
     return err
 }
@@ -44,15 +61,15 @@ NewMetricsHookForProvider(provider,
     WithMetricsAttributeSetter(
     func(metadata openfeature.FlagMetadata) []attribute.KeyValue {
 		// custom attribute extraction logic
-		
+
         return attributes
     }))
 ```
 
-#### WithFlagMetadataDimensions 
+#### WithFlagMetadataDimensions
 
-This constructor option allows to configure dimension descriptions to be extracted from `openfeature.FlagMetadata`. 
-If present, these dimension will be added to the `feature_flag.evaluation_success_total` metric. 
+This constructor option allows to configure dimension descriptions to be extracted from `openfeature.FlagMetadata`.
+If present, these dimension will be added to the `feature_flag.evaluation_success_total` metric.
 Missing metadata keys will be ignored by the implementation.
 
 ```go
@@ -100,7 +117,7 @@ These attributes are added at the `After` stage of the hook.
 NewTracesHook(WithMetricsAttributeSetter(
     func(metadata openfeature.FlagMetadata) []attribute.KeyValue {
 		// custom attribute extraction logic
-		
+
         return attributes
     }))
 ```
