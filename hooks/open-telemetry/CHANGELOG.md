@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.3](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.2...hooks/open-telemetry/v0.3.3) (2024-06-17)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.11.0 ([#501](https://github.com/open-feature/go-sdk-contrib/issues/501)) ([3f0eaa5](https://github.com/open-feature/go-sdk-contrib/commit/3f0eaa575500baa663dc24dbfc6cf8214565471f))
+
+
+### ✨ New Features
+
+* **otel:** add NewMetricsHook, use api interface instead of SDK type ([#530](https://github.com/open-feature/go-sdk-contrib/issues/530)) ([0472b0d](https://github.com/open-feature/go-sdk-contrib/commit/0472b0d59732be7f93b5e79875c0a61fcd4a35e6))
+
 ## [0.3.2](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.1...hooks/open-telemetry/v0.3.2) (2024-04-11)
 
 
