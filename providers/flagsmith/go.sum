@@ -2,6 +2,8 @@ github.com/Flagsmith/flagsmith-go-client/v3 v3.3.0 h1:HWzv17XTVLtdKJHVViKo7aukil
 github.com/Flagsmith/flagsmith-go-client/v3 v3.3.0/go.mod h1:QcEqbXE3usekGMccBvlPac4y7JG/5kF9Qlh7PUMW5ms=
 github.com/Flagsmith/flagsmith-go-client/v3 v3.4.0 h1:YqZrpNPnnXuWOkRq55r4kuloTu00n49h5zFDO+1gX+o=
 github.com/Flagsmith/flagsmith-go-client/v3 v3.4.0/go.mod h1:3q6hRAFSJdBffdJDydFcCHenrmPKELYvHjRn6g3bNcI=
+github.com/Flagsmith/flagsmith-go-client/v3 v3.5.0 h1:67ZOH16ButMgf77PabZY0S5AZ1uDXdleneuVYw+V4Lc=
+github.com/Flagsmith/flagsmith-go-client/v3 v3.5.0/go.mod h1:bLjfVpEYBwrO3ncDxyr19PyuiTckoziOk/pr06ChhM0=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
@@ -15,6 +17,8 @@ github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=
 github.com/golang/mock v1.6.0/go.mod h1:p6yTPP+5HYm5mzsMV8JkE6ZKdX+/wYM6Hr+LicevLPs=
 github.com/google/uuid v1.5.0 h1:1p67kYwdtXjb0gL0BPiP1Av9wiZPo5A8z2cWkTZ+eyU=
 github.com/google/uuid v1.5.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/itlightning/dateparse v0.2.0 h1:eOYLGZORnHweKdTZGOVjDXHhOwMQTNdP4g6+ErgPyeg=
+github.com/itlightning/dateparse v0.2.0/go.mod h1:W2PH6/Sq+PuJJ6JUgx2nau+ew1KLGXwoGP1A240x204=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
