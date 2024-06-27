@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.4...providers/launchdarkly/v0.1.5) (2024-06-27)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update golang.org/x/exp digest to 1b97071 ([#379](https://github.com/open-feature/go-sdk-contrib/issues/379)) ([d2b2f1e](https://github.com/open-feature/go-sdk-contrib/commit/d2b2f1e19d5d6e9168174dc2d0196453a57ecac1))
+* **deps:** update golang.org/x/exp digest to 814bf88 ([#453](https://github.com/open-feature/go-sdk-contrib/issues/453)) ([80cdaaa](https://github.com/open-feature/go-sdk-contrib/commit/80cdaaa9fa5ffa25eee3dd0de98588ad66aa5f2e))
+* **deps:** update golang.org/x/exp digest to a685a6e ([#479](https://github.com/open-feature/go-sdk-contrib/issues/479)) ([e55c610](https://github.com/open-feature/go-sdk-contrib/commit/e55c610e419589d9bfc3a90089391cbe615d71c7))
+* **deps:** update golang.org/x/exp digest to fe59bbe ([#497](https://github.com/open-feature/go-sdk-contrib/issues/497)) ([19dafe9](https://github.com/open-feature/go-sdk-contrib/commit/19dafe937a0c367a4c2b419b45be27d17d90bce2))
+* **deps:** update module github.com/launchdarkly/go-server-sdk/v6 to v6.2.0 ([#492](https://github.com/open-feature/go-sdk-contrib/issues/492)) ([eb97cb7](https://github.com/open-feature/go-sdk-contrib/commit/eb97cb7a31145156d403ae7cf99843908f429040))
+* **deps:** update module github.com/launchdarkly/go-server-sdk/v6 to v7 ([#370](https://github.com/open-feature/go-sdk-contrib/issues/370)) ([402ba16](https://github.com/open-feature/go-sdk-contrib/commit/402ba1610fd0d1a734d166da17544495a2c7628f))
+* **deps:** update module github.com/open-feature/go-sdk to v1.10.0 ([#469](https://github.com/open-feature/go-sdk-contrib/issues/469)) ([21810af](https://github.com/open-feature/go-sdk-contrib/commit/21810afc33fce9a3940ec9dc59e65f140fcbaa57))
+* **deps:** update module github.com/open-feature/go-sdk to v1.11.0 ([#501](https://github.com/open-feature/go-sdk-contrib/issues/501)) ([3f0eaa5](https://github.com/open-feature/go-sdk-contrib/commit/3f0eaa575500baa663dc24dbfc6cf8214565471f))
+
+
+### ✨ New Features
+
+* **deps:** Upgrade LaunchDarkly SDK version to v7 ([#525](https://github.com/open-feature/go-sdk-contrib/issues/525)) ([95ab5d1](https://github.com/open-feature/go-sdk-contrib/commit/95ab5d139aab4722873cf54df4d6c1e0948034bd))
+
+
+### 🧹 Chore
+
+* bump Go to version 1.21 ([#452](https://github.com/open-feature/go-sdk-contrib/issues/452)) ([7ec90ce](https://github.com/open-feature/go-sdk-contrib/commit/7ec90ce4f9b06670187561afd9e342eed4228be1))
+
+
+### 📚 Documentation
+
+* add details of OpenFeature to LaunchDarkly context mapping ([#531](https://github.com/open-feature/go-sdk-contrib/issues/531)) ([51508ef](https://github.com/open-feature/go-sdk-contrib/commit/51508ef682388ca50981ae02cf844c642dd57842))
+* change code in launchdarkly readme from JSON to javascript ([#533](https://github.com/open-feature/go-sdk-contrib/issues/533)) ([e4be360](https://github.com/open-feature/go-sdk-contrib/commit/e4be3605983c4fc10dd8c944b2f790743015af15))
+
 ## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.3...providers/launchdarkly/v0.1.4) (2024-01-19)
 
 
