@@ -26,7 +26,7 @@ context needs to be well-formed.
 
 ### Single context
 
-```JSON
+```javascript
 {
   // The "kind" of the context. Required.
   // Cannot be missing, empty, "multi", or "kind".
@@ -62,7 +62,7 @@ context needs to be well-formed.
 
 ### Multi context
 
-```JSON
+```javascript
 {
   // The "kind" of the context. Required.
   // Must be "multi".
