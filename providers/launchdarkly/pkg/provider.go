@@ -12,14 +12,22 @@ import (
 	"github.com/launchdarkly/go-sdk-common/v3/ldreason"
 	"github.com/launchdarkly/go-sdk-common/v3/ldvalue"
 	"github.com/open-feature/go-sdk/openfeature"
-
-	ld "github.com/launchdarkly/go-server-sdk/v7"
 )
 
 var errKeyMissing = errors.New("key and targetingKey attributes are missing, at least 1 required")
 
 // Scream at compile time if Provider does not implement FeatureProvider
 var _ openfeature.FeatureProvider = (*Provider)(nil)
+
+// LDClient is the narrowed local interface for the parts of the
+// `*ld.LDClient` LaunchDarkly client used by the provider.
+type LDClient interface {
+	BoolVariationDetail(key string, context ldcontext.Context, defaultVal bool) (bool, ldreason.EvaluationDetail, error)
+	IntVariationDetail(key string, context ldcontext.Context, defaultVal int) (int, ldreason.EvaluationDetail, error)
+	Float64VariationDetail(key string, context ldcontext.Context, defaultVal float64) (float64, ldreason.EvaluationDetail, error)
+	StringVariationDetail(key string, context ldcontext.Context, defaultVal string) (string, ldreason.EvaluationDetail, error)
+	JSONVariationDetail(key string, context ldcontext.Context, defaultVal ldvalue.Value) (ldvalue.Value, ldreason.EvaluationDetail, error)
+}
 
 type Option func(*options)
 
@@ -47,11 +55,11 @@ func WithKindAttr(name string) Option {
 // Provider implements the FeatureProvider interface for LaunchDarkly.
 type Provider struct {
 	options
-	client *ld.LDClient
+	client LDClient
 }
 
 // NewProvider creates a new LaunchDarkly OpenFeature Provider instance.
-func NewProvider(ldclient *ld.LDClient, opts ...Option) *Provider {
+func NewProvider(ldclient LDClient, opts ...Option) *Provider {
 	p := &Provider{
 		client: ldclient,
 		options: options{
