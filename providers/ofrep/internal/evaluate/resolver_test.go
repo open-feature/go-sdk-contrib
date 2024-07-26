@@ -35,6 +35,13 @@ var successWithInvalidMetadata = evaluationSuccess{
 	Metadata: "metadata",
 }
 
+var successWithoutMetadata = evaluationSuccess{
+	Value:   true,
+	Key:     "flagA",
+	Reason:  string(of.StaticReason),
+	Variant: "true",
+}
+
 func TestSuccess200(t *testing.T) {
 	t.Run("success evaluation response", func(t *testing.T) {
 		successBytes, err := json.Marshal(success)
@@ -103,6 +110,24 @@ func TestSuccess200(t *testing.T) {
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
 		validateErrorCode(success, resolutionError, of.ParseErrorCode, t)
+	})
+	t.Run("no metadata in the ofrep response", func(t *testing.T) {
+		b, err := json.Marshal(successWithoutMetadata)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		resolver := OutboundResolver{client: mockOutbound{
+			rsp: outbound.Resolution{
+				Status: http.StatusOK,
+				Data:   b,
+			},
+		}}
+		success, _ := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
+
+		if len(success.Metadata) > 0 {
+			t.Errorf("should not have metadata, but got %v", success.Metadata)
+		}
 	})
 }
 
