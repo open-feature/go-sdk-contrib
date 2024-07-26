@@ -50,6 +50,13 @@ var successInt64 = successDto{
 	Metadata: nil,
 }
 
+var successInt64WithFloat64 = successDto{
+	Value:    float64(10),
+	Reason:   string(of.StaticReason),
+	Variant:  "10",
+	Metadata: nil,
+}
+
 var successFloat = successDto{
 	Value:    float32(1.10),
 	Reason:   string(of.StaticReason),
@@ -142,6 +149,14 @@ func TestIntegerEvaluation(t *testing.T) {
 			},
 			defaultValue: 1,
 			expect:       successInt64.Value.(int64),
+		},
+		{
+			name: "Success evaluation - int64 with a float64",
+			resolver: mockResolver{
+				success: &successInt64WithFloat64,
+			},
+			defaultValue: 1,
+			expect:       int64(successInt64WithFloat64.Value.(float64)),
 		},
 		{
 			name: "Error evaluation",

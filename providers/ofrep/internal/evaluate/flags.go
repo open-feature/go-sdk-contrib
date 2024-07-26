@@ -150,6 +150,18 @@ func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, e
 		value = int64(evalSuccess.Value.(int))
 	case int64:
 		value = evalSuccess.Value.(int64)
+	case float64:
+		value = int64(evalSuccess.Value.(float64))
+		if float64(value) != evalSuccess.Value.(float64) {
+			return of.IntResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf(
+						"resolved value %v is not of integer type", evalSuccess.Value)),
+					Reason: of.ErrorReason,
+				},
+			}
+		}
 	default:
 		return of.IntResolutionDetail{
 			Value: defaultValue,
