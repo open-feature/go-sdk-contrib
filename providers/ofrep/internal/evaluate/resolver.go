@@ -49,7 +49,7 @@ func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCt
 		var success evaluationSuccess
 		err := json.Unmarshal(rsp.Data, &success)
 		if err != nil {
-			resErr := of.NewGeneralResolutionError(fmt.Sprintf("error parsing the response: %v", err))
+			resErr := of.NewParseErrorResolutionError(fmt.Sprintf("error parsing the response: %v", err))
 			return nil, &resErr
 		}
 		return toSuccessDto(success)

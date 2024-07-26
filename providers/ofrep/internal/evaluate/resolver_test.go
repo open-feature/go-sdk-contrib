@@ -85,7 +85,7 @@ func TestSuccess200(t *testing.T) {
 		}}
 		success, resolutionError := resolver.resolveSingle(context.Background(), "", make(map[string]interface{}))
 
-		validateErrorCode(success, resolutionError, of.GeneralCode, t)
+		validateErrorCode(success, resolutionError, of.ParseErrorCode, t)
 	})
 
 	t.Run("invalid metadata results in a parsing error", func(t *testing.T) {
