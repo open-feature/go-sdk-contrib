@@ -1,12 +1,13 @@
 module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
 
-go 1.21
+go 1.21.0
 
-toolchain go1.22.3
+toolchain go1.22.5
 
 require (
 	github.com/bluele/gcache v0.0.2
 	github.com/open-feature/go-sdk v1.11.0
+	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.3
 	github.com/stretchr/testify v1.9.0
 	github.com/thomaspoignant/go-feature-flag v1.25.0
 )
@@ -21,7 +22,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/nikunjy/rules v1.5.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
