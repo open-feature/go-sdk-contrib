@@ -49,7 +49,7 @@ func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCt
 		var success evaluationSuccess
 		err := json.Unmarshal(rsp.Data, &success)
 		if err != nil {
-			resErr := of.NewGeneralResolutionError(fmt.Sprintf("error parsing the response: %v", err))
+			resErr := of.NewParseErrorResolutionError(fmt.Sprintf("error parsing the response: %v", err))
 			return nil, &resErr
 		}
 		return toSuccessDto(success)
@@ -147,18 +147,21 @@ type successDto struct {
 }
 
 func toSuccessDto(e evaluationSuccess) (*successDto, *of.ResolutionError) {
-	m, ok := e.Metadata.(map[string]interface{})
-	if !ok {
-		resErr := of.NewParseErrorResolutionError("metadata must be a map of string keys and arbitrary values")
-		return nil, &resErr
+	dto := &successDto{
+		Value:   e.Value,
+		Reason:  e.Reason,
+		Variant: e.Variant,
 	}
 
-	return &successDto{
-		Value:    e.Value,
-		Reason:   e.Reason,
-		Variant:  e.Variant,
-		Metadata: m,
-	}, nil
+	if e.Metadata != nil {
+		m, ok := e.Metadata.(map[string]interface{})
+		if !ok {
+			resErr := of.NewParseErrorResolutionError("metadata must be a map of string keys and arbitrary values")
+			return nil, &resErr
+		}
+		dto.Metadata = m
+	}
+	return dto, nil
 }
 
 type request struct {
