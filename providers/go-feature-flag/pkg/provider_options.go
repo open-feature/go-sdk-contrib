@@ -1,8 +1,9 @@
 package gofeatureflag
 
 import (
-	ffclient "github.com/thomaspoignant/go-feature-flag"
 	"time"
+
+	ffclient "github.com/thomaspoignant/go-feature-flag"
 )
 
 // ProviderOptions is the struct containing the provider options you can
@@ -28,6 +29,9 @@ type ProviderOptions struct {
 
 	// DisableCache (optional) set to true if you would like that every flag evaluation goes to the GO Feature Flag directly.
 	DisableCache bool
+
+	// DisableDataCollector (optional) set to true if you would like to disable the cache metrics collection.
+	DisableDataCollector bool
 
 	// FlagCacheSize (optional) is the maximum number of flag events we keep in memory to cache your flags.
 	// default: 10000
