@@ -174,10 +174,12 @@ type MockRoundTripper struct {
 	RoundTripFunc func(req *http.Request) *http.Response
 	Err           error
 	LastRequest   *http.Request
+	NumberCall    int
 }
 
 func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	m.LastRequest = req
+	m.NumberCall++
 	return m.RoundTripFunc(req), m.Err
 }
 
