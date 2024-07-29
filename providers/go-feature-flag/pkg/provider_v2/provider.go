@@ -138,7 +138,7 @@ func (p Provider) Hooks() []of.Hook {
 }
 
 // Init holds initialization logic of the provider
-func (p Provider) Init(evaluationContext of.EvaluationContext) error {
+func (p Provider) Init(_ of.EvaluationContext) error {
 	// code to initialize your provider
 	return nil
 }
