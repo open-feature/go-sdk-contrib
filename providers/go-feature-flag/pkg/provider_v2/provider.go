@@ -2,12 +2,16 @@ package provider_v2
 
 import (
 	"context"
+	"fmt"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/provider_v2/controller"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/provider_v2/hook"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/provider_v2/util"
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep"
 	of "github.com/open-feature/go-sdk/openfeature"
+	"time"
 )
+
+const providerName = "GO Feature Flag"
 
 type Provider struct {
 	ofrepProvider        *ofrep.Provider
@@ -16,6 +20,12 @@ type Provider struct {
 	options              ProviderOptions
 	status               of.State
 	hooks                []of.Hook
+	goffAPI              controller.GoFeatureFlagAPI
+	pollingInfo          struct {
+		ticker  *time.Ticker
+		channel chan bool
+	}
+	events chan of.Event
 }
 
 // NewProvider allows you to create a GO Feature Flag provider without any context.
@@ -53,12 +63,14 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		cache:                cacheCtrl,
 		dataCollectorManager: dataCollectorManager,
 		options:              options,
+		goffAPI:              goffAPI,
+		events:               make(chan of.Event, 5),
 	}, nil
 }
 
 func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{
-		Name: "GO Feature Flag Provider",
+		Name: fmt.Sprintf("%s Provider", providerName),
 	}
 }
 
@@ -163,7 +175,16 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 		p.hooks = []of.Hook{dataCollectorHook}
 		p.dataCollectorManager.Start()
 	}
+
+	// Start polling to check if there is any flag change in order to invalidate the cache.
+	if p.options.FlagChangePollingInterval >= 0 && !p.options.DisableCache {
+		p.startPolling(p.options.FlagChangePollingInterval)
+	}
+
 	p.status = of.ReadyState
+	p.events <- of.Event{
+		ProviderName: providerName, EventType: of.ProviderReady,
+		ProviderEventDetails: of.ProviderEventDetails{Message: "Provider is ready"}}
 	return nil
 }
 
@@ -177,5 +198,63 @@ func (p *Provider) Shutdown() {
 	if !p.options.DisableDataCollector {
 		p.hooks = []of.Hook{}
 		p.dataCollectorManager.Stop()
+	}
+	p.stopPolling()
+}
+
+// EventChannel returns the event channel of this provider
+func (p *Provider) EventChannel() <-chan of.Event {
+	return p.events
+}
+
+// startPolling starts the polling mechanism that check if the configuration has changed.
+func (p *Provider) startPolling(pollingInterval time.Duration) {
+	if pollingInterval == 0 {
+		pollingInterval = 120000 * time.Millisecond
+	}
+	p.pollingInfo = struct {
+		ticker  *time.Ticker
+		channel chan bool
+	}{
+		ticker:  time.NewTicker(pollingInterval),
+		channel: make(chan bool),
+	}
+	go func() {
+		for {
+			select {
+			case <-p.pollingInfo.channel:
+				return
+			case <-p.pollingInfo.ticker.C:
+				changeStatus, err := p.goffAPI.ConfigurationHasChanged()
+				switch changeStatus {
+				case controller.FlagConfigurationInitialized,
+					controller.FlagConfigurationNotChanged:
+					// do nothing
+
+				case controller.FlagConfigurationUpdated:
+					// Clearing the cache when the configuration is updated
+					p.cache.Purge()
+					p.events <- of.Event{
+						ProviderName: providerName, EventType: of.ProviderConfigChange,
+						ProviderEventDetails: of.ProviderEventDetails{Message: "Configuration has changed"}}
+				case controller.ErrorConfigurationChange:
+					p.events <- of.Event{
+						ProviderName: providerName, EventType: of.ProviderStale,
+						ProviderEventDetails: of.ProviderEventDetails{
+							Message: "Impossible to check configuration change " + err.Error()},
+					}
+				}
+			}
+		}
+	}()
+}
+
+// stopPolling stops the polling mechanism that check if the configuration has changed.
+func (p *Provider) stopPolling() {
+	if p.pollingInfo.channel != nil {
+		p.pollingInfo.channel <- true
+	}
+	if p.pollingInfo.ticker != nil {
+		p.pollingInfo.ticker.Stop()
 	}
 }

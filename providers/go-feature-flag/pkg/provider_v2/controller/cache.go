@@ -124,6 +124,12 @@ func (c *Cache) Set(flag string, evalCtx of.FlattenedContext, value interface{})
 	return c.internalCache.Set(c.buildCacheKey(flag, evalCtx), value)
 }
 
+func (c *Cache) Purge() {
+	if c.internalCache != nil {
+		c.internalCache.Purge()
+	}
+}
+
 // buildCacheKey builds a cache key from the flag and evaluation context.
 func (c *Cache) buildCacheKey(flag string, evalCtx of.FlattenedContext) uint32 {
 	key := fmt.Sprintf("%s-%+v", flag, evalCtx)

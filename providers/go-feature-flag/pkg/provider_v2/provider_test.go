@@ -33,8 +33,9 @@ func NewMockClient(roundTripFunc func(req *http.Request) *http.Response) *http.C
 }
 
 type mockClient struct {
-	callCount          int
-	collectorCallCount int
+	callCount           int
+	collectorCallCount  int
+	flagChangeCallCount int
 }
 
 func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
@@ -42,8 +43,25 @@ func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 		m.collectorCallCount++
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       io.NopCloser(bytes.NewReader([]byte(""))),
 		}
+	}
+
+	if req.URL.Path == "/v1/flag/change" {
+		m.flagChangeCallCount++
+		if req.Header.Get("If-None-Match") == "123456" {
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
+			}
+			resp.Header.Set("ETag", "78910")
+			return resp
+		}
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     map[string][]string{},
+		}
+		resp.Header.Set("ETag", "123456")
+		return resp
 	}
 
 	m.callCount++
@@ -1018,4 +1036,43 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 		assert.Equal(t, 1, cli.callCount)
 		assert.Equal(t, 1, cli.collectorCallCount)
 	})
+}
+
+func TestProvider_FlagChangePolling(t *testing.T) {
+	t.Run("Should purge the cache if configuration has changed", func(t *testing.T) {
+		cli := mockClient{}
+		options := provider_v2.ProviderOptions{
+			Endpoint:                  "https://gofeatureflag.org/",
+			HTTPClient:                NewMockClient(cli.roundTripFunc),
+			DisableCache:              false,
+			FlagCacheTTL:              10 * time.Minute,
+			DisableDataCollector:      true,
+			FlagChangePollingInterval: 100 * time.Millisecond,
+		}
+		provider, err := provider_v2.NewProvider(options)
+		defer provider.Shutdown()
+		assert.NoError(t, err)
+		err = of.SetProviderAndWait(provider)
+		assert.NoError(t, err)
+		client := of.NewClient("test-app")
+
+		details, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.Equal(t, of.TargetingMatchReason, details.Reason)
+
+		details, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.Equal(t, of.CachedReason, details.Reason)
+
+		details, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.Equal(t, of.CachedReason, details.Reason)
+
+		time.Sleep(220 * time.Millisecond) // Waiting > 200ms to trigger the polling in the mock
+
+		details, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.Equal(t, of.TargetingMatchReason, details.Reason)
+	})
+
 }

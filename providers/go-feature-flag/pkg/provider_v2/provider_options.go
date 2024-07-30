@@ -61,6 +61,12 @@ type ProviderOptions struct {
 
 	// DisableDataCollector (optional) set to true if you would like to disable the data collector.
 	DisableDataCollector bool
+
+	// FlagChangePollingInterval (optional) interval time we poll the proxy to check if the configuration has changed.
+	// If the cache is enabled, we will poll the relay-proxy every X milliseconds to check if the configuration has changed.
+	// Use -1 if you want to deactivate polling.
+	// default: 120000ms
+	FlagChangePollingInterval time.Duration
 }
 
 func (o *ProviderOptions) Validation() error {
