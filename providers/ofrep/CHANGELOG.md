@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.3...providers/ofrep/v0.1.4) (2024-07-30)
+
+
+### 🐛 Bug Fixes
+
+* **ofrep:** Manage disabled flag ([#543](https://github.com/open-feature/go-sdk-contrib/issues/543)) ([b4dd97d](https://github.com/open-feature/go-sdk-contrib/commit/b4dd97d06fad07afdfb4cb725194f558e0a685b1))
+
 ## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.2...providers/ofrep/v0.1.3) (2024-07-26)
 
 
