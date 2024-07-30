@@ -1,7 +1,7 @@
 package controller_test
 
 import (
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/provider_v2/controller"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/provider_v2/model"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"net/http"
 	"net/url"
 	"path"

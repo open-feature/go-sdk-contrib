@@ -3,8 +3,8 @@ package controller_test
 import (
 	"bytes"
 	"errors"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/provider_v2/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/provider_v2/model"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
