@@ -1,9 +1,7 @@
 {
-  "trackEvents": true,
-  "variationType": "True",
-  "failed": false,
-  "version": "",
+  "value": 100.25,
+  "key": "double_key",
   "reason": "TARGETING_MATCH",
-  "errorCode": "",
-  "value": 100.25
+  "variant": "True",
+  "metadata": {}
 }

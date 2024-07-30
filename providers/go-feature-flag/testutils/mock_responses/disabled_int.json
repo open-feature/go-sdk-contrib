@@ -1,9 +1,6 @@
 {
-  "trackEvents": true,
-  "variationType": "SdkDefault",
-  "failed": false,
-  "version": "",
+  "key": "disabled_int",
   "reason": "DISABLED",
-  "errorCode": "",
-  "value": 123
+  "variant": "SdkDefault",
+  "metadata": {}
 }

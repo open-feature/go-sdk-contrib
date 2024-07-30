@@ -1,9 +1,7 @@
 {
-  "trackEvents": true,
-  "variationType": "True",
-  "failed": false,
-  "version": "",
+  "value": true,
+  "key": "unknown_reason",
   "reason": "CUSTOM_REASON",
-  "errorCode": "",
-  "value": true
+  "variant": "True",
+  "metadata": {}
 }
