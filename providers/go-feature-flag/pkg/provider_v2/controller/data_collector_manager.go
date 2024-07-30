@@ -9,10 +9,10 @@ import (
 
 // DataCollectorManager is a manager for the GO Feature Flag data collector
 type DataCollectorManager struct {
-	mutex   *sync.RWMutex
-	goffAPI GoFeatureFlagAPI
-	events  []model.FeatureEvent
-	maxItem int64
+	mutex                       *sync.Mutex
+	goffAPI                     GoFeatureFlagAPI
+	events                      []model.FeatureEvent
+	dataCollectorMaxEventStored int64
 
 	ticker         *time.Ticker
 	collectChannel chan bool
@@ -21,20 +21,25 @@ type DataCollectorManager struct {
 // NewDataCollectorManager creates a new data collector manager
 func NewDataCollectorManager(
 	goffAPI GoFeatureFlagAPI,
-	maxItem int64,
-	collectInterval time.Duration) *DataCollectorManager {
-	return &DataCollectorManager{
-		mutex:          &sync.RWMutex{},
-		goffAPI:        goffAPI,
-		events:         make([]model.FeatureEvent, 0),
-		maxItem:        maxItem,
-		ticker:         time.NewTicker(collectInterval),
-		collectChannel: make(chan bool),
+	dataCollectorMaxEventStored int64,
+	collectInterval time.Duration) DataCollectorManager {
+	if dataCollectorMaxEventStored <= 0 {
+		dataCollectorMaxEventStored = 100000
+	}
+	if collectInterval <= 0 {
+		collectInterval = 1 * time.Minute
+	}
+	return DataCollectorManager{
+		mutex:                       &sync.Mutex{},
+		goffAPI:                     goffAPI,
+		events:                      make([]model.FeatureEvent, 0),
+		dataCollectorMaxEventStored: dataCollectorMaxEventStored,
+		ticker:                      time.NewTicker(collectInterval),
+		collectChannel:              make(chan bool),
 	}
 }
 
 func (d *DataCollectorManager) Start() {
-	// Start the goroutine
 	go func() {
 		for {
 			select {
@@ -54,8 +59,8 @@ func (d *DataCollectorManager) Stop() {
 
 // SendData sends the data to the data collector
 func (d *DataCollectorManager) SendData() error {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if len(d.events) <= 0 {
 		return nil
@@ -77,7 +82,7 @@ func (d *DataCollectorManager) AddEvent(event model.FeatureEvent) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if nbItem := int64(len(d.events)); nbItem >= d.maxItem {
+	if nbItem := int64(len(d.events)); nbItem >= d.dataCollectorMaxEventStored {
 		return fmt.Errorf("too many events in the queue, this event will be skipped: %d", nbItem)
 	}
 

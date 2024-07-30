@@ -31,8 +31,8 @@ type GoFeatureFlagAPI struct {
 	options GoFeatureFlagApiOptions
 }
 
-func NewGoFeatureFlagAPI(options GoFeatureFlagApiOptions) *GoFeatureFlagAPI {
-	return &GoFeatureFlagAPI{options: options}
+func NewGoFeatureFlagAPI(options GoFeatureFlagApiOptions) GoFeatureFlagAPI {
+	return GoFeatureFlagAPI{options: options}
 }
 
 func (g *GoFeatureFlagAPI) CollectData(events []model.FeatureEvent) error {

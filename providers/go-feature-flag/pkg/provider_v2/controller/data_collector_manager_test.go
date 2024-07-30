@@ -33,7 +33,7 @@ func Test_DataCollectorManager(t *testing.T) {
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(*g, 100, 100*time.Millisecond)
+		collector := controller.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		_ = collector.AddEvent(eventExample)
@@ -53,7 +53,7 @@ func Test_DataCollectorManager(t *testing.T) {
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(*g, 100, 100*time.Millisecond)
+		collector := controller.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		_ = collector.AddEvent(eventExample)
@@ -78,7 +78,7 @@ func Test_DataCollectorManager(t *testing.T) {
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(*g, 5, 10*time.Minute)
+		collector := controller.NewDataCollectorManager(g, 5, 10*time.Minute)
 		collector.Start()
 		defer collector.Stop()
 		err := collector.AddEvent(eventExample)
@@ -112,7 +112,7 @@ func Test_DataCollectorManager(t *testing.T) {
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(*g, 5, 100*time.Millisecond)
+		collector := controller.NewDataCollectorManager(g, 5, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		err := collector.AddEvent(eventExample)

@@ -53,6 +53,14 @@ type ProviderOptions struct {
 	// when calling the evaluation API.
 	// default: 500
 	DataMaxEventInMemory int64
+
+	// DataCollectorMaxEventStored (optional) maximum number of event we keep in memory, if we reach this number it means
+	// that we will start to drop the new events. This is a security to avoid a memory leak.
+	// default: 100000
+	DataCollectorMaxEventStored int64
+
+	// DisableDataCollector (optional) set to true if you would like to disable the data collector.
+	DisableDataCollector bool
 }
 
 func (o *ProviderOptions) Validation() error {
