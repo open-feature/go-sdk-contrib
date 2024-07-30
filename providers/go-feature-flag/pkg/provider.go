@@ -5,6 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"path"
+	"time"
+
 	"github.com/bluele/gcache"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -12,11 +18,6 @@ import (
 	"github.com/thomaspoignant/go-feature-flag/exporter"
 	"github.com/thomaspoignant/go-feature-flag/exporter/webhookexporter"
 	"github.com/thomaspoignant/go-feature-flag/ffcontext"
-	"io"
-	"net/http"
-	"net/url"
-	"path"
-	"time"
 )
 
 const defaultCacheSize = 10000
@@ -33,6 +34,7 @@ type Provider struct {
 	cache                  gcache.Cache
 	cacheTTL               time.Duration
 	cacheDisable           bool
+	dataCollectorDisable   bool
 	dataCollectorScheduler *exporter.Scheduler
 }
 
@@ -101,12 +103,13 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		httpClient:             httpClient,
 		cacheTTL:               options.FlagCacheTTL,
 		cacheDisable:           options.DisableCache,
+		dataCollectorDisable:   options.DisableDataCollector,
 		cache:                  gcache.New(options.FlagCacheSize).LRU().Build(),
 		dataCollectorScheduler: scheduler,
 	}, nil
 }
 func startDataCollector(ctx context.Context, options ProviderOptions) *exporter.Scheduler {
-	if options.DisableCache {
+	if options.DisableCache || options.DisableDataCollector {
 		return nil
 	}
 
@@ -323,11 +326,15 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 	if err == nil {
 		// we have retrieve something from the cache.
 		cacheValue, err := convertCache[T](cacheResInterface)
+		cacheValue.Reason = of.CachedReason
 		if err != nil {
 			// impossible to convert the cache, we remove the entry from the cache assuming the next
 			// call to convertCache wouldn't result in the same error on the next call.
 			provider.cache.Remove(cacheKey)
 		} else {
+			if provider.dataCollectorDisable { // if we don't collect data we return the cache value early.
+				return cacheValue
+			}
 			event := exporter.NewFeatureEvent(
 				ffcontext.NewEvaluationContext(goffRequestBody.EvaluationContext.Key),
 				flagName,
@@ -338,7 +345,6 @@ func evaluateWithRelayProxy[T model.JsonType](provider *Provider, ctx context.Co
 				"PROVIDER_CACHE",
 			)
 			provider.dataCollectorScheduler.AddEvent(event)
-			cacheValue.Reason = of.CachedReason
 			return cacheValue
 		}
 	}
