@@ -3,7 +3,6 @@ package gofeatureflaginprocess
 import (
 	"context"
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	of "github.com/open-feature/go-sdk/openfeature"
 	ff "github.com/thomaspoignant/go-feature-flag"
 	"github.com/thomaspoignant/go-feature-flag/ffcontext"
@@ -92,10 +91,10 @@ func (p *Provider) Hooks() []of.Hook {
 
 // evaluateLocally is using the GO Feature Flag module to evaluate your flag.
 // it means that you don't need any relay proxy to make it work.
-func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defaultValue T, evalCtx of.FlattenedContext) model.GenericResolutionDetail[T] {
-	goffRequestBody, errConvert := model.NewEvalFlagRequest[T](evalCtx, defaultValue)
+func evaluateLocally[T JsonType](provider *Provider, flagName string, defaultValue T, evalCtx of.FlattenedContext) GenericResolutionDetail[T] {
+	goffRequestBody, errConvert := NewEvalFlagRequest[T](evalCtx, defaultValue)
 	if errConvert != nil {
-		return model.GenericResolutionDetail[T]{
+		return GenericResolutionDetail[T]{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: *errConvert,
@@ -115,7 +114,7 @@ func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defa
 	if err != nil {
 		switch rawResult.ErrorCode {
 		case string(of.FlagNotFoundCode):
-			return model.GenericResolutionDetail[T]{
+			return GenericResolutionDetail[T]{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag %s was not found in GO Feature Flag", flagName)),
@@ -123,7 +122,7 @@ func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defa
 				},
 			}
 		case string(of.ProviderNotReadyCode):
-			return model.GenericResolutionDetail[T]{
+			return GenericResolutionDetail[T]{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(
@@ -132,7 +131,7 @@ func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defa
 				},
 			}
 		case string(of.ParseErrorCode):
-			return model.GenericResolutionDetail[T]{
+			return GenericResolutionDetail[T]{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewParseErrorResolutionError(
@@ -141,7 +140,7 @@ func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defa
 				},
 			}
 		case string(of.TypeMismatchCode):
-			return model.GenericResolutionDetail[T]{
+			return GenericResolutionDetail[T]{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewTypeMismatchResolutionError(
@@ -150,7 +149,7 @@ func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defa
 				},
 			}
 		case string(of.GeneralCode):
-			return model.GenericResolutionDetail[T]{
+			return GenericResolutionDetail[T]{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(
@@ -173,14 +172,14 @@ func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defa
 
 	switch value := v.(type) {
 	case nil:
-		return model.GenericResolutionDetail[T]{
+		return GenericResolutionDetail[T]{
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Reason:  of.Reason(rawResult.Reason),
 				Variant: rawResult.VariationType,
 			},
 		}
 	case T:
-		return model.GenericResolutionDetail[T]{
+		return GenericResolutionDetail[T]{
 			Value: value,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Reason:  of.Reason(rawResult.Reason),
@@ -188,7 +187,7 @@ func evaluateLocally[T model.JsonType](provider *Provider, flagName string, defa
 			},
 		}
 	default:
-		return model.GenericResolutionDetail[T]{
+		return GenericResolutionDetail[T]{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("unexpected type for flag %s", flagName)),
