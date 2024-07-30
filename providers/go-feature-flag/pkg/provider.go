@@ -47,6 +47,9 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	if options.HTTPClient != nil {
 		ofrepOptions = append(ofrepOptions, ofrep.WithClient(options.HTTPClient))
 	}
+	ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (key string, value string) {
+		return "Content-Type", "application/json"
+	}))
 	ofrepProvider := ofrep.NewProvider(options.Endpoint, ofrepOptions...)
 	cacheCtrl := controller.NewCache(options.FlagCacheSize, options.FlagCacheTTL, options.DisableCache)
 	goffAPI := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
