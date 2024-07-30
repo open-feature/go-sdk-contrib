@@ -115,14 +115,6 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
-    },
-    "providers/go-feature-flag-in-process": {
-      "release-type": "go",
-      "package-name": "providers/go-feature-flag-in-process",
-      "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true,
-      "versioning": "default",
-      "extra-files": []
     }
   },
   "changelog-sections": [
