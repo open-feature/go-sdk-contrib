@@ -4,14 +4,15 @@ go 1.22.5
 
 require (
 	github.com/open-feature/go-sdk v1.12.0
-	github.com/thomaspoignant/go-feature-flag v1.31.2
+	github.com/open-feature/go-sdk-contrib/providers/go-feature-flag v0.1.38
+	github.com/stretchr/testify v1.9.0
+	github.com/thomaspoignant/go-feature-flag v1.32.0
 )
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/bluele/gcache v0.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
