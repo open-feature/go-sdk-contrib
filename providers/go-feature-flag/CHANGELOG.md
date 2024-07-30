@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.38](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.37...providers/go-feature-flag/v0.1.38) (2024-07-30)
+
+
+### ✨ New Features
+
+* **fo-feature-flag:** add DisableCacheMetrics to disable metrics collector ([#542](https://github.com/open-feature/go-sdk-contrib/issues/542)) ([163aacf](https://github.com/open-feature/go-sdk-contrib/commit/163aacffc14c79f640e6191546c0781e9314022e))
+
 ## [0.1.37](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.36...providers/go-feature-flag/v0.1.37) (2024-05-25)
 
 
