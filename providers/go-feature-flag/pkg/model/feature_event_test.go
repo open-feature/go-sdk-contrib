@@ -1,18 +1,17 @@
 package model_test
 
 import (
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"testing"
 	"time"
 
-	"github.com/thomaspoignant/go-feature-flag/ffcontext"
-
 	"github.com/stretchr/testify/assert"
-	"github.com/thomaspoignant/go-feature-flag/exporter"
 )
 
 func TestNewFeatureEvent(t *testing.T) {
 	type args struct {
-		user      ffcontext.Context
+		user      of.EvaluationContext
 		flagKey   string
 		value     interface{}
 		variation string
@@ -23,12 +22,12 @@ func TestNewFeatureEvent(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want exporter.FeatureEvent
+		want model.FeatureEvent
 	}{
 		{
 			name: "anonymous user",
 			args: args{
-				user:      ffcontext.NewEvaluationContextBuilder("ABCD").AddCustom("anonymous", true).Build(),
+				user:      of.NewEvaluationContext("ABCD", map[string]interface{}{"anonymous": true}),
 				flagKey:   "random-key",
 				value:     "YO",
 				variation: "Default",
@@ -36,7 +35,7 @@ func TestNewFeatureEvent(t *testing.T) {
 				version:   "",
 				source:    "SERVER",
 			},
-			want: exporter.FeatureEvent{
+			want: model.FeatureEvent{
 				Kind: "feature", ContextKind: "anonymousUser", UserKey: "ABCD", CreationDate: time.Now().Unix(), Key: "random-key",
 				Variation: "Default", Value: "YO", Default: false, Source: "SERVER",
 			},
@@ -44,7 +43,7 @@ func TestNewFeatureEvent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, exporter.NewFeatureEvent(tt.args.user, tt.args.flagKey, tt.args.value, tt.args.variation, tt.args.failed, tt.args.version, tt.args.source), "NewFeatureEvent(%v, %v, %v, %v, %v, %v, %V)", tt.args.user, tt.args.flagKey, tt.args.value, tt.args.variation, tt.args.failed, tt.args.version, tt.args.source)
+			assert.Equalf(t, tt.want, model.NewFeatureEvent(tt.args.user, tt.args.flagKey, tt.args.value, tt.args.variation, tt.args.failed, tt.args.version, tt.args.source), "NewFeatureEvent(%v, %v, %v, %v, %v, %v, %V)", tt.args.user, tt.args.flagKey, tt.args.value, tt.args.variation, tt.args.failed, tt.args.version, tt.args.source)
 		})
 	}
 }
@@ -52,13 +51,13 @@ func TestNewFeatureEvent(t *testing.T) {
 func TestFeatureEvent_MarshalInterface(t *testing.T) {
 	tests := []struct {
 		name         string
-		featureEvent *exporter.FeatureEvent
-		want         *exporter.FeatureEvent
+		featureEvent *model.FeatureEvent
+		want         *model.FeatureEvent
 		wantErr      bool
 	}{
 		{
 			name: "happy path",
-			featureEvent: &exporter.FeatureEvent{
+			featureEvent: &model.FeatureEvent{
 				Kind:         "feature",
 				ContextKind:  "anonymousUser",
 				UserKey:      "ABCD",
@@ -73,7 +72,7 @@ func TestFeatureEvent_MarshalInterface(t *testing.T) {
 				},
 				Default: false,
 			},
-			want: &exporter.FeatureEvent{
+			want: &model.FeatureEvent{
 				Kind:         "feature",
 				ContextKind:  "anonymousUser",
 				UserKey:      "ABCD",
@@ -86,7 +85,7 @@ func TestFeatureEvent_MarshalInterface(t *testing.T) {
 		},
 		{
 			name: "marshal failed",
-			featureEvent: &exporter.FeatureEvent{
+			featureEvent: &model.FeatureEvent{
 				Kind:         "feature",
 				ContextKind:  "anonymousUser",
 				UserKey:      "ABCD",

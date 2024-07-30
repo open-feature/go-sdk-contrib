@@ -2,13 +2,12 @@ package model
 
 import (
 	"encoding/json"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"time"
-
-	"github.com/thomaspoignant/go-feature-flag/ffcontext"
 )
 
 func NewFeatureEvent(
-	ctx ffcontext.Context,
+	evalCtx of.EvaluationContext,
 	flagKey string,
 	value interface{},
 	variation string,
@@ -17,14 +16,14 @@ func NewFeatureEvent(
 	source string,
 ) FeatureEvent {
 	contextKind := "user"
-	if ctx.IsAnonymous() {
+	if evalCtx.Attribute("anonymous") == true {
 		contextKind = "anonymousUser"
 	}
 
 	return FeatureEvent{
 		Kind:         "feature",
 		ContextKind:  contextKind,
-		UserKey:      ctx.GetKey(),
+		UserKey:      evalCtx.TargetingKey(),
 		CreationDate: time.Now().Unix(),
 		Key:          flagKey,
 		Variation:    variation,

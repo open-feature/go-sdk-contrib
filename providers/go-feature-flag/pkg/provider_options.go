@@ -3,7 +3,6 @@ package gofeatureflag
 import (
 	"fmt"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/goff_error"
-	ffclient "github.com/thomaspoignant/go-feature-flag"
 	"net/http"
 	"time"
 )
@@ -18,10 +17,6 @@ type ProviderOptions struct {
 	// HTTPClient (optional) is the HTTP Client we will use to contact GO Feature Flag.
 	// By default, we are using a custom HTTPClient with a timeout configure to 10000 milliseconds.
 	HTTPClient *http.Client
-
-	// GOFeatureFlagConfig is the configuration struct for the GO Feature Flag module.
-	// If not nil we will launch the provider using the GO Feature Flag module.
-	GOFeatureFlagConfig *ffclient.Config
 
 	// APIKey  (optional) If the relay proxy is configured to authenticate the requests, you should provide
 	// an API Key to the provider. Please ask the administrator of the relay proxy to provide an API Key.
