@@ -35,6 +35,17 @@ func (h Flags) ResolveBoolean(ctx context.Context, key string, defaultValue bool
 		}
 	}
 
+	if evalSuccess.Reason == string(of.DisabledReason) {
+		return of.BoolResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				Variant:      evalSuccess.Variant,
+				FlagMetadata: evalSuccess.Metadata,
+			},
+		}
+	}
+
 	b, ok := evalSuccess.Value.(bool)
 	if !ok {
 		return of.BoolResolutionDetail{
@@ -69,6 +80,17 @@ func (h Flags) ResolveString(ctx context.Context, key string, defaultValue strin
 		}
 	}
 
+	if evalSuccess.Reason == string(of.DisabledReason) {
+		return of.StringResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				Variant:      evalSuccess.Variant,
+				FlagMetadata: evalSuccess.Metadata,
+			},
+		}
+	}
+
 	b, ok := evalSuccess.Value.(string)
 	if !ok {
 		return of.StringResolutionDetail{
@@ -99,6 +121,17 @@ func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float6
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: *resolutionError,
 				Reason:          of.ErrorReason,
+			},
+		}
+	}
+
+	if evalSuccess.Reason == string(of.DisabledReason) {
+		return of.FloatResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				Variant:      evalSuccess.Variant,
+				FlagMetadata: evalSuccess.Metadata,
 			},
 		}
 	}
@@ -139,6 +172,17 @@ func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, e
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: *resolutionError,
 				Reason:          of.ErrorReason,
+			},
+		}
+	}
+
+	if evalSuccess.Reason == string(of.DisabledReason) {
+		return of.IntResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				Variant:      evalSuccess.Variant,
+				FlagMetadata: evalSuccess.Metadata,
 			},
 		}
 	}
@@ -191,6 +235,17 @@ func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue inter
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: *resolutionError,
 				Reason:          of.ErrorReason,
+			},
+		}
+	}
+
+	if evalSuccess.Reason == string(of.DisabledReason) {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				Variant:      evalSuccess.Variant,
+				FlagMetadata: evalSuccess.Metadata,
 			},
 		}
 	}
