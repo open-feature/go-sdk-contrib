@@ -170,6 +170,85 @@ func Test_CollectDataAPI(t *testing.T) {
 	}
 }
 
+func Test_ConfigurationHasChanged(t *testing.T) {
+	t.Run("Initial configuration call", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+			}
+		}}
+		client := &http.Client{Transport: &mrt}
+		options := controller.GoFeatureFlagApiOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		}
+		g := controller.NewGoFeatureFlagAPI(options)
+		status, err := g.ConfigurationHasChanged()
+		require.NoError(t, err)
+		assert.Equal(t, controller.FlagConfigurationInitialized, status)
+	})
+
+	t.Run("Change in the configuration", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			if req.Header.Get("If-None-Match") == "123456" {
+				resp := &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     map[string][]string{},
+				}
+				resp.Header.Set("ETag", "78910")
+				return resp
+			}
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
+			}
+			resp.Header.Set("ETag", "123456")
+			return resp
+		}}
+		client := &http.Client{Transport: &mrt}
+		options := controller.GoFeatureFlagApiOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		}
+		g := controller.NewGoFeatureFlagAPI(options)
+		status, err := g.ConfigurationHasChanged()
+		require.NoError(t, err)
+		assert.Equal(t, controller.FlagConfigurationInitialized, status)
+		status, err = g.ConfigurationHasChanged()
+		require.NoError(t, err)
+		assert.Equal(t, controller.FlagConfigurationUpdated, status)
+	})
+
+	t.Run("No change in the configuration", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			if req.Header.Get("If-None-Match") == "123456" {
+				resp := &http.Response{
+					StatusCode: http.StatusNotModified,
+				}
+				return resp
+			}
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
+			}
+			resp.Header.Set("ETag", "123456")
+			return resp
+		}}
+		client := &http.Client{Transport: &mrt}
+		options := controller.GoFeatureFlagApiOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		}
+		g := controller.NewGoFeatureFlagAPI(options)
+		status, err := g.ConfigurationHasChanged()
+		require.NoError(t, err)
+		assert.Equal(t, controller.FlagConfigurationInitialized, status)
+		status, err = g.ConfigurationHasChanged()
+		require.NoError(t, err)
+		assert.Equal(t, controller.FlagConfigurationNotChanged, status)
+	})
+}
+
 type MockRoundTripper struct {
 	RoundTripFunc func(req *http.Request) *http.Response
 	Err           error
