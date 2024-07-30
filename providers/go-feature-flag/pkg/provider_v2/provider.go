@@ -12,6 +12,7 @@ import (
 )
 
 const providerName = "GO Feature Flag"
+const cacheableMetadataKey = "gofeatureflag_cacheable"
 
 type Provider struct {
 	ofrepProvider        *ofrep.Provider
@@ -86,7 +87,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		return *cacheValue
 	}
 	res := p.ofrepProvider.BooleanEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool("gofeatureflag_cacheable"); err == nil && cachable {
+	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
 		_ = p.cache.Set(flag, evalCtx, res)
 	}
 	return res
@@ -104,7 +105,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 		return *cacheValue
 	}
 	res := p.ofrepProvider.StringEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool("gofeatureflag_cacheable"); err == nil && cachable {
+	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
 		_ = p.cache.Set(flag, evalCtx, res)
 	}
 	return res
@@ -122,7 +123,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 		return *cacheValue
 	}
 	res := p.ofrepProvider.FloatEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool("gofeatureflag_cacheable"); err == nil && cachable {
+	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
 		_ = p.cache.Set(flag, evalCtx, res)
 	}
 	return res
@@ -140,7 +141,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 		return *cacheValue
 	}
 	res := p.ofrepProvider.IntEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool("gofeatureflag_cacheable"); err == nil && cachable {
+	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
 		_ = p.cache.Set(flag, evalCtx, res)
 	}
 	return res
@@ -158,7 +159,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		return *cacheValue
 	}
 	res := p.ofrepProvider.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool("gofeatureflag_cacheable"); err == nil && cachable {
+	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
 		_ = p.cache.Set(flag, evalCtx, res)
 	}
 	return res
@@ -207,7 +208,7 @@ func (p *Provider) EventChannel() <-chan of.Event {
 	return p.events
 }
 
-// startPolling starts the polling mechanism that check if the configuration has changed.
+// startPolling starts the polling mechanism that checks if the configuration has changed.
 func (p *Provider) startPolling(pollingInterval time.Duration) {
 	if pollingInterval == 0 {
 		pollingInterval = 120000 * time.Millisecond

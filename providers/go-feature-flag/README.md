@@ -12,7 +12,7 @@ This is a complete feature flagging solution with the possibility to target only
 
 ## Install dependencies
 
-The first things we will do is install the **Open Feature SDK** and the **GO Feature Flag provider**.
+The first things we will do are to install the **Open Feature SDK** and the **GO Feature Flag provider**.
 
 ```shell
 go get github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
@@ -20,12 +20,9 @@ go get github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
 
 ## Initialize your Open Feature provider
 
-Despite other providers, this GO provider can be used with the **relay proxy** or used standalone
-using the **GO Feature Flag module**.
+### Connecting to the relay proxy
 
-### Using the relay proxy
-
-If you want to use the provider with the **relay proxy** you should set the field `Endpoint` in the options.  
+This provider has to connect with the **relay proxy**, to do that you should set the field `Endpoint` in the options.  
 By default it will use a default `HTTPClient` with a **timeout** configured at **10000** milliseconds. You can change
 this configuration by providing your own configuration of the `HTTPClient`.
 
@@ -40,30 +37,9 @@ options := gofeatureflag.ProviderOptions{
 provider, _ := gofeatureflag.NewProviderWithContext(ctx, options)
 ```
 
-### Using the GO module _(standalone version)_
-If you want to use the provider in standalone mode using the GO module, you should set the field `GOFeatureFlagConfig`
-in the options.
-
-You can check the [GO Feature Flag documentation website](https://docs.gofeatureflag.org) to look how to configure the 
-GO module. 
-
-#### Example
-```go
-options := gofeatureflag.ProviderOptions{
-  GOFeatureFlagConfig: &ffclient.Config{
-      PollingInterval: 10 * time.Second,
-      Context:         context.Background(),
-      Retriever: &fileretriever.Retriever{
-        Path: "../testutils/module/flags.yaml",
-      },
-    },
-}
-provider, _ := gofeatureflag.NewProviderWithContext(ctx, options)
-```
-
 ## Initialize your Open Feature client
 
-To evaluate the flags you need to have an Open Feature configured in you app.
+To evaluate the flag you need to have an Open Feature configured in you app.
 This code block shows you how you can create a client that you can use in your application.
 
 ```go
