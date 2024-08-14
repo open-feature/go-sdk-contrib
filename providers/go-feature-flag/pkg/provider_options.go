@@ -1,9 +1,10 @@
 package gofeatureflag
 
 import (
+	"fmt"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/goff_error"
+	"net/http"
 	"time"
-
-	ffclient "github.com/thomaspoignant/go-feature-flag"
 )
 
 // ProviderOptions is the struct containing the provider options you can
@@ -15,11 +16,7 @@ type ProviderOptions struct {
 
 	// HTTPClient (optional) is the HTTP Client we will use to contact GO Feature Flag.
 	// By default, we are using a custom HTTPClient with a timeout configure to 10000 milliseconds.
-	HTTPClient HTTPClient
-
-	// GOFeatureFlagConfig is the configuration struct for the GO Feature Flag module.
-	// If not nil we will launch the provider using the GO Feature Flag module.
-	GOFeatureFlagConfig *ffclient.Config
+	HTTPClient *http.Client
 
 	// APIKey  (optional) If the relay proxy is configured to authenticate the requests, you should provide
 	// an API Key to the provider. Please ask the administrator of the relay proxy to provide an API Key.
@@ -29,9 +26,6 @@ type ProviderOptions struct {
 
 	// DisableCache (optional) set to true if you would like that every flag evaluation goes to the GO Feature Flag directly.
 	DisableCache bool
-
-	// DisableDataCollector (optional) set to true if you would like to disable the cache metrics collection.
-	DisableDataCollector bool
 
 	// FlagCacheSize (optional) is the maximum number of flag events we keep in memory to cache your flags.
 	// default: 10000
@@ -54,4 +48,25 @@ type ProviderOptions struct {
 	// when calling the evaluation API.
 	// default: 500
 	DataMaxEventInMemory int64
+
+	// DataCollectorMaxEventStored (optional) maximum number of event we keep in memory, if we reach this number it means
+	// that we will start to drop the new events. This is a security to avoid a memory leak.
+	// default: 100000
+	DataCollectorMaxEventStored int64
+
+	// DisableDataCollector (optional) set to true if you would like to disable the data collector.
+	DisableDataCollector bool
+
+	// FlagChangePollingInterval (optional) interval time we poll the proxy to check if the configuration has changed.
+	// If the cache is enabled, we will poll the relay-proxy every X milliseconds to check if the configuration has changed.
+	// Use -1 if you want to deactivate polling.
+	// default: 120000ms
+	FlagChangePollingInterval time.Duration
+}
+
+func (o *ProviderOptions) Validation() error {
+	if o.Endpoint == "" {
+		return goff_error.NewInvalidOption(fmt.Sprintf("invalid option: %s", o.Endpoint))
+	}
+	return nil
 }

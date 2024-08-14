@@ -1,10 +1,9 @@
 {
-  "trackEvents": true,
-  "variationType": "True",
-  "failed": false,
-  "version": "",
-  "reason": "TARGETING_MATCH",
-  "errorCode": "",
   "value": true,
-  "cacheable": true
+  "key": "bool_targeting_match",
+  "reason": "TARGETING_MATCH",
+  "variant": "True",
+  "metadata": {
+    "gofeatureflag_cacheable": true
+  }
 }

@@ -1,8 +1,6 @@
 {
-  "trackEvents": true,
-  "variationType": "SdkDefault",
-  "failed": true,
-  "version": "",
+  "key": "flag_not_found",
   "reason": "ERROR",
-  "errorCode": "FLAG_NOT_FOUND"
+  "errorCode": "FLAG_NOT_FOUND",
+  "metadata": {}
 }
