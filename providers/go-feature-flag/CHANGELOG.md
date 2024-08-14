@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.38...providers/go-feature-flag/v0.2.0) (2024-08-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** GO Feature Flag provider rebuild  ([#547](https://github.com/open-feature/go-sdk-contrib/issues/547))
+
+### ✨ New Features
+
+* **go-feature-flag:** GO Feature Flag provider rebuild  ([#547](https://github.com/open-feature/go-sdk-contrib/issues/547)) ([6d77738](https://github.com/open-feature/go-sdk-contrib/commit/6d777384214f981d6e247ad6b0a13b26aaec591a))
+
 ## [0.1.38](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.37...providers/go-feature-flag/v0.1.38) (2024-07-30)
 
 
