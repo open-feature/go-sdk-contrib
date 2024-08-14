@@ -12,5 +12,6 @@
     "providers/harness": "0.0.4-alpha",
     "providers/statsig": "0.0.3",
     "providers/ofrep": "0.1.4",
-    "tests/flagd": "1.4.1"
+    "tests/flagd": "1.4.1",
+    "providers/go-feature-flag-in-process": "0.1.0"
 }
