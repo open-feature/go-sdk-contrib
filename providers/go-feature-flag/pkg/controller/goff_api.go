@@ -52,9 +52,10 @@ func (g *GoFeatureFlagAPI) CollectData(events []model.FeatureEvent) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	req.Header.Set(ContentTypeHeader, ApplicationJson)
 	if g.options.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+g.options.APIKey)
+		req.Header.Set(AuthorizationHeader, BearerPrefix+g.options.APIKey)
 	}
 
 	response, err := g.getHttpClient().Do(req)
@@ -69,15 +70,6 @@ func (g *GoFeatureFlagAPI) CollectData(events []model.FeatureEvent) error {
 	return nil
 }
 
-type ConfigurationChangeStatus = string
-
-const (
-	FlagConfigurationInitialized ConfigurationChangeStatus = "FLAG_CONFIGURATION_INITIALIZED"
-	FlagConfigurationUpdated     ConfigurationChangeStatus = "FLAG_CONFIGURATION_UPDATED"
-	FlagConfigurationNotChanged  ConfigurationChangeStatus = "FLAG_CONFIGURATION_NOT_CHANGED"
-	ErrorConfigurationChange     ConfigurationChangeStatus = "ERROR_CONFIGURATION_CHANGE"
-)
-
 // ConfigurationHasChanged checks if the configuration has changed since the last call.
 func (g *GoFeatureFlagAPI) ConfigurationHasChanged() (ConfigurationChangeStatus, error) {
 	u, _ := url.Parse(g.options.Endpoint)
@@ -87,12 +79,12 @@ func (g *GoFeatureFlagAPI) ConfigurationHasChanged() (ConfigurationChangeStatus,
 	if err != nil {
 		return ErrorConfigurationChange, err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, ApplicationJson)
 	if g.options.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+g.options.APIKey)
+		req.Header.Set(AuthorizationHeader, BearerPrefix+g.options.APIKey)
 	}
 	if g.configChangeEtag != "" {
-		req.Header.Set("If-None-Match", g.configChangeEtag)
+		req.Header.Set(IfNoneMatchHeader, g.configChangeEtag)
 	}
 
 	response, err := g.getHttpClient().Do(req)

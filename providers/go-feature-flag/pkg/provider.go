@@ -48,7 +48,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		ofrepOptions = append(ofrepOptions, ofrep.WithClient(options.HTTPClient))
 	}
 	ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (key string, value string) {
-		return "Content-Type", "application/json"
+		return controller.ContentTypeHeader, controller.ApplicationJson
 	}))
 	ofrepProvider := ofrep.NewProvider(options.Endpoint, ofrepOptions...)
 	cacheCtrl := controller.NewCache(options.FlagCacheSize, options.FlagCacheTTL, options.DisableCache)

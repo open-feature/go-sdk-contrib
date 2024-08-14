@@ -65,7 +65,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			},
 			wantHeaders: func() http.Header {
 				headers := http.Header{}
-				headers.Set("Content-Type", "application/json")
+				headers.Set(controller.ContentTypeHeader, controller.ApplicationJson)
 				return headers
 			}(),
 			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":\"true\",\"provider\":\"go\"}}",
@@ -111,8 +111,8 @@ func Test_CollectDataAPI(t *testing.T) {
 			},
 			wantHeaders: func() http.Header {
 				headers := http.Header{}
-				headers.Set("Content-Type", "application/json")
-				headers.Set("Authorization", "Bearer my-key")
+				headers.Set(controller.ContentTypeHeader, controller.ApplicationJson)
+				headers.Set(controller.AuthorizationHeader, controller.BearerPrefix+"my-key")
 				return headers
 			}(),
 			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":\"true\",\"provider\":\"go\"}}",
