@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.3...hooks/open-telemetry/v0.3.4) (2024-08-14)
+
+
+### 🧹 Chore
+
+* update otel libs ([#552](https://github.com/open-feature/go-sdk-contrib/issues/552)) ([809d59b](https://github.com/open-feature/go-sdk-contrib/commit/809d59b497aaed71f0c596786d96e1c3a3cf4e09))
+
 ## [0.3.3](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.2...hooks/open-telemetry/v0.3.3) (2024-06-17)
 
 
