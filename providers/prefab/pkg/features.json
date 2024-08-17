@@ -1,0 +1,183 @@
+{
+  "configs": [
+    {
+      "id": "17235540036203003",
+      "projectId": "453",
+      "key": "sample_int",
+      "changedBy": {
+        "userId": "878",
+        "email": "test@test.com"
+      },
+      "rows": [
+        {
+          "projectEnvId": "962",
+          "values": [
+            {
+              "value": {
+                "int": "123"
+              }
+            }
+          ]
+        }
+      ],
+      "allowableValues": [
+        {
+          "int": "123"
+        }
+      ],
+      "configType": "FEATURE_FLAG",
+      "valueType": "INT"
+    },
+    {
+      "id": "17235541126207669",
+      "projectId": "453",
+      "key": "sample_double",
+      "changedBy": {
+        "userId": "878",
+        "email": "test@test.com"
+      },
+      "rows": [
+        {
+          "projectEnvId": "962",
+          "values": [
+            {
+              "value": {
+                "double": 12.12
+              }
+            }
+          ]
+        }
+      ],
+      "allowableValues": [
+        {
+          "double": 12.12
+        }
+      ],
+      "configType": "FEATURE_FLAG",
+      "valueType": "DOUBLE"
+    },
+    {
+      "id": "17235541571344121",
+      "projectId": "453",
+      "key": "sample_bool",
+      "changedBy": {
+        "userId": "878",
+        "email": "test@test.com"
+      },
+      "rows": [
+        {
+          "projectEnvId": "962",
+          "values": [
+            {
+              "value": {
+                "bool": true
+              }
+            }
+          ]
+        }
+      ],
+      "allowableValues": [
+        {
+          "bool": false
+        },
+        {
+          "bool": true
+        }
+      ],
+      "configType": "FEATURE_FLAG",
+      "valueType": "BOOL"
+    },
+    {
+      "id": "17235603983939168",
+      "projectId": "453",
+      "key": "test1",
+      "changedBy": {
+        "userId": "878",
+        "email": "test@test.com"
+      },
+      "rows": [
+        {
+          "projectEnvId": "962",
+          "values": [
+            {
+              "criteria": [
+                {
+                  "propertyName": "user.key",
+                  "operator": "PROP_IS_ONE_OF",
+                  "valueToMatch": {
+                    "stringList": {
+                      "values": [
+                        "key1"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "propertyName": "team.domain",
+                  "operator": "PROP_IS_ONE_OF",
+                  "valueToMatch": {
+                    "stringList": {
+                      "values": [
+                        "prefab.cloud"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "value": {
+                "bool": true
+              }
+            },
+            {
+              "value": {
+                "bool": false
+              }
+            }
+          ]
+        }
+      ],
+      "allowableValues": [
+        {
+          "bool": false
+        },
+        {
+          "bool": true
+        }
+      ],
+      "configType": "FEATURE_FLAG",
+      "valueType": "BOOL"
+    },
+    {
+      "id": "17235608162176898",
+      "projectId": "453",
+      "key": "sample",
+      "changedBy": {
+        "userId": "878",
+        "email": "test@test.com"
+      },
+      "rows": [
+        {
+          "projectEnvId": "962",
+          "values": [
+            {
+              "value": {
+                "string": "test sample value"
+              }
+            }
+          ]
+        }
+      ],
+      "allowableValues": [
+        {
+          "string": "test sample value"
+        }
+      ],
+      "configType": "FEATURE_FLAG",
+      "valueType": "STRING"
+    }
+  ],
+  "configServicePointer": {
+    "projectId": "453",
+    "projectEnvId": "962"
+  }
+}

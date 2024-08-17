@@ -108,6 +108,14 @@
       "versioning": "default",
       "extra-files": []
     },
+    "providers/prefab": {
+      "release-type": "go",
+      "package-name": "providers/prefab",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
     "providers/ofrep": {
       "release-type": "go",
       "package-name": "providers/ofrep",
