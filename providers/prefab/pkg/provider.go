@@ -3,8 +3,8 @@ package prefab
 import (
 	"context"
 	"fmt"
-	"strings"
 
+	"github.com/open-feature/go-sdk-contrib/providers/prefab/internal"
 	of "github.com/open-feature/go-sdk/openfeature"
 	prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
 )
@@ -76,7 +76,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		return returnValue
 	}
 
-	prefabContext, err := toPrefabContext(evalCtx)
+	prefabContext, err := internal.ToPrefabContext(evalCtx)
 	if err != nil {
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
@@ -126,46 +126,191 @@ func verifyStateBoolean(p *Provider, defaultValue bool) (bool, of.BoolResolution
 	return false, of.BoolResolutionDetail{}
 }
 
-func toPrefabContext(evalCtx of.FlattenedContext) (prefab.ContextSet, error) {
-	if len(evalCtx) == 0 {
-		return prefab.ContextSet{}, nil
+func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
+	shouldReturn, returnValue := verifyStateFloat(p, defaultValue)
+	if shouldReturn {
+		return returnValue
 	}
 
-	// contextsMap := make(map[string]*PrefabContextBuilder)
-	// contextsMap := make(map[string]*strings)
-	prefabContext := prefab.NewContextSet()
-	for k, v := range evalCtx {
-		// val, ok := toStr(v)
-		parts := strings.SplitN(k, ".", 2)
-		if len(parts) < 2 {
-			panic(fmt.Sprintf("context key structure should be in the form of x.y: %s", k))
-		}
-		key, subkey := parts[0], parts[1]
-		if _, exists := prefabContext.Data[key]; !exists {
-			// prefabContext.Data[key].Data[subkey] = map[string]interface{}{
-			// 	subkey: v,
-			// }
-			prefabContext.WithNamedContextValues(key, map[string]interface{}{
-				subkey: v,
-			})
-		} else {
-			prefabContext.Data[key].Data[subkey] = v
+	prefabContext, err := internal.ToPrefabContext(evalCtx)
+	if err != nil {
+		return of.FloatResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
+				Reason:          of.ErrorReason,
+			},
 		}
 	}
-	return *prefabContext, nil
+
+	value, _ := p.prefabClient.GetFloatValueWithDefault(flag, prefabContext, defaultValue)
+	return of.FloatResolutionDetail{
+		Value:                    value,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{},
+	}
 }
 
-func toStr(val interface{}) (string, bool) {
-	switch v := val.(type) {
-	case string:
-		return v, true
-	case int, int8, int16, int32, int64:
-		return fmt.Sprintf("%d", v), true
-	case float32, float64:
-		return fmt.Sprintf("%.6f", v), true
-	case bool:
-		return fmt.Sprintf("%t", v), true
-	default:
-		return "", false
+func verifyStateFloat(p *Provider, defaultValue float64) (bool, of.FloatResolutionDetail) {
+	if p.status != of.ReadyState {
+		if p.status == of.NotReadyState {
+			return true, of.FloatResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
+					Reason:          of.ErrorReason,
+				},
+			}
+		} else {
+			return true, of.FloatResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewGeneralResolutionError(generalError),
+					Reason:          of.ErrorReason,
+				},
+			}
+		}
 	}
+	return false, of.FloatResolutionDetail{}
+}
+
+func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
+	shouldReturn, returnValue := verifyStateInt(p, defaultValue)
+	if shouldReturn {
+		return returnValue
+	}
+
+	prefabContext, err := internal.ToPrefabContext(evalCtx)
+	if err != nil {
+		return of.IntResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
+				Reason:          of.ErrorReason,
+			},
+		}
+	}
+
+	value, _ := p.prefabClient.GetIntValueWithDefault(flag, prefabContext, defaultValue)
+	return of.IntResolutionDetail{
+		Value:                    value,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{},
+	}
+}
+
+func verifyStateInt(p *Provider, defaultValue int64) (bool, of.IntResolutionDetail) {
+	if p.status != of.ReadyState {
+		if p.status == of.NotReadyState {
+			return true, of.IntResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
+					Reason:          of.ErrorReason,
+				},
+			}
+		} else {
+			return true, of.IntResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewGeneralResolutionError(generalError),
+					Reason:          of.ErrorReason,
+				},
+			}
+		}
+	}
+	return false, of.IntResolutionDetail{}
+}
+
+func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
+
+	shouldReturn, returnValue := verifyStateString(p, defaultValue)
+	if shouldReturn {
+		return returnValue
+	}
+
+	prefabContext, err := internal.ToPrefabContext(evalCtx)
+	if err != nil {
+		return of.StringResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
+				Reason:          of.ErrorReason,
+			},
+		}
+	}
+
+	value, _ := p.prefabClient.GetStringValueWithDefault(flag, prefabContext, defaultValue)
+	return of.StringResolutionDetail{
+		Value:                    value,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{},
+	}
+}
+
+func verifyStateString(p *Provider, defaultValue string) (bool, of.StringResolutionDetail) {
+	if p.status != of.ReadyState {
+		if p.status == of.NotReadyState {
+			return true, of.StringResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
+					Reason:          of.ErrorReason,
+				},
+			}
+		} else {
+			return true, of.StringResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewGeneralResolutionError(generalError),
+					Reason:          of.ErrorReason,
+				},
+			}
+		}
+	}
+	return false, of.StringResolutionDetail{}
+}
+
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+	shouldReturn, returnValue := verifyStateObject(p, defaultValue)
+	if shouldReturn {
+		return returnValue
+	}
+
+	prefabContext, err := internal.ToPrefabContext(evalCtx)
+	if err != nil {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
+				Reason:          of.ErrorReason,
+			},
+		}
+	}
+
+	value, _ := p.prefabClient.GetJSONValueWithDefault(flag, prefabContext, defaultValue)
+	return of.InterfaceResolutionDetail{
+		Value:                    value,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{},
+	}
+}
+
+func verifyStateObject(p *Provider, defaultValue interface{}) (bool, of.InterfaceResolutionDetail) {
+	if p.status != of.ReadyState {
+		if p.status == of.NotReadyState {
+			return true, of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
+					Reason:          of.ErrorReason,
+				},
+			}
+		} else {
+			return true, of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					ResolutionError: of.NewGeneralResolutionError(generalError),
+					Reason:          of.ErrorReason,
+				},
+			}
+		}
+	}
+	return false, of.InterfaceResolutionDetail{}
 }
