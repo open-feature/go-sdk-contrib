@@ -20,6 +20,7 @@ import (
 const ()
 
 var provider *prefabProvider.Provider
+var ofClient *of.Client
 
 func TestBooleanEvaluation(t *testing.T) {
 
@@ -34,9 +35,6 @@ func TestBooleanEvaluation(t *testing.T) {
 		resolution := provider.BooleanEvaluation(context.Background(), "non-existing", false, nil)
 		require.Equal(t, false, resolution.Value)
 	})
-
-	of.SetProvider(provider)
-	ofClient := of.NewClient("my-app")
 
 	evalCtx := of.NewEvaluationContext(
 		"",
@@ -88,9 +86,6 @@ func TestBooleanEvaluation(t *testing.T) {
 // 		t.Fatalf("Expected false")
 // 	}
 
-// 	// of.SetProvider(provider)
-// 	// ofClient := of.NewClient("my-app")
-
 // 	// evalCtx = of.NewEvaluationContext(
 // 	// 	"john",
 // 	// 	map[string]interface{}{
@@ -120,9 +115,6 @@ func TestFloatEvaluation(t *testing.T) {
 		require.Equal(t, 1.2, resolution.Value)
 	})
 
-	of.SetProvider(provider)
-	ofClient := of.NewClient("my-app")
-
 	evalCtx := of.NewEvaluationContext(
 		"",
 		map[string]interface{}{},
@@ -148,9 +140,6 @@ func TestIntEvaluation(t *testing.T) {
 		resolution := provider.IntEvaluation(context.Background(), "non-existing", 1, nil)
 		require.Equal(t, int64(1), resolution.Value)
 	})
-
-	of.SetProvider(provider)
-	ofClient := of.NewClient("my-app")
 
 	evalCtx := of.NewEvaluationContext(
 		"",
@@ -178,9 +167,6 @@ func TestStringEvaluation(t *testing.T) {
 		require.Equal(t, "default", resolution.Value)
 	})
 
-	of.SetProvider(provider)
-	ofClient := of.NewClient("my-app")
-
 	evalCtx := of.NewEvaluationContext(
 		"",
 		map[string]interface{}{},
@@ -205,9 +191,6 @@ func TestStringEvaluation(t *testing.T) {
 // 		resolution := provider.ObjectEvaluation(context.Background(), "non-existing", "default", nil)
 // 		require.Equal(t, "default", resolution.Value)
 // 	})
-
-// 	of.SetProvider(provider)
-// 	ofClient := of.NewClient("my-app")
 
 // 	evalCtx := of.NewEvaluationContext(
 // 		"",
@@ -247,19 +230,147 @@ func TestConvertsNonEmptyFlattenedContextToContextSet(t *testing.T) {
 	}
 }
 
-// Handles keys without a dot separator by panicking
-func TestHandlesKeysWithoutDotSeparatorByPanicking(t *testing.T) {
-	evalCtx := of.FlattenedContext{
-		"invalidKey": "value",
+func TestUninitializedProviderStates(t *testing.T) {
+
+	flattenedContext := map[string]interface{}{}
+
+	providerConfig := prefabProvider.ProviderConfig{
+		Sources: []string{"datafile://enabled.yaml"},
+	}
+	uninitializedProvider, _ := prefabProvider.NewProvider(providerConfig)
+
+	boolRes := uninitializedProvider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
+	require.Equal(t, of.ProviderNotReadyCode, boolRes.ResolutionDetail().ErrorCode)
+
+	intRes := uninitializedProvider.IntEvaluation(context.Background(), "sample_int", 0, flattenedContext)
+	require.Equal(t, of.ProviderNotReadyCode, intRes.ResolutionDetail().ErrorCode)
+
+	floatRes := uninitializedProvider.FloatEvaluation(context.Background(), "sample_float", 0, flattenedContext)
+	require.Equal(t, of.ProviderNotReadyCode, floatRes.ResolutionDetail().ErrorCode)
+
+	strRes := uninitializedProvider.StringEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	require.Equal(t, of.ProviderNotReadyCode, strRes.ResolutionDetail().ErrorCode)
+
+	objRes := uninitializedProvider.ObjectEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	require.Equal(t, of.ProviderNotReadyCode, objRes.ResolutionDetail().ErrorCode)
+}
+
+func TestErrorProviderStates(t *testing.T) {
+
+	flattenedContext := map[string]interface{}{}
+
+	providerConfig := prefabProvider.ProviderConfig{
+		Sources: []string{"datafile://non-existing.yaml"},
+	}
+	errorProvider, _ := prefabProvider.NewProvider(providerConfig)
+	errorProvider.Init(of.EvaluationContext{})
+
+	boolRes := errorProvider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
+	require.Equal(t, of.GeneralCode, boolRes.ResolutionDetail().ErrorCode)
+
+	intRes := errorProvider.IntEvaluation(context.Background(), "sample_int", 0, flattenedContext)
+	require.Equal(t, of.GeneralCode, intRes.ResolutionDetail().ErrorCode)
+
+	floatRes := errorProvider.FloatEvaluation(context.Background(), "sample_float", 0, flattenedContext)
+	require.Equal(t, of.GeneralCode, floatRes.ResolutionDetail().ErrorCode)
+
+	strRes := errorProvider.StringEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	require.Equal(t, of.GeneralCode, strRes.ResolutionDetail().ErrorCode)
+
+	objRes := errorProvider.ObjectEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	require.Equal(t, of.GeneralCode, objRes.ResolutionDetail().ErrorCode)
+
+	providerConfig = prefabProvider.ProviderConfig{}
+	errorProvider, _ = prefabProvider.NewProvider(providerConfig)
+	errorProvider.Init(of.EvaluationContext{})
+}
+
+func TestEvaluationMethods(t *testing.T) {
+	err := of.SetProvider(provider)
+	if err != nil {
+		t.Fatalf("error setting provider %s", err)
 	}
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic for key without dot separator, but did not panic")
-		}
-	}()
+	evalCtx := of.NewEvaluationContext(
+		"",
+		map[string]interface{}{
+			"user.id": "123",
+		},
+	)
 
-	internal.ToPrefabContext(evalCtx)
+	tests := []struct {
+		flag              string
+		defaultValue      interface{}
+		evalCtx           of.EvaluationContext
+		expected          interface{}
+		expectedErrorCode of.ErrorCode
+	}{
+		{"sample_bool", false, evalCtx, true, ""},
+		{"sample_double", 0.0, evalCtx, 12.12, ""},
+		{"sample_int", int64(42999), evalCtx, int64(123), ""},
+		{"sample", "default_value", evalCtx, "test sample value", ""},
+		// TODO
+		// {"flag_with_a_value", map[string]interface{}{"key": "value999"}, evalCtx, map[string]interface{}{"key1": "value1"}, ""},
+		// {"slice", []interface{}{"fallback1", "fallback2"}, evalCtx, []interface{}{"v1", "v2"}, ""},
+		{"invalid_user_context_bool", false, of.NewEvaluationContext(
+			"",
+			map[string]interface{}{
+				"invalid": "123",
+			},
+		), false, of.InvalidContextCode},
+		{"invalid_user_context_int", int64(43), of.NewEvaluationContext(
+			"",
+			map[string]interface{}{
+				"invalid": "123",
+			},
+		), int64(43), of.InvalidContextCode},
+		{"invalid_user_context_float", 1.2, of.NewEvaluationContext(
+			"",
+			map[string]interface{}{
+				"invalid": "123",
+			},
+		), 1.2, of.InvalidContextCode},
+		{"invalid_user_context_string", "a", of.NewEvaluationContext(
+			"",
+			map[string]interface{}{
+				"invalid": "123",
+			},
+		), "a", of.InvalidContextCode},
+		// {"invalid_user_context_object", "a", of.NewEvaluationContext(
+		// 	"",
+		// 	map[string]interface{}{
+		// 		"invalid": "123",
+		// 	},
+		// ), "a", of.InvalidContextCode},
+		{"empty_context", int64(43), evalCtx, int64(43), ""},
+	}
+
+	for _, test := range tests {
+		fmt.Println("test: {}", test)
+		rt := reflect.TypeOf(test.expected)
+		switch rt.Kind() {
+		case reflect.Bool:
+			res, _ := ofClient.BooleanValueDetails(context.Background(), test.flag, test.defaultValue.(bool), test.evalCtx)
+			require.Equal(t, test.expected, res.Value)
+			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+		case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
+			res, _ := ofClient.IntValueDetails(context.Background(), test.flag, test.defaultValue.(int64), test.evalCtx)
+			require.Equal(t, test.expected, res.Value)
+			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+		case reflect.Float32, reflect.Float64:
+			res, _ := ofClient.FloatValueDetails(context.Background(), test.flag, test.defaultValue.(float64), test.evalCtx)
+			require.Equal(t, test.expected, res.Value)
+			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+		case reflect.String:
+			res, _ := ofClient.StringValueDetails(context.Background(), test.flag, test.defaultValue.(string), test.evalCtx)
+			require.Equal(t, test.expected, res.Value)
+			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+		default:
+			res, _ := ofClient.ObjectValueDetails(context.Background(), test.flag, test.defaultValue, test.evalCtx)
+			require.Equal(t, test.expected, res.Value)
+			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+		}
+	}
 }
 
 func cleanup() {
@@ -283,6 +394,9 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error during provider init: %v\n", err)
 		os.Exit(1)
 	}
+
+	of.SetProvider(provider)
+	ofClient = of.NewClient("my-app")
 
 	fmt.Printf("provider: %v\n", provider)
 

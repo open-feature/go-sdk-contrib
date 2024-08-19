@@ -20,7 +20,7 @@ func ToPrefabContext(evalCtx of.FlattenedContext) (prefab.ContextSet, error) {
 		// val, ok := toStr(v)
 		parts := strings.SplitN(k, ".", 2)
 		if len(parts) < 2 {
-			panic(fmt.Sprintf("context key structure should be in the form of x.y: %s", k))
+			return *prefabContext, fmt.Errorf("context key structure should be in the form of x.y: %s", k)
 		}
 		key, subkey := parts[0], parts[1]
 		if _, exists := prefabContext.Data[key]; !exists {
