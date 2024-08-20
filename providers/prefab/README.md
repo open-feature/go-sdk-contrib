@@ -1,74 +1,59 @@
-# Unofficial Harness OpenFeature GO Provider
+# Unofficial Prefab OpenFeature Provider for GO
 
- [Harness](https://developer.harness.io/docs/feature-flags) OpenFeature Provider can provide usage for Harness via OpenFeature GO SDK.
+[Prefab](https://www.prefab.cloud/) OpenFeature Provider can provide usage for Prefab via OpenFeature Java SDK.
 
-# Installation
+## Installation
 
-To use the Harness provider, you'll need to install [Harness Go client](github.com/harness/ff-golang-server-sdk) and Harness provider. You can install the packages using the following command
+To use the provider, you'll need to install [Prefab Go client](https://github.com/prefab-cloud/prefab-cloud-go) and Prefab provider. You can install the packages using the following command
 
 ```shell
-go get github.com/harness/ff-golang-server-sdk
-go get github.com/open-feature/go-sdk-contrib/providers/harness
+go get github.com/prefab-cloud/prefab-cloud-go
+go get github.com/open-feature/go-sdk-contrib/providers/prefab
 ```
 
-## Concepts
-* Provider Object evaluation gets Harness JSON evaluation.
-* Other provider types evaluation gets Harness matching type evaluation.
-
 ## Usage
-Harness OpenFeature Provider is using Harness GO SDK.
-
-### Evaluation Context
-Evaluation Context is mapped to Harness [prefabet](https://developer.harness.io/docs/feature-flags/ff-sdks/server-sdks/feature-flag-sdks-go-application/#add-a-prefabet).
-OpenFeature prefabetingKey is mapped to _Identifier_, _Name_ is mapped to _Name_ and other fields are mapped to Attributes 
-fields.
+Prefab OpenFeature Provider is using Prefab GO SDK.
 
 ### Usage Example
 
 ```go
 import (
-  harness "github.com/harness/ff-golang-server-sdk/client"
-  harnessProvider "github.com/open-feature/go-sdk-contrib/providers/harness/pkg"
+  statsigProvider "github.com/open-feature/go-sdk-contrib/providers/prefab/pkg"
+  of "github.com/open-feature/go-sdk/openfeature"
+  prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
 )
-
-providerConfig := harnessProvider.ProviderConfig{
-    Options: []harness.ConfigOption{
-        harness.WithWaitForInitialized(true),
-        harness.WithURL(URL),
-        harness.WithStreamEnabled(false),
-        harness.WithHTTPClient(http.DefaultClient),
-        harness.WithStoreEnabled(false),
-    },
-    SdkKey: ValidSDKKey,
-}
-
-provider, err := harnessProvider.NewProvider(providerConfig)
-if err != nil {
-    t.Fail()
-}
-err = provider.Init(of.EvaluationContext{})
-if err != nil {
-    t.Fail()
-}
-
-ctx := context.Background()
 
 of.SetProvider(provider)
 ofClient := of.NewClient("my-app")
 
 evalCtx := of.NewEvaluationContext(
-    "john",
-    map[string]interface{}{
-        "Firstname": "John",
-        "Lastname":  "Doe",
-        "Email":     "john@doe.com",
-    },
+  "",
+  map[string]interface{}{
+    "UserID": "123",
+  },
 )
-enabled, err := ofClient.BooleanValue(context.Background(), "TestTrueOn", false, evalCtx)
-if enabled == false {
-    t.Fatalf("Expected feature to be enabled")
+enabled, _ := ofClient.BooleanValue(context.Background(), "always_on_gate", false, evalCtx)
+
+evalCtx := map[string]interface{}{
+    "user.key":         "key1",
+    "team.domain":      "prefab.cloud",
+    "team.description": "team1",
 }
+value, _ := ofClient.StringValue(context.Background(), "string", "fallback", evalCtx)
+
+slice, err := ofClient.ObjectValueDetails(context.Background(), "sample_list", []string{"a2", "b2"}, evalCtx)
+
+of.Shutdown()
 
 ```
 See [provider_test.go](./pkg/provider_test.go) for more information.
 
+## Notes
+Some Statsig custom operations are supported from the Prefab client via PrefabClient.
+
+## Prefab Provider Tests Strategies
+
+Unit test based on Prefab yaml config file. 
+Can be enhanced pending [JSON dump data source](https://github.com/prefab-cloud/prefab-cloud-go/blob/0e3d5a4ba7171bbc4484cc99ccaad4c0c32d7e81/README.md?plain=1#L58)
+JSON evaluation not tested properly until then.
+See [provider_test.go](./pkg/provider_test.go) for more information.

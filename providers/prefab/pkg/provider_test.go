@@ -41,9 +41,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		map[string]interface{}{},
 	)
 	enabled, err := ofClient.BooleanValue(context.Background(), "sample_bool", false, evalCtx)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.Nil(t, err)
 	require.Equal(t, true, enabled)
 
 }
@@ -55,13 +53,9 @@ func TestBooleanEvaluation(t *testing.T) {
 // 	}
 
 // 	provider, err := prefabProvider.NewProvider(providerConfig)
-// 	if err != nil {
-// 		t.Fail()
-// 	}
+// 	require.Nil(t, err)
 // 	err = provider.Init(of.EvaluationContext{})
-// 	if err != nil {
-// 		t.Fail()
-// 	}
+// 	require.Nil(t, err)
 
 // 	ctx := context.Background()
 
@@ -85,20 +79,6 @@ func TestBooleanEvaluation(t *testing.T) {
 // 	if resolution.Value != false {
 // 		t.Fatalf("Expected false")
 // 	}
-
-// 	// evalCtx = of.NewEvaluationContext(
-// 	// 	"john",
-// 	// 	map[string]interface{}{
-// 	// 		"Firstname": "John",
-// 	// 		"Lastname":  "Doe",
-// 	// 		"Email":     "john@doe.com",
-// 	// 	},
-// 	// )
-// 	// enabled, err := ofClient.BooleanValue(context.Background(), "TestTrueOn", false, evalCtx)
-// 	// if enabled == false {
-// 	// 	t.Fatalf("Expected feature to be enabled")
-// 	// }
-
 // }
 
 func TestFloatEvaluation(t *testing.T) {
@@ -120,9 +100,7 @@ func TestFloatEvaluation(t *testing.T) {
 		map[string]interface{}{},
 	)
 	value, err := ofClient.FloatValue(context.Background(), "sample_double", 1.2, evalCtx)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.Nil(t, err)
 	require.Equal(t, 12.12, value)
 
 }
@@ -146,9 +124,7 @@ func TestIntEvaluation(t *testing.T) {
 		map[string]interface{}{},
 	)
 	value, err := ofClient.IntValue(context.Background(), "sample_int", 1, evalCtx)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.Nil(t, err)
 	require.Equal(t, int64(123), value)
 
 }
@@ -162,7 +138,7 @@ func TestStringEvaluation(t *testing.T) {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
-	t.Run("evalCtx empty", func(t *testing.T) {
+	t.Run("nil evalCtx", func(t *testing.T) {
 		resolution := provider.StringEvaluation(context.Background(), "non-existing", "default", nil)
 		require.Equal(t, "default", resolution.Value)
 	})
@@ -172,37 +148,48 @@ func TestStringEvaluation(t *testing.T) {
 		map[string]interface{}{},
 	)
 	value, err := ofClient.StringValue(context.Background(), "sample", "default", evalCtx)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.Nil(t, err)
 	require.Equal(t, "test sample value", value)
 
 }
 
 // TODO test and enable when json/yaml parsing is implemented
-// func TestObjectEvaluation(t *testing.T) {
+func TestObjectEvaluation(t *testing.T) {
 
-// 	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]interface{}{}
 
-// 	resolution := provider.ObjectEvaluation(context.Background(), "flag_with_a_value", "default", flattenedContext)
-// 	require.Equal(t, "all-features", resolution.Value)
+	t.Run("example.nested.path", func(t *testing.T) {
+		resolution := provider.ObjectEvaluation(context.Background(), "example.nested.path", "default", flattenedContext)
+		require.Equal(t, "hello", resolution.Value)
+	})
 
-// 	t.Run("evalCtx empty", func(t *testing.T) {
-// 		resolution := provider.ObjectEvaluation(context.Background(), "non-existing", "default", nil)
-// 		require.Equal(t, "default", resolution.Value)
-// 	})
+	evalCtx := of.NewEvaluationContext(
+		"",
+		map[string]interface{}{},
+	)
 
-// 	evalCtx := of.NewEvaluationContext(
-// 		"",
-// 		map[string]interface{}{},
-// 	)
-// 	value, err := ofClient.ObjectValue(context.Background(), "sample", "default", evalCtx)
-// 	if err != nil {
-// 		t.Fatalf("expected no error, got %v", err)
-// 	}
-// 	require.Equal(t, "all-features", value)
+	t.Run("example.nested.path", func(t *testing.T) {
+		value, err := ofClient.ObjectValueDetails(context.Background(), "example.nested.path", "default", evalCtx)
+		require.Equal(t, "hello", value.Value)
+		require.Nil(t, err)
+	})
 
-// }
+	t.Run("sample_list", func(t *testing.T) {
+		value, err := ofClient.ObjectValueDetails(context.Background(), "sample_list", []string{"a2", "b2"}, evalCtx)
+		require.Equal(t, []string{"a", "b"}, value.Value)
+		require.Nil(t, err)
+	})
+
+	// TODO
+	// t.Run("sample_json", func(t *testing.T) {
+	// 	value, err := ofClient.ObjectValueDetails(context.Background(), "sample_json", map[string]interface{}{
+	// 		"nested": "value",
+	// 	}, evalCtx)
+	// 	require.Equal(t, []string{"a", "b"}, value.Value)
+	// 	require.Nil(t, err)
+	// })
+
+}
 
 // Converts non-empty FlattenedContext to ContextSet correctly
 func TestConvertsNonEmptyFlattenedContextToContextSet(t *testing.T) {
@@ -221,9 +208,7 @@ func TestConvertsNonEmptyFlattenedContextToContextSet(t *testing.T) {
 	})
 
 	result, err := internal.ToPrefabContext(evalCtx)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(result, *expected) {
 		t.Errorf("expected %v, got %v", *expected, result)
@@ -287,9 +272,7 @@ func TestErrorProviderStates(t *testing.T) {
 
 func TestEvaluationMethods(t *testing.T) {
 	err := of.SetProvider(provider)
-	if err != nil {
-		t.Fatalf("error setting provider %s", err)
-	}
+	require.Nil(t, err)
 
 	evalCtx := of.NewEvaluationContext(
 		"",
@@ -311,7 +294,7 @@ func TestEvaluationMethods(t *testing.T) {
 		{"sample", "default_value", evalCtx, "test sample value", ""},
 		// TODO
 		// {"flag_with_a_value", map[string]interface{}{"key": "value999"}, evalCtx, map[string]interface{}{"key1": "value1"}, ""},
-		// {"slice", []interface{}{"fallback1", "fallback2"}, evalCtx, []interface{}{"v1", "v2"}, ""},
+		{"sample_list", []string{"fallback1", "fallback2"}, evalCtx, []string{"a", "b"}, ""},
 		{"invalid_user_context_bool", false, of.NewEvaluationContext(
 			"",
 			map[string]interface{}{

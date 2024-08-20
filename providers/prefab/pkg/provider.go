@@ -14,7 +14,7 @@ const generalError = "general error"
 
 type Provider struct {
 	providerConfig ProviderConfig
-	prefabClient   *prefab.Client
+	PrefabClient   *prefab.Client
 	status         of.State
 }
 
@@ -44,7 +44,7 @@ func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
 		p.status = of.ErrorState
 	} else {
 		p.status = of.ReadyState
-		p.prefabClient = prefabClient
+		p.PrefabClient = prefabClient
 	}
 	return err
 }
@@ -87,7 +87,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		}
 	}
 
-	value, _ := p.prefabClient.GetBoolValueWithDefault(flag, prefabContext, defaultValue)
+	value, _ := p.PrefabClient.GetBoolValueWithDefault(flag, prefabContext, defaultValue)
 	if err == nil {
 		return of.BoolResolutionDetail{
 			Value: value,
@@ -143,7 +143,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 		}
 	}
 
-	value, _ := p.prefabClient.GetFloatValueWithDefault(flag, prefabContext, defaultValue)
+	value, _ := p.PrefabClient.GetFloatValueWithDefault(flag, prefabContext, defaultValue)
 	return of.FloatResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{},
@@ -190,7 +190,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 		}
 	}
 
-	value, _ := p.prefabClient.GetIntValueWithDefault(flag, prefabContext, defaultValue)
+	value, _ := p.PrefabClient.GetIntValueWithDefault(flag, prefabContext, defaultValue)
 	return of.IntResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{},
@@ -238,7 +238,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 		}
 	}
 
-	value, _ := p.prefabClient.GetStringValueWithDefault(flag, prefabContext, defaultValue)
+	value, _ := p.PrefabClient.GetStringValueWithDefault(flag, prefabContext, defaultValue)
 	return of.StringResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{},
@@ -285,7 +285,18 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		}
 	}
 
-	value, _ := p.prefabClient.GetJSONValueWithDefault(flag, prefabContext, defaultValue)
+	var value interface{}
+	switch castedDefaultValue := defaultValue.(type) {
+	case map[string]interface{}:
+		value, _ = p.PrefabClient.GetJSONValueWithDefault(flag, prefabContext, castedDefaultValue)
+	case []string:
+		value, _ = p.PrefabClient.GetStringSliceValueWithDefault(flag, prefabContext, castedDefaultValue)
+	case string:
+		value, _ = p.PrefabClient.GetStringValueWithDefault(flag, prefabContext, castedDefaultValue)
+	default:
+		value = defaultValue
+	}
+
 	return of.InterfaceResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{},

@@ -36,3 +36,8 @@ example:
     path: hello
 
 example2.nested.path: hello2
+
+sample_list:
+- a
+- b
+sample_json: { "feature_flag": "true","value": "all-features" }
