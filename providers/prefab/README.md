@@ -1,6 +1,6 @@
 # Unofficial Prefab OpenFeature Provider for GO
 
-[Prefab](https://www.prefab.cloud/) OpenFeature Provider can provide usage for Prefab via OpenFeature Java SDK.
+[Prefab](https://www.prefab.cloud/) OpenFeature Provider can provide usage for Prefab via OpenFeature GO SDK.
 
 ## Installation
 
