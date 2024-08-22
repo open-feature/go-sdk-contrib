@@ -54,7 +54,7 @@ func (p *Provider) Status() of.State {
 }
 
 func (p *Provider) Shutdown() {
-	// p.prefabClient.Close()
+	// no Shutdown method on p.PrefabClient
 	p.status = of.NotReadyState
 }
 

@@ -12,9 +12,6 @@ func ToPrefabContext(evalCtx of.FlattenedContext) (prefab.ContextSet, error) {
 	if len(evalCtx) == 0 {
 		return prefab.ContextSet{}, nil
 	}
-
-	// contextsMap := make(map[string]*PrefabContextBuilder)
-	// contextsMap := make(map[string]*strings)
 	prefabContext := prefab.NewContextSet()
 	for k, v := range evalCtx {
 		// val, ok := toStr(v)
@@ -24,9 +21,6 @@ func ToPrefabContext(evalCtx of.FlattenedContext) (prefab.ContextSet, error) {
 		}
 		key, subkey := parts[0], parts[1]
 		if _, exists := prefabContext.Data[key]; !exists {
-			// prefabContext.Data[key].Data[subkey] = map[string]interface{}{
-			// 	subkey: v,
-			// }
 			prefabContext.WithNamedContextValues(key, map[string]interface{}{
 				subkey: v,
 			})

@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// based on prefab test
-
 const ()
 
 var provider *prefabProvider.Provider
