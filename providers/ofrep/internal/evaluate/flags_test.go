@@ -126,7 +126,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			expect:       false,
 		},
 		{
-			name: "disbaled flag",
+			name: "disabled flag",
 			resolver: mockResolver{
 				success: &successDisabled,
 			},
@@ -192,7 +192,7 @@ func TestIntegerEvaluation(t *testing.T) {
 			expect:       1,
 		},
 		{
-			name: "disbaled flag",
+			name: "disabled flag",
 			resolver: mockResolver{
 				success: &successDisabled,
 			},
@@ -250,7 +250,7 @@ func TestFloatEvaluation(t *testing.T) {
 			expect:       1.05,
 		},
 		{
-			name: "disbaled flag",
+			name: "disabled flag",
 			resolver: mockResolver{
 				success: &successDisabled,
 			},
@@ -341,7 +341,7 @@ func TestObjectEvaluation(t *testing.T) {
 			expect:       map[string]interface{}{},
 		},
 		{
-			name: "disbaled flag",
+			name: "disabled flag",
 			resolver: mockResolver{
 				success: &successDisabled,
 			},
