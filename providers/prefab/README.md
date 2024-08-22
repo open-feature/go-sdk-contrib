@@ -18,7 +18,7 @@ Prefab OpenFeature Provider is using Prefab GO SDK.
 
 ```go
 import (
-  statsigProvider "github.com/open-feature/go-sdk-contrib/providers/prefab/pkg"
+  provider "github.com/open-feature/go-sdk-contrib/providers/prefab/pkg"
   of "github.com/open-feature/go-sdk/openfeature"
   prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
 )
@@ -29,16 +29,13 @@ ofClient := of.NewClient("my-app")
 evalCtx := of.NewEvaluationContext(
   "",
   map[string]interface{}{
-    "UserID": "123",
+    "user.key":         "key1",
+    "team.domain":      "prefab.cloud",
+    "team.description": "team1",
   },
 )
 enabled, _ := ofClient.BooleanValue(context.Background(), "always_on_gate", false, evalCtx)
 
-evalCtx := map[string]interface{}{
-    "user.key":         "key1",
-    "team.domain":      "prefab.cloud",
-    "team.description": "team1",
-}
 value, _ := ofClient.StringValue(context.Background(), "string", "fallback", evalCtx)
 
 slice, err := ofClient.ObjectValueDetails(context.Background(), "sample_list", []string{"a2", "b2"}, evalCtx)
@@ -49,7 +46,7 @@ of.Shutdown()
 See [provider_test.go](./pkg/provider_test.go) for more information.
 
 ## Notes
-Some Statsig custom operations are supported from the Prefab client via PrefabClient.
+Some Prefab custom operations are supported from the Prefab client via PrefabClient.
 
 ## Prefab Provider Tests Strategies
 
