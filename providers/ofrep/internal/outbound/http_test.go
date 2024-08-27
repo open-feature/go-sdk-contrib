@@ -2,35 +2,17 @@ package outbound
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 func TestHttpOutbound(t *testing.T) {
 	// given
-	host := "localhost:18181"
 	key := "flag"
-
-	server := http.Server{
-		Addr: host,
-		Handler: mockHandler{
-			t:   t,
-			key: key,
-		},
-	}
-
-	go func() {
-		err := server.ListenAndServe()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			t.Logf("error starting mock server: %v", err)
-			return
-		}
-	}()
-
-	<-time.After(3 * time.Second)
+	server := httptest.NewServer(mockHandler{t: t, key: key})
+	t.Cleanup(server.Close)
 
 	outbound := NewHttp(Configuration{
 		Callbacks: []HeaderCallback{
@@ -38,7 +20,7 @@ func TestHttpOutbound(t *testing.T) {
 				return "Authorization", "Token"
 			},
 		},
-		BaseURI: fmt.Sprintf("http://%s", host),
+		BaseURI: server.URL,
 	})
 
 	// when
@@ -51,12 +33,6 @@ func TestHttpOutbound(t *testing.T) {
 	// then - expect an ok response
 	if response.Status != http.StatusOK {
 		t.Errorf("expected 200, but got %d", response.Status)
-	}
-
-	// cleanup
-	err = server.Shutdown(context.Background())
-	if err != nil {
-		t.Errorf("error shuttting down mock server: %v", err)
 	}
 }
 
