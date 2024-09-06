@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 )
 
 type GoFeatureFlagApiOptions struct {
@@ -104,7 +105,7 @@ func (g *GoFeatureFlagAPI) ConfigurationHasChanged() (ConfigurationChangeStatus,
 	case http.StatusNotModified:
 		return FlagConfigurationNotChanged, nil
 	default:
-		return ErrorConfigurationChange, err
+		return ErrorConfigurationChange, fmt.Errorf("request failed with status: %v", response.Status)
 	}
 }
 

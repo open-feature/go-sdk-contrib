@@ -3,12 +3,13 @@ package gofeatureflag
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/hook"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/util"
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep"
 	of "github.com/open-feature/go-sdk/openfeature"
-	"time"
 )
 
 const providerName = "GO Feature Flag"
@@ -245,7 +246,8 @@ func (p *Provider) startPolling(pollingInterval time.Duration) {
 					p.events <- of.Event{
 						ProviderName: providerName, EventType: of.ProviderStale,
 						ProviderEventDetails: of.ProviderEventDetails{
-							Message: "Impossible to check configuration change " + err.Error()},
+							Message: fmt.Sprintf("Impossible to check configuration change: %s", err),
+						},
 					}
 				}
 			}
