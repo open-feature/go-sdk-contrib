@@ -27,7 +27,7 @@ var provider *prefabProvider.Provider
 var ofClient *of.Client
 
 providerConfig := prefabProvider.ProviderConfig{
-		Sources: []string{"datafile://enabled.yaml"},
+		APIKey: "YOUR_API_KEY",
 }
 
 var err error
