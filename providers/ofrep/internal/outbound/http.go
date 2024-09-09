@@ -70,6 +70,7 @@ func (h *Outbound) Single(ctx context.Context, key string, payload []byte) (*Res
 	if err != nil {
 		return nil, err
 	}
+	defer rsp.Body.Close()
 
 	b, err := io.ReadAll(rsp.Body)
 	if err != nil {

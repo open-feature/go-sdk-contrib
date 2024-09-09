@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.4...providers/ofrep/v0.1.5) (2024-08-27)
+
+
+### 🐛 Bug Fixes
+
+* **ofrep:** close http response body after using it ([#576](https://github.com/open-feature/go-sdk-contrib/issues/576)) ([02a3b5d](https://github.com/open-feature/go-sdk-contrib/commit/02a3b5d17e402573384f65efcc0b32e7863dd8e6))
+
+
+### 🧹 Chore
+
+* add license to module ([#554](https://github.com/open-feature/go-sdk-contrib/issues/554)) ([abb7657](https://github.com/open-feature/go-sdk-contrib/commit/abb76571c373582f36837587400104eb754c01b9))
+
 ## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.3...providers/ofrep/v0.1.4) (2024-07-30)
 
 

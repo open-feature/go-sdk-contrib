@@ -2,11 +2,12 @@ package ofrep
 
 import (
 	"context"
-	"fmt"
-	"github.com/open-feature/go-sdk/openfeature"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/open-feature/go-sdk/openfeature"
 
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
 )
@@ -22,11 +23,11 @@ func TestConfigurations(t *testing.T) {
 		h, v := c.Callbacks[0]()
 
 		if h != "HEADER" {
-			t.Errorf(fmt.Sprintf("expected header %s, but got %s", "HEADER", h))
+			t.Errorf("expected header %s, but got %s", "HEADER", h)
 		}
 
 		if v != "VALUE" {
-			t.Errorf(fmt.Sprintf("expected value %s, but got %s", "VALUE", v))
+			t.Errorf("expected value %s, but got %s", "VALUE", v)
 		}
 	})
 
@@ -38,11 +39,11 @@ func TestConfigurations(t *testing.T) {
 		h, v := c.Callbacks[0]()
 
 		if h != "Authorization" {
-			t.Errorf(fmt.Sprintf("expected header %s, but got %s", "Authorization", h))
+			t.Errorf("expected header %s, but got %s", "Authorization", h)
 		}
 
 		if v != "Bearer TOKEN" {
-			t.Errorf(fmt.Sprintf("expected value %s, but got %s", "Bearer TOKEN", v))
+			t.Errorf("expected value %s, but got %s", "Bearer TOKEN", v)
 		}
 	})
 
@@ -54,44 +55,31 @@ func TestConfigurations(t *testing.T) {
 		h, v := c.Callbacks[0]()
 
 		if h != "X-API-Key" {
-			t.Errorf(fmt.Sprintf("expected header %s, but got %s", "X-API-Key", h))
+			t.Errorf("expected header %s, but got %s", "X-API-Key", h)
 		}
 
 		if v != "TOKEN" {
-			t.Errorf(fmt.Sprintf("expected value %s, but got %s", "TOKEN", v))
+			t.Errorf("expected value %s, but got %s", "TOKEN", v)
 		}
 	})
 }
 
 func TestWiringE2E(t *testing.T) {
 	// mock server with mocked response
-	host := "localhost:18182"
-
-	server := http.Server{
-		Addr: host,
-		Handler: mockHandler{
+	server := httptest.NewServer(
+		mockHandler{
 			response: "{\"value\":true,\"key\":\"my-flag\",\"reason\":\"STATIC\",\"variant\":\"true\",\"metadata\":{}}",
 			t:        t,
 		},
-	}
-
-	go func() {
-		err := server.ListenAndServe()
-		if err != nil {
-			t.Logf("error starting mock server: %v", err)
-			return
-		}
-	}()
-
-	// time for server to be ready
-	<-time.After(3 * time.Second)
+	)
+	t.Cleanup(server.Close)
 
 	// custom client with reduced timeout
 	customClient := &http.Client{
 		Timeout: 1 * time.Second,
 	}
 
-	provider := NewProvider(fmt.Sprintf("http://%s", host), WithClient(customClient))
+	provider := NewProvider(server.URL, WithClient(customClient))
 	booleanEvaluation := provider.BooleanEvaluation(context.Background(), "flag", false, nil)
 
 	if booleanEvaluation.Value != true {
@@ -108,11 +96,6 @@ func TestWiringE2E(t *testing.T) {
 
 	if booleanEvaluation.Error() != nil {
 		t.Errorf("expected no errors, but got %v", booleanEvaluation.Error())
-	}
-
-	err := server.Shutdown(context.Background())
-	if err != nil {
-		t.Errorf("error shuttting down mock server: %v", err)
 	}
 }
 
