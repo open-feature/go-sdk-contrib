@@ -24,8 +24,26 @@ import (
 )
 
 var provider *prefabProvider.Provider
+var ofClient *of.Client
+
+providerConfig := prefabProvider.ProviderConfig{
+		Sources: []string{"datafile://enabled.yaml"},
+}
+
+var err error
+provider, err = prefabProvider.NewProvider(providerConfig)
+if err != nil {
+  fmt.Printf("Error during new provider: %v\n", err)
+  os.Exit(1)
+}
+err = provider.Init(of.EvaluationContext{})
+if err != nil {
+  fmt.Printf("Error during provider init: %v\n", err)
+  os.Exit(1)
+}
+
 of.SetProvider(provider)
-ofClient := of.NewClient("my-app")
+ofClient = of.NewClient("my-app")
 
 evalCtx := of.NewEvaluationContext(
   "",
@@ -36,10 +54,11 @@ evalCtx := of.NewEvaluationContext(
   },
 )
 enabled, _ := ofClient.BooleanValue(context.Background(), "always_on_gate", false, evalCtx)
-
+fmt.Printf("enabled: %v\n", enabled)
 value, _ := ofClient.StringValue(context.Background(), "string", "fallback", evalCtx)
-
-slice, err := ofClient.ObjectValueDetails(context.Background(), "sample_list", []string{"a2", "b2"}, evalCtx)
+fmt.Printf("value: %v\n", value)
+slice, _ := ofClient.ObjectValueDetails(context.Background(), "sample_list", []string{"a2", "b2"}, evalCtx)
+fmt.Printf("slice: %v\n", slice)
 
 of.Shutdown()
 
