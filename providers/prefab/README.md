@@ -18,11 +18,12 @@ Prefab OpenFeature Provider is using Prefab GO SDK.
 
 ```go
 import (
-  provider "github.com/open-feature/go-sdk-contrib/providers/prefab/pkg"
+  prefabProvider "github.com/open-feature/go-sdk-contrib/providers/prefab/pkg"
   of "github.com/open-feature/go-sdk/openfeature"
   prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
 )
 
+var provider *prefabProvider.Provider
 of.SetProvider(provider)
 ofClient := of.NewClient("my-app")
 

@@ -88,18 +88,8 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 	}
 
 	value, _ := p.PrefabClient.GetBoolValueWithDefault(flag, prefabContext, defaultValue)
-	if err == nil {
-		return of.BoolResolutionDetail{
-			Value: value,
-		}
-	}
-
 	return of.BoolResolutionDetail{
-		Value: defaultValue,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
-			Reason:          of.ErrorReason,
-		},
+		Value: value,
 	}
 }
 
