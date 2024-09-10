@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.0...providers/go-feature-flag/v0.2.1) (2024-09-10)
+
+
+### 🐛 Bug Fixes
+
+* Calling `err.Error()` on nil error causes panic ([#579](https://github.com/open-feature/go-sdk-contrib/issues/579)) ([4c85501](https://github.com/open-feature/go-sdk-contrib/commit/4c855019d912982cd30f2c940e0908892c68410b))
+
+
+### 🧹 Chore
+
+* add license to module ([#554](https://github.com/open-feature/go-sdk-contrib/issues/554)) ([abb7657](https://github.com/open-feature/go-sdk-contrib/commit/abb76571c373582f36837587400104eb754c01b9))
+
 ## [0.2.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.1.38...providers/go-feature-flag/v0.2.0) (2024-08-14)
 
 
