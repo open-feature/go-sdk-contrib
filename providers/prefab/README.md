@@ -66,6 +66,7 @@ of.Shutdown()
 See [provider_test.go](./pkg/provider_test.go) for more information.
 
 ## Notes
+
 Some Prefab custom operations are supported from the Prefab client via PrefabClient.
 
 ## Prefab Provider Tests Strategies
