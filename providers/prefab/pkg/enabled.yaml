@@ -1,0 +1,43 @@
+sample_int: 123
+sample_double: 12.12
+sample_bool: true
+false_value: false
+zero_value: 0
+sample_to_override: Foo
+prefab.log_level: debug
+sample: test sample value
+enabled_flag: true
+disabled_flag: false
+flag_with_a_value: { "feature_flag": "true", value: "all-features" }
+in_lookup_key: { "feature_flag": "true", value: true, criteria: { operator: LOOKUP_KEY_IN, values: [ "abc123", "xyz987" ] } }
+test1: { "feature_flag": "true", value: "new-version", criteria: { operator: PROP_IS_ONE_OF, property: "domain", values: [ "prefab.cloud", "example.com" ] } }
+nested:
+  values:
+    _: top level
+    string: nested value
+
+
+nested2:
+  _: the value
+
+log-level:
+  _: warn
+  cloud.prefab.client: warn
+  tests:
+    _: debug
+    capitalized: INFO
+    uncapitalized: info
+    nested:
+      _: warn
+      deeply: error
+
+example:
+  nested:
+    path: hello
+
+example2.nested.path: hello2
+
+sample_list:
+- a
+- b
+sample_json: { "feature_flag": "true","value": "all-features" }
