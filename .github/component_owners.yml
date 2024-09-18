@@ -33,6 +33,9 @@ components:
     - davejohnston
   providers/statsig:
     - liran2000
+  providers/prefab:
+    - liran2000
+    - semanticart
 
 ignored-authors:
   - renovate-bot
