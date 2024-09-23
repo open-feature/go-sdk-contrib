@@ -103,11 +103,11 @@ span.End()
 
 ### Options
 
-### WithErrorStatusEnabled
+#### WithErrorStatusEnabled
 
 Enable setting span status to `Error` in case of an error. Default behavior is disabled, span status is unset for errors.
 
-### WithTracesAttributeSetter
+#### WithTracesAttributeSetter
 
 This constructor options allows to provide a custom callback to extract dimensions from `FlagMetadata`.
 These attributes are added at the `After` stage of the hook.
