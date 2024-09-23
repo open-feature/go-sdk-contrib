@@ -114,7 +114,7 @@ These attributes are added at the `After` stage of the hook.
 
 ```go
 
-NewTracesHook(WithMetricsAttributeSetter(
+NewTracesHook(WithTracesAttributeSetter(
     func(metadata openfeature.FlagMetadata) []attribute.KeyValue {
 		// custom attribute extraction logic
 
