@@ -103,18 +103,18 @@ span.End()
 
 ### Options
 
-### WithErrorStatusEnabled
+#### WithErrorStatusEnabled
 
 Enable setting span status to `Error` in case of an error. Default behavior is disabled, span status is unset for errors.
 
-### WithTracesAttributeSetter
+#### WithTracesAttributeSetter
 
 This constructor options allows to provide a custom callback to extract dimensions from `FlagMetadata`.
 These attributes are added at the `After` stage of the hook.
 
 ```go
 
-NewTracesHook(WithMetricsAttributeSetter(
+NewTracesHook(WithTracesAttributeSetter(
     func(metadata openfeature.FlagMetadata) []attribute.KeyValue {
 		// custom attribute extraction logic
 
