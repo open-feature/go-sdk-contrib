@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/statsig/v0.0.3...providers/statsig/v0.0.4) (2024-09-24)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/stretchr/testify to v1.9.0 ([#489](https://github.com/open-feature/go-sdk-contrib/issues/489)) ([c8d5f0b](https://github.com/open-feature/go-sdk-contrib/commit/c8d5f0b336a826f35fbe43834bcb9a063e276f28))
+
+
+### 🧹 Chore
+
+* add license to module ([#554](https://github.com/open-feature/go-sdk-contrib/issues/554)) ([abb7657](https://github.com/open-feature/go-sdk-contrib/commit/abb76571c373582f36837587400104eb754c01b9))
+
 ## [0.0.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/statsig/v0.0.2...providers/statsig/v0.0.3) (2024-08-13)
 
 
