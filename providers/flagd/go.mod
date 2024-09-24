@@ -5,10 +5,10 @@ go 1.21
 toolchain go1.22.3
 
 require (
-	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.16.2-20240215170432-1e611e2999cc.1
+	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.17.0-20240906125204-0a6a901b42e8.1
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.5.1-20240215170432-1e611e2999cc.1
-	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.2-20240215170432-1e611e2999cc.2
-	connectrpc.com/connect v1.16.2
+	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.2-20240906125204-0a6a901b42e8.2
+	connectrpc.com/connect v1.17.0
 	connectrpc.com/otelconnect v0.7.1
 	github.com/cucumber/godog v0.14.1
 	github.com/go-logr/logr v1.4.1
