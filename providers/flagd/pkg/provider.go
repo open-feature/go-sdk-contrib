@@ -59,12 +59,13 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	if provider.providerConfiguration.Resolver == rpc {
 		service = rpcService.NewService(
 			rpcService.Configuration{
-				Host:            provider.providerConfiguration.Host,
-				Port:            provider.providerConfiguration.Port,
-				CertificatePath: provider.providerConfiguration.CertificatePath,
-				SocketPath:      provider.providerConfiguration.SocketPath,
-				TLSEnabled:      provider.providerConfiguration.TLSEnabled,
-				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
+				Host:            	provider.providerConfiguration.Host,
+				Port:            	provider.providerConfiguration.Port,
+				CertificatePath: 	provider.providerConfiguration.CertificatePath,
+				SocketPath:      	provider.providerConfiguration.SocketPath,
+				TLSEnabled:      	provider.providerConfiguration.TLSEnabled,
+				OtelInterceptor:    provider.providerConfiguration.OtelIntercept,
+				ServiceAuthority:   provider.providerConfiguration.ServiceAuthority,
 			},
 			cacheService,
 			provider.logger,
@@ -76,6 +77,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			Selector:          provider.providerConfiguration.Selector,
 			TLSEnabled:        provider.providerConfiguration.TLSEnabled,
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
+			ServiceAuthority:  provider.providerConfiguration.ServiceAuthority,
 		})
 	}
 
@@ -278,6 +280,13 @@ func WithTLS(certPath string) ProviderOption {
 func WithOtelInterceptor(intercept bool) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.OtelIntercept = intercept
+	}
+}
+
+// WithServiceAuthority sets the provided target service authority used in case of proxy (e.g. envoy)
+func WithServiceAuthority(servAuthority string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.ServiceAuthority = servAuthority
 	}
 }
 

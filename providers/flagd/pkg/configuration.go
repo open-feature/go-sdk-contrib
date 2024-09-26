@@ -35,6 +35,7 @@ const (
 	flagdResolverEnvironmentVariableName              = "FLAGD_RESOLVER"
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
+	flagdServiceAuthorityEnvironmentVariableName      = "FLAGD_SERVICE_AUTHORITY"
 )
 
 type providerConfiguration struct {
@@ -50,6 +51,7 @@ type providerConfiguration struct {
 	Selector                         string
 	SocketPath                       string
 	TLSEnabled                       bool
+	ServiceAuthority                 string
 
 	log logr.Logger
 }
@@ -98,6 +100,10 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 
 		cfg.TLSEnabled = true
 		cfg.CertificatePath = certificatePath
+	}
+
+	if serviceAuthority := os.Getenv(flagdServiceAuthorityEnvironmentVariableName); serviceAuthority != "" {
+		cfg.ServiceAuthority = serviceAuthority
 	}
 
 	if maxCacheSizeS := os.Getenv(flagdMaxCacheSizeEnvironmentVariableName); maxCacheSizeS != "" {

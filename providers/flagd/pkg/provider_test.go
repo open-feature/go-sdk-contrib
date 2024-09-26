@@ -10,44 +10,47 @@ import (
 
 func TestNewProvider(t *testing.T) {
 	tests := []struct {
-		name                string
-		expectedResolver    ResolverType
-		expectPort          uint16
-		expectHost          string
-		expectCacheType     cache.Type
-		expectCertPath      string
-		expectMaxRetries    int
-		expectCacheSize     int
-		expectOtelIntercept bool
-		expectSocketPath    string
-		expectTlsEnabled    bool
-		options             []ProviderOption
+		name                	string
+		expectedResolver    	ResolverType
+		expectPort          	uint16
+		expectHost          	string
+		expectCacheType     	cache.Type
+		expectCertPath      	string
+		expectMaxRetries    	int
+		expectCacheSize     	int
+		expectOtelIntercept 	bool
+		expectSocketPath    	string
+		expectTlsEnabled    	bool
+		expectServiceAuthority  string
+		options             	[]ProviderOption
 	}{
 		{
-			name:                "default construction",
-			expectedResolver:    rpc,
-			expectPort:          defaultRpcPort,
-			expectHost:          defaultHost,
-			expectCacheType:     defaultCache,
-			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
-			expectOtelIntercept: false,
-			expectSocketPath:    "",
-			expectTlsEnabled:    false,
+			name:                	"default construction",
+			expectedResolver:    	rpc,
+			expectPort:          	defaultRpcPort,
+			expectHost:          	defaultHost,
+			expectCacheType:     	defaultCache,
+			expectCertPath:      	"",
+			expectMaxRetries:    	defaultMaxEventStreamRetries,
+			expectCacheSize:     	defaultMaxCacheSize,
+			expectOtelIntercept: 	false,
+			expectSocketPath:    	"",
+			expectTlsEnabled:    	false,
+			expectServiceAuthority: "",
 		},
 		{
-			name:                "with options",
-			expectedResolver:    inProcess,
-			expectPort:          9090,
-			expectHost:          "myHost",
-			expectCacheType:     cache.LRUValue,
-			expectCertPath:      "/path",
-			expectMaxRetries:    2,
-			expectCacheSize:     2500,
-			expectOtelIntercept: true,
-			expectSocketPath:    "/socket",
-			expectTlsEnabled:    true,
+			name:                	"with options",
+			expectedResolver:    	inProcess,
+			expectPort:          	9090,
+			expectHost:          	"myHost",
+			expectCacheType:     	cache.LRUValue,
+			expectCertPath:      	"/path",
+			expectMaxRetries:    	2,
+			expectCacheSize:     	2500,
+			expectOtelIntercept: 	true,
+			expectSocketPath:    	"/socket",
+			expectTlsEnabled:    	true,
+			expectServiceAuthority: "test-service-authority",
 			options: []ProviderOption{
 				WithInProcessResolver(),
 				WithSocketPath("/socket"),
@@ -57,36 +60,39 @@ func TestNewProvider(t *testing.T) {
 				WithCertificatePath("/path"),
 				WithHost("myHost"),
 				WithPort(9090),
+				WithServiceAuthority("test-service-authority"),
 			},
 		},
 		{
-			name:                "default port handling with in-process resolver",
-			expectedResolver:    inProcess,
-			expectPort:          defaultInProcessPort,
-			expectHost:          defaultHost,
-			expectCacheType:     defaultCache,
-			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
-			expectOtelIntercept: false,
-			expectSocketPath:    "",
-			expectTlsEnabled:    false,
+			name:                		"default port handling with in-process resolver",
+			expectedResolver:    		inProcess,
+			expectPort:          		defaultInProcessPort,
+			expectHost:          		defaultHost,
+			expectCacheType:     		defaultCache,
+			expectCertPath:      		"",
+			expectMaxRetries:    		defaultMaxEventStreamRetries,
+			expectCacheSize:     		defaultMaxCacheSize,
+			expectOtelIntercept: 		false,
+			expectSocketPath:    		"",
+			expectTlsEnabled:    		false,
+			expectServiceAuthority:     "",
 			options: []ProviderOption{
 				WithInProcessResolver(),
 			},
 		},
 		{
-			name:                "default port handling with in-process resolver",
-			expectedResolver:    rpc,
-			expectPort:          defaultRpcPort,
-			expectHost:          defaultHost,
-			expectCacheType:     defaultCache,
-			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
-			expectOtelIntercept: false,
-			expectSocketPath:    "",
-			expectTlsEnabled:    false,
+			name:               		"default port handling with in-process resolver",
+			expectedResolver:    		rpc,
+			expectPort:          		defaultRpcPort,
+			expectHost:          		defaultHost,
+			expectCacheType:     		defaultCache,
+			expectCertPath:      		"",
+			expectMaxRetries:    		defaultMaxEventStreamRetries,
+			expectCacheSize:     		defaultMaxCacheSize,
+			expectOtelIntercept: 		false,
+			expectSocketPath:    		"",
+			expectTlsEnabled:    		false,
+			expectServiceAuthority: 	"",
 			options: []ProviderOption{
 				WithRPCResolver(),
 			},
@@ -142,6 +148,11 @@ func TestNewProvider(t *testing.T) {
 			if config.Port != test.expectPort {
 				t.Errorf("incorrect configuration Port, expected %v, got %v",
 					test.expectPort, config.Port)
+			}
+
+			if config.ServiceAuthority != test.expectServiceAuthority {
+				t.Errorf("incorrect configuration Service Authority, expected %v, got %v",
+					test.expectServiceAuthority, config.ServiceAuthority)
 			}
 
 			// this line will fail linting if this provider is no longer compatible with the openfeature sdk
