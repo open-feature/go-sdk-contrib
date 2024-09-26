@@ -1,6 +1,6 @@
 # OpenFeature Go Contributions
 
-This repository is intended for OpenFeature contributions which are not included in the [OpenFeature SDK](https://github.com/open-feature/go-sdk).
+This repository is intended for OpenFeature contributions which are not included in the [OpenFeature SDK](https://github.com/open-feature/go-sdk)
 
 The project includes:
 
