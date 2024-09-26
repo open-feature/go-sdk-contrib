@@ -59,13 +59,13 @@ func NewProvider(opts ...ProviderOption) *Provider {
 	if provider.providerConfiguration.Resolver == rpc {
 		service = rpcService.NewService(
 			rpcService.Configuration{
-				Host:            	provider.providerConfiguration.Host,
-				Port:            	provider.providerConfiguration.Port,
-				CertificatePath: 	provider.providerConfiguration.CertificatePath,
-				SocketPath:      	provider.providerConfiguration.SocketPath,
-				TLSEnabled:      	provider.providerConfiguration.TLSEnabled,
-				OtelInterceptor:    provider.providerConfiguration.OtelIntercept,
-				ServiceAuthority:   provider.providerConfiguration.ServiceAuthority,
+				Host:             provider.providerConfiguration.Host,
+				Port:             provider.providerConfiguration.Port,
+				CertificatePath:  provider.providerConfiguration.CertificatePath,
+				SocketPath:       provider.providerConfiguration.SocketPath,
+				TLSEnabled:       provider.providerConfiguration.TLSEnabled,
+				OtelInterceptor:  provider.providerConfiguration.OtelIntercept,
+				ServiceAuthority: provider.providerConfiguration.ServiceAuthority,
 			},
 			cacheService,
 			provider.logger,

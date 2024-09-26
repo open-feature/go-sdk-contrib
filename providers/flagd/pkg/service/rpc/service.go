@@ -33,13 +33,13 @@ const (
 var ErrClientNotReady = of.NewProviderNotReadyResolutionError(ClientNotReadyMsg)
 
 type Configuration struct {
-	Port            	uint16
-	Host            	string
-	CertificatePath 	string
-	SocketPath      	string
-	TLSEnabled      	bool
-	OtelInterceptor 	bool
-	ServiceAuthority    string
+	Port             uint16
+	Host             string
+	CertificatePath  string
+	SocketPath       string
+	TLSEnabled       bool
+	OtelInterceptor  bool
+	ServiceAuthority string
 }
 
 // Service handles the client side  interface for the flagd server
