@@ -288,6 +288,7 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 		Secure:            cfg.TLSEnabled,
 		Selector:          cfg.Selector,
 		URI:               uri,
+		ServAuthority:     cfg.ServiceAuthority,
 	}, uri
 }
 
