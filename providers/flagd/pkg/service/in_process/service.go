@@ -35,6 +35,7 @@ type Configuration struct {
 	Selector          string
 	TLSEnabled        bool
 	OfflineFlagSource string
+	ServiceAuthority  string
 }
 
 func NewInProcessService(cfg Configuration) *InProcess {

@@ -75,6 +75,7 @@ Configuration can be provided as constructor options or as environment variables
 | WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | rpc                 |
 | WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
 | WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | in-process          |
+| WithServiceAuthority                                     | FLAGD_SERVICE_AUTHORITY        | string                      | ""        | rpc & in-process    |
 
 ### Overriding behavior
 
