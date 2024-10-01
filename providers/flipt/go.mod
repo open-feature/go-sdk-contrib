@@ -2,7 +2,7 @@ module github.com/open-feature/go-sdk-contrib/providers/flipt
 
 go 1.22
 
-toolchain go1.22.4
+toolchain go1.23.2
 
 require (
 	github.com/open-feature/go-sdk v1.11.0
