@@ -1,13 +1,15 @@
 module github.com/open-feature/go-sdk-contrib/providers/launchdarkly
 
-go 1.21
+go 1.22.0
+
+toolchain go1.23.2
 
 require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.1.0
 	github.com/launchdarkly/go-server-sdk/v7 v7.6.2
 	github.com/open-feature/go-sdk v1.12.0
-	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 )
 
 require (
