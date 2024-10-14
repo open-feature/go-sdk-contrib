@@ -103,7 +103,7 @@ This can be changed through constructor option or environment variable `FLAGD_MA
 
 ### Target URI Support (gRPC name resolution)
 
-The `targetUri` is meant for gRPC custom name resolution (default is `dns`), this allows users to use different
+The `TargetUri` is meant for gRPC custom name resolution (default is `dns`), this allows users to use different
 resolution method e.g. `xds`. Currently, we are supporting all [core resolver](https://grpc.io/docs/guides/custom-name-resolution/)
 and one custom resolver for `envoy` proxy resolution. For more details, please refer the
 [RFC](https://github.com/open-feature/flagd/blob/main/docs/reference/specifications/proposal/rfc-grpc-custom-name-resolver.md) document.
