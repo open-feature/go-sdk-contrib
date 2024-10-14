@@ -13,6 +13,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/exp/maps"
+	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	parallel "sync"
 )
@@ -32,6 +33,7 @@ type InProcess struct {
 type Configuration struct {
 	Host              any
 	Port              any
+	TargetUri         string
 	Selector          string
 	TLSEnabled        bool
 	OfflineFlagSource string
@@ -277,8 +279,13 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 		}, cfg.OfflineFlagSource
 	}
 
-	// grpc sync provider
+	// grpc sync provider (default uri based on `dns`)
 	uri := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+
+	if cfg.TargetUri != "" && isValidTargetScheme(cfg.TargetUri) {
+		uri = cfg.TargetUri
+	}
+
 	log.Info("operating in in-process mode with flags sourced from " + uri)
 
 	return &grpc.Sync{
@@ -304,4 +311,9 @@ func mapError(flagKey string, err error) of.ResolutionError {
 	default:
 		return of.NewGeneralResolutionError(fmt.Sprintf("flag: " + flagKey + " unable to evaluate"))
 	}
+}
+
+func isValidTargetScheme(targetUri string) bool {
+	regx := regexp.MustCompile("^" + grpc.SupportedScheme)
+	return regx.Match([]byte(targetUri))
 }

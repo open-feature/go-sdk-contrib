@@ -35,6 +35,7 @@ const (
 	flagdResolverEnvironmentVariableName              = "FLAGD_RESOLVER"
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
+	flagdTargetUriEnvironmentVariableName             = "FLAGD_TARGET_URI"
 )
 
 type providerConfiguration struct {
@@ -46,6 +47,7 @@ type providerConfiguration struct {
 	OfflineFlagSourcePath            string
 	OtelIntercept                    bool
 	Port                             uint16
+	TargetUri                        string
 	Resolver                         ResolverType
 	Selector                         string
 	SocketPath                       string
@@ -157,6 +159,10 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 
 	if selector := os.Getenv(flagdSourceSelectorEnvironmentVariableName); selector != "" {
 		cfg.Selector = selector
+	}
+
+	if targetUri := os.Getenv(flagdTargetUriEnvironmentVariableName); targetUri != "" {
+		cfg.TargetUri = targetUri
 	}
 
 }
