@@ -74,6 +74,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			Host:              provider.providerConfiguration.Host,
 			Port:              provider.providerConfiguration.Port,
 			Selector:          provider.providerConfiguration.Selector,
+			TargetUri:         provider.providerConfiguration.TargetUri,
 			TLSEnabled:        provider.providerConfiguration.TLSEnabled,
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
 		})
@@ -222,6 +223,13 @@ func WithPort(port uint16) ProviderOption {
 func WithHost(host string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Host = host
+	}
+}
+
+// WithTargetUri specifies the custom gRPC target URI
+func WithTargetUri(targetUri string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.TargetUri = targetUri
 	}
 }
 

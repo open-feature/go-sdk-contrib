@@ -69,6 +69,7 @@ Configuration can be provided as constructor options or as environment variables
 |----------------------------------------------------------|--------------------------------|-----------------------------|-----------|---------------------|
 | WithHost                                                 | FLAGD_HOST                     | string                      | localhost | rpc & in-process    |
 | WithPort                                                 | FLAGD_PORT                     | number                      | 8013      | rpc & in-process    |
+| WithTargetUri                                            | FLAGD_TARGET_URI               | string                      | ""        | in-process          |
 | WithTLS                                                  | FLAGD_TLS                      | boolean                     | false     | rpc & in-process    |
 | WithSocketPath                                           | FLAGD_SOCKET_PATH              | string                      | ""        | rpc & in-process    |
 | WithCertificatePath                                      | FLAGD_SERVER_CERT_PATH         | string                      | ""        | rpc & in-process    |
@@ -99,6 +100,20 @@ If the connection is successful and caching is enabled each flag returned with r
 On invocation of a flag evaluation (if caching is available) an attempt is made to retrieve the entry from cache, if found the flag is returned with reason `CACHED`.
 By default, the provider is configured to use LRU caching with up to 1000 entries.
 This can be changed through constructor option or environment variable `FLAGD_MAX_CACHE_SIZE`
+
+### Target URI Support (gRPC name resolution)
+
+The `targetUri` is meant for gRPC custom name resolution (default is `dns`), this allows users to use different
+resolution method e.g. `xds`. Currently, we are supporting all [core resolver](https://grpc.io/docs/guides/custom-name-resolution/)
+and one custom resolver for `envoy` proxy resolution. For more details, please refer the
+[RFC](https://github.com/open-feature/flagd/blob/main/docs/reference/specifications/proposal/rfc-grpc-custom-name-resolver.md) document.
+
+```go
+openfeature.SetProvider(flagd.NewProvider(
+        flagd.WithInProcessResolver(),
+        flagd.WithTargetUri("envoy://localhost:9211/test.service"),
+    ))
+```
 
 ## Supported Events
 
