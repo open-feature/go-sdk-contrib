@@ -6,6 +6,8 @@ buf.build/gen/go/open-feature/flagd/connectrpc/go v1.16.1-20240215170432-1e611e2
 buf.build/gen/go/open-feature/flagd/connectrpc/go v1.16.1-20240215170432-1e611e2999cc.1/go.mod h1:gJBZCD4NdtpJmLNfIA8gXoCd/LRo68+mKR4B32In6b4=
 buf.build/gen/go/open-feature/flagd/connectrpc/go v1.16.2-20240215170432-1e611e2999cc.1 h1:LzKcO153IeqETZE4vW6Wc2ffzfkx3BXYwIX72Khz56U=
 buf.build/gen/go/open-feature/flagd/connectrpc/go v1.16.2-20240215170432-1e611e2999cc.1/go.mod h1:CV7JQktehuZgsiW5gEF1dd+LMqxl2kHJjM4bxuhNlz4=
+buf.build/gen/go/open-feature/flagd/connectrpc/go v1.17.0-20240906125204-0a6a901b42e8.1 h1:dU3vvR6d5iVwHBVQVS14ci+i29+4lLT8HjYktYSTPF8=
+buf.build/gen/go/open-feature/flagd/connectrpc/go v1.17.0-20240906125204-0a6a901b42e8.1/go.mod h1:jKw7gioqYsWaHUKr5Ja6MiadsXcrGJxQ86gucJ0luUA=
 buf.build/gen/go/open-feature/flagd/grpc/go v1.3.0-20240215170432-1e611e2999cc.2 h1:CVXDGFFCbKvCZGTINLgzEfVSo4O99xEnskbxYm3fHjU=
 buf.build/gen/go/open-feature/flagd/grpc/go v1.3.0-20240215170432-1e611e2999cc.2/go.mod h1:w6OZGD9znwVaPAz4wWi89GUMseHXzr4Fh+TS1SNz6JI=
 buf.build/gen/go/open-feature/flagd/grpc/go v1.5.1-20240215170432-1e611e2999cc.1 h1:i30n9d9zBIbLOzwsH82w7g6EOv6xtPN/byveEH9B9KQ=
@@ -17,6 +19,8 @@ buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.1-20240215170432-1e
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.1-20240215170432-1e611e2999cc.1/go.mod h1:gEUPmagwc+N2TGT2C2u5qKm4w5AIT7GxX/g0xowr8Ww=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.2-20240215170432-1e611e2999cc.2 h1:f0Zk6mcwiIZNs5pRkK8hfaE1NynStc2Z4hEnripAKTo=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.2-20240215170432-1e611e2999cc.2/go.mod h1:Y4p3/wjytMsn6a+N0geaRNEilEqj2pS3qrPqRFO5cY0=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.2-20240906125204-0a6a901b42e8.2 h1:z/+GDTJLJJjpTon7CK/pxrbwwtK7YmllO7jSTvGh0QA=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.34.2-20240906125204-0a6a901b42e8.2/go.mod h1:OA7of1NYh+7uttnef5AxaNjL7y1AdjLpZ4DD1a4vuZg=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
@@ -407,6 +411,8 @@ connectrpc.com/connect v1.16.1 h1:rOdrK/RTI/7TVnn3JsVxt3n028MlTRwmK5Q4heSpjis=
 connectrpc.com/connect v1.16.1/go.mod h1:XpZAduBQUySsb4/KO5JffORVkDI4B6/EYPi7N8xpNZw=
 connectrpc.com/connect v1.16.2 h1:ybd6y+ls7GOlb7Bh5C8+ghA6SvCBajHwxssO2CGFjqE=
 connectrpc.com/connect v1.16.2/go.mod h1:n2kgwskMHXC+lVqb18wngEpF95ldBHXjZYJussz5FRc=
+connectrpc.com/connect v1.17.0 h1:W0ZqMhtVzn9Zhn2yATuUokDLO5N+gIuBWMOnsQrfmZk=
+connectrpc.com/connect v1.17.0/go.mod h1:0292hj1rnx8oFrStN7cB4jjVBeqs+Yx5yDIC2prWDO8=
 connectrpc.com/otelconnect v0.7.0 h1:ZH55ZZtcJOTKWWLy3qmL4Pam4RzRWBJFOqTPyAqCXkY=
 connectrpc.com/otelconnect v0.7.0/go.mod h1:Bt2ivBymHZHqxvo4HkJ0EwHuUzQN6k2l0oH+mp/8nwc=
 connectrpc.com/otelconnect v0.7.1 h1:scO5pOb0i4yUE66CnNrHeK1x51yq0bE0ehPg6WvzXJY=
