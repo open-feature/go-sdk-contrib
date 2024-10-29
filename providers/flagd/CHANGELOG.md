@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.2...providers/flagd/v0.2.3) (2024-10-29)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module buf.build/gen/go/open-feature/flagd/connectrpc/go to v1.16.2-20240215170432-1e611e2999cc.1 ([#518](https://github.com/open-feature/go-sdk-contrib/issues/518)) ([44965d6](https://github.com/open-feature/go-sdk-contrib/commit/44965d69e5a2ff3621ba9de51d140ad0ea94bdfc))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/connectrpc/go to v1.17.0-20240906125204-0a6a901b42e8.1 ([#581](https://github.com/open-feature/go-sdk-contrib/issues/581)) ([51238a0](https://github.com/open-feature/go-sdk-contrib/commit/51238a0b37344077529ad1e0223d6eeca3c2752c))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/grpc/go to v1.5.1-20240215170432-1e611e2999cc.1 ([#512](https://github.com/open-feature/go-sdk-contrib/issues/512)) ([1c765e5](https://github.com/open-feature/go-sdk-contrib/commit/1c765e5db0f9129f2be44ffdf7ac212283bb0f6c))
+* **deps:** update module connectrpc.com/otelconnect to v0.7.1 ([#558](https://github.com/open-feature/go-sdk-contrib/issues/558)) ([423790c](https://github.com/open-feature/go-sdk-contrib/commit/423790c1b45e32e786f5977f67701ae98d7d1c45))
+* **deps:** update module github.com/cucumber/godog to v0.14.1 ([#513](https://github.com/open-feature/go-sdk-contrib/issues/513)) ([f15f019](https://github.com/open-feature/go-sdk-contrib/commit/f15f01969ea0537f66592a77870a68b0de5fd7cc))
+
+
+### ✨ New Features
+
+* added custom grpc resolver ([#587](https://github.com/open-feature/go-sdk-contrib/issues/587)) ([e509afa](https://github.com/open-feature/go-sdk-contrib/commit/e509afa1d0db8f8321d5d4518959c53a1418db8f))
+
+
+### 🧹 Chore
+
+* add license to module ([#554](https://github.com/open-feature/go-sdk-contrib/issues/554)) ([abb7657](https://github.com/open-feature/go-sdk-contrib/commit/abb76571c373582f36837587400104eb754c01b9))
+
 ## [0.2.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.1...providers/flagd/v0.2.2) (2024-06-14)
 
 
