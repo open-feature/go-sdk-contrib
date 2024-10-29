@@ -14,6 +14,7 @@ func TestNewProvider(t *testing.T) {
 		expectedResolver    ResolverType
 		expectPort          uint16
 		expectHost          string
+		expectTargetUri     string
 		expectCacheType     cache.Type
 		expectCertPath      string
 		expectMaxRetries    int
@@ -28,6 +29,7 @@ func TestNewProvider(t *testing.T) {
 			expectedResolver:    rpc,
 			expectPort:          defaultRpcPort,
 			expectHost:          defaultHost,
+			expectTargetUri:     "",
 			expectCacheType:     defaultCache,
 			expectCertPath:      "",
 			expectMaxRetries:    defaultMaxEventStreamRetries,
@@ -41,6 +43,7 @@ func TestNewProvider(t *testing.T) {
 			expectedResolver:    inProcess,
 			expectPort:          9090,
 			expectHost:          "myHost",
+			expectTargetUri:     "",
 			expectCacheType:     cache.LRUValue,
 			expectCertPath:      "/path",
 			expectMaxRetries:    2,
@@ -65,6 +68,7 @@ func TestNewProvider(t *testing.T) {
 			expectPort:          defaultInProcessPort,
 			expectHost:          defaultHost,
 			expectCacheType:     defaultCache,
+			expectTargetUri:     "",
 			expectCertPath:      "",
 			expectMaxRetries:    defaultMaxEventStreamRetries,
 			expectCacheSize:     defaultMaxCacheSize,
@@ -80,6 +84,7 @@ func TestNewProvider(t *testing.T) {
 			expectedResolver:    rpc,
 			expectPort:          defaultRpcPort,
 			expectHost:          defaultHost,
+			expectTargetUri:     "",
 			expectCacheType:     defaultCache,
 			expectCertPath:      "",
 			expectMaxRetries:    defaultMaxEventStreamRetries,
@@ -89,6 +94,24 @@ func TestNewProvider(t *testing.T) {
 			expectTlsEnabled:    false,
 			options: []ProviderOption{
 				WithRPCResolver(),
+			},
+		},
+		{
+			name:                "with target uri with in-process resolver",
+			expectedResolver:    inProcess,
+			expectPort:          defaultInProcessPort,
+			expectHost:          defaultHost,
+			expectCacheType:     defaultCache,
+			expectTargetUri:     "envoy://localhost:9211/test.service",
+			expectCertPath:      "",
+			expectMaxRetries:    defaultMaxEventStreamRetries,
+			expectCacheSize:     defaultMaxCacheSize,
+			expectOtelIntercept: false,
+			expectSocketPath:    "",
+			expectTlsEnabled:    false,
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithTargetUri("envoy://localhost:9211/test.service"),
 			},
 		},
 	}
@@ -142,6 +165,11 @@ func TestNewProvider(t *testing.T) {
 			if config.Port != test.expectPort {
 				t.Errorf("incorrect configuration Port, expected %v, got %v",
 					test.expectPort, config.Port)
+			}
+
+			if config.TargetUri != test.expectTargetUri {
+				t.Errorf("incorrect configuration TargetUri, expected %v, got %v",
+					test.expectTargetUri, config.TargetUri)
 			}
 
 			// this line will fail linting if this provider is no longer compatible with the openfeature sdk

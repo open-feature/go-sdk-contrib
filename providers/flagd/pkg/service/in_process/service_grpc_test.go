@@ -114,6 +114,94 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 	}
 }
 
+// custom name resolver
+func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
+	// given
+	host := "localhost"
+	port := 9211
+	scope := "app=myapp"
+
+	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bufServ := &bufferedServer{
+		listener: listen,
+		mockResponses: []*v1.SyncFlagsResponse{
+			{
+				FlagConfiguration: flagRsp,
+			},
+		},
+		fetchAllFlagsResponse: nil,
+		fetchAllFlagsError:    nil,
+	}
+
+	inProcessService := NewInProcessService(Configuration{
+		TargetUri: "envoy://localhost:9211/foo.service",
+		Selector:   scope,
+		TLSEnabled: false,
+	})
+
+	// when
+
+	// start grpc sync server
+	go func() {
+		serve(bufServ)
+	}()
+
+	// Initialize service
+	err = inProcessService.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// then
+
+	eventChan := inProcessService.events
+
+	// provider must be ready in acceptable time
+	select {
+	case event := <-eventChan:
+		if event.EventType != openfeature.ProviderReady {
+			t.Fatal("Provider initialization failed")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Provider initialization did not complete within acceptable timeframe")
+	}
+
+	// provider must emit flag change event for the first flag sync
+	select {
+	case event := <-eventChan:
+		if event.EventType != openfeature.ProviderConfigChange {
+			t.Fatal("Provider failed to update flag configurations")
+		}
+
+		if len(event.ProviderEventDetails.FlagChanges) == 0 {
+			t.Fatal("Expected flag changes, but got none")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Provider did not sync flags within an acceptable timeframe")
+	}
+
+	// provider must evaluate flag from the grpc source data
+	detail := inProcessService.ResolveBoolean(context.Background(), "myBoolFlag", false, make(map[string]interface{}))
+
+	if !detail.Value {
+		t.Fatal("Expected true, but got false")
+	}
+
+	// check for metadata - scope from grpc sync
+	if len(detail.FlagMetadata) == 0 && detail.FlagMetadata["scope"] == "" {
+		t.Fatal("Expected scope to be present, but got none")
+	}
+
+	if scope != detail.FlagMetadata["scope"] {
+		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
+	}
+}
+
+
 // bufferedServer - a mock grpc service backed by buffered connection
 type bufferedServer struct {
 	listener              net.Listener
