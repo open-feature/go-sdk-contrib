@@ -284,7 +284,7 @@ func loadTLSCredentials(serverCertPath string) (credentials.TransportCredentials
 func gRPCToOpenFeatureError(err error) of.ResolutionError {
 	s, ok := status.FromError(err)
 	if !ok {
-		return of.NewGeneralResolutionError("internal error")
+		return of.NewGeneralResolutionError("internal error: " + err.Error())
 	}
 
 	switch s.Code() {
