@@ -7,10 +7,12 @@ import (
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	mock "github.com/stretchr/testify/mock"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 
 	offlipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -45,6 +47,17 @@ func TestNew(t *testing.T) {
 			expected: Service{
 				address:         "http://localhost:8080",
 				certificatePath: "foo",
+			},
+		},
+		{
+			name: "with gRPC dial options",
+			opts: []Option{WithGRPCDialOptions(grpc.WithUserAgent("Flipt/1.0"))},
+			expected: Service{
+				address: "http://localhost:8080",
+				grpcDialOptions: []grpc.DialOption{
+					grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+					grpc.WithUserAgent("Flipt/1.0"),
+				},
 			},
 		},
 	}
