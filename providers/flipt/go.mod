@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/flipt
 go 1.22
 
 require (
-	github.com/open-feature/go-sdk v1.11.0
+	github.com/open-feature/go-sdk v1.13.1
 	github.com/stretchr/testify v1.9.0
 	go.flipt.io/flipt/rpc/flipt v1.45.0
 	go.flipt.io/flipt/sdk/go v0.12.0
@@ -27,7 +27,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.31.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
