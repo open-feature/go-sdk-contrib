@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.2...providers/flipt/v0.1.3) (2024-11-04)
+
+
+### ✨ New Features
+
+* **flipt:** able to provide additional gRPC Dial Options ([#593](https://github.com/open-feature/go-sdk-contrib/issues/593)) ([f447ea2](https://github.com/open-feature/go-sdk-contrib/commit/f447ea239d4bc8520805f96d1d66ab1d0ad5682b))
+
 ## [0.1.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.1...providers/flipt/v0.1.2) (2024-08-15)
 
 
