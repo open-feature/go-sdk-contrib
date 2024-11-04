@@ -11,6 +11,7 @@ import (
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
 	sdk "go.flipt.io/flipt/sdk/go"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -23,6 +24,7 @@ type Config struct {
 	CertificatePath string
 	TokenProvider   sdk.ClientTokenProvider
 	Namespace       string
+	GRPCDialOptions []grpc.DialOption
 }
 
 // Option is a configuration option for the provider.
@@ -64,6 +66,13 @@ func WithClientTokenProvider(tokenProvider sdk.ClientTokenProvider) Option {
 	}
 }
 
+// WithGRPCDialOptions sets the options for the underlying gRPC transport.
+func WithGRPCDialOptions(dialOptions ...grpc.DialOption) Option {
+	return func(p *Provider) {
+		p.config.GRPCDialOptions = append(p.config.GRPCDialOptions, dialOptions...)
+	}
+}
+
 // ForNamespace sets the namespace for flag lookup and evaluation in Flipt.
 func ForNamespace(namespace string) Option {
 	return func(p *Provider) {
@@ -74,8 +83,9 @@ func ForNamespace(namespace string) Option {
 // NewProvider returns a new Flipt provider.
 func NewProvider(opts ...Option) *Provider {
 	p := &Provider{config: Config{
-		Address:   "http://localhost:8080",
-		Namespace: "default",
+		Address:         "http://localhost:8080",
+		Namespace:       "default",
+		GRPCDialOptions: []grpc.DialOption{},
 	}}
 
 	for _, opt := range opts {
@@ -86,6 +96,9 @@ func NewProvider(opts ...Option) *Provider {
 		topts := []transport.Option{transport.WithAddress(p.config.Address), transport.WithCertificatePath(p.config.CertificatePath)}
 		if p.config.TokenProvider != nil {
 			topts = append(topts, transport.WithClientTokenProvider(p.config.TokenProvider))
+		}
+		if len(p.config.GRPCDialOptions) != 0 {
+			topts = append(topts, transport.WithGRPCDialOptions(p.config.GRPCDialOptions...))
 		}
 
 		p.svc = transport.New(topts...)

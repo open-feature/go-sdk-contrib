@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -38,6 +39,7 @@ type Service struct {
 	unaryInterceptors []grpc.UnaryClientInterceptor
 	once              sync.Once
 	tokenProvider     sdk.ClientTokenProvider
+	grpcDialOptions   []grpc.DialOption
 }
 
 // Option is a service option.
@@ -73,14 +75,21 @@ func WithClientTokenProvider(tokenProvider sdk.ClientTokenProvider) Option {
 	}
 }
 
+// WithGRPCDialOptions sets the provided DialOption
+// to be applied when establishing gRPC client connection.
+func WithGRPCDialOptions(dialOptions ...grpc.DialOption) Option {
+	return func(s *Service) {
+		s.grpcDialOptions = append(s.grpcDialOptions, dialOptions...)
+	}
+}
+
 // New creates a new Transport service.
 func New(opts ...Option) *Service {
 	s := &Service{
-		address: defaultAddr,
-		unaryInterceptors: []grpc.UnaryClientInterceptor{
-			// by default this establishes the otel.TextMapPropagator
-			// registers to the otel package.
-			otelgrpc.UnaryClientInterceptor(),
+		address:           defaultAddr,
+		unaryInterceptors: []grpc.UnaryClientInterceptor{},
+		grpcDialOptions: []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		},
 	}
 
@@ -105,18 +114,19 @@ func (s *Service) connect() (*grpc.ClientConn, error) {
 		}
 	}
 
-	var address = s.address
+	address := s.address
 
 	if strings.HasPrefix(s.address, "unix://") {
 		address = "passthrough:///" + s.address
 	}
 
-	conn, err := grpc.Dial(
-		address,
+	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(credentials),
-		grpc.WithBlock(),
 		grpc.WithChainUnaryInterceptor(s.unaryInterceptors...),
-	)
+	}
+	dialOptions = append(dialOptions, s.grpcDialOptions...)
+
+	conn, err := grpc.NewClient(address, dialOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing %w", err)
 	}
@@ -260,7 +270,7 @@ func loadTLSCredentials(serverCertPath string) (credentials.TransportCredentials
 
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(pemServerCA) {
-		return nil, fmt.Errorf("failed to add server CA's certificate")
+		return nil, errors.New("failed to add server CA's certificate")
 	}
 
 	config := &tls.Config{
@@ -274,7 +284,7 @@ func loadTLSCredentials(serverCertPath string) (credentials.TransportCredentials
 func gRPCToOpenFeatureError(err error) of.ResolutionError {
 	s, ok := status.FromError(err)
 	if !ok {
-		return of.NewGeneralResolutionError("internal error")
+		return of.NewGeneralResolutionError("internal error: " + err.Error())
 	}
 
 	switch s.Code() {
