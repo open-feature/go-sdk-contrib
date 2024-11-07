@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/harness
 go 1.21
 
 require (
-	github.com/harness/ff-golang-server-sdk v0.1.24
+	github.com/harness/ff-golang-server-sdk v0.1.25
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/open-feature/go-sdk v1.11.0
 	github.com/stretchr/testify v1.9.0
