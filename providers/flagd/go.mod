@@ -1,8 +1,8 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagd
 
-go 1.21
+go 1.22.0
 
-toolchain go1.22.3
+toolchain go1.23.3
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.17.0-20240906125204-0a6a901b42e8.1
@@ -15,7 +15,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/open-feature/flagd/core v0.10.4
-	github.com/open-feature/go-sdk v1.11.0
+	github.com/open-feature/go-sdk v1.13.1
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.1
 	go.uber.org/mock v0.5.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
@@ -34,12 +34,12 @@ require (
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
-	github.com/gofrs/uuid v4.3.1+incompatible // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-memdb v1.3.4 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
