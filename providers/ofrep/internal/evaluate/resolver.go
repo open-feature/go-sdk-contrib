@@ -29,8 +29,8 @@ func NewOutboundResolver(cfg outbound.Configuration) *OutboundResolver {
 }
 
 func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (
-	*successDto, *of.ResolutionError) {
-
+	*successDto, *of.ResolutionError,
+) {
 	b, err := json.Marshal(requestFrom(evalCtx))
 	if err != nil {
 		resErr := of.NewGeneralResolutionError(fmt.Sprintf("context marshelling error: %v", err))
@@ -88,21 +88,24 @@ func parseError400(data []byte) *of.ResolutionError {
 		return &resErr
 	}
 
-	var resErr of.ResolutionError
-	switch evalError.ErrorCode {
-	case string(of.ParseErrorCode):
-		resErr = of.NewParseErrorResolutionError(evalError.ErrorDetails)
-	case string(of.TargetingKeyMissingCode):
-		resErr = of.NewTargetingKeyMissingResolutionError(evalError.ErrorDetails)
-	case string(of.InvalidContextCode):
-		resErr = of.NewInvalidContextResolutionError(evalError.ErrorDetails)
-	case string(of.GeneralCode):
-		resErr = of.NewGeneralResolutionError(evalError.ErrorDetails)
-	default:
-		resErr = of.NewGeneralResolutionError(evalError.ErrorDetails)
-	}
+	resErr := resolutionFromEvaluationError(evalError)
 
 	return &resErr
+}
+
+func resolutionFromEvaluationError(evalError evaluationError) of.ResolutionError {
+	switch evalError.ErrorCode {
+	case string(of.ParseErrorCode):
+		return of.NewParseErrorResolutionError(evalError.ErrorDetails)
+	case string(of.TargetingKeyMissingCode):
+		return of.NewTargetingKeyMissingResolutionError(evalError.ErrorDetails)
+	case string(of.InvalidContextCode):
+		return of.NewInvalidContextResolutionError(evalError.ErrorDetails)
+	case string(of.GeneralCode):
+		return of.NewGeneralResolutionError(evalError.ErrorDetails)
+	default:
+		return of.NewGeneralResolutionError(evalError.ErrorDetails)
+	}
 }
 
 func parse429(rsp *outbound.Resolution) time.Duration {

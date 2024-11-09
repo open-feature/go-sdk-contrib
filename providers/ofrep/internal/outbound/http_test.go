@@ -11,7 +11,8 @@ import (
 func TestHttpOutbound(t *testing.T) {
 	// given
 	key := "flag"
-	server := httptest.NewServer(mockHandler{t: t, key: key})
+	path := fmt.Sprintf("%s/%s", ofrepV1, key)
+	server := httptest.NewServer(mockHandler{t: t, path: path})
 	t.Cleanup(server.Close)
 
 	outbound := NewHttp(Configuration{
@@ -36,9 +37,36 @@ func TestHttpOutbound(t *testing.T) {
 	}
 }
 
+func TestHttpOutboundBulk(t *testing.T) {
+	// given
+	server := httptest.NewServer(mockHandler{t: t, path: ofrepV1})
+	t.Cleanup(server.Close)
+
+	outbound := NewHttp(Configuration{
+		Callbacks: []HeaderCallback{
+			func() (string, string) {
+				return "Authorization", "Token"
+			},
+		},
+		BaseURI: server.URL,
+	})
+
+	// when
+	response, err := outbound.Bulk(context.Background(), []byte{})
+	if err != nil {
+		t.Fatalf("error from request: %v", err)
+		return
+	}
+
+	// then - expect an ok response
+	if response.Status != http.StatusOK {
+		t.Errorf("expected 200, but got %d", response.Status)
+	}
+}
+
 type mockHandler struct {
-	key string
-	t   *testing.T
+	path string
+	t    *testing.T
 }
 
 func (r mockHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
@@ -48,9 +76,8 @@ func (r mockHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	path := fmt.Sprintf("%s%s", ofrepV1, r.key)
-	if req.RequestURI != fmt.Sprintf("%s%s", ofrepV1, r.key) {
-		r.t.Logf("invalid request path, expected %s, got %s. test will fail", path, req.RequestURI)
+	if req.RequestURI != r.path {
+		r.t.Logf("invalid request path, expected %s, got %s. test will fail", r.path, req.RequestURI)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}

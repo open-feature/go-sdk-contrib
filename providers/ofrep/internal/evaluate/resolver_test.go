@@ -347,3 +347,7 @@ type mockOutbound struct {
 func (m mockOutbound) Single(_ context.Context, _ string, _ []byte) (*outbound.Resolution, error) {
 	return &m.rsp, m.err
 }
+
+func (m mockOutbound) Bulk(_ context.Context, _ []byte) (*outbound.Resolution, error) {
+	return &m.rsp, m.err
+}
