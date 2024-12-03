@@ -57,9 +57,27 @@ openfeature.SetProvider(provider)
 The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
 This mode is useful for local development, tests and offline applications.
 
+#### Custom sync provider
+
+In-process resolver can also be configured with a custom sync provider to change how the in-process resolver fetches flags.
+The custom sync provider must implement the [sync.ISync interface](https://github.com/open-feature/flagd/blob/main/core/pkg/sync/isync.go)
+
+```go
+var syncProvider sync.ISync = MyAwesomeSyncProvider{}
+var syncProviderUri string = "myawesome://sync.uri"
+
+provider := flagd.NewProvider(
+        flagd.WithInProcessResolver(),
+        flagd.WithCustomSyncProvider(syncProvider, syncProviderUri))
+openfeature.SetProvider(provider)
+```
+
 > [!IMPORTANT]
-> Note that you can only use a single flag source (either gRPC or offline file) for the in-process resolver. 
-> If both sources are configured, offline mode will be selected.
+> Note that the in-process resolver can only use a single flag source.
+> If multiple sources are configured then only one would be selected based on the following order of preference:
+>   1. Custom sync provider
+>   2. Offline file
+>   3. gRPC
 
 ## Configuration options
 

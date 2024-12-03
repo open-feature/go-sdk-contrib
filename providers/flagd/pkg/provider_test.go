@@ -1,56 +1,67 @@
 package flagd
 
 import (
+	"testing"
+
+	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
+	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"go.uber.org/mock/gomock"
-	"testing"
 )
 
 func TestNewProvider(t *testing.T) {
+	customSyncProvider := process.NewDoNothingCustomSyncProvider()
+
 	tests := []struct {
-		name                string
-		expectedResolver    ResolverType
-		expectPort          uint16
-		expectHost          string
-		expectTargetUri     string
-		expectCacheType     cache.Type
-		expectCertPath      string
-		expectMaxRetries    int
-		expectCacheSize     int
-		expectOtelIntercept bool
-		expectSocketPath    string
-		expectTlsEnabled    bool
-		options             []ProviderOption
+		name                        string
+		expectedResolver            ResolverType
+		expectPort                  uint16
+		expectHost                  string
+		expectTargetUri             string
+		expectCacheType             cache.Type
+		expectCertPath              string
+		expectMaxRetries            int
+		expectCacheSize             int
+		expectOtelIntercept         bool
+		expectSocketPath            string
+		expectTlsEnabled            bool
+		expectCustomSyncProvider    sync.ISync
+		expectCustomSyncProviderUri string
+		options                     []ProviderOption
 	}{
 		{
-			name:                "default construction",
-			expectedResolver:    rpc,
-			expectPort:          defaultRpcPort,
-			expectHost:          defaultHost,
-			expectTargetUri:     "",
-			expectCacheType:     defaultCache,
-			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
-			expectOtelIntercept: false,
-			expectSocketPath:    "",
-			expectTlsEnabled:    false,
+			name:                        "default construction",
+			expectedResolver:            rpc,
+			expectPort:                  defaultRpcPort,
+			expectHost:                  defaultHost,
+			expectTargetUri:             "",
+			expectCacheType:             defaultCache,
+			expectCertPath:              "",
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectOtelIntercept:         false,
+			expectSocketPath:            "",
+			expectTlsEnabled:            false,
+			expectCustomSyncProvider:    nil,
+			expectCustomSyncProviderUri: "",
 		},
 		{
-			name:                "with options",
-			expectedResolver:    inProcess,
-			expectPort:          9090,
-			expectHost:          "myHost",
-			expectTargetUri:     "",
-			expectCacheType:     cache.LRUValue,
-			expectCertPath:      "/path",
-			expectMaxRetries:    2,
-			expectCacheSize:     2500,
-			expectOtelIntercept: true,
-			expectSocketPath:    "/socket",
-			expectTlsEnabled:    true,
+			name:                        "with options",
+			expectedResolver:            inProcess,
+			expectPort:                  9090,
+			expectHost:                  "myHost",
+			expectTargetUri:             "",
+			expectCacheType:             cache.LRUValue,
+			expectCertPath:              "/path",
+			expectMaxRetries:            2,
+			expectCacheSize:             2500,
+			expectOtelIntercept:         true,
+			expectSocketPath:            "/socket",
+			expectTlsEnabled:            true,
+			expectCustomSyncProvider:    nil,
+			expectCustomSyncProviderUri: "",
 			options: []ProviderOption{
 				WithInProcessResolver(),
 				WithSocketPath("/socket"),
@@ -63,55 +74,81 @@ func TestNewProvider(t *testing.T) {
 			},
 		},
 		{
-			name:                "default port handling with in-process resolver",
-			expectedResolver:    inProcess,
-			expectPort:          defaultInProcessPort,
-			expectHost:          defaultHost,
-			expectCacheType:     defaultCache,
-			expectTargetUri:     "",
-			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
-			expectOtelIntercept: false,
-			expectSocketPath:    "",
-			expectTlsEnabled:    false,
+			name:                        "default port handling with in-process resolver",
+			expectedResolver:            inProcess,
+			expectPort:                  defaultInProcessPort,
+			expectHost:                  defaultHost,
+			expectCacheType:             defaultCache,
+			expectTargetUri:             "",
+			expectCertPath:              "",
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectOtelIntercept:         false,
+			expectSocketPath:            "",
+			expectTlsEnabled:            false,
+			expectCustomSyncProvider:    nil,
+			expectCustomSyncProviderUri: "",
 			options: []ProviderOption{
 				WithInProcessResolver(),
 			},
 		},
 		{
-			name:                "default port handling with in-process resolver",
-			expectedResolver:    rpc,
-			expectPort:          defaultRpcPort,
-			expectHost:          defaultHost,
-			expectTargetUri:     "",
-			expectCacheType:     defaultCache,
-			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
-			expectOtelIntercept: false,
-			expectSocketPath:    "",
-			expectTlsEnabled:    false,
+			name:                        "default port handling with in-process resolver",
+			expectedResolver:            rpc,
+			expectPort:                  defaultRpcPort,
+			expectHost:                  defaultHost,
+			expectTargetUri:             "",
+			expectCacheType:             defaultCache,
+			expectCertPath:              "",
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectOtelIntercept:         false,
+			expectSocketPath:            "",
+			expectTlsEnabled:            false,
+			expectCustomSyncProvider:    nil,
+			expectCustomSyncProviderUri: "",
 			options: []ProviderOption{
 				WithRPCResolver(),
 			},
 		},
 		{
-			name:                "with target uri with in-process resolver",
-			expectedResolver:    inProcess,
-			expectPort:          defaultInProcessPort,
-			expectHost:          defaultHost,
-			expectCacheType:     defaultCache,
-			expectTargetUri:     "envoy://localhost:9211/test.service",
-			expectCertPath:      "",
-			expectMaxRetries:    defaultMaxEventStreamRetries,
-			expectCacheSize:     defaultMaxCacheSize,
-			expectOtelIntercept: false,
-			expectSocketPath:    "",
-			expectTlsEnabled:    false,
+			name:                        "with target uri with in-process resolver",
+			expectedResolver:            inProcess,
+			expectPort:                  defaultInProcessPort,
+			expectHost:                  defaultHost,
+			expectCacheType:             defaultCache,
+			expectTargetUri:             "envoy://localhost:9211/test.service",
+			expectCertPath:              "",
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectOtelIntercept:         false,
+			expectSocketPath:            "",
+			expectTlsEnabled:            false,
+			expectCustomSyncProvider:    nil,
+			expectCustomSyncProviderUri: "",
 			options: []ProviderOption{
 				WithInProcessResolver(),
 				WithTargetUri("envoy://localhost:9211/test.service"),
+			},
+		},
+		{
+			name:                        "with custom sync provider with in-process resolver",
+			expectedResolver:            inProcess,
+			expectPort:                  defaultInProcessPort,
+			expectHost:                  defaultHost,
+			expectCacheType:             defaultCache,
+			expectTargetUri:             "",
+			expectCertPath:              "",
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectOtelIntercept:         false,
+			expectSocketPath:            "",
+			expectTlsEnabled:            false,
+			expectCustomSyncProvider:    customSyncProvider,
+			expectCustomSyncProviderUri: "testsyncer://custom.uri",
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithCustomSyncProvider(customSyncProvider, "testsyncer://custom.uri"),
 			},
 		},
 	}
@@ -170,6 +207,16 @@ func TestNewProvider(t *testing.T) {
 			if config.TargetUri != test.expectTargetUri {
 				t.Errorf("incorrect configuration TargetUri, expected %v, got %v",
 					test.expectTargetUri, config.TargetUri)
+			}
+
+			if config.CustomSyncProvider != test.expectCustomSyncProvider {
+				t.Errorf("incorrect configuration CustomSyncProvider, expected %v, got %v",
+					test.expectCustomSyncProvider, config.CustomSyncProvider)
+			}
+
+			if config.CustomSyncProviderUri != test.expectCustomSyncProviderUri {
+				t.Errorf("incorrect configuration CustomSyncProviderUri, expected %v, got %v",
+					test.expectCustomSyncProviderUri, config.CustomSyncProviderUri)
 			}
 
 			// this line will fail linting if this provider is no longer compatible with the openfeature sdk
