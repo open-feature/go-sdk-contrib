@@ -15,6 +15,10 @@ import (
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
+const (
+	defaultCustomSyncProviderUri = "syncprovider://custom"
+)
+
 type Provider struct {
 	initialized           bool
 	logger                logr.Logger
@@ -332,7 +336,13 @@ func FromEnv() ProviderOption {
 
 // WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
 // This is only useful with inProcess resolver type
-func WithCustomSyncProvider(customSyncProvider sync.ISync, customSyncProviderUri string) ProviderOption {
+func WithCustomSyncProvider(customSyncProvider sync.ISync) ProviderOption {
+	return WithCustomSyncProviderAndUri(customSyncProvider, defaultCustomSyncProviderUri)
+}
+
+// WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
+// This is only useful with inProcess resolver type
+func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProviderUri string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.CustomSyncProvider = customSyncProvider
 		p.providerConfiguration.CustomSyncProviderUri = customSyncProviderUri

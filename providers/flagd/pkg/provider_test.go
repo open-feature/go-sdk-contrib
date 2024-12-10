@@ -132,7 +132,7 @@ func TestNewProvider(t *testing.T) {
 			},
 		},
 		{
-			name:                        "with custom sync provider with in-process resolver",
+			name:                        "with custom sync provider and uri with in-process resolver",
 			expectedResolver:            inProcess,
 			expectPort:                  defaultInProcessPort,
 			expectHost:                  defaultHost,
@@ -148,7 +148,27 @@ func TestNewProvider(t *testing.T) {
 			expectCustomSyncProviderUri: "testsyncer://custom.uri",
 			options: []ProviderOption{
 				WithInProcessResolver(),
-				WithCustomSyncProvider(customSyncProvider, "testsyncer://custom.uri"),
+				WithCustomSyncProviderAndUri(customSyncProvider, "testsyncer://custom.uri"),
+			},
+		},
+		{
+			name:                        "with custom sync provider with in-process resolver",
+			expectedResolver:            inProcess,
+			expectPort:                  defaultInProcessPort,
+			expectHost:                  defaultHost,
+			expectCacheType:             defaultCache,
+			expectTargetUri:             "",
+			expectCertPath:              "",
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectOtelIntercept:         false,
+			expectSocketPath:            "",
+			expectTlsEnabled:            false,
+			expectCustomSyncProvider:    customSyncProvider,
+			expectCustomSyncProviderUri: defaultCustomSyncProviderUri,
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithCustomSyncProvider(customSyncProvider),
 			},
 		},
 	}
