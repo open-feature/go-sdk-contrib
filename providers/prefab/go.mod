@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/prefab
 go 1.21
 
 require (
-	github.com/open-feature/go-sdk v1.12.0
+	github.com/open-feature/go-sdk v1.14.0
 	github.com/prefab-cloud/prefab-cloud-go v0.0.5
 	github.com/stretchr/testify v1.9.0
 )
