@@ -30,6 +30,8 @@ func (fps DoNothingCustomSyncProvider) ReSync(ctx context.Context, dataSync chan
 // Returns an implementation of sync.ISync interface that does nothing at all.
 // The returned implementation does not conform to the sync.DataSync contract.
 // This is useful only for unit tests.
-func NewDoNothingCustomSyncProvider() sync.ISync {
+func NewDoNothingCustomSyncProvider() DoNothingCustomSyncProvider {
 	return DoNothingCustomSyncProvider{}
 }
+
+var _ sync.ISync = &DoNothingCustomSyncProvider{}
