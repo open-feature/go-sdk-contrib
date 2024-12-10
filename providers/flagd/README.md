@@ -60,7 +60,16 @@ This mode is useful for local development, tests and offline applications.
 #### Custom sync provider
 
 In-process resolver can also be configured with a custom sync provider to change how the in-process resolver fetches flags.
-The custom sync provider must implement the [sync.ISync interface](https://github.com/open-feature/flagd/blob/main/core/pkg/sync/isync.go)
+The custom sync provider must implement the [sync.ISync interface](https://github.com/open-feature/flagd/blob/main/core/pkg/sync/isync.go). Optional URI can be provided for the custom sync provider.
+
+```go
+var syncProvider sync.ISync = MyAwesomeSyncProvider{}
+
+provider := flagd.NewProvider(
+        flagd.WithInProcessResolver(),
+        flagd.WithCustomSyncProvider(syncProvider))
+openfeature.SetProvider(provider)
+```
 
 ```go
 var syncProvider sync.ISync = MyAwesomeSyncProvider{}
@@ -68,7 +77,7 @@ var syncProviderUri string = "myawesome://sync.uri"
 
 provider := flagd.NewProvider(
         flagd.WithInProcessResolver(),
-        flagd.WithCustomSyncProvider(syncProvider, syncProviderUri))
+        flagd.WithCustomSyncProviderAndUri(syncProvider, syncProviderUri))
 openfeature.SetProvider(provider)
 ```
 
