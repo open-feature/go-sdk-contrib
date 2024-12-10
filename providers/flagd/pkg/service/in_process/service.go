@@ -274,6 +274,7 @@ func (i *InProcess) appendMetadata(evalMetadata map[string]interface{}) {
 // makeSyncProvider is a helper to create sync.ISync and return the underlying uri used by it to the caller
 func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string) {
 	if cfg.CustomSyncProvider != nil {
+		log.Info("operating in in-process mode with a custom sync provider at " + cfg.CustomSyncProviderUri)
 		return cfg.CustomSyncProvider, cfg.CustomSyncProviderUri
 	}
 
