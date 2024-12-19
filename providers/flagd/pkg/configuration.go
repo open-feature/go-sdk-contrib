@@ -2,10 +2,12 @@ package flagd
 
 import (
 	"fmt"
-	"github.com/go-logr/logr"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"os"
 	"strconv"
+
+	"github.com/go-logr/logr"
+	"github.com/open-feature/flagd/core/pkg/sync"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 )
 
 type ResolverType string
@@ -52,6 +54,8 @@ type providerConfiguration struct {
 	Selector                         string
 	SocketPath                       string
 	TLSEnabled                       bool
+	CustomSyncProvider               sync.ISync
+	CustomSyncProviderUri            string
 
 	log logr.Logger
 }

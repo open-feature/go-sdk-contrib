@@ -3,13 +3,20 @@ package flagd
 import (
 	"context"
 	"fmt"
+
+	parallel "sync"
+
 	"github.com/go-logr/logr"
+	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
+	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/openfeature"
-	"sync"
+)
+
+const (
+	defaultCustomSyncProviderUri = "syncprovider://custom"
 )
 
 type Provider struct {
@@ -18,7 +25,7 @@ type Provider struct {
 	providerConfiguration *providerConfiguration
 	service               IService
 	status                of.State
-	mtx                   sync.RWMutex
+	mtx                   parallel.RWMutex
 
 	eventStream chan of.Event
 }
@@ -71,12 +78,14 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
 	} else {
 		service = process.NewInProcessService(process.Configuration{
-			Host:              provider.providerConfiguration.Host,
-			Port:              provider.providerConfiguration.Port,
-			Selector:          provider.providerConfiguration.Selector,
-			TargetUri:         provider.providerConfiguration.TargetUri,
-			TLSEnabled:        provider.providerConfiguration.TLSEnabled,
-			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
+			Host:                  provider.providerConfiguration.Host,
+			Port:                  provider.providerConfiguration.Port,
+			Selector:              provider.providerConfiguration.Selector,
+			TargetUri:             provider.providerConfiguration.TargetUri,
+			TLSEnabled:            provider.providerConfiguration.TLSEnabled,
+			OfflineFlagSource:     provider.providerConfiguration.OfflineFlagSourcePath,
+			CustomSyncProvider:    provider.providerConfiguration.CustomSyncProvider,
+			CustomSyncProviderUri: provider.providerConfiguration.CustomSyncProviderUri,
 		})
 	}
 
@@ -322,5 +331,20 @@ func WithSelector(selector string) ProviderOption {
 func FromEnv() ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.updateFromEnvVar()
+	}
+}
+
+// WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
+// This is only useful with inProcess resolver type
+func WithCustomSyncProvider(customSyncProvider sync.ISync) ProviderOption {
+	return WithCustomSyncProviderAndUri(customSyncProvider, defaultCustomSyncProviderUri)
+}
+
+// WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
+// This is only useful with inProcess resolver type
+func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProviderUri string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.CustomSyncProvider = customSyncProvider
+		p.providerConfiguration.CustomSyncProviderUri = customSyncProviderUri
 	}
 }
