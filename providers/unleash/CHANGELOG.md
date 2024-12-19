@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.0.4-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.3-alpha...providers/unleash/v0.0.4-alpha) (2024-12-19)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.11.0 ([#501](https://github.com/open-feature/go-sdk-contrib/issues/501)) ([3f0eaa5](https://github.com/open-feature/go-sdk-contrib/commit/3f0eaa575500baa663dc24dbfc6cf8214565471f))
+* **deps:** update module github.com/stretchr/testify to v1.9.0 ([#470](https://github.com/open-feature/go-sdk-contrib/issues/470)) ([5263567](https://github.com/open-feature/go-sdk-contrib/commit/52635679b633e01e23196885a4a98d3cecbc8822))
+* float evaluation ([#465](https://github.com/open-feature/go-sdk-contrib/issues/465)) ([f631417](https://github.com/open-feature/go-sdk-contrib/commit/f631417d3b545c075253d7b83ccd20366bcdd833))
+
+
+### ✨ New Features
+
+* Add Statsig provider ([#445](https://github.com/open-feature/go-sdk-contrib/issues/445)) ([409a06f](https://github.com/open-feature/go-sdk-contrib/commit/409a06fcf0157469495cf759692f333ae9d808f6))
+
+
+### 🧹 Chore
+
+* add license to module ([#554](https://github.com/open-feature/go-sdk-contrib/issues/554)) ([abb7657](https://github.com/open-feature/go-sdk-contrib/commit/abb76571c373582f36837587400104eb754c01b9))
+* bump Go to version 1.21 ([#452](https://github.com/open-feature/go-sdk-contrib/issues/452)) ([7ec90ce](https://github.com/open-feature/go-sdk-contrib/commit/7ec90ce4f9b06670187561afd9e342eed4228be1))
+
 ## [0.0.3-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.2-alpha...providers/unleash/v0.0.3-alpha) (2024-01-08)
 
 
