@@ -51,6 +51,8 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/open-feature/go-sdk v1.12.0 h1:V0MAG3lC9o7Pmq0gxlqtKpoasDTm3to9vuvZKyUhhPk=
 github.com/open-feature/go-sdk v1.12.0/go.mod h1:UDNuwVrwY5FRHIluVRYzvxuS3nBkhjE6o4tlwFuHxiI=
+github.com/open-feature/go-sdk v1.14.0 h1:+B+Z94QS4HXPAn6OnaWWjMNAJkHlh6pIqW2Y1194yF8=
+github.com/open-feature/go-sdk v1.14.0/go.mod h1:t337k0VB/t/YxJ9S0prT30ISUHwYmUd/jhUZgFcOvGg=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
