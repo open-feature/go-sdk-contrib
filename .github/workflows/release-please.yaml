@@ -9,12 +9,13 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: google-github-actions/release-please-action@v3
+      - uses: googleapis/release-please-action@v3
         id: release
         with:
           command: manifest
           token: ${{secrets.GITHUB_TOKEN}}
           default-branch: main
+          signoff: "OpenFeature Bot <109696520+openfeaturebot@users.noreply.github.com>"
     outputs:
       all: ${{ toJSON(steps.release.outputs) }}
       releases_created: ${{ steps.release.outputs.releases_created }}
@@ -41,22 +42,6 @@ jobs:
         with:
           version: v1
           args: mod -licenses -json -output bom.json ${{ matrix.release }}
-      # Create licenses artifacts
-      - name: Setup workspace
-        run: make workspace-init
-      - name: Install go-licenses
-        run: go install github.com/google/go-licenses@latest
-      - name: Define license extraction locations
-        id: license-files
-        run: |
-          echo "LICENSE_FOLDER=third-party-license" >> $GITHUB_OUTPUT
-          echo "LICENSE_ARCHIVE=third-party-license.tar.gz" >> $GITHUB_OUTPUT
-          echo "LICENSE_ERROR_FILE=license-errors.txt" >> $GITHUB_OUTPUT
-      - name: Run go-licenses for module ${{ matrix.release }}
-        run: go-licenses save ./${{ matrix.release }}/... --save_path=./${{ steps.license-files.outputs.LICENSE_FOLDER }} --force --logtostderr=false 2> ./${{ steps.license-files.outputs.LICENSE_ERROR_FILE }}
-        continue-on-error: true # ignore errors which can be referred through error artefact
-      - name: Archive license extracts
-        run: tar czf ./${{ steps.license-files.outputs.LICENSE_ARCHIVE }} ./${{ steps.license-files.outputs.LICENSE_FOLDER }}
       # Bundle extra assets to release
       - name: Bundle release assets
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
@@ -64,5 +49,3 @@ jobs:
           tag_name: ${{ env.TAG }}
           files: |
             bom.json
-            ./${{ steps.license-files.outputs.LICENSE_ARCHIVE }}
-            ./${{ steps.license-files.outputs.LICENSE_ERROR_FILE }}
