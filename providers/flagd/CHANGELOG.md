@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.3...providers/flagd/v0.2.4) (2025-01-03)
+
+
+### ✨ New Features
+
+* Support supplying a custom sync provider for in-process flagd ([#598](https://github.com/open-feature/go-sdk-contrib/issues/598)) ([bfa642a](https://github.com/open-feature/go-sdk-contrib/commit/bfa642ad3e0726c2e01ad623312d582b0511e100))
+
 ## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.2...providers/flagd/v0.2.3) (2024-10-29)
 
 
