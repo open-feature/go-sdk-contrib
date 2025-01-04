@@ -39,23 +39,28 @@ func TestBooleanEvaluation(t *testing.T) {
 }
 
 func TestIntEvaluation(t *testing.T) {
-	resolution := provider.BooleanEvaluation(context.Background(), "int-flag", false, nil)
+	defaultValue := int64(0)
+	expectedValue := int64(123)
+	resolution := provider.IntEvaluation(context.Background(), "int-flag", defaultValue, nil)
 	enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
 	if !enabled {
 		t.Fatalf("Expected feature to be enabled")
 	}
-	if !resolution.Value {
+	if resolution.ProviderResolutionDetail.Variant != "aaaa" {
+		t.Fatalf("Expected variant name")
+	}
+	if resolution.Value != expectedValue {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
 	t.Run("evalCtx empty", func(t *testing.T) {
-		resolution := provider.BooleanEvaluation(context.Background(), "non-existing-flag", false, nil)
-		require.Equal(t, false, resolution.Value)
+		resolution := provider.IntEvaluation(context.Background(), "non-existing-flag", defaultValue, nil)
+		require.Equal(t, defaultValue, resolution.Value)
 	})
 
 	t.Run("evalCtx empty fallback to default", func(t *testing.T) {
-		resolution := provider.BooleanEvaluation(context.Background(), "non-existing-flag", true, nil)
-		require.Equal(t, true, resolution.Value)
+		resolution := provider.IntEvaluation(context.Background(), "non-existing-flag", defaultValue, nil)
+		require.Equal(t, defaultValue, resolution.Value)
 	})
 }
 
@@ -167,6 +172,7 @@ func TestEvaluationMethods(t *testing.T) {
 		{flag: "DateExample", defaultValue: false, evalCtx: of.FlattenedContext{}, expected: true, expectedError: ""},
 		{flag: "variant-flag", defaultValue: false, evalCtx: of.FlattenedContext{}, expected: true, expectedError: ""},
 		{flag: "double-flag", defaultValue: 9.9, evalCtx: of.FlattenedContext{}, expected: 1.23, expectedError: ""},
+		{flag: "int-flag", defaultValue: int64(1), evalCtx: of.FlattenedContext{}, expected: int64(123), expectedError: ""},
 		{flag: "variant-flag", defaultValue: "fallback", evalCtx: of.FlattenedContext{}, expected: "v1", expectedError: ""},
 		{flag: "json-flag", defaultValue: "fallback", evalCtx: of.FlattenedContext{}, expected: "{\n  \"k1\": \"v1\"\n}", expectedError: ""},
 		{flag: "csv-flag", defaultValue: "fallback", evalCtx: of.FlattenedContext{}, expected: "a,b,c", expectedError: ""},
