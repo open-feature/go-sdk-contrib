@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.4-alpha...providers/unleash/v0.0.5-alpha) (2025-01-06)
+
+
+### 🐛 Bug Fixes
+
+* IntEvaluation when cannot be parsed ([#607](https://github.com/open-feature/go-sdk-contrib/issues/607)) ([9343d2d](https://github.com/open-feature/go-sdk-contrib/commit/9343d2d60b6c70ac4d9cb9e8d0d84928bad2ad5a))
+
 ## [0.0.4-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.3-alpha...providers/unleash/v0.0.4-alpha) (2024-12-19)
 
 
