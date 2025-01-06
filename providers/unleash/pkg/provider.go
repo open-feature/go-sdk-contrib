@@ -120,16 +120,28 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 		Value: defaultValue,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:          of.ErrorReason,
-			ResolutionError: of.NewFlagNotFoundResolutionError(fmt.Sprintf("FloatEvaluation type error for %s", flag)),
+			ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("FloatEvaluation type error for %s", flag)),
 		},
 	}
 }
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+	if strValue, ok := res.Value.(string); ok {
+		value, err := strconv.ParseInt(strValue, 10, 64)
+		if err == nil {
+			return of.IntResolutionDetail{
+				Value:                    value,
+				ProviderResolutionDetail: res.ProviderResolutionDetail,
+			}
+		}
+	}
 	return of.IntResolutionDetail{
-		Value:                    res.Value.(int64),
-		ProviderResolutionDetail: res.ProviderResolutionDetail,
+		Value: defaultValue,
+		ProviderResolutionDetail: of.ProviderResolutionDetail{
+			Reason:          of.ErrorReason,
+			ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("IntEvaluation type error for %s", flag)),
+		},
 	}
 }
 
