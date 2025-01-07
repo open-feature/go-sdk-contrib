@@ -123,7 +123,7 @@
           ],
           "variants": [
               {
-                  "name": "aaaa",
+                  "name": "int-flag-variant",
                   "weight": 1000,
                   "payload": {
                       "type": "number",
@@ -148,7 +148,7 @@
           ],
           "variants": [
               {
-                  "name": "aaaa",
+                  "name": "double-flag-variant",
                   "weight": 1000,
                   "payload": {
                       "type": "number",
@@ -157,6 +157,21 @@
                   "overrides": [],
                   "weightType": "variable",
                   "stickiness": "default"
+              }
+          ]
+      },
+      {
+          "name": "disabled-flag",
+          "type": "release",
+          "enabled": false,
+          "variants": [
+              {
+                  "name": "disabled-flag-variant",
+                  "weight": 1000,
+                  "payload": {
+                      "type": "string",
+                      "value": "disabled flag variant value"
+                  }
               }
           ]
       },
