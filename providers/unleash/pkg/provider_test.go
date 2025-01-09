@@ -40,27 +40,63 @@ func TestBooleanEvaluation(t *testing.T) {
 
 func TestIntEvaluation(t *testing.T) {
 	defaultValue := int64(0)
-	expectedValue := int64(123)
-	resolution := provider.IntEvaluation(context.Background(), "int-flag", defaultValue, nil)
-	enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
-	if !enabled {
-		t.Fatalf("Expected feature to be enabled")
-	}
-	if resolution.ProviderResolutionDetail.Variant != "aaaa" {
-		t.Fatalf("Expected variant name")
-	}
-	if resolution.Value != expectedValue {
-		t.Fatalf("Expected one of the variant payloads")
-	}
 
-	t.Run("evalCtx empty", func(t *testing.T) {
-		resolution := provider.IntEvaluation(context.Background(), "non-existing-flag", defaultValue, nil)
-		require.Equal(t, defaultValue, resolution.Value)
+	t.Run("int-flag", func(t *testing.T) {
+		resolution := provider.IntEvaluation(context.Background(), "int-flag", defaultValue, nil)
+		enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
+		require.True(t, enabled)
+		require.Equal(t, "int-flag-variant", resolution.ProviderResolutionDetail.Variant)
+		require.Equal(t, int64(123), resolution.Value)
+		require.Equal(t, of.ErrorCode(""), resolution.ResolutionDetail().ErrorCode)
 	})
 
-	t.Run("evalCtx empty fallback to default", func(t *testing.T) {
-		resolution := provider.IntEvaluation(context.Background(), "non-existing-flag", defaultValue, nil)
+	t.Run("disabled-flag", func(t *testing.T) {
+		resolution := provider.IntEvaluation(context.Background(), "disabled-flag", defaultValue, nil)
+		enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
+		require.False(t, enabled)
+		require.Equal(t, "", resolution.ProviderResolutionDetail.Variant)
 		require.Equal(t, defaultValue, resolution.Value)
+		require.Equal(t, of.ErrorCode(""), resolution.ResolutionDetail().ErrorCode)
+	})
+
+	t.Run("non-existing-flag", func(t *testing.T) {
+		resolution := provider.IntEvaluation(context.Background(), "non-existing-flag", defaultValue, nil)
+		enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
+		require.False(t, enabled)
+		require.Equal(t, "", resolution.ProviderResolutionDetail.Variant)
+		require.Equal(t, defaultValue, resolution.Value)
+		require.Equal(t, of.ErrorCode(""), resolution.ResolutionDetail().ErrorCode)
+	})
+}
+
+func TestFloatEvaluation(t *testing.T) {
+	defaultValue := 0.0
+
+	t.Run("int-flag", func(t *testing.T) {
+		resolution := provider.FloatEvaluation(context.Background(), "double-flag", defaultValue, nil)
+		enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
+		require.True(t, enabled)
+		require.Equal(t, "double-flag-variant", resolution.ProviderResolutionDetail.Variant)
+		require.Equal(t, 1.23, resolution.Value)
+		require.Equal(t, of.ErrorCode(""), resolution.ResolutionDetail().ErrorCode)
+	})
+
+	t.Run("disabled-flag", func(t *testing.T) {
+		resolution := provider.FloatEvaluation(context.Background(), "disabled-flag", defaultValue, nil)
+		enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
+		require.False(t, enabled)
+		require.Equal(t, "", resolution.ProviderResolutionDetail.Variant)
+		require.Equal(t, defaultValue, resolution.Value)
+		require.Equal(t, of.ErrorCode(""), resolution.ResolutionDetail().ErrorCode)
+	})
+
+	t.Run("non-existing-flag", func(t *testing.T) {
+		resolution := provider.FloatEvaluation(context.Background(), "non-existing-flag", defaultValue, nil)
+		enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
+		require.False(t, enabled)
+		require.Equal(t, "", resolution.ProviderResolutionDetail.Variant)
+		require.Equal(t, defaultValue, resolution.Value)
+		require.Equal(t, of.ErrorCode(""), resolution.ResolutionDetail().ErrorCode)
 	})
 }
 
@@ -228,13 +264,17 @@ func TestMain(m *testing.M) {
 	}
 	defer demoReader.Close()
 
+	appName := "my-application"
+	backupFile := fmt.Sprintf("unleash-repo-schema-v1-%s.json", appName)
+
 	providerOptions := unleashProvider.ProviderConfig{
 		Options: []unleash.ConfigOption{
 			unleash.WithListener(&unleash.DebugListener{}),
-			unleash.WithAppName("my-application"),
+			unleash.WithAppName(appName),
 			unleash.WithRefreshInterval(5 * time.Second),
 			unleash.WithMetricsInterval(5 * time.Second),
 			unleash.WithStorage(&unleash.BootstrapStorage{Reader: demoReader}),
+			unleash.WithBackupPath("./"),
 			unleash.WithUrl("https://localhost:4242"),
 		},
 	}
@@ -258,5 +298,6 @@ func TestMain(m *testing.M) {
 
 	cleanup()
 
+	os.Remove(backupFile)
 	os.Exit(exitCode)
 }

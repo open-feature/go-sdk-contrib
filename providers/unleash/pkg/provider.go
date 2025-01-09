@@ -107,6 +107,14 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 
 func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+
+	if value, ok := res.Value.(float64); ok {
+		return of.FloatResolutionDetail{
+			Value:                    value,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
 	if strValue, ok := res.Value.(string); ok {
 		value, err := strconv.ParseFloat(strValue, 64)
 		if err == nil {
@@ -127,6 +135,14 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := p.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
+
+	if value, ok := res.Value.(int64); ok {
+		return of.IntResolutionDetail{
+			Value:                    value,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
 	if strValue, ok := res.Value.(string); ok {
 		value, err := strconv.ParseInt(strValue, 10, 64)
 		if err == nil {
