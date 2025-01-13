@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.5-alpha...providers/unleash/v0.0.6-alpha) (2025-01-13)
+
+
+### 🐛 Bug Fixes
+
+* IntEvalution, FloatEvalution when disabled or missing flags ([#610](https://github.com/open-feature/go-sdk-contrib/issues/610)) ([4077d5a](https://github.com/open-feature/go-sdk-contrib/commit/4077d5aa048ab0978747dbf0b47a563090ba58a0))
+
 ## [0.0.5-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.4-alpha...providers/unleash/v0.0.5-alpha) (2025-01-06)
 
 
