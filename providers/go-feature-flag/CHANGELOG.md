@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.1...providers/go-feature-flag/v0.2.2) (2025-01-13)
+
+
+### 📚 Documentation
+
+* **GOFF:** update examples in the readme ([#612](https://github.com/open-feature/go-sdk-contrib/issues/612)) ([f6bd743](https://github.com/open-feature/go-sdk-contrib/commit/f6bd743cdbc183e750e451da3d8d919cdaac78fb))
+
 ## [0.2.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.0...providers/go-feature-flag/v0.2.1) (2024-09-10)
 
 
