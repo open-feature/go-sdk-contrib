@@ -62,6 +62,10 @@ type ProviderOptions struct {
 	// Use -1 if you want to deactivate polling.
 	// default: 120000ms
 	FlagChangePollingInterval time.Duration
+
+	// GOFeatureFlagMetadata (optional) is the metadata we send to the GO Feature Flag relay proxy when we report the
+	// evaluation data usage.
+	GOFeatureFlagMetadata map[string]interface{}
 }
 
 func (o *ProviderOptions) Validation() error {

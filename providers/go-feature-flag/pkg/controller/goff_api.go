@@ -22,6 +22,8 @@ type GoFeatureFlagApiOptions struct {
 	// (This feature is available only if you are using GO Feature Flag relay proxy v1.7.0 or above)
 	// Default: null
 	APIKey string
+	// Metadata (optional) If we set metadata, it will be sent with every data collection requests along with the events.
+	Metadata map[string]interface{}
 }
 
 type GoFeatureFlagAPI struct {
@@ -39,9 +41,10 @@ func NewGoFeatureFlagAPI(options GoFeatureFlagApiOptions) GoFeatureFlagAPI {
 func (g *GoFeatureFlagAPI) CollectData(events []model.FeatureEvent) error {
 	u, _ := url.Parse(g.options.Endpoint)
 	u.Path = path.Join(u.Path, "v1", "data", "collector")
+
 	reqBody := model.DataCollectorRequest{
 		Events: events,
-		Meta:   map[string]string{"provider": "go", "openfeature": "true"},
+		Meta:   g.options.Metadata,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
