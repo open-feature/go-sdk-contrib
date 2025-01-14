@@ -55,17 +55,17 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	cacheCtrl := controller.NewCache(options.FlagCacheSize, options.FlagCacheTTL, options.DisableCache)
 
 	// Adding metadata to the GO Feature Flag provider to be sent to the exporter
-	if options.GOFeatureFlagMetadata == nil {
-		options.GOFeatureFlagMetadata = make(map[string]interface{})
+	if options.ExporterMetadata == nil {
+		options.ExporterMetadata = make(map[string]interface{})
 	}
-	options.GOFeatureFlagMetadata["provider"] = "go"
-	options.GOFeatureFlagMetadata["openfeature"] = true
+	options.ExporterMetadata["provider"] = "go"
+	options.ExporterMetadata["openfeature"] = true
 
 	goffAPI := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
-		Endpoint:   options.Endpoint,
-		HTTPClient: options.HTTPClient,
-		APIKey:     options.APIKey,
-		Metadata:   options.GOFeatureFlagMetadata,
+		Endpoint:         options.Endpoint,
+		HTTPClient:       options.HTTPClient,
+		APIKey:           options.APIKey,
+		ExporterMetadata: options.ExporterMetadata,
 	})
 	dataCollectorManager := controller.NewDataCollectorManager(
 		goffAPI,

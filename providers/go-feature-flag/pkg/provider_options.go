@@ -63,9 +63,12 @@ type ProviderOptions struct {
 	// default: 120000ms
 	FlagChangePollingInterval time.Duration
 
-	// GOFeatureFlagMetadata (optional) is the metadata we send to the GO Feature Flag relay proxy when we report the
+	// ExporterMetadata (optional) is the metadata we send to the GO Feature Flag relay proxy when we report the
 	// evaluation data usage.
-	GOFeatureFlagMetadata map[string]interface{}
+	//
+	// ‼️Important: If you are using a GO Feature Flag relay proxy before version v1.41.0, the information of this
+	// field will not be added to your feature events.
+	ExporterMetadata map[string]interface{}
 }
 
 func (o *ProviderOptions) Validation() error {

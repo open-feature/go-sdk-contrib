@@ -982,12 +982,12 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 	t.Run("DataCollectorHook is called for success and call API", func(t *testing.T) {
 		cli := mockClient{}
 		options := gofeatureflag.ProviderOptions{
-			Endpoint:              "https://gofeatureflag.org/",
-			HTTPClient:            NewMockClient(cli.roundTripFunc),
-			DisableCache:          false,
-			DataFlushInterval:     100 * time.Millisecond,
-			DisableDataCollector:  false,
-			GOFeatureFlagMetadata: map[string]interface{}{"toto": 123, "tata": "titi"},
+			Endpoint:             "https://gofeatureflag.org/",
+			HTTPClient:           NewMockClient(cli.roundTripFunc),
+			DisableCache:         false,
+			DataFlushInterval:    100 * time.Millisecond,
+			DisableDataCollector: false,
+			ExporterMetadata:     map[string]interface{}{"toto": 123, "tata": "titi"},
 		}
 		provider, err := gofeatureflag.NewProvider(options)
 		defer provider.Shutdown()

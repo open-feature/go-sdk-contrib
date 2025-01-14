@@ -28,9 +28,9 @@ func Test_CollectDataAPI(t *testing.T) {
 			name:    "Valid api call",
 			wantErr: assert.NoError,
 			options: controller.GoFeatureFlagApiOptions{
-				Endpoint: "http://localhost:1031",
-				APIKey:   "",
-				Metadata: map[string]interface{}{"openfeature": true, "provider": "go"},
+				Endpoint:         "http://localhost:1031",
+				APIKey:           "",
+				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
 				{
@@ -75,9 +75,9 @@ func Test_CollectDataAPI(t *testing.T) {
 			name:    "Valid api call with API Key",
 			wantErr: assert.NoError,
 			options: controller.GoFeatureFlagApiOptions{
-				Endpoint: "http://localhost:1031",
-				APIKey:   "my-key",
-				Metadata: map[string]interface{}{"openfeature": true, "provider": "go"},
+				Endpoint:         "http://localhost:1031",
+				APIKey:           "my-key",
+				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
 				{
