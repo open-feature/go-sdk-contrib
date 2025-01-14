@@ -70,15 +70,15 @@ This code block explain how you can create an `EvaluationContext` and use it to 
 
 ```go
 evaluationCtx := of.NewEvaluationContext(
-    "1d1b9238-2591-4a47-94cf-d2bc080892f1",
-    map[string]interface{}{
-      "firstname", "john",
-      "lastname", "doe",
-      "email", "john.doe@gofeatureflag.org",
-      "admin", true,
-      "anonymous", false,
-    })
-adminFlag, _ := client.BoolValue(context.TODO(), "flag-only-for-admin", false, evaluationCtx)
+	"1d1b9238-2591-4a47-94cf-d2bc080892f1",
+	map[string]interface{}{
+		"firstname": "john",
+		"lastname":  "doe",
+		"email":     "john.doe@gofeatureflag.org",
+		"admin":     true,
+		"anonymous": false,
+	})
+adminFlag, _ := client.BooleanValue(context.TODO(), "flag-only-for-admin", false, evaluationCtx)
 if adminFlag {
    // flag "flag-only-for-admin" is true for the user
 } else {
