@@ -62,6 +62,13 @@ type ProviderOptions struct {
 	// Use -1 if you want to deactivate polling.
 	// default: 120000ms
 	FlagChangePollingInterval time.Duration
+
+	// ExporterMetadata (optional) is the metadata we send to the GO Feature Flag relay proxy when we report the
+	// evaluation data usage.
+	//
+	// ‼️Important: If you are using a GO Feature Flag relay proxy before version v1.41.0, the information of this
+	// field will not be added to your feature events.
+	ExporterMetadata map[string]interface{}
 }
 
 func (o *ProviderOptions) Validation() error {
