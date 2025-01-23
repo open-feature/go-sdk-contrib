@@ -28,8 +28,9 @@ func Test_CollectDataAPI(t *testing.T) {
 			name:    "Valid api call",
 			wantErr: assert.NoError,
 			options: controller.GoFeatureFlagApiOptions{
-				Endpoint: "http://localhost:1031",
-				APIKey:   "",
+				Endpoint:         "http://localhost:1031",
+				APIKey:           "",
+				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
 				{
@@ -68,14 +69,15 @@ func Test_CollectDataAPI(t *testing.T) {
 				headers.Set(controller.ContentTypeHeader, controller.ApplicationJson)
 				return headers
 			}(),
-			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":\"true\",\"provider\":\"go\"}}",
+			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
 		},
 		{
 			name:    "Valid api call with API Key",
 			wantErr: assert.NoError,
 			options: controller.GoFeatureFlagApiOptions{
-				Endpoint: "http://localhost:1031",
-				APIKey:   "my-key",
+				Endpoint:         "http://localhost:1031",
+				APIKey:           "my-key",
+				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
 				{
@@ -115,7 +117,7 @@ func Test_CollectDataAPI(t *testing.T) {
 				headers.Set(controller.AuthorizationHeader, controller.BearerPrefix+"my-key")
 				return headers
 			}(),
-			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":\"true\",\"provider\":\"go\"}}",
+			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
 		},
 		{
 			name:    "Request failed",
