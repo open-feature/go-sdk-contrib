@@ -1013,6 +1013,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 		// convert cli.collectorRequests[0] to  DataCollectorRequest
 		var dataCollectorRequest model.DataCollectorRequest
 		err = json.Unmarshal([]byte(cli.collectorRequests[0]), &dataCollectorRequest)
+		assert.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{
 			"openfeature": true,
 			"provider":    "go",
