@@ -18,6 +18,8 @@ github.com/open-feature/go-sdk v1.11.0 h1:4cp9rXl16ZvlMCef7O+I3vQSXae8DzAF0SfV9m
 github.com/open-feature/go-sdk v1.11.0/go.mod h1:+rkJhLBtYsJ5PZNddAgFILhRAAxwrJ32aU7UEUm4zQI=
 github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.4 h1:BElq1EOES8DfLjW6UIFMNVG7w9MzoeC7JpD/1rXouhk=
 github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.4/go.mod h1:jrD4UG3ZCzuwImKHlyuIN2iWeYjlOX5+zJ/sX45efuE=
+github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.5 h1:ZdqlGnNwhWf3luhBQlIpbglvcCzjkcuEgOEhYhr5Emc=
+github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.5/go.mod h1:jrD4UG3ZCzuwImKHlyuIN2iWeYjlOX5+zJ/sX45efuE=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
