@@ -3,8 +3,10 @@ package gofeatureflag_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,11 +38,14 @@ type mockClient struct {
 	callCount           int
 	collectorCallCount  int
 	flagChangeCallCount int
+	collectorRequests   []string
 }
 
 func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 	if req.URL.Path == "/v1/data/collector" {
 		m.collectorCallCount++
+		bodyBytes, _ := io.ReadAll(req.Body)
+		m.collectorRequests = append(m.collectorRequests, string(bodyBytes))
 		return &http.Response{
 			StatusCode: http.StatusOK,
 		}
@@ -982,6 +987,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 			DisableCache:         false,
 			DataFlushInterval:    100 * time.Millisecond,
 			DisableDataCollector: false,
+			ExporterMetadata:     map[string]interface{}{"toto": 123, "tata": "titi"},
 		}
 		provider, err := gofeatureflag.NewProvider(options)
 		defer provider.Shutdown()
@@ -1003,6 +1009,17 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 		assert.Equal(t, 1, cli.callCount)
 		assert.Equal(t, 1, cli.collectorCallCount)
+
+		// convert cli.collectorRequests[0] to  DataCollectorRequest
+		var dataCollectorRequest model.DataCollectorRequest
+		err = json.Unmarshal([]byte(cli.collectorRequests[0]), &dataCollectorRequest)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{
+			"openfeature": true,
+			"provider":    "go",
+			"tata":        "titi",
+			"toto":        float64(123),
+		}, dataCollectorRequest.Meta)
 	})
 
 	t.Run("DataCollectorHook is called for errors and call API", func(t *testing.T) {

@@ -24,7 +24,7 @@ e2e-remove-helpers:
 	docker rm $(FLAGD_SYNC)
 
 e2e:
-	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -tags=e2e -v {}
+	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -tags=e2e {}
 
 lint: 
 	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.1
