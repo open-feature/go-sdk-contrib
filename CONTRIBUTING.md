@@ -5,7 +5,7 @@
 go 1.19+  is recommended.
 
 ## Setup workspace
- 
+
 Run the following command to set up the go workspace:
 
 ```shell
@@ -31,7 +31,7 @@ make MODULE_NAME=NAME new-provider
 
 To automatically create and set up a new hook directory, use the following command (requires [jq](https://jqlang.github.io/jq/)):
 
-```
+```shell
 make MODULE_NAME=NAME new-hook 
 ```
 
@@ -40,7 +40,7 @@ Note - [jq documentation](https://stedolan.github.io/jq/download/)
 ### Versioning
 
 The release version of the newly added module(hook/provider) is controlled by `.release-please-manifest.json`.
-You can control the versioning of your module by adding an entry with desired initial version(ex:`"provider/acme":"0.0.1"`). 
+You can control the versioning of your module by adding an entry with desired initial version(ex:`"provider/acme":"0.0.1"`).
 Otherwise, default versioning will start from `1.0.0`.
 
 ## Documentation
@@ -58,7 +58,7 @@ To run tests in all existing go modules, use the command:
 make test
 ```
 
-It is recommended to include end-to-end (e2e) tests in your provider when possible. 
+It is recommended to include end-to-end (e2e) tests in your provider when possible.
 If you have dependency services for your e2e tests, make sure to add them as service in the build pipeline.
 Also, make sure to include them in the makefile for easy use by contributors.
 
@@ -88,4 +88,3 @@ Merging the Release Please PR will create a GitHub release with updated library 
 ## Dependencies
 
 The [GO-SDK](https://github.com/open-feature/go-sdk) should be a _peer dependency_ of your module.
-
