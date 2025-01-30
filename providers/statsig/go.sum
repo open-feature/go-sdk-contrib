@@ -31,6 +31,8 @@ github.com/statsig-io/go-sdk v1.16.0 h1:lp6YTzafGeP2E/18LhkYTO2pGzG0vUUVAdod0Fwk
 github.com/statsig-io/go-sdk v1.16.0/go.mod h1:Pej0D6R75gTHj7FdS6pbXQ7ayF0HL1cwOgiz5zDNdyc=
 github.com/statsig-io/go-sdk v1.17.0 h1:9OHNYOv7oTgu3raG983jZoDQ4M9MepkSpf0LcDNn9rU=
 github.com/statsig-io/go-sdk v1.17.0/go.mod h1:Pej0D6R75gTHj7FdS6pbXQ7ayF0HL1cwOgiz5zDNdyc=
+github.com/statsig-io/go-sdk v1.32.1 h1:z0VjBSRuNzguNb+PK/4+8YsfcLClOxs3aZr2hUj4xm4=
+github.com/statsig-io/go-sdk v1.32.1/go.mod h1:Pej0D6R75gTHj7FdS6pbXQ7ayF0HL1cwOgiz5zDNdyc=
 github.com/statsig-io/ip3country-go v0.2.0 h1:4z4ovVCx7GnQAKJC753bjcOgxLQJFsrDdcCKda4I2U8=
 github.com/statsig-io/ip3country-go v0.2.0/go.mod h1:PKuA/VSpe4puBXw3BNGAHyP8IOZOiXAh/xIz+iYYoMQ=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
