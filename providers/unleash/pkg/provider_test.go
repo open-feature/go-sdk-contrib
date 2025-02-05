@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Unleash/unleash-client-go/v3"
+	"github.com/Unleash/unleash-client-go/v4"
 	unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"

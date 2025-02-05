@@ -3,13 +3,13 @@ module github.com/open-feature/go-sdk-contrib/providers/unleash
 go 1.21
 
 require (
-	github.com/Unleash/unleash-client-go/v3 v3.9.2
+	github.com/Unleash/unleash-client-go/v4 v4.1.4
 	github.com/open-feature/go-sdk v1.11.0
 	github.com/stretchr/testify v1.9.0
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.1 // indirect
+	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
