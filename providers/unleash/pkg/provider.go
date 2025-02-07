@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Unleash/unleash-client-go/v3"
-	"github.com/Unleash/unleash-client-go/v3/api"
-	unleashContext "github.com/Unleash/unleash-client-go/v3/context"
+	"github.com/Unleash/unleash-client-go/v4"
+	"github.com/Unleash/unleash-client-go/v4/api"
+	unleashContext "github.com/Unleash/unleash-client-go/v4/context"
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
