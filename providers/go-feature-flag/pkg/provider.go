@@ -79,6 +79,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		options:              options,
 		goffAPI:              goffAPI,
 		events:               make(chan of.Event, 5),
+		hooks:                []of.Hook{},
 	}, nil
 }
 
@@ -184,9 +185,10 @@ func (p *Provider) Hooks() []of.Hook {
 
 // Init holds initialization logic of the provider
 func (p *Provider) Init(_ of.EvaluationContext) error {
+	p.hooks = append(p.hooks, hook.NewEvaluationEnrichmentHook(p.options.ExporterMetadata))
 	if !p.options.DisableDataCollector {
 		dataCollectorHook := hook.NewDataCollectorHook(&p.dataCollectorManager)
-		p.hooks = []of.Hook{dataCollectorHook}
+		p.hooks = append(p.hooks, dataCollectorHook)
 		p.dataCollectorManager.Start()
 	}
 

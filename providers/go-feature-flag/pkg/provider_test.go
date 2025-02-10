@@ -39,12 +39,20 @@ type mockClient struct {
 	collectorCallCount  int
 	flagChangeCallCount int
 	collectorRequests   []string
+	requestBodies       []string
 }
 
 func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
+	//read req body and store it
+	var bodyBytes []byte
+	if req.Body != nil {
+		bodyBytes, _ = io.ReadAll(req.Body)
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		m.requestBodies = append(m.requestBodies, string(bodyBytes))
+	}
+
 	if req.URL.Path == "/v1/data/collector" {
 		m.collectorCallCount++
-		bodyBytes, _ := io.ReadAll(req.Body)
 		m.collectorRequests = append(m.collectorRequests, string(bodyBytes))
 		return &http.Response{
 			StatusCode: http.StatusOK,
@@ -1082,5 +1090,56 @@ func TestProvider_FlagChangePolling(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, of.TargetingMatchReason, details.Reason)
 	})
+}
 
+func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
+	tests := []struct {
+		name             string
+		want             string
+		evalCtx          of.EvaluationContext
+		exporterMetadata map[string]interface{}
+	}{
+		{
+			name:             "should add the metadata to the evaluation context",
+			exporterMetadata: map[string]interface{}{"toto": 123, "tata": "titi"},
+			evalCtx:          defaultEvaluationCtx(),
+			want:             `{"context":{"admin":true,"age":30,"anonymous":false,"company_info":{"name":"my_company","size":120},"email":"john.doe@gofeatureflag.org","firstname":"john","gofeatureflag":{"exporterMetadata":{"openfeature":true,"provider":"go","tata":"titi","toto":123}},"labels":["pro","beta"],"lastname":"doe","professional":true,"rate":3.14,"targetingKey":"d45e303a-38c2-11ed-a261-0242ac120002"}}`,
+		},
+		{
+			name:             "should have the default metadata if not provided",
+			exporterMetadata: nil,
+			evalCtx:          defaultEvaluationCtx(),
+			want:             `{"context":{"admin":true,"age":30,"anonymous":false,"company_info":{"name":"my_company","size":120},"email":"john.doe@gofeatureflag.org","firstname":"john","gofeatureflag":{"exporterMetadata":{"openfeature":true,"provider":"go"}},"labels":["pro","beta"],"lastname":"doe","professional":true,"rate":3.14,"targetingKey":"d45e303a-38c2-11ed-a261-0242ac120002"}}`,
+		},
+		{
+			name:             "should not remove other gofeatureflag specific metadata",
+			exporterMetadata: map[string]interface{}{"toto": 123, "tata": "titi"},
+			evalCtx:          of.NewEvaluationContext("d45e303a-38c2-11ed-a261-0242ac120002", map[string]interface{}{"age": 30, "gofeatureflag": map[string]interface{}{"flags": []string{"flag1", "flag2"}}}),
+			want:             `{"context":{"age":30,"gofeatureflag":{"flags":["flag1","flag2"], "exporterMetadata":{"openfeature":true,"provider":"go","tata":"titi","toto":123}}, "targetingKey":"d45e303a-38c2-11ed-a261-0242ac120002"}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := mockClient{}
+			options := gofeatureflag.ProviderOptions{
+				Endpoint:         "https://gofeatureflag.org/",
+				HTTPClient:       NewMockClient(cli.roundTripFunc),
+				ExporterMetadata: tt.exporterMetadata,
+			}
+			provider, err := gofeatureflag.NewProvider(options)
+			defer provider.Shutdown()
+			assert.NoError(t, err)
+			err = of.SetProviderAndWait(provider)
+			assert.NoError(t, err)
+			client := of.NewClient("test-app")
+
+			_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, tt.evalCtx)
+			assert.NoError(t, err)
+
+			want := tt.want
+			got := cli.requestBodies[0]
+			assert.JSONEq(t, want, got)
+		})
+	}
 }
