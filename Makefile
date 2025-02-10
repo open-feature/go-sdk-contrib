@@ -27,7 +27,7 @@ e2e:
 	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -tags=e2e {}
 
 lint: 
-	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.1
+	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4
 	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run --deadline=3m --timeout=3m $(module)/...;)
 
 new-provider:
