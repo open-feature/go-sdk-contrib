@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.2...providers/go-feature-flag/v0.2.3) (2025-02-10)
+
+
+### ✨ New Features
+
+* **gofeatureflag:** Support exporterMetadata in evaluation API ([#621](https://github.com/open-feature/go-sdk-contrib/issues/621)) ([ec4421e](https://github.com/open-feature/go-sdk-contrib/commit/ec4421ed6f54f9c06953664411863e24ea75b7fa))
+
 ## [0.2.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.1...providers/go-feature-flag/v0.2.2) (2025-01-23)
 
 
