@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.3...providers/flagd/v0.2.4) (2025-02-07)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module golang.org/x/net to v0.33.0 [security] ([#601](https://github.com/open-feature/go-sdk-contrib/issues/601)) ([947cd3f](https://github.com/open-feature/go-sdk-contrib/commit/947cd3f07c32ea91fd089340db55fd407a7072a5))
+
+
+### ✨ New Features
+
+* Support supplying a custom sync provider for in-process flagd ([#598](https://github.com/open-feature/go-sdk-contrib/issues/598)) ([bfa642a](https://github.com/open-feature/go-sdk-contrib/commit/bfa642ad3e0726c2e01ad623312d582b0511e100))
+
 ## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.2...providers/flagd/v0.2.3) (2024-10-29)
 
 

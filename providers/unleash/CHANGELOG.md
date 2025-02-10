@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.5-alpha...providers/unleash/v0.1.0-alpha) (2025-02-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* upgrade to Unlease Go Client v4 ([#620](https://github.com/open-feature/go-sdk-contrib/issues/620))
+
+### 🐛 Bug Fixes
+
+* IntEvalution, FloatEvalution when disabled or missing flags ([#610](https://github.com/open-feature/go-sdk-contrib/issues/610)) ([4077d5a](https://github.com/open-feature/go-sdk-contrib/commit/4077d5aa048ab0978747dbf0b47a563090ba58a0))
+
+
+### ✨ New Features
+
+* upgrade to Unlease Go Client v4 ([#620](https://github.com/open-feature/go-sdk-contrib/issues/620)) ([5f1e4f2](https://github.com/open-feature/go-sdk-contrib/commit/5f1e4f242de6b281a5f11bc75fd9bb8f6949cec6))
+
 ## [0.0.5-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.4-alpha...providers/unleash/v0.0.5-alpha) (2025-01-06)
 
 
@@ -33,7 +49,7 @@
 ### 🐛 Bug Fixes
 
 * **deps:** update module github.com/open-feature/go-sdk to v1.8.0 ([#329](https://github.com/open-feature/go-sdk-contrib/issues/329)) ([c99b527](https://github.com/open-feature/go-sdk-contrib/commit/c99b52728bad9dce52bfb78a08ae5f4eea83a397))
-* **deps:** update module github.com/unleash/unleash-client-go/v3 to v3.9.2 ([#368](https://github.com/open-feature/go-sdk-contrib/issues/368)) ([64ceb14](https://github.com/open-feature/go-sdk-contrib/commit/64ceb14a50ebe065106b83dde50269dce3ce4d25))
+* **deps:** update module github.com/unleash/unleash-client-go/v4 to v4.1.4 ([#368](https://github.com/open-feature/go-sdk-contrib/issues/368)) ([64ceb14](https://github.com/open-feature/go-sdk-contrib/commit/64ceb14a50ebe065106b83dde50269dce3ce4d25))
 
 
 ### ✨ New Features

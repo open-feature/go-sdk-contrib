@@ -131,6 +131,14 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
+    },
+    "providers/gcp": {
+      "release-type": "go",
+      "package-name": "providers/gcp",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
     }
   },
   "changelog-sections": [

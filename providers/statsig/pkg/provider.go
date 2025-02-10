@@ -251,7 +251,6 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			}
 		}
 		flagMetadata["GroupName"] = config.GroupName
-		flagMetadata["LogExposure"] = config.LogExposure
 		flagMetadata["Name"] = config.Name
 		flagMetadata["RuleID"] = config.RuleID
 	} else if featureConfig.FeatureConfigType == LAYER {

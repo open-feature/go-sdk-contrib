@@ -20,6 +20,9 @@ components:
   providers/from-env:
     - Kavindu-Dodan
     - toddbaert
+  providers/gcp:
+    - cupofcat
+    - tangenti
   providers/go-feature-flag:
     - thomaspoignant
   providers/launchdarkly:
