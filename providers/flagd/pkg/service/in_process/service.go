@@ -36,6 +36,7 @@ type Configuration struct {
 	Host                  any
 	Port                  any
 	TargetUri             string
+	ProviderID            string
 	Selector              string
 	TLSEnabled            bool
 	OfflineFlagSource     string
@@ -49,10 +50,12 @@ func NewInProcessService(cfg Configuration) *InProcess {
 	iSync, uri := makeSyncProvider(cfg, log)
 
 	// service specific metadata
-	var svcMetadata map[string]interface{}
+	svcMetadata := make(map[string]interface{})
 	if cfg.Selector != "" {
-		svcMetadata = make(map[string]interface{}, 1)
 		svcMetadata["scope"] = cfg.Selector
+	}
+	if cfg.ProviderID != "" {
+		svcMetadata["providerID"] = cfg.ProviderID
 	}
 
 	flagStore := store.NewFlags()
@@ -301,6 +304,7 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 		CredentialBuilder: &credentials.CredentialBuilder{},
 		Logger:            log,
 		Secure:            cfg.TLSEnabled,
+		ProviderID:        cfg.ProviderID,
 		Selector:          cfg.Selector,
 		URI:               uri,
 	}, uri

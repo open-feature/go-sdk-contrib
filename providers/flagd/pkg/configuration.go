@@ -35,6 +35,7 @@ const (
 	flagdMaxCacheSizeEnvironmentVariableName          = "FLAGD_MAX_CACHE_SIZE"
 	flagdMaxEventStreamRetriesEnvironmentVariableName = "FLAGD_MAX_EVENT_STREAM_RETRIES"
 	flagdResolverEnvironmentVariableName              = "FLAGD_RESOLVER"
+	flagdSourceProviderIDEnvironmentVariableName      = "FLAGD_SOURCE_PROVIDER_ID"
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
 	flagdTargetUriEnvironmentVariableName             = "FLAGD_TARGET_URI"
@@ -51,6 +52,7 @@ type providerConfiguration struct {
 	Port                             uint16
 	TargetUri                        string
 	Resolver                         ResolverType
+	ProviderID                       string
 	Selector                         string
 	SocketPath                       string
 	TLSEnabled                       bool
@@ -159,6 +161,10 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 
 	if offlinePath := os.Getenv(flagdOfflinePathEnvironmentVariableName); offlinePath != "" {
 		cfg.OfflineFlagSourcePath = offlinePath
+	}
+
+	if providerID := os.Getenv(flagdSourceProviderIDEnvironmentVariableName); providerID != "" {
+		cfg.ProviderID = providerID
 	}
 
 	if selector := os.Getenv(flagdSourceSelectorEnvironmentVariableName); selector != "" {
