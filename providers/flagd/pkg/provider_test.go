@@ -27,6 +27,8 @@ func TestNewProvider(t *testing.T) {
 		expectOtelIntercept         bool
 		expectSocketPath            string
 		expectTlsEnabled            bool
+		expectProviderID            string
+		expectSelector              string
 		expectCustomSyncProvider    sync.ISync
 		expectCustomSyncProviderUri string
 		options                     []ProviderOption
@@ -171,6 +173,22 @@ func TestNewProvider(t *testing.T) {
 				WithCustomSyncProvider(customSyncProvider),
 			},
 		},
+		{
+			name:             "with selector and providerID with in-process resolver",
+			expectedResolver: inProcess,
+			expectHost:       defaultHost,
+			expectPort:       defaultInProcessPort,
+			expectCacheType:  defaultCache,
+			expectCacheSize:  defaultMaxCacheSize,
+			expectMaxRetries: defaultMaxEventStreamRetries,
+			expectProviderID: "testProvider",
+			expectSelector:   "flags=test",
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithSelector("flags=test"),
+				WithProviderID("testProvider"),
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -227,6 +245,16 @@ func TestNewProvider(t *testing.T) {
 			if config.TargetUri != test.expectTargetUri {
 				t.Errorf("incorrect configuration TargetUri, expected %v, got %v",
 					test.expectTargetUri, config.TargetUri)
+			}
+
+			if config.Selector != test.expectSelector {
+				t.Errorf("incorrect configuration Selector, expected %v, got %v",
+					test.expectSelector, config.Selector)
+			}
+
+			if config.ProviderID != test.expectProviderID {
+				t.Errorf("incorrect configuration ProviderID, expected %v, got %v",
+					test.expectProviderID, config.ProviderID)
 			}
 
 			if config.CustomSyncProvider != test.expectCustomSyncProvider {
