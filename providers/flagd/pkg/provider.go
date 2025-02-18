@@ -80,6 +80,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		service = process.NewInProcessService(process.Configuration{
 			Host:                  provider.providerConfiguration.Host,
 			Port:                  provider.providerConfiguration.Port,
+			ProviderID:            provider.providerConfiguration.ProviderID,
 			Selector:              provider.providerConfiguration.Selector,
 			TargetUri:             provider.providerConfiguration.TargetUri,
 			TLSEnabled:            provider.providerConfiguration.TLSEnabled,
@@ -324,6 +325,13 @@ func WithOfflineFilePath(path string) ProviderOption {
 func WithSelector(selector string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.Selector = selector
+	}
+}
+
+// WithProviderID sets the providerID to be used for InProcess flag sync calls
+func WithProviderID(providerID string) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.ProviderID = providerID
 	}
 }
 

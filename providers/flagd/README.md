@@ -103,6 +103,8 @@ Configuration can be provided as constructor options or as environment variables
 | WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | rpc                 |
 | WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
 | WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | in-process          |
+| WithProviderID                                           | FLAGD_SOURCE_PROVIDER_ID       | string                      | ""        | in-process          |
+| WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          | 
 
 ### Overriding behavior
 
@@ -158,9 +160,10 @@ For general information on events, see the [official documentation](https://open
 
 The flagd provider currently support following flag evaluation metadata,
 
-| Field   | Type   | Value                                             |
-|---------|--------|---------------------------------------------------|
-| `scope` | string | "selector" set for the associated source in flagd |
+| Field        | Type   | Value                                               |
+|--------------|--------|-----------------------------------------------------|
+| `scope`      | string | "selector" set for the associated source in flagd   |
+| `providerID` | string | "providerID" set for the associated source in flagd |
 
 ## Logging
 
