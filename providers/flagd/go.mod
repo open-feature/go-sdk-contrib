@@ -6,8 +6,8 @@ toolchain go1.23.4
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.17.0-20240906125204-0a6a901b42e8.1
-	buf.build/gen/go/open-feature/flagd/grpc/go v1.5.1-20240906125204-0a6a901b42e8.1
-	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.35.1-20240906125204-0a6a901b42e8.1
+	buf.build/gen/go/open-feature/flagd/grpc/go v1.5.1-20250127221518-be6d1143b690.2
+	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.1-20250127221518-be6d1143b690.1
 	connectrpc.com/connect v1.17.0
 	connectrpc.com/otelconnect v0.7.1
 	github.com/cucumber/godog v0.14.1
@@ -21,7 +21,7 @@ require (
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 	golang.org/x/net v0.33.0
 	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.36.1
 	sigs.k8s.io/controller-runtime v0.19.0
 )
 
