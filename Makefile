@@ -26,16 +26,16 @@ e2e-remove-helpers:
 e2e:
 	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -tags=e2e {}
 
-lint: 
-	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.1
-	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run --deadline=3m --timeout=3m $(module)/...;)
+lint:
+	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
+	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run $(module)/...;)
 
 new-provider:
 	mkdir ./providers/$(MODULE_NAME)
 	cd ./providers/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/providers/$(MODULE_NAME) && touch README.md
 	$(MAKE) append-to-release-please MODULE_TYPE=providers MODULE_NAME=$(MODULE_NAME)
 
-new-hook: 
+new-hook:
 	mkdir ./hooks/$(MODULE_NAME)
 	cd ./hooks/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/hooks/$(MODULE_NAME) && touch README.md
 	$(MAKE) append-to-release-please MODULE_TYPE=hooks MODULE_NAME=$(MODULE_NAME)
