@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.4...providers/flagd/v0.2.5) (2025-02-18)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/cucumber/godog to v0.15.0 ([#632](https://github.com/open-feature/go-sdk-contrib/issues/632)) ([210e397](https://github.com/open-feature/go-sdk-contrib/commit/210e3970e676d5144e50e1dc602b55d198bbddfa))
+
+
+### ✨ New Features
+
+* **flagd:** Support supplying providerID for in-process resolver as an option ([#626](https://github.com/open-feature/go-sdk-contrib/issues/626)) ([2d35083](https://github.com/open-feature/go-sdk-contrib/commit/2d35083b2491692816f42653d86bbebd31648d1c))
+
+
+### 🧹 Chore
+
+* **flagd:** Updates flagd core to v.0.11.1, taking care of breaking changes ([#627](https://github.com/open-feature/go-sdk-contrib/issues/627)) ([e3d5fc7](https://github.com/open-feature/go-sdk-contrib/commit/e3d5fc79491f21f6d99f500b63dfe22a119a7657))
+
 ## [0.2.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.3...providers/flagd/v0.2.4) (2025-02-07)
 
 
