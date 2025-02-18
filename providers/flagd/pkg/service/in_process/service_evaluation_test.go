@@ -3,12 +3,13 @@ package process
 import (
 	"context"
 	"errors"
+	"strings"
+	"testing"
+
 	"github.com/open-feature/flagd/core/pkg/evaluator"
 	"github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk/openfeature"
-	"strings"
-	"testing"
 )
 
 // Tests below use a mock evaluator to test correct wiring of responses
@@ -331,27 +332,27 @@ type MockEvaluator struct {
 	value    interface{}
 	variant  string
 	reason   string
-	metadata map[string]interface{}
+	metadata model.Metadata
 	err      error
 }
 
-func (m MockEvaluator) ResolveBooleanValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value bool, variant string, reason string, metadata map[string]interface{}, err error) {
+func (m MockEvaluator) ResolveBooleanValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value bool, variant string, reason string, metadata model.Metadata, err error) {
 	return m.value.(bool), m.variant, m.reason, m.metadata, m.err
 }
 
-func (m MockEvaluator) ResolveStringValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value string, variant string, reason string, metadata map[string]interface{}, err error) {
+func (m MockEvaluator) ResolveStringValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value string, variant string, reason string, metadata model.Metadata, err error) {
 	return m.value.(string), m.variant, m.reason, m.metadata, m.err
 }
 
-func (m MockEvaluator) ResolveIntValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value int64, variant string, reason string, metadata map[string]interface{}, err error) {
+func (m MockEvaluator) ResolveIntValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value int64, variant string, reason string, metadata model.Metadata, err error) {
 	return m.value.(int64), m.variant, m.reason, m.metadata, m.err
 }
 
-func (m MockEvaluator) ResolveFloatValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value float64, variant string, reason string, metadata map[string]interface{}, err error) {
+func (m MockEvaluator) ResolveFloatValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value float64, variant string, reason string, metadata model.Metadata, err error) {
 	return m.value.(float64), m.variant, m.reason, m.metadata, m.err
 }
 
-func (m MockEvaluator) ResolveObjectValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value map[string]any, variant string, reason string, metadata map[string]interface{}, err error) {
+func (m MockEvaluator) ResolveObjectValue(ctx context.Context, reqID string, flagKey string, context map[string]any) (value map[string]any, variant string, reason string, metadata model.Metadata, err error) {
 	return m.value.(map[string]any), m.variant, m.reason, m.metadata, m.err
 }
 
@@ -365,9 +366,9 @@ func (m MockEvaluator) SetState(payload sync.DataSync) (map[string]interface{}, 
 	return make(map[string]interface{}), false, nil
 }
 
-func (m MockEvaluator) ResolveAllValues(ctx context.Context, reqID string, context map[string]any) ([]evaluator.AnyValue, error) {
+func (m MockEvaluator) ResolveAllValues(ctx context.Context, reqID string, context map[string]any) ([]evaluator.AnyValue, model.Metadata, error) {
 	// ignored
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (m MockEvaluator) ResolveAsAnyValue(ctx context.Context, reqID string, flagKey string, context map[string]any) evaluator.AnyValue {

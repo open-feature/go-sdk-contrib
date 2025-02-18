@@ -27,7 +27,7 @@ type InProcess struct {
 	events           chan of.Event
 	listenerShutdown chan interface{}
 	logger           *logger.Logger
-	serviceMetadata  map[string]interface{}
+	serviceMetadata  model.Metadata
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
 }
@@ -50,8 +50,9 @@ func NewInProcessService(cfg Configuration) *InProcess {
 	iSync, uri := makeSyncProvider(cfg, log)
 
 	// service specific metadata
-	svcMetadata := make(map[string]interface{})
+	var svcMetadata model.Metadata
 	if cfg.Selector != "" {
+		svcMetadata = make(model.Metadata, 1)
 		svcMetadata["scope"] = cfg.Selector
 	}
 	if cfg.ProviderID != "" {
@@ -267,7 +268,7 @@ func (i *InProcess) EventChannel() <-chan of.Event {
 	return i.events
 }
 
-func (i *InProcess) appendMetadata(evalMetadata map[string]interface{}) {
+func (i *InProcess) appendMetadata(evalMetadata model.Metadata) {
 	// For a nil slice, the number of iterations is 0
 	for k, v := range i.serviceMetadata {
 		evalMetadata[k] = v
