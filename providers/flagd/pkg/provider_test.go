@@ -1,6 +1,7 @@
 package flagd
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/open-feature/flagd/core/pkg/sync"
@@ -9,29 +10,36 @@ import (
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func TestNewProvider(t *testing.T) {
 	customSyncProvider := process.NewDoNothingCustomSyncProvider()
+	gRPCDialOptionOverride := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithAuthority("test-authority"),
+	}
 
 	tests := []struct {
-		name                        string
-		expectedResolver            ResolverType
-		expectPort                  uint16
-		expectHost                  string
-		expectTargetUri             string
-		expectCacheType             cache.Type
-		expectCertPath              string
-		expectMaxRetries            int
-		expectCacheSize             int
-		expectOtelIntercept         bool
-		expectSocketPath            string
-		expectTlsEnabled            bool
-		expectProviderID            string
-		expectSelector              string
-		expectCustomSyncProvider    sync.ISync
-		expectCustomSyncProviderUri string
-		options                     []ProviderOption
+		name                          string
+		expectedResolver              ResolverType
+		expectPort                    uint16
+		expectHost                    string
+		expectTargetUri               string
+		expectCacheType               cache.Type
+		expectCertPath                string
+		expectMaxRetries              int
+		expectCacheSize               int
+		expectOtelIntercept           bool
+		expectSocketPath              string
+		expectTlsEnabled              bool
+		expectProviderID              string
+		expectSelector                string
+		expectCustomSyncProvider      sync.ISync
+		expectCustomSyncProviderUri   string
+		expectGrpcDialOptionsOverride []grpc.DialOption
+		options                       []ProviderOption
 	}{
 		{
 			name:                        "default construction",
@@ -174,6 +182,20 @@ func TestNewProvider(t *testing.T) {
 			},
 		},
 		{
+			name:                          "with gRPC DialOptions override with in-process resolver",
+			expectedResolver:              inProcess,
+			expectHost:                    defaultHost,
+			expectPort:                    defaultInProcessPort,
+			expectCacheType:               defaultCache,
+			expectCacheSize:               defaultMaxCacheSize,
+			expectMaxRetries:              defaultMaxEventStreamRetries,
+			expectGrpcDialOptionsOverride: gRPCDialOptionOverride,
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithGrpcDialOptionsOverride(gRPCDialOptionOverride),
+			},
+		},
+		{
 			name:             "with selector and providerID with in-process resolver",
 			expectedResolver: inProcess,
 			expectHost:       defaultHost,
@@ -293,6 +315,18 @@ func TestNewProvider(t *testing.T) {
 			if config.CustomSyncProviderUri != test.expectCustomSyncProviderUri {
 				t.Errorf("incorrect configuration CustomSyncProviderUri, expected %v, got %v",
 					test.expectCustomSyncProviderUri, config.CustomSyncProviderUri)
+			}
+
+			if test.expectGrpcDialOptionsOverride != nil {
+				if config.GrpcDialOptionsOverride == nil {
+					t.Errorf("incorrent configuration GrpcDialOptionsOverride, expected %v, got nil", config.GrpcDialOptionsOverride)
+				} else if !reflect.DeepEqual(config.GrpcDialOptionsOverride, test.expectGrpcDialOptionsOverride) {
+					t.Errorf("incorrent configuration GrpcDialOptionsOverride, expected %v, got %v", test.expectGrpcDialOptionsOverride, config.GrpcDialOptionsOverride)
+				}
+			} else {
+				if config.GrpcDialOptionsOverride != nil {
+					t.Errorf("incorrent configuration GrpcDialOptionsOverride, expected nil, got %v", config.GrpcDialOptionsOverride)
+				}
 			}
 
 			// this line will fail linting if this provider is no longer compatible with the openfeature sdk
