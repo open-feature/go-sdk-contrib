@@ -189,6 +189,34 @@ func TestNewProvider(t *testing.T) {
 				WithProviderID("testProvider"),
 			},
 		},
+		{
+			name:             "with selector only with in-process resolver",
+			expectedResolver: inProcess,
+			expectHost:       defaultHost,
+			expectPort:       defaultInProcessPort,
+			expectCacheType:  defaultCache,
+			expectCacheSize:  defaultMaxCacheSize,
+			expectMaxRetries: defaultMaxEventStreamRetries,
+			expectSelector:   "flags=test",
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithSelector("flags=test"),
+			},
+		},
+		{
+			name:             "with providerID only with in-process resolver",
+			expectedResolver: inProcess,
+			expectHost:       defaultHost,
+			expectPort:       defaultInProcessPort,
+			expectCacheType:  defaultCache,
+			expectCacheSize:  defaultMaxCacheSize,
+			expectMaxRetries: defaultMaxEventStreamRetries,
+			expectProviderID: "testProvider",
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithProviderID("testProvider"),
+			},
+		},
 	}
 
 	for _, test := range tests {

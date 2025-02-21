@@ -50,9 +50,8 @@ func NewInProcessService(cfg Configuration) *InProcess {
 	iSync, uri := makeSyncProvider(cfg, log)
 
 	// service specific metadata
-	var svcMetadata model.Metadata
+	svcMetadata := make(model.Metadata, 2)
 	if cfg.Selector != "" {
-		svcMetadata = make(model.Metadata, 1)
 		svcMetadata["scope"] = cfg.Selector
 	}
 	if cfg.ProviderID != "" {
