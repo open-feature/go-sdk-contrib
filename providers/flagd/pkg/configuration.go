@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
+	"google.golang.org/grpc"
 )
 
 type ResolverType string
@@ -58,6 +59,7 @@ type providerConfiguration struct {
 	TLSEnabled                       bool
 	CustomSyncProvider               sync.ISync
 	CustomSyncProviderUri            string
+	GrpcDialOptionsOverride          []grpc.DialOption
 
 	log logr.Logger
 }
