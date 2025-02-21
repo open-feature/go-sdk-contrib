@@ -139,6 +139,14 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
+    },
+    "providers/multi-provider": {
+      "release-type": "go",
+      "package-name": "providers/multi-provider",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
     }
   },
   "changelog-sections": [
