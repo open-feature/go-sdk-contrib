@@ -1,8 +1,8 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagd
 
-go 1.22.7
+go 1.23.0
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.17.0-20240906125204-0a6a901b42e8.1
@@ -18,7 +18,7 @@ require (
 	github.com/open-feature/go-sdk v1.11.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.1
 	go.uber.org/mock v0.5.0
-	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 	golang.org/x/net v0.34.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
