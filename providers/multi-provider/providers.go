@@ -18,6 +18,7 @@ type UniqueNameProvider struct {
 	Name     string
 }
 
+// MultiMetadata defines the return of the MultiProvider metadata with the aggregated data of all the providers.
 type MultiMetadata struct {
 	Name             string
 	OriginalMetadata map[string]of.Metadata
@@ -30,24 +31,27 @@ type MultiProvider struct {
 	AggregatedMetadata     map[string]of.Metadata
 }
 
-func NewMultiProvider(providers []UniqueNameProvider) (*MultiProvider, error) {
+func NewMultiProvider(passedProviders []UniqueNameProvider) (*MultiProvider, error) {
 	multiProvider := &MultiProvider{
 		providersEntries:       []UniqueNameProvider{},
 		providersEntriesByName: map[string]UniqueNameProvider{},
+		AggregatedMetadata: map[string]of.Metadata{},
 	}
-	// for i, provider := range providers {
 
-	// }
-
-	//
+	err := registerProviders(multiProvider, passedProviders)
+	if err != nil {
+		return nil, err
+	}
 
 	return multiProvider, nil
 }
 
-func (mp MultiProvider) Metadata() of.Metadata {
+// Metadata provides the name `multiprovider` and the names of each provider passed.
+func (mp MultiProvider) Metadata() MultiMetadata {
 
-	return of.Metadata{
-		Name: fmt.Sprintf("multiprovider"),
+	return MultiMetadata{
+		Name: "multiprovider",
+		OriginalMetadata: mp.AggregatedMetadata,
 	}
 }
 
