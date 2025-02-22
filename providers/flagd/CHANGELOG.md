@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.5...providers/flagd/v0.2.6) (2025-02-22)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** Fixed possible nil pointer exception with svcMetadata in service.go ([#634](https://github.com/open-feature/go-sdk-contrib/issues/634)) ([50256e9](https://github.com/open-feature/go-sdk-contrib/commit/50256e9af89201ca09f3989161afd5a069d3a06e))
+
+
+### ✨ New Features
+
+* **flagd:** Added WithGrpcDialOptionsOverride provider option ([#638](https://github.com/open-feature/go-sdk-contrib/issues/638)) ([fe904bb](https://github.com/open-feature/go-sdk-contrib/commit/fe904bb054be86ca8e1cafa8577e8ac152dfefc8))
+
+
+### 🧹 Chore
+
+* **flagd:** Updates flagd core to v0.11.2 ([#636](https://github.com/open-feature/go-sdk-contrib/issues/636)) ([99d1a0c](https://github.com/open-feature/go-sdk-contrib/commit/99d1a0c9d206102774c8a83b2f40e2a33b29309f))
+
 ## [0.2.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.4...providers/flagd/v0.2.5) (2025-02-18)
 
 
