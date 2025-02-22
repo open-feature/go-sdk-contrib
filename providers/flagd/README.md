@@ -144,6 +144,27 @@ openfeature.SetProvider(flagd.NewProvider(
     ))
 ```
 
+### gRPC DialOptions override
+
+The `GrpcDialOptionsOverride` is meant for connection of the in-process resolver to a Sync API implementation on a host/port,
+that might require special credentials or headers.
+
+```go
+creds := customSync.CreateCredentials(...)
+
+dialOptions := []grpc.DialOption{
+        grpc.WithTransportCredentials(creds.TransportCredentials()),
+        grpc.WithPerRPCCredentials(creds.PerRPCCredentials()),
+        grpc.WithAuthority(...),
+    }
+
+openfeature.SetProvider(flagd.NewProvider(
+        flagd.WithInProcessResolver(),
+        flagd.WithHost("example.com/flagdSyncApi"), flagd.WithPort(443),
+        flagd.WithGrpcDialOptionsOverride(dialOptions),
+    ))
+```
+
 ## Supported Events
 
 The flagd provider emits `PROVIDER_READY`, `PROVIDER_ERROR` and `PROVIDER_CONFIGURATION_CHANGED` events.

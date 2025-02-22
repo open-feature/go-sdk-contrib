@@ -7,6 +7,8 @@ import (
 	"regexp"
 	parallel "sync"
 
+	googlegrpc "google.golang.org/grpc"
+
 	"github.com/open-feature/flagd/core/pkg/evaluator"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/model"
@@ -33,15 +35,16 @@ type InProcess struct {
 }
 
 type Configuration struct {
-	Host                  any
-	Port                  any
-	TargetUri             string
-	ProviderID            string
-	Selector              string
-	TLSEnabled            bool
-	OfflineFlagSource     string
-	CustomSyncProvider    sync.ISync
-	CustomSyncProviderUri string
+	Host                    any
+	Port                    any
+	TargetUri               string
+	ProviderID              string
+	Selector                string
+	TLSEnabled              bool
+	OfflineFlagSource       string
+	CustomSyncProvider      sync.ISync
+	CustomSyncProviderUri   string
+	GrpcDialOptionsOverride []googlegrpc.DialOption
 }
 
 func NewInProcessService(cfg Configuration) *InProcess {
@@ -301,12 +304,13 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 	log.Info("operating in in-process mode with flags sourced from " + uri)
 
 	return &grpc.Sync{
-		CredentialBuilder: &credentials.CredentialBuilder{},
-		Logger:            log,
-		Secure:            cfg.TLSEnabled,
-		ProviderID:        cfg.ProviderID,
-		Selector:          cfg.Selector,
-		URI:               uri,
+		CredentialBuilder:       &credentials.CredentialBuilder{},
+		GrpcDialOptionsOverride: cfg.GrpcDialOptionsOverride,
+		Logger:                  log,
+		Secure:                  cfg.TLSEnabled,
+		ProviderID:              cfg.ProviderID,
+		Selector:                cfg.Selector,
+		URI:                     uri,
 	}, uri
 }
 

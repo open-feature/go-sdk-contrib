@@ -13,6 +13,7 @@ import (
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/openfeature"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -78,15 +79,16 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
 	} else {
 		service = process.NewInProcessService(process.Configuration{
-			Host:                  provider.providerConfiguration.Host,
-			Port:                  provider.providerConfiguration.Port,
-			ProviderID:            provider.providerConfiguration.ProviderID,
-			Selector:              provider.providerConfiguration.Selector,
-			TargetUri:             provider.providerConfiguration.TargetUri,
-			TLSEnabled:            provider.providerConfiguration.TLSEnabled,
-			OfflineFlagSource:     provider.providerConfiguration.OfflineFlagSourcePath,
-			CustomSyncProvider:    provider.providerConfiguration.CustomSyncProvider,
-			CustomSyncProviderUri: provider.providerConfiguration.CustomSyncProviderUri,
+			Host:                    provider.providerConfiguration.Host,
+			Port:                    provider.providerConfiguration.Port,
+			ProviderID:              provider.providerConfiguration.ProviderID,
+			Selector:                provider.providerConfiguration.Selector,
+			TargetUri:               provider.providerConfiguration.TargetUri,
+			TLSEnabled:              provider.providerConfiguration.TLSEnabled,
+			OfflineFlagSource:       provider.providerConfiguration.OfflineFlagSourcePath,
+			CustomSyncProvider:      provider.providerConfiguration.CustomSyncProvider,
+			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
+			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
 		})
 	}
 
@@ -354,5 +356,15 @@ func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProvi
 	return func(p *Provider) {
 		p.providerConfiguration.CustomSyncProvider = customSyncProvider
 		p.providerConfiguration.CustomSyncProviderUri = customSyncProviderUri
+	}
+}
+
+// WithGrpcDialOptionsOverride provides a set of custom grps.DialOption that will fully override the gRPC dial options used by
+// the InProcess resolver with gRPC syncer. All the other provider options that also set dial options (e.g. WithTLS, or WithCertificatePath)
+// will be silently ignored.
+// This is only useful with inProcess resolver type
+func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.GrpcDialOptionsOverride = grpcDialOptionsOverride
 	}
 }
