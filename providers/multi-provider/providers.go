@@ -3,6 +3,7 @@ package multiprovider
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	of "github.com/open-feature/go-sdk/openfeature"
 )
@@ -29,19 +30,28 @@ type MultiProvider struct {
 	providersEntries       []UniqueNameProvider
 	providersEntriesByName map[string]UniqueNameProvider
 	AggregatedMetadata     map[string]of.Metadata
+	EvaluationStrategy     string
+	event                  chan of.Event
+	status                 of.State
+	mu                     sync.Mutex
 }
 
-func NewMultiProvider(passedProviders []UniqueNameProvider) (*MultiProvider, error) {
+func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy string) (*MultiProvider, error) {
 	multiProvider := &MultiProvider{
 		providersEntries:       []UniqueNameProvider{},
 		providersEntriesByName: map[string]UniqueNameProvider{},
-		AggregatedMetadata: map[string]of.Metadata{},
+		AggregatedMetadata:     map[string]of.Metadata{},
 	}
 
 	err := registerProviders(multiProvider, passedProviders)
 	if err != nil {
 		return nil, err
 	}
+
+	// err = multiProvider.initialize()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return multiProvider, nil
 }
@@ -50,7 +60,7 @@ func NewMultiProvider(passedProviders []UniqueNameProvider) (*MultiProvider, err
 func (mp MultiProvider) Metadata() MultiMetadata {
 
 	return MultiMetadata{
-		Name: "multiprovider",
+		Name:             "multiprovider",
 		OriginalMetadata: mp.AggregatedMetadata,
 	}
 }
@@ -89,4 +99,45 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 		}
 	}
 	return nil
+}
+
+type InitError struct {
+	ProviderName string
+	Error          error
+}
+
+// Init will run the initialize method for all of provides and aggregate the errors.
+func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
+	var wg sync.WaitGroup
+
+	errChan := make(chan InitError, len(mp.providersEntries))
+	for _, provider := range mp.providersEntries {
+		wg.Add(1)
+		go func(p UniqueNameProvider) {
+			defer wg.Done()
+			if initMethod, ok := p.Provider.(of.StateHandler); ok {
+				if err := initMethod.Init(evalCtx); err != nil {
+					errChan <- InitError{ProviderName: p.Name, Error: err}
+				}
+			}
+		}(provider)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+
+	return nil
+}
+
+func (mp *MultiProvider) Status() of.State {
+	return of.ReadyState
+}
+
+func (mp *MultiProvider) Shutdown() {
+
+}
+
+func (mp *MultiProvider) EventChannel() <-chan of.Event {
+	return
 }
