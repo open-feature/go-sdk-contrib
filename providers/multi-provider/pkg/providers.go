@@ -31,7 +31,7 @@ type MultiProvider struct {
 	providersEntriesByName map[string]UniqueNameProvider
 	AggregatedMetadata     map[string]of.Metadata
 	EvaluationStrategy     string
-	event                  chan of.Event
+	events                 chan of.Event
 	status                 of.State
 	mu                     sync.Mutex
 }
@@ -57,7 +57,7 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 }
 
 // Metadata provides the name `multiprovider` and the names of each provider passed.
-func (mp MultiProvider) Metadata() MultiMetadata {
+func (mp *MultiProvider) Metadata() MultiMetadata {
 
 	return MultiMetadata{
 		Name:             "multiprovider",
@@ -103,7 +103,7 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 
 type InitError struct {
 	ProviderName string
-	Error          error
+	Error        error
 }
 
 // Init will run the initialize method for all of provides and aggregate the errors.
@@ -126,6 +126,8 @@ func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
 	wg.Wait()
 	close(errChan)
 
+	// var errors []InitError
+
 
 	return nil
 }
@@ -139,5 +141,6 @@ func (mp *MultiProvider) Shutdown() {
 }
 
 func (mp *MultiProvider) EventChannel() <-chan of.Event {
-	return
+	ev := make(chan of.Event)
+	return ev
 }
