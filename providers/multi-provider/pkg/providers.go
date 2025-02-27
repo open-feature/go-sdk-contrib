@@ -52,10 +52,10 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 		return nil, err
 	}
 
-	err = multiProvider.Init(of.EvaluationContext{})
-	if err != nil {
-		return nil, err
-	}
+	// err = multiProvider.Init(of.EvaluationContext{})
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return multiProvider, nil
 }
@@ -108,15 +108,15 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 // Init will run the initialize method for all of provides and aggregate the errors.
 func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
 	var wg sync.WaitGroup
+	errChan := make(chan err.StateErr, len(mp.providersEntries))
 
-	errChan := make(chan err.InitError, len(mp.providersEntries))
 	for _, provider := range mp.providersEntries {
 		wg.Add(1)
 		go func(p UniqueNameProvider) {
 			defer wg.Done()
-			if initMethod, ok := p.Provider.(of.StateHandler); ok {
-				if initErr := initMethod.Init(evalCtx); initErr != nil {
-					errChan <- err.InitError{ProviderName: p.Name, Err: initErr}
+			if stateHandle, ok := p.Provider.(of.StateHandler); ok {
+				if initErr := stateHandle.Init(evalCtx); initErr != nil {
+					errChan <- err.StateErr{ProviderName: p.Name, Err: initErr}
 				}
 			}
 		}(provider)
@@ -127,7 +127,7 @@ func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
 		close(errChan)
 	}()
 
-	var errors []err.InitError
+	var errors []err.StateErr
 	for err := range errChan {
 		errors = append(errors, err)
 	}
@@ -138,7 +138,6 @@ func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
 		return &aggErr
 	}
 
-
 	return nil
 }
 
@@ -147,7 +146,19 @@ func (mp *MultiProvider) Status() of.State {
 }
 
 func (mp *MultiProvider) Shutdown() {
+	var wg sync.WaitGroup
 
+	for _, provider := range mp.providersEntries {
+		wg.Add(1)
+		go func(p UniqueNameProvider) {
+			defer wg.Done()
+			if stateHandle, ok := p.Provider.(of.StateHandler); ok {
+				stateHandle.Shutdown()
+			}
+		}(provider)
+	}
+
+	wg.Wait()
 }
 
 func (mp *MultiProvider) EventChannel() <-chan of.Event {
