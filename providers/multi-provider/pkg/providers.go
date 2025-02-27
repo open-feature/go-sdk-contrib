@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"sync"
 
+	err "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal"
+
 	of "github.com/open-feature/go-sdk/openfeature"
+	ofhooks "github.com/open-feature/go-sdk/openfeature/hooks"
 )
 
 var (
@@ -36,7 +39,8 @@ type MultiProvider struct {
 	mu                     sync.Mutex
 }
 
-func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy string) (*MultiProvider, error) {
+// NewMultiProvider returns the unified interface of multiple providers for interaction.
+func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy string, logger ofhooks.LoggingHook) (*MultiProvider, error) {
 	multiProvider := &MultiProvider{
 		providersEntries:       []UniqueNameProvider{},
 		providersEntriesByName: map[string]UniqueNameProvider{},
@@ -48,10 +52,10 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 		return nil, err
 	}
 
-	// err = multiProvider.initialize()
-	// if err != nil {
-	// 	return nil, err
-	// }
+	err = multiProvider.Init(of.EvaluationContext{})
+	if err != nil {
+		return nil, err
+	}
 
 	return multiProvider, nil
 }
@@ -101,32 +105,38 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 	return nil
 }
 
-type InitError struct {
-	ProviderName string
-	Error        error
-}
-
 // Init will run the initialize method for all of provides and aggregate the errors.
 func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
 	var wg sync.WaitGroup
 
-	errChan := make(chan InitError, len(mp.providersEntries))
+	errChan := make(chan err.InitError, len(mp.providersEntries))
 	for _, provider := range mp.providersEntries {
 		wg.Add(1)
 		go func(p UniqueNameProvider) {
 			defer wg.Done()
 			if initMethod, ok := p.Provider.(of.StateHandler); ok {
-				if err := initMethod.Init(evalCtx); err != nil {
-					errChan <- InitError{ProviderName: p.Name, Error: err}
+				if initErr := initMethod.Init(evalCtx); initErr != nil {
+					errChan <- err.InitError{ProviderName: p.Name, Err: initErr}
 				}
 			}
 		}(provider)
 	}
 
-	wg.Wait()
-	close(errChan)
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
 
-	// var errors []InitError
+	var errors []err.InitError
+	for err := range errChan {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		var aggErr err.AggregateError
+		aggErr.Construct(errors)
+		return &aggErr
+	}
 
 
 	return nil
