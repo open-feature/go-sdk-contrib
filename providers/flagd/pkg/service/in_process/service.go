@@ -19,7 +19,6 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/exp/maps"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 // InProcess service implements flagd flag evaluation in-process.
@@ -48,7 +47,7 @@ type Configuration struct {
 }
 
 func NewInProcessService(cfg Configuration) *InProcess {
-	log := logger.NewLogger(zap.NewRaw(), false)
+	log := logger.NewLogger(NewRaw(), false)
 
 	iSync, uri := makeSyncProvider(cfg, log)
 
