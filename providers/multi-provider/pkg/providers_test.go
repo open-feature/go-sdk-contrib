@@ -3,13 +3,13 @@ package multiprovider
 import (
 	"testing"
 
-	// "github.com/open-feature/go-sdk/openfeature"
+	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/hooks"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 	oft "github.com/open-feature/go-sdk/openfeature/testing"
 )
 
-func TestNewMultiProvider_ProviderMetadataUniqueNames(t *testing.T) {
+func TestNewMultiProvider_ProviderUniqueNames(t *testing.T) {
 	testProvider1 := memprovider.NewInMemoryProvider(map[string]memprovider.InMemoryFlag{
 		"boolFlag": {
 			Key:            "boolFlag",
@@ -174,5 +174,43 @@ func TestNewMultiProvider_ProvidersErrorNameNotUnique(t *testing.T) {
 
 	if err.Error() != "provider names must be unique" {
 		t.Errorf("Expected the multiprovider to have an error of: '%s', got: '%s'", errUniqueName, err.Error())
+	}
+}
+
+// todo: currently the `multiProvider.Metadata()` just give the `Name` of the multi provider it doesn't aggregate the passed providers as stated in this specification https://openfeature.dev/specification/appendix-a/#metadata so this test fails
+func TestAggregatedMetaData(t *testing.T){
+	testProvider1 := oft.NewTestProvider()
+	testProvider2 := oft.NewTestProvider()
+
+	defaultLogger, err := hooks.NewLoggingHook(false)
+	if err != nil {
+		t.Errorf("Issue setting up logger,'%s'", err)
+	}
+
+	multiProvider, err := NewMultiProvider([]UniqueNameProvider{
+		{
+			Provider:   testProvider1,
+			UniqueName: "provider1",
+		}, {
+			Provider:   testProvider2,
+			UniqueName: "provider2",
+		},
+	}, "test", defaultLogger)
+
+	if err != nil {
+		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
+	}
+
+	expectedMetadata := MultiMetadata{
+		Name: "multiprovider",
+		OriginalMetadata: map[string]openfeature.Metadata{
+			"provider1": openfeature.Metadata{Name:"NoopProvider"},
+			"provider2": openfeature.Metadata{Name:"NoopProvider"},
+
+		},
+	}
+
+	if multiProvider.Metadata().Name != "hi" {
+		t.Errorf("Expected to see the aggregated metadata of all passed providers: '%s', got: '%s'", expectedMetadata, multiProvider.Metadata().Name)
 	}
 }
