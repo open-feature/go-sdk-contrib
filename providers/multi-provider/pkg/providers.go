@@ -59,8 +59,8 @@ func (mp *MultiProvider) Providers() []UniqueNameProvider {
 	return mp.providersEntries
 }
 
-func (mp *MultiProvider) ProvidersByName() []UniqueNameProvider {
-	return mp.providersEntries
+func (mp *MultiProvider) ProvidersByName() map[string]UniqueNameProvider {
+	return mp.providersEntriesByName
 }
 
 func (mp *MultiProvider) ProviderByName(name string) (UniqueNameProvider, bool) {
