@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.3...providers/go-feature-flag/v0.2.4) (2025-03-05)
+
+
+### 🧹 Chore
+
+* **go-feature-flag:** Support new hook format ([#641](https://github.com/open-feature/go-sdk-contrib/issues/641)) ([192d45a](https://github.com/open-feature/go-sdk-contrib/commit/192d45ae37a0e10b6831a87ca02729d84171b911))
+
 ## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.2...providers/go-feature-flag/v0.2.3) (2025-02-10)
 
 
