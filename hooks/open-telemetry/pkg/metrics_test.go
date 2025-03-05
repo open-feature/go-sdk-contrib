@@ -170,6 +170,15 @@ func TestMetricsHook_FinallyStage(t *testing.T) {
 
 	ctx := context.Background()
 
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value: true,
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:          "flagA",
+			FlagType:         openfeature.Boolean,
+			ResolutionDetail: openfeature.ResolutionDetail{},
+		},
+	}
+
 	hookContext := hookContext()
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
@@ -180,7 +189,7 @@ func TestMetricsHook_FinallyStage(t *testing.T) {
 	}
 
 	// when
-	metricsHook.Finally(ctx, hookContext, hookHints)
+	metricsHook.Finally(ctx, hookContext, evalDetails, hookHints)
 
 	// then
 	var data metricdata.ResourceMetrics
@@ -214,6 +223,15 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 
 	ctx := context.Background()
 
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value: true,
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:          "flagA",
+			FlagType:         openfeature.Boolean,
+			ResolutionDetail: openfeature.ResolutionDetail{},
+		},
+	}
+
 	hookContext := hookContext()
 	hookHints := openfeature.NewHookHints(map[string]interface{}{})
 
@@ -230,7 +248,7 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 		return
 	}
 
-	metricsHook.Finally(ctx, hookContext, hookHints)
+	metricsHook.Finally(ctx, hookContext, evalDetails, hookHints)
 
 	// then
 	var data metricdata.ResourceMetrics

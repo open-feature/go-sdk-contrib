@@ -122,7 +122,7 @@ func (h *MetricsHook) Error(ctx context.Context, hCtx openfeature.HookContext, e
 			attribute.String(semconv.ExceptionEventName, err.Error())))
 }
 
-func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, hint openfeature.HookHints) {
+func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, evalCtx openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) {
 	h.activeCounter.Add(ctx, -1, api.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 }
 
