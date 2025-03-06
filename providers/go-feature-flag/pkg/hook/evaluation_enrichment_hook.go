@@ -10,18 +10,8 @@ func NewEvaluationEnrichmentHook(exporterMetadata map[string]interface{}) openfe
 }
 
 type evaluationEnrichmentHook struct {
+	openfeature.UnimplementedHook
 	exporterMetadata map[string]interface{}
-}
-
-func (d *evaluationEnrichmentHook) After(_ context.Context, _ openfeature.HookContext,
-	_ openfeature.InterfaceEvaluationDetails, _ openfeature.HookHints) error {
-	// Do nothing, needed to satisfy the interface
-	return nil
-}
-
-func (d *evaluationEnrichmentHook) Error(_ context.Context, _ openfeature.HookContext,
-	_ error, _ openfeature.HookHints) {
-	// Do nothing, needed to satisfy the interface
 }
 
 func (d *evaluationEnrichmentHook) Before(_ context.Context, hookCtx openfeature.HookContext, _ openfeature.HookHints) (*openfeature.EvaluationContext, error) {
@@ -38,8 +28,4 @@ func (d *evaluationEnrichmentHook) Before(_ context.Context, hookCtx openfeature
 	}
 	newCtx := openfeature.NewEvaluationContext(hookCtx.EvaluationContext().TargetingKey(), attributes)
 	return &newCtx, nil
-}
-
-func (d *evaluationEnrichmentHook) Finally(context.Context, openfeature.HookContext, openfeature.HookHints) {
-	// Do nothing, needed to satisfy the interface
 }

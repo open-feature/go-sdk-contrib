@@ -13,10 +13,11 @@ func NewDataCollectorHook(dataCollectorManager *controller.DataCollectorManager)
 }
 
 type dataCollectorHook struct {
+	openfeature.UnimplementedHook
 	dataCollectorManager *controller.DataCollectorManager
 }
 
-func (d *dataCollectorHook) After(ctx context.Context, hookCtx openfeature.HookContext,
+func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookContext,
 	evalDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) error {
 	if evalDetails.Reason != openfeature.CachedReason {
 		// we send it only when cached because the evaluation will be collected directly in the relay-proxy
@@ -37,7 +38,7 @@ func (d *dataCollectorHook) After(ctx context.Context, hookCtx openfeature.HookC
 	return nil
 }
 
-func (d *dataCollectorHook) Error(ctx context.Context, hookCtx openfeature.HookContext,
+func (d *dataCollectorHook) Error(_ context.Context, hookCtx openfeature.HookContext,
 	err error, hint openfeature.HookHints) {
 	event := model.FeatureEvent{
 		Kind:         "feature",
@@ -51,13 +52,4 @@ func (d *dataCollectorHook) Error(ctx context.Context, hookCtx openfeature.HookC
 		Source:       "PROVIDER_CACHE",
 	}
 	_ = d.dataCollectorManager.AddEvent(event)
-}
-
-func (d *dataCollectorHook) Before(context.Context, openfeature.HookContext, openfeature.HookHints) (*openfeature.EvaluationContext, error) {
-	// Do nothing, needed to satisfy the interface
-	return nil, nil
-}
-
-func (d *dataCollectorHook) Finally(context.Context, openfeature.HookContext, openfeature.HookHints) {
-	// Do nothing, needed to satisfy the interface
 }
