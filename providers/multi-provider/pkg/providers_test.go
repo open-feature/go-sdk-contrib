@@ -14,6 +14,7 @@ import (
 type MockProvider struct {
 	oft.TestProvider
 	InitCount *int
+	ShutCount *int
 }
 
 func (m *MockProvider) Init(evalCtx openfeature.EvaluationContext) error {
@@ -22,12 +23,14 @@ func (m *MockProvider) Init(evalCtx openfeature.EvaluationContext) error {
 }
 
 func (m *MockProvider) Shutdown() {
+	*m.ShutCount += 1
 }
 
-func NewMockProvider(initCount *int) *MockProvider {
+func NewMockProvider(initCount *int, shutCount *int) *MockProvider {
 	return &MockProvider{
 		TestProvider: oft.NewTestProvider(),
-		InitCount: initCount,
+		InitCount:    initCount,
+		ShutCount:    shutCount,
 	}
 }
 
@@ -35,6 +38,7 @@ func NewMockProvider(initCount *int) *MockProvider {
 type MockProviderDelay struct {
 	oft.TestProvider
 	InitCount *int
+	ShutCount *int
 }
 
 func (m *MockProviderDelay) Init(evalCtx openfeature.EvaluationContext) error {
@@ -44,12 +48,15 @@ func (m *MockProviderDelay) Init(evalCtx openfeature.EvaluationContext) error {
 }
 
 func (m *MockProviderDelay) Shutdown() {
+	time.Sleep(2 * time.Millisecond)
+	*m.ShutCount += 1
 }
 
-func NewMockProviderDelay(initCount *int) *MockProviderDelay {
+func NewMockProviderDelay(initCount *int, shutCount *int) *MockProviderDelay {
 	return &MockProviderDelay{
 		TestProvider: oft.NewTestProvider(),
-		InitCount: initCount,
+		InitCount:    initCount,
+		ShutCount:    shutCount,
 	}
 }
 
@@ -223,10 +230,11 @@ func TestMultiProvider_MetaData(t *testing.T) {
 
 func TestMultiProvider_Init(t *testing.T) {
 	initializations := 0
+	shutdowns := 0
 
-	testProvider1 := NewMockProvider(&initializations)
+	testProvider1 := NewMockProvider(&initializations, &shutdowns)
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := NewMockProviderDelay(&initializations)
+	testProvider3 := NewMockProviderDelay(&initializations, &shutdowns)
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -240,7 +248,7 @@ func TestMultiProvider_Init(t *testing.T) {
 		}, {
 			Provider:   testProvider2,
 			UniqueName: "provider2",
-		},{
+		}, {
 			Provider:   testProvider3,
 			UniqueName: "provider3",
 		},
@@ -268,6 +276,47 @@ func TestMultiProvider_Init(t *testing.T) {
 		t.Errorf("Expected there to be '2' init steps ran, but got: '%d'.", initializations)
 	}
 
+}
+
+func TestMultiProvider_Shutdown(t *testing.T) {
+	initializations := 0
+	shutdowns := 0
+
+	testProvider1 := NewMockProvider(&initializations, &shutdowns)
+	testProvider2 := oft.NewTestProvider()
+	testProvider3 := NewMockProviderDelay(&initializations, &shutdowns)
+
+	defaultLogger, err := hooks.NewLoggingHook(false)
+	if err != nil {
+		t.Errorf("Issue setting up logger,'%s'", err)
+	}
+
+	mp, err := NewMultiProvider([]UniqueNameProvider{
+		{
+			Provider:   testProvider1,
+			UniqueName: "provider1",
+		}, {
+			Provider:   testProvider2,
+			UniqueName: "provider2",
+		}, {
+			Provider:   testProvider3,
+			UniqueName: "provider3",
+		},
+	}, "test", defaultLogger)
+
+	if err != nil {
+		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
+	}
+
+	mp.Shutdown()
+
+	if shutdowns == 0 {
+		t.Errorf("Expected there to be shutdowns, but none were ran.")
+	}
+
+	if shutdowns != 2 {
+		t.Errorf("Expected there to be '2' shutdown steps ran, but got: '%d'.", shutdowns)
+	}
 }
 
 func TestNewMultiProvider_ProviderUniqueNames(t *testing.T) {
