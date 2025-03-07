@@ -2,12 +2,56 @@ package multiprovider
 
 import (
 	"testing"
+	"time"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/hooks"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 	oft "github.com/open-feature/go-sdk/openfeature/testing"
 )
+
+// MockProvider utilizes openfeature's TestProvider to add testable Init & Shutdown methods to test the MultiProvider functionality
+type MockProvider struct {
+	oft.TestProvider
+	InitCount *int
+}
+
+func (m *MockProvider) Init(evalCtx openfeature.EvaluationContext) error {
+	*m.InitCount += 1
+	return nil
+}
+
+func (m *MockProvider) Shutdown() {
+}
+
+func NewMockProvider(initCount *int) *MockProvider {
+	return &MockProvider{
+		TestProvider: oft.NewTestProvider(),
+		InitCount: initCount,
+	}
+}
+
+// MockProviderDelay utilizes openfeature's TestProvider to add testable Init & Shutdown methods to test the MultiProvider functionality with a small delay making sure the the go routines properly wait.
+type MockProviderDelay struct {
+	oft.TestProvider
+	InitCount *int
+}
+
+func (m *MockProviderDelay) Init(evalCtx openfeature.EvaluationContext) error {
+	time.Sleep(1 * time.Millisecond)
+	*m.InitCount += 1
+	return nil
+}
+
+func (m *MockProviderDelay) Shutdown() {
+}
+
+func NewMockProviderDelay(initCount *int) *MockProviderDelay {
+	return &MockProviderDelay{
+		TestProvider: oft.NewTestProvider(),
+		InitCount: initCount,
+	}
+}
 
 func TestMultiProvider_ProvidersMethod(t *testing.T) {
 	testProvider1 := oft.NewTestProvider()
@@ -123,7 +167,7 @@ func TestMultiProvider_ProviderByNameMethod(t *testing.T) {
 	}
 
 	providers := mp.ProvidersByName()
-	
+
 	if len(providers) != 2 {
 		t.Errorf("Expected there to be '2' providers as passed but got: '%d'", len(providers))
 	}
@@ -177,31 +221,54 @@ func TestMultiProvider_MetaData(t *testing.T) {
 	}
 }
 
-// func TestMultiProvider_Init(t *testing.T) {
-// 	testProvider1 := oft.NewTestProvider()
-// 	testProvider2 := oft.NewTestProvider()
+func TestMultiProvider_Init(t *testing.T) {
+	initializations := 0
 
-// 	defaultLogger, err := hooks.NewLoggingHook(false)
-// 	if err != nil {
-// 		t.Errorf("Issue setting up logger,'%s'", err)
-// 	}
+	testProvider1 := NewMockProvider(&initializations)
+	testProvider2 := oft.NewTestProvider()
+	testProvider3 := NewMockProviderDelay(&initializations)
 
-// 	mp, err := NewMultiProvider([]UniqueNameProvider{
-// 		{
-// 			Provider:   testProvider1,
-// 			UniqueName: "provider1",
-// 		}, {
-// 			Provider:   testProvider2,
-// 			UniqueName: "provider2",
-// 		},
-// 	}, "test", defaultLogger)
+	defaultLogger, err := hooks.NewLoggingHook(false)
+	if err != nil {
+		t.Errorf("Issue setting up logger,'%s'", err)
+	}
 
-// 	if err != nil {
-// 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
-// 	}
+	mp, err := NewMultiProvider([]UniqueNameProvider{
+		{
+			Provider:   testProvider1,
+			UniqueName: "provider1",
+		}, {
+			Provider:   testProvider2,
+			UniqueName: "provider2",
+		},{
+			Provider:   testProvider3,
+			UniqueName: "provider3",
+		},
+	}, "test", defaultLogger)
 
-// 	mp.Init()
-// }
+	if err != nil {
+		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
+	}
+
+	attributes := map[string]interface{}{
+		"foo": "bar",
+	}
+	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
+
+	err = mp.Init(evalCtx)
+	if err != nil {
+		t.Errorf("Expected the initialization process to be successful, got error: '%s'", err)
+	}
+
+	if initializations == 0 {
+		t.Errorf("Expected there to be initializations, but none were ran.")
+	}
+
+	if initializations != 2 {
+		t.Errorf("Expected there to be '2' init steps ran, but got: '%d'.", initializations)
+	}
+
+}
 
 func TestNewMultiProvider_ProviderUniqueNames(t *testing.T) {
 	testProvider1 := memprovider.NewInMemoryProvider(map[string]memprovider.InMemoryFlag{
