@@ -1,6 +1,7 @@
 package multiprovider
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -68,12 +69,6 @@ func (mp *MultiProvider) ProviderByName(name string) (UniqueNameProvider, bool) 
 	return provider, exists
 }
 
-// Metadata provides the name `multiprovider` and the names of each provider passed.
-func (mp *MultiProvider) Metadata() openfeature.Metadata {
-
-	return openfeature.Metadata{Name: "multiprovider"}
-}
-
 // registerProviders ensures that when setting up an instant of MultiProvider the providers provided either have a unique name or the base `metadata.Name` is made unique by adding an indexed based number to it.
 // registerProviders also stores the providers by their unique name and in an array for easy usage.
 func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error {
@@ -110,6 +105,48 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 		}
 	}
 	return nil
+}
+
+// Metadata provides the name `multiprovider` and the names of each provider passed.
+func (mp *MultiProvider) Metadata() openfeature.Metadata {
+
+	return openfeature.Metadata{Name: "multiprovider"}
+}
+
+// Hooks returns a collection of openfeature.Hook defined by this provider
+func (mp *MultiProvider) Hooks() []openfeature.Hook {
+	// Hooks that should be included with the provider
+	return []openfeature.Hook{}
+}
+
+// BooleanEvaluation returns a boolean flag
+func (mp *MultiProvider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
+	// code to evaluate boolean
+	return openfeature.BoolResolutionDetail{}
+}
+
+// StringEvaluation returns a string flag
+func (mp *MultiProvider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
+	// code to evaluate string
+	return openfeature.StringResolutionDetail{}
+}
+
+// FloatEvaluation returns a float flag
+func (mp *MultiProvider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
+	// code to evaluate float
+	return openfeature.FloatResolutionDetail{}
+}
+
+// IntEvaluation returns an int flag
+func (mp *MultiProvider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
+	// code to evaluate int
+	return openfeature.IntResolutionDetail{}
+}
+
+// ObjectEvaluation returns an object flag
+func (mp *MultiProvider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+	// code to evaluate object
+	return openfeature.InterfaceResolutionDetail{}
 }
 
 // Init will run the initialize method for all of provides and aggregate the errors.
