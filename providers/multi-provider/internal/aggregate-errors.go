@@ -22,7 +22,10 @@ type AggregateError struct {
 }
 
 func (ae *AggregateError) Error() string {
-	errorsJSON, _ := json.Marshal(ae.Errors)
+	errorsJSON, err := json.Marshal(ae.Errors)
+	if err != nil {
+		return fmt.Sprintf("Error in json marshal of errors, %s", err)
+	}
 
 	return fmt.Sprintf("%s\n%s", ae.Message, string(errorsJSON))
 

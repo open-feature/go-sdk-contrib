@@ -2,6 +2,7 @@ package multiprovider
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -25,15 +26,15 @@ type UniqueNameProvider struct {
 
 // MultiMetadata defines the return of the MultiProvider metadata with the aggregated data of all the providers.
 type MultiMetadata struct {
-	Name             string
-	OriginalMetadata map[string]openfeature.Metadata
+	Name             string                          `json:"name"`
+	OriginalMetadata map[string]openfeature.Metadata `json:"originalMetadata"`
 }
 
 // MultiProvider implements openfeature `FeatureProvider` in a way to accept an array of providers.
 type MultiProvider struct {
 	providersEntries       []UniqueNameProvider
 	providersEntriesByName map[string]UniqueNameProvider
-	AggregatedMetadata     map[string]openfeature.Metadata
+	AggregatedMetadata     MultiMetadata
 	EvaluationStrategy     string
 	events                 chan openfeature.Event
 	status                 openfeature.State
@@ -45,7 +46,10 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 	multiProvider := &MultiProvider{
 		providersEntries:       []UniqueNameProvider{},
 		providersEntriesByName: map[string]UniqueNameProvider{},
-		AggregatedMetadata:     map[string]openfeature.Metadata{},
+		AggregatedMetadata: MultiMetadata{
+			Name:             "multiprovider",
+			OriginalMetadata: map[string]openfeature.Metadata{},
+		},
 	}
 
 	err := registerProviders(multiProvider, passedProviders)
@@ -93,14 +97,14 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 			providers[0].UniqueName = name
 			mp.providersEntries = append(mp.providersEntries, providers[0])
 			mp.providersEntriesByName[name] = providers[0]
-			mp.AggregatedMetadata[name] = providers[0].Provider.Metadata()
+			mp.AggregatedMetadata.OriginalMetadata[name] = providers[0].Provider.Metadata()
 		} else {
 			for i, provider := range providers {
 				uniqueName := fmt.Sprintf("%s-%d", name, i+1)
 				provider.UniqueName = uniqueName
 				mp.providersEntries = append(mp.providersEntries, provider)
 				mp.providersEntriesByName[uniqueName] = provider
-				mp.AggregatedMetadata[uniqueName] = provider.Provider.Metadata()
+				mp.AggregatedMetadata.OriginalMetadata[uniqueName] = provider.Provider.Metadata()
 			}
 		}
 	}
@@ -109,8 +113,9 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 
 // Metadata provides the name `multiprovider` and the names of each provider passed.
 func (mp *MultiProvider) Metadata() openfeature.Metadata {
+	metaJSON, _ := json.Marshal(mp.AggregatedMetadata)
 
-	return openfeature.Metadata{Name: "multiprovider"}
+	return openfeature.Metadata{Name: string(metaJSON)}
 }
 
 // Hooks returns a collection of openfeature.Hook defined by this provider
