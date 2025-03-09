@@ -11,7 +11,6 @@ import (
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/hooks"
-	"github.com/open-feature/go-sdk/openfeature/memprovider"
 	oft "github.com/open-feature/go-sdk/openfeature/testing"
 )
 
@@ -23,6 +22,7 @@ type MockProvider struct {
 	TestErr   string
 	InitDelay int
 	ShutDelay int
+	MockMeta  string
 }
 
 func (m *MockProvider) Init(evalCtx openfeature.EvaluationContext) error {
@@ -44,7 +44,11 @@ func (m *MockProvider) Shutdown() {
 	*m.ShutCount += 1
 }
 
-func NewMockProvider(initCount *int, shutCount *int, testErr string, initDelay int, shutDelay int) *MockProvider {
+func (m *MockProvider) Metadata() openfeature.Metadata {
+	return openfeature.Metadata{Name: m.MockMeta}
+}
+
+func NewMockProvider(initCount *int, shutCount *int, testErr string, initDelay int, shutDelay int, meta string) *MockProvider {
 	return &MockProvider{
 		TestProvider: oft.NewTestProvider(),
 		InitCount:    initCount,
@@ -52,6 +56,7 @@ func NewMockProvider(initCount *int, shutCount *int, testErr string, initDelay i
 		TestErr:      testErr,
 		InitDelay:    initDelay,
 		ShutDelay:    shutDelay,
+		MockMeta:     meta,
 	}
 }
 
@@ -188,8 +193,11 @@ func TestMultiProvider_ProviderByNameMethod(t *testing.T) {
 
 // todo: currently the `multiProvider.Metadata()` just give the `Name` of the multi provider it doesn't aggregate the passed providers as stated in this specification https://openfeature.dev/specification/appendix-a/#metadata so this test fails
 func TestMultiProvider_MetaData(t *testing.T) {
+	initializations := 0
+	shutdowns := 0
+
 	testProvider1 := oft.NewTestProvider()
-	testProvider2 := oft.NewTestProvider()
+	testProvider2 := NewMockProvider(&initializations, &shutdowns, "", 0, 0, "test2")
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -214,7 +222,7 @@ func TestMultiProvider_MetaData(t *testing.T) {
 		Name: "multiprovider",
 		OriginalMetadata: map[string]openfeature.Metadata{
 			"provider1": openfeature.Metadata{Name: "NoopProvider"},
-			"provider2": openfeature.Metadata{Name: "NoopProvider"},
+			"provider2": openfeature.Metadata{Name: "test2"},
 		},
 	}
 
@@ -227,9 +235,9 @@ func TestMultiProvider_Init(t *testing.T) {
 	initializations := 0
 	shutdowns := 0
 
-	testProvider1 := NewMockProvider(&initializations, &shutdowns,"", 0, 0)
+	testProvider1 := NewMockProvider(&initializations, &shutdowns, "", 0, 0, "test1")
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := NewMockProvider(&initializations, &shutdowns, "", 1, 0)
+	testProvider3 := NewMockProvider(&initializations, &shutdowns, "", 1, 0, "test3")
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -278,8 +286,8 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	shutdowns := 0
 
 	testProvider1 := oft.NewTestProvider()
-	testProvider2 := NewMockProvider(&initializations, &shutdowns, "test error 1 end", 0, 0)
-	testProvider3 := NewMockProvider(&initializations, &shutdowns, "test error 2 end", 0, 0)
+	testProvider2 := NewMockProvider(&initializations, &shutdowns, "test error 1 end", 0, 0, "test2")
+	testProvider3 := NewMockProvider(&initializations, &shutdowns, "test error 2 end", 0, 0, "test3")
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -346,9 +354,9 @@ func TestMultiProvider_Shutdown(t *testing.T) {
 	initializations := 0
 	shutdowns := 0
 
-	testProvider1 := NewMockProvider(&initializations, &shutdowns, "", 0, 0)
+	testProvider1 := NewMockProvider(&initializations, &shutdowns, "", 0, 0, "test1")
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := NewMockProvider(&initializations, &shutdowns, "", 0, 2)
+	testProvider3 := NewMockProvider(&initializations, &shutdowns, "", 0, 2, "test3")
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -384,19 +392,11 @@ func TestMultiProvider_Shutdown(t *testing.T) {
 }
 
 func TestNewMultiProvider_ProviderUniqueNames(t *testing.T) {
-	testProvider1 := memprovider.NewInMemoryProvider(map[string]memprovider.InMemoryFlag{
-		"boolFlag": {
-			Key:            "boolFlag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "true",
-			Variants: map[string]interface{}{
-				"true":  true,
-				"false": false,
-			},
-			ContextEvaluator: nil,
-		},
-	})
-	testProvider2 := oft.NewTestProvider()
+	initializations := 0
+	shutdowns := 0
+
+	testProvider1 := oft.NewTestProvider()
+	testProvider2 := NewMockProvider(&initializations, &shutdowns, "", 0, 0, "test2")
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -417,11 +417,12 @@ func TestNewMultiProvider_ProviderUniqueNames(t *testing.T) {
 
 	providerEntries := mp.Providers()
 
-	if providerEntries[0].UniqueName != "InMemoryProvider" {
-		t.Errorf("Expected unique provider name to be: 'InMemoryProvider', got: '%s'", providerEntries[0].UniqueName)
+	if providerEntries[0].UniqueName != "NoopProvider" {
+		t.Errorf("Expected unique provider name to be: 'NoopProvider', got: '%s'", providerEntries[0].UniqueName)
 	}
-	if providerEntries[1].UniqueName != "NoopProvider" {
-		t.Errorf("Expected unique provider name to be: 'NoopProvider', got: '%s'", providerEntries[1].UniqueName)
+
+	if providerEntries[1].UniqueName != "test2" {
+		t.Errorf("Expected unique provider name to be: 'test2', got: '%s'", providerEntries[1].UniqueName)
 	}
 
 	if len(providerEntries) != 2 {
@@ -430,18 +431,7 @@ func TestNewMultiProvider_ProviderUniqueNames(t *testing.T) {
 }
 
 func TestNewMultiProvider_DuplicateProviderGenerateUniqueNames(t *testing.T) {
-	testProvider1 := memprovider.NewInMemoryProvider(map[string]memprovider.InMemoryFlag{
-		"boolFlag": {
-			Key:            "boolFlag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "true",
-			Variants: map[string]interface{}{
-				"true":  true,
-				"false": false,
-			},
-			ContextEvaluator: nil,
-		},
-	})
+	testProvider1 := oft.NewTestProvider()
 	testProvider2 := oft.NewTestProvider()
 	testProvider3 := oft.NewTestProvider()
 	testProvider4 := oft.NewTestProvider()
@@ -473,17 +463,17 @@ func TestNewMultiProvider_DuplicateProviderGenerateUniqueNames(t *testing.T) {
 		t.Errorf("Expected there to be 4 provider entries, got: '%d'", len(providerEntries))
 	}
 
-	if providerEntries[0].UniqueName != "InMemoryProvider" {
-		t.Errorf("Expected unique provider name to be: 'InMemoryProvider', got: '%s'", providerEntries[0].UniqueName)
+	if providerEntries[0].UniqueName != "NoopProvider-1" {
+		t.Errorf("Expected unique provider name to be: 'NoopProvider-1', got: '%s'", providerEntries[0].UniqueName)
 	}
-	if providerEntries[1].UniqueName != "NoopProvider-1" {
-		t.Errorf("Expected unique provider name to be: 'NoopProvider', got: '%s'", providerEntries[1].UniqueName)
+	if providerEntries[1].UniqueName != "NoopProvider-2" {
+		t.Errorf("Expected unique provider name to be: 'NoopProvider-2', got: '%s'", providerEntries[1].UniqueName)
 	}
-	if providerEntries[2].UniqueName != "NoopProvider-2" {
-		t.Errorf("Expected unique provider name to be: 'NoopProvider', got: '%s'", providerEntries[2].UniqueName)
+	if providerEntries[2].UniqueName != "NoopProvider-3" {
+		t.Errorf("Expected unique provider name to be: 'NoopProvider-3', got: '%s'", providerEntries[2].UniqueName)
 	}
-	if providerEntries[3].UniqueName != "NoopProvider-3" {
-		t.Errorf("Expected unique provider name to be: 'NoopProvider', got: '%s'", providerEntries[3].UniqueName)
+	if providerEntries[3].UniqueName != "NoopProvider-4" {
+		t.Errorf("Expected unique provider name to be: 'NoopProvider-4', got: '%s'", providerEntries[3].UniqueName)
 	}
 
 }
