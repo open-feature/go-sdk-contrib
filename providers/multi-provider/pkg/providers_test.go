@@ -1,8 +1,13 @@
 package multiprovider
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
+
+	errs "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/hooks"
@@ -15,48 +20,38 @@ type MockProvider struct {
 	oft.TestProvider
 	InitCount *int
 	ShutCount *int
+	TestErr   string
+	InitDelay int
+	ShutDelay int
 }
 
 func (m *MockProvider) Init(evalCtx openfeature.EvaluationContext) error {
+	if m.TestErr != "" {
+		return fmt.Errorf(m.TestErr)
+	}
+
+	if m.InitDelay != 0 {
+		time.Sleep(time.Duration(m.InitDelay) * time.Millisecond)
+	}
 	*m.InitCount += 1
 	return nil
 }
 
 func (m *MockProvider) Shutdown() {
+	if m.ShutDelay != 0 {
+		time.Sleep(time.Duration(m.ShutDelay) * time.Millisecond)
+	}
 	*m.ShutCount += 1
 }
 
-func NewMockProvider(initCount *int, shutCount *int) *MockProvider {
+func NewMockProvider(initCount *int, shutCount *int, testErr string, initDelay int, shutDelay int) *MockProvider {
 	return &MockProvider{
 		TestProvider: oft.NewTestProvider(),
 		InitCount:    initCount,
 		ShutCount:    shutCount,
-	}
-}
-
-// MockProviderDelay utilizes openfeature's TestProvider to add testable Init & Shutdown methods to test the MultiProvider functionality with a small delay making sure the the go routines properly wait.
-type MockProviderDelay struct {
-	oft.TestProvider
-	InitCount *int
-	ShutCount *int
-}
-
-func (m *MockProviderDelay) Init(evalCtx openfeature.EvaluationContext) error {
-	time.Sleep(1 * time.Millisecond)
-	*m.InitCount += 1
-	return nil
-}
-
-func (m *MockProviderDelay) Shutdown() {
-	time.Sleep(2 * time.Millisecond)
-	*m.ShutCount += 1
-}
-
-func NewMockProviderDelay(initCount *int, shutCount *int) *MockProviderDelay {
-	return &MockProviderDelay{
-		TestProvider: oft.NewTestProvider(),
-		InitCount:    initCount,
-		ShutCount:    shutCount,
+		TestErr:      testErr,
+		InitDelay:    initDelay,
+		ShutDelay:    shutDelay,
 	}
 }
 
@@ -232,9 +227,9 @@ func TestMultiProvider_Init(t *testing.T) {
 	initializations := 0
 	shutdowns := 0
 
-	testProvider1 := NewMockProvider(&initializations, &shutdowns)
+	testProvider1 := NewMockProvider(&initializations, &shutdowns,"", 0, 0)
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := NewMockProviderDelay(&initializations, &shutdowns)
+	testProvider3 := NewMockProvider(&initializations, &shutdowns, "", 1, 0)
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -278,13 +273,82 @@ func TestMultiProvider_Init(t *testing.T) {
 
 }
 
+func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
+	initializations := 0
+	shutdowns := 0
+
+	testProvider1 := oft.NewTestProvider()
+	testProvider2 := NewMockProvider(&initializations, &shutdowns, "test error 1 end", 0, 0)
+	testProvider3 := NewMockProvider(&initializations, &shutdowns, "test error 2 end", 0, 0)
+
+	defaultLogger, err := hooks.NewLoggingHook(false)
+	if err != nil {
+		t.Errorf("Issue setting up logger,'%s'", err)
+	}
+
+	mp, err := NewMultiProvider([]UniqueNameProvider{
+		{
+			Provider:   testProvider1,
+			UniqueName: "provider1",
+		}, {
+			Provider:   testProvider2,
+			UniqueName: "provider2",
+		}, {
+			Provider:   testProvider3,
+			UniqueName: "provider3",
+		},
+	}, "test", defaultLogger)
+
+	if err != nil {
+		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
+	}
+
+	attributes := map[string]interface{}{
+		"foo": "bar",
+	}
+	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
+
+	err = mp.Init(evalCtx)
+	if err == nil {
+		t.Errorf("Expected the initialization process to throw an error.")
+	}
+
+	var errors []errs.StateErr
+
+	fullErr := err.Error()
+	fullErrArr := strings.SplitAfterN(fullErr, "end", 2)
+	errJSON := fullErrArr[1]
+	errMsg := fullErrArr[0]
+
+	if !strings.Contains(errMsg, "Provider errors occurred:") {
+		t.Errorf("Expected the first line of error message to contain: '%s', got: '%s'", "Provider errors occurred:", errMsg)
+	}
+
+	if err = json.Unmarshal([]byte(errJSON), &errors); err != nil {
+		t.Errorf("Failed to unmarshal error details: %v", err)
+	}
+
+	if len(errors) != 2 {
+		t.Errorf("Expected there to be '2' errors found, got: '%d'", len(errors))
+	}
+
+	// if errors[0].ProviderName != "provider2" || errors[0].ErrMessage != "test error 1 end" {
+	// 	t.Errorf("Expected the first error to be for 'provider2' with 'test error 1 end', got: '%s' with '%s'", errors[0].ProviderName, errors[0].ErrMessage)
+	// }
+
+	// if errors[1].ProviderName != "provider3" || errors[1].ErrMessage != "test error 1 end" {
+	// 	t.Errorf("Expected the second error to be for 'provider3' with 'test error 2 end', got: '%s' with '%s'", errors[1].ProviderName, errors[1].ErrMessage)
+	// }
+
+}
+
 func TestMultiProvider_Shutdown(t *testing.T) {
 	initializations := 0
 	shutdowns := 0
 
-	testProvider1 := NewMockProvider(&initializations, &shutdowns)
+	testProvider1 := NewMockProvider(&initializations, &shutdowns, "", 0, 0)
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := NewMockProviderDelay(&initializations, &shutdowns)
+	testProvider3 := NewMockProvider(&initializations, &shutdowns, "", 0, 2)
 
 	defaultLogger, err := hooks.NewLoggingHook(false)
 	if err != nil {
@@ -405,6 +469,10 @@ func TestNewMultiProvider_DuplicateProviderGenerateUniqueNames(t *testing.T) {
 
 	providerEntries := mp.Providers()
 
+	if len(providerEntries) != 4 {
+		t.Errorf("Expected there to be 4 provider entries, got: '%d'", len(providerEntries))
+	}
+
 	if providerEntries[0].UniqueName != "InMemoryProvider" {
 		t.Errorf("Expected unique provider name to be: 'InMemoryProvider', got: '%s'", providerEntries[0].UniqueName)
 	}
@@ -418,9 +486,6 @@ func TestNewMultiProvider_DuplicateProviderGenerateUniqueNames(t *testing.T) {
 		t.Errorf("Expected unique provider name to be: 'NoopProvider', got: '%s'", providerEntries[3].UniqueName)
 	}
 
-	if len(providerEntries) != 4 {
-		t.Errorf("Expected there to be 4 provider entries, got: '%d'", len(providerEntries))
-	}
 }
 func TestNewMultiProvider_ProvidersUsePassedNames(t *testing.T) {
 	testProvider1 := oft.NewTestProvider()
