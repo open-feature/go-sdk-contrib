@@ -1,11 +1,15 @@
 package internal
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
-// StateErr is how the error in the Init of Shutdown stage of a provider is reported.
+// StateErr is how the error in the Init stage of a provider is reported.
 type StateErr struct {
-	ProviderName string
-	Err          error
+	ProviderName string `json:"source"`
+	Err          error  `json:"-"`
+	ErrMessage   string `json:"error"`
 }
 
 func (e *StateErr) Error() string {
@@ -13,12 +17,15 @@ func (e *StateErr) Error() string {
 }
 
 type AggregateError struct {
-	Message string
-	Errors  []StateErr
+	Message string     `json:"message"`
+	Errors  []StateErr `json:"errors"`
 }
 
 func (ae *AggregateError) Error() string {
-	return ae.Message
+	errorsJSON, _ := json.Marshal(ae.Errors)
+
+	return fmt.Sprintf("%s\n%s", ae.Message, string(errorsJSON))
+
 }
 
 func (ae *AggregateError) Construct(providerErrors []StateErr) {

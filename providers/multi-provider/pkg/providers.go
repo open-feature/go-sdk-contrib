@@ -160,7 +160,7 @@ func (mp *MultiProvider) Init(evalCtx openfeature.EvaluationContext) error {
 			defer wg.Done()
 			if stateHandle, ok := p.Provider.(openfeature.StateHandler); ok {
 				if initErr := stateHandle.Init(evalCtx); initErr != nil {
-					errChan <- err.StateErr{ProviderName: p.UniqueName, Err: initErr}
+					errChan <- err.StateErr{ProviderName: p.UniqueName, Err: initErr, ErrMessage: initErr.Error()}
 				}
 			}
 		}(provider)
