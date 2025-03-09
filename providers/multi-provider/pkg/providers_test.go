@@ -218,16 +218,21 @@ func TestMultiProvider_MetaData(t *testing.T) {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
 	}
 
-	expectedMetadata := MultiMetadata{
+	expectedJSON, err := json.Marshal(MultiMetadata{
 		Name: "multiprovider",
 		OriginalMetadata: map[string]openfeature.Metadata{
 			"provider1": openfeature.Metadata{Name: "NoopProvider"},
 			"provider2": openfeature.Metadata{Name: "test2"},
 		},
+	})
+	if err != nil {
+		t.Errorf("Error in JSON marshal of the expected answer, '%s'", err)
 	}
 
-	if mp.Metadata().Name != "hi" {
-		t.Errorf("Expected to see the aggregated metadata of all passed providers: '%s', got: '%s'", expectedMetadata, mp.Metadata().Name)
+	expectedMetadata := openfeature.Metadata{Name: string(expectedJSON)}
+
+	if mp.Metadata() != expectedMetadata {
+		t.Errorf("Expected to see the aggregated metadata of all passed providers: '%s', got: '%s'", expectedMetadata, mp.Metadata())
 	}
 }
 
@@ -339,14 +344,6 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	if len(errors) != 2 {
 		t.Errorf("Expected there to be '2' errors found, got: '%d'", len(errors))
 	}
-
-	// if errors[0].ProviderName != "provider2" || errors[0].ErrMessage != "test error 1 end" {
-	// 	t.Errorf("Expected the first error to be for 'provider2' with 'test error 1 end', got: '%s' with '%s'", errors[0].ProviderName, errors[0].ErrMessage)
-	// }
-
-	// if errors[1].ProviderName != "provider3" || errors[1].ErrMessage != "test error 1 end" {
-	// 	t.Errorf("Expected the second error to be for 'provider3' with 'test error 2 end', got: '%s' with '%s'", errors[1].ProviderName, errors[1].ErrMessage)
-	// }
 
 }
 
