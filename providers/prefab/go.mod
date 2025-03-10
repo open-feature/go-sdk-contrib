@@ -4,13 +4,14 @@ go 1.21
 
 require (
 	github.com/open-feature/go-sdk v1.12.0
-	github.com/prefab-cloud/prefab-cloud-go v0.0.5
+	github.com/prefab-cloud/prefab-cloud-go v0.0.9
 	github.com/stretchr/testify v1.9.0
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/r3labs/sse/v2 v2.10.0 // indirect
