@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.6...providers/flagd/v0.2.7) (2025-03-10)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** Remove dependency on sigs.k8s.io/controller-runtime/pkg/lo… ([#639](https://github.com/open-feature/go-sdk-contrib/issues/639)) ([c2e1a73](https://github.com/open-feature/go-sdk-contrib/commit/c2e1a73e5d4297625b048b1a589101150b7c4136))
+
 ## [0.2.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.5...providers/flagd/v0.2.6) (2025-02-22)
 
 
