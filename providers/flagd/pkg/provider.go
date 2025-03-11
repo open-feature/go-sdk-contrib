@@ -61,12 +61,16 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			cacheService,
 			provider.logger,
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
-	} else {
+	} else if provider.providerConfiguration.Resolver == inProcess {
 		service = process.NewInProcessService(process.Configuration{
 			Host:              provider.providerConfiguration.Host,
 			Port:              provider.providerConfiguration.Port,
 			Selector:          provider.providerConfiguration.Selector,
 			TLSEnabled:        provider.providerConfiguration.TLSEnabled,
+			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
+		})
+	} else {
+		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
 		})
 	}
@@ -287,11 +291,18 @@ func WithInProcessResolver() ProviderOption {
 	}
 }
 
-// WithOfflineFilePath file path to obtain flags to run provider in offline mode with in-process evaluations.
-// This is only useful with inProcess resolver type
+// WithOfflineFilePath file path to obtain flags used for provider in file mode or to run provider in offline mode
+// with in-process evaluations.
 func WithOfflineFilePath(path string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.OfflineFlagSourcePath = path
+	}
+}
+
+// WithFileResolver sets flag resolver to File
+func WithFileResolver() ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Resolver = file
 	}
 }
 
