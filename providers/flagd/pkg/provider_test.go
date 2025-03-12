@@ -38,6 +38,7 @@ func TestNewProvider(t *testing.T) {
 		expectSelector                string
 		expectCustomSyncProvider      sync.ISync
 		expectCustomSyncProviderUri   string
+		expectOfflineFlagSourcePath   string
 		expectGrpcDialOptionsOverride []grpc.DialOption
 		options                       []ProviderOption
 	}{
@@ -239,11 +240,43 @@ func TestNewProvider(t *testing.T) {
 				WithProviderID("testProvider"),
 			},
 		},
+		{
+			name:                        "with OfflineFilePath with in-process resolver",
+			expectedResolver:            file,
+			expectHost:                  defaultHost,
+			expectPort:                  0,
+			expectCacheType:             defaultCache,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectOfflineFlagSourcePath: "offlineFilePath",
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithOfflineFilePath("offlineFilePath"),
+			},
+		},
+		{
+			name:                        "with OfflineFilePath with file resolver",
+			expectedResolver:            file,
+			expectHost:                  defaultHost,
+			expectPort:                  0,
+			expectCacheType:             defaultCache,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectOfflineFlagSourcePath: "offlineFilePath",
+			options: []ProviderOption{
+				WithFileResolver(),
+				WithOfflineFilePath("offlineFilePath"),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			flagdProvider := NewProvider(test.options...)
+			flagdProvider, err := NewProvider(test.options...)
+
+			if err != nil {
+				t.Fatal("error creating new provider", err)
+			}
 
 			metadata := flagdProvider.Metadata()
 			if metadata.Name != "flagd" {
@@ -317,6 +350,11 @@ func TestNewProvider(t *testing.T) {
 					test.expectCustomSyncProviderUri, config.CustomSyncProviderUri)
 			}
 
+			if config.OfflineFlagSourcePath != test.expectOfflineFlagSourcePath {
+				t.Errorf("incorrect configuration OfflineFlagSourcePath, expected %v, got %v",
+					test.expectOfflineFlagSourcePath, config.OfflineFlagSourcePath)
+			}
+
 			if test.expectGrpcDialOptionsOverride != nil {
 				if config.GrpcDialOptionsOverride == nil {
 					t.Errorf("incorrent configuration GrpcDialOptionsOverride, expected %v, got nil", config.GrpcDialOptionsOverride)
@@ -345,8 +383,14 @@ func TestEventHandling(t *testing.T) {
 	svcMock.EXPECT().EventChannel().Return(customChan).AnyTimes()
 	svcMock.EXPECT().Init().Times(1)
 
-	provider := NewProvider()
+	var err error
+
+	provider, err := NewProvider()
 	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
 
 	if provider.Status() != of.NotReadyState {
 		t.Errorf("expected initial status to be not ready, but got %v", provider.Status())
@@ -372,7 +416,7 @@ func TestEventHandling(t *testing.T) {
 	}()
 
 	// Check initial readiness
-	err := provider.Init(of.EvaluationContext{})
+	err = provider.Init(of.EvaluationContext{})
 	if err != nil {
 		t.Fatal("error initialization provider", err)
 	}
@@ -409,8 +453,12 @@ func TestInitializeOnlyOnce(t *testing.T) {
 	svcMock.EXPECT().EventChannel().Return(eventChan).MaxTimes(2)
 	svcMock.EXPECT().Shutdown().Times(1)
 
-	provider := NewProvider()
+	provider, err := NewProvider()
 	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
 
 	// make service ready with events
 	go func() {
@@ -435,4 +483,84 @@ func TestInitializeOnlyOnce(t *testing.T) {
 		t.Errorf("expected provider to be not ready, but got ready")
 	}
 
+}
+
+func TestUpdateProviderInProcessWithOfflineFile(t *testing.T) {
+	// given
+	providerConfiguration := &providerConfiguration{
+		Resolver:              inProcess,
+		OfflineFlagSourcePath: "somePath",
+	}
+
+	provider := &Provider{
+		providerConfiguration: providerConfiguration,
+	}
+
+	// when
+	UpdateProvider(provider)
+
+	// then
+	if provider.providerConfiguration.Resolver != file {
+		t.Errorf("incorrect Resolver, expected %v, got %v",
+			file, provider.providerConfiguration.Resolver)
+	}
+}
+
+func TestUpdateProviderRpcWithoutPort(t *testing.T) {
+	// given
+	providerConfiguration := &providerConfiguration{
+		Resolver: rpc,
+	}
+
+	provider := &Provider{
+		providerConfiguration: providerConfiguration,
+	}
+
+	// when
+	UpdateProvider(provider)
+
+	// then
+	if provider.providerConfiguration.Port != defaultRpcPort {
+		t.Errorf("incorrect Port, expected %v, got %v",
+			defaultRpcPort, provider.providerConfiguration.Port)
+	}
+}
+
+func TestUpdateProviderInProcessWithoutPort(t *testing.T) {
+	// given
+	providerConfiguration := &providerConfiguration{
+		Resolver: inProcess,
+	}
+
+	provider := &Provider{
+		providerConfiguration: providerConfiguration,
+	}
+
+	// when
+	UpdateProvider(provider)
+
+	// then
+	if provider.providerConfiguration.Port != defaultInProcessPort {
+		t.Errorf("incorrect Port, expected %v, got %v",
+			defaultInProcessPort, provider.providerConfiguration.Port)
+	}
+}
+
+func TestCheckProviderFileMissingData(t *testing.T) {
+	// given
+	providerConfiguration := &providerConfiguration{
+		Resolver: file,
+	}
+
+	provider := &Provider{
+		providerConfiguration: providerConfiguration,
+	}
+
+	// when
+	err := CheckProvider(provider)
+
+	// then
+	if err == nil {
+		t.Errorf("Error expected but check succeeded")
+	}
 }

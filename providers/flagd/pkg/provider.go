@@ -2,6 +2,7 @@ package flagd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	parallel "sync"
@@ -31,7 +32,7 @@ type Provider struct {
 	eventStream chan of.Event
 }
 
-func NewProvider(opts ...ProviderOption) *Provider {
+func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
@@ -50,12 +51,12 @@ func NewProvider(opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 
-	if provider.providerConfiguration.Port == 0 {
-		if provider.providerConfiguration.Resolver == inProcess {
-			provider.providerConfiguration.Port = defaultInProcessPort
-		} else {
-			provider.providerConfiguration.Port = defaultRpcPort
-		}
+	UpdateProvider(provider)
+
+	err := CheckProvider(provider)
+
+	if err != nil {
+		return nil, err
 	}
 
 	cacheService := cache.NewCacheService(
@@ -77,7 +78,7 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			cacheService,
 			provider.logger,
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
-	} else {
+	} else if provider.providerConfiguration.Resolver == inProcess {
 		service = process.NewInProcessService(process.Configuration{
 			Host:                    provider.providerConfiguration.Host,
 			Port:                    provider.providerConfiguration.Port,
@@ -90,11 +91,39 @@ func NewProvider(opts ...ProviderOption) *Provider {
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
 		})
+	} else {
+		service = process.NewInProcessService(process.Configuration{
+			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
+		})
 	}
 
 	provider.service = service
 
-	return provider
+	return provider, nil
+}
+
+func UpdateProvider(p *Provider) {
+	if len(p.providerConfiguration.OfflineFlagSourcePath) > 0 && p.providerConfiguration.Resolver == inProcess {
+		p.providerConfiguration.Resolver = file
+	}
+
+	if p.providerConfiguration.Port == 0 {
+		switch p.providerConfiguration.Resolver {
+		case rpc:
+			p.providerConfiguration.Port = defaultRpcPort
+		case inProcess:
+			p.providerConfiguration.Port = defaultInProcessPort
+		}
+	}
+}
+
+func CheckProvider(p *Provider) error {
+	// We need a file path for file mode
+	if len(p.providerConfiguration.OfflineFlagSourcePath) == 0 && p.providerConfiguration.Resolver == file {
+		return errors.New("Resolver Type 'file' requires a OfflineFlagSourcePath")
+	}
+
+	return nil
 }
 
 func (p *Provider) Init(_ of.EvaluationContext) error {
@@ -315,11 +344,17 @@ func WithInProcessResolver() ProviderOption {
 	}
 }
 
-// WithOfflineFilePath file path to obtain flags to run provider in offline mode with in-process evaluations.
-// This is only useful with inProcess resolver type
+// WithOfflineFilePath file path to obtain flags used for provider in file mode.
 func WithOfflineFilePath(path string) ProviderOption {
 	return func(p *Provider) {
 		p.providerConfiguration.OfflineFlagSourcePath = path
+	}
+}
+
+// WithFileResolver sets flag resolver to File
+func WithFileResolver() ProviderOption {
+	return func(p *Provider) {
+		p.providerConfiguration.Resolver = file
 	}
 }
 

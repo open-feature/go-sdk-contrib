@@ -42,21 +42,6 @@ openfeature.SetProvider(provider)
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
 
-#### Offline mode
-
-In-process resolvers can also work in an offline mode.
-To enable this mode, you should provide a [valid flag configuration](https://flagd.dev/reference/flag-definitions/) file with the option `WithOfflineFilePath`.
-
-```go
-provider := flagd.NewProvider(
-        flagd.WithInProcessResolver(),
-        flagd.WithOfflineFilePath(OFFLINE_FLAG_PATH))
-openfeature.SetProvider(provider)
-```
-
-The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
-This mode is useful for local development, tests and offline applications.
-
 #### Custom sync provider
 
 In-process resolver can also be configured with a custom sync provider to change how the in-process resolver fetches flags.
@@ -85,8 +70,21 @@ openfeature.SetProvider(provider)
 > Note that the in-process resolver can only use a single flag source.
 > If multiple sources are configured then only one would be selected based on the following order of preference:
 >   1. Custom sync provider
->   2. Offline file
->   3. gRPC
+>   2. gRPC
+
+### File mode
+
+This mode obtains the flag configurations from a local file and performs flag evaluations locally.
+
+```go
+provider := flagd.NewProvider(
+        flagd.WithFileResolver()
+        flagd.WithOfflineFilePath(OFFLINE_FLAG_PATH))
+openfeature.SetProvider(provider)
+```
+
+The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
+This mode is useful for local development, tests and offline applications.
 
 ## Configuration options
 
@@ -102,7 +100,7 @@ Configuration can be provided as constructor options or as environment variables
 | WithCertificatePath                                      | FLAGD_SERVER_CERT_PATH         | string                      | ""        | rpc & in-process    |
 | WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | rpc                 |
 | WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
-| WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | in-process          |
+| WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | file                |
 | WithProviderID                                           | FLAGD_SOURCE_PROVIDER_ID       | string                      | ""        | in-process          |
 | WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          | 
 

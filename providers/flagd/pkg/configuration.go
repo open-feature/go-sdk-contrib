@@ -26,6 +26,7 @@ const (
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
+	file      ResolverType = "file"
 
 	flagdHostEnvironmentVariableName                  = "FLAGD_HOST"
 	flagdPortEnvironmentVariableName                  = "FLAGD_PORT"
@@ -155,6 +156,8 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 			cfg.Resolver = rpc
 		case inProcess:
 			cfg.Resolver = inProcess
+		case file:
+			cfg.Resolver = file
 		default:
 			cfg.log.Info("invalid resolver type: %s, falling back to default: %s", resolver, defaultResolver)
 			cfg.Resolver = defaultResolver
