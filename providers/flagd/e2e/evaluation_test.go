@@ -25,7 +25,13 @@ func TestETestEvaluationFlagdInRPC(t *testing.T) {
 	testSuite := godog.TestSuite{
 		Name: name,
 		TestSuiteInitializer: integration.InitializeTestSuite(func() openfeature.FeatureProvider {
-			return flagd.NewProvider(flagd.WithPort(8013))
+			provider, err := flagd.NewProvider(flagd.WithPort(8013))
+
+			if err != nil {
+				t.Fatal("Creating provider failed:", err)
+			}
+
+			return provider
 		}),
 		ScenarioInitializer: integration.InitializeEvaluationScenario,
 		Options: &godog.Options{
@@ -54,7 +60,13 @@ func TestJsonEvaluatorFlagdInProcess(t *testing.T) {
 	testSuite := godog.TestSuite{
 		Name: name,
 		TestSuiteInitializer: integration.InitializeTestSuite(func() openfeature.FeatureProvider {
-			return flagd.NewProvider(flagd.WithInProcessResolver(), flagd.WithPort(9090))
+			provider, err := flagd.NewProvider(flagd.WithInProcessResolver(), flagd.WithPort(9090))
+
+			if err != nil {
+				t.Fatal("Creating provider failed:", err)
+			}
+
+			return provider
 		}),
 		ScenarioInitializer: integration.InitializeEvaluationScenario,
 		Options: &godog.Options{
