@@ -34,11 +34,7 @@ Flag configurations for evaluation are obtained via gRPC protocol using [sync pr
 Consider following example to create a `FlagdProvider` with in-process evaluations,
 
 ```go
-provider, err := flagd.NewProvider(
-        flagd.WithInProcessResolver(),
-        flagd.WithHost("localhost"),
-        flagd.WithPort(8013),
-)
+provider, err := flagd.NewProvider(flagd.WithInProcessResolver())
 openfeature.SetProvider(provider)
 ```
 
