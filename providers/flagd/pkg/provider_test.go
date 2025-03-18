@@ -497,7 +497,7 @@ func TestUpdateProviderInProcessWithOfflineFile(t *testing.T) {
 	}
 
 	// when
-	UpdateProvider(provider)
+	configureProvider(provider)
 
 	// then
 	if provider.providerConfiguration.Resolver != file {
@@ -517,7 +517,7 @@ func TestUpdateProviderRpcWithoutPort(t *testing.T) {
 	}
 
 	// when
-	UpdateProvider(provider)
+	configureProvider(provider)
 
 	// then
 	if provider.providerConfiguration.Port != defaultRpcPort {
@@ -537,7 +537,7 @@ func TestUpdateProviderInProcessWithoutPort(t *testing.T) {
 	}
 
 	// when
-	UpdateProvider(provider)
+	configureProvider(provider)
 
 	// then
 	if provider.providerConfiguration.Port != defaultInProcessPort {
@@ -557,7 +557,7 @@ func TestCheckProviderFileMissingData(t *testing.T) {
 	}
 
 	// when
-	err := CheckProvider(provider)
+	err := validateProvider(provider)
 
 	// then
 	if err == nil {

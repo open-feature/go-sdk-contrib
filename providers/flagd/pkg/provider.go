@@ -51,9 +51,9 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		opt(provider)
 	}
 
-	UpdateProvider(provider)
+	configureProvider(provider)
 
-	err := CheckProvider(provider)
+	err := validateProvider(provider)
 
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	return provider, nil
 }
 
-func UpdateProvider(p *Provider) {
+func configureProvider(p *Provider) {
 	if len(p.providerConfiguration.OfflineFlagSourcePath) > 0 && p.providerConfiguration.Resolver == inProcess {
 		p.providerConfiguration.Resolver = file
 	}
@@ -117,7 +117,7 @@ func UpdateProvider(p *Provider) {
 	}
 }
 
-func CheckProvider(p *Provider) error {
+func validateProvider(p *Provider) error {
 	// We need a file path for file mode
 	if len(p.providerConfiguration.OfflineFlagSourcePath) == 0 && p.providerConfiguration.Resolver == file {
 		return errors.New("Resolver Type 'file' requires a OfflineFlagSourcePath")
