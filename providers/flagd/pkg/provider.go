@@ -2,7 +2,6 @@ package flagd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	parallel "sync"
@@ -10,7 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -23,8 +21,7 @@ const (
 
 type Provider struct {
 	initialized           bool
-	logger                logr.Logger
-	providerConfiguration *providerConfiguration
+	providerConfiguration *ProviderConfiguration
 	service               IService
 	status                of.State
 	mtx                   parallel.RWMutex
@@ -33,36 +30,23 @@ type Provider struct {
 }
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
-	log := logr.New(logger.Logger{})
-
-	// initialize with default configurations
-	providerConfiguration := newDefaultConfiguration(log)
-
-	provider := &Provider{
-		initialized:           false,
-		eventStream:           make(chan of.Event),
-		logger:                log,
-		providerConfiguration: providerConfiguration,
-		status:                of.NotReadyState,
-	}
-
-	// explicitly declared options have the highest priority
-	for _, opt := range opts {
-		opt(provider)
-	}
-
-	configureProvider(provider)
-
-	err := validateProvider(provider)
+	providerConfiguration, err := NewProviderConfiguration(opts)
 
 	if err != nil {
 		return nil, err
 	}
 
+	provider := &Provider{
+		initialized:           false,
+		eventStream:           make(chan of.Event),
+		providerConfiguration: providerConfiguration,
+		status:                of.NotReadyState,
+	}
+
 	cacheService := cache.NewCacheService(
 		provider.providerConfiguration.CacheType,
 		provider.providerConfiguration.MaxCacheSize,
-		provider.logger)
+		provider.providerConfiguration.log)
 
 	var service IService
 	if provider.providerConfiguration.Resolver == rpc {
@@ -76,7 +60,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
 			},
 			cacheService,
-			provider.logger,
+			provider.providerConfiguration.log,
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
 	} else if provider.providerConfiguration.Resolver == inProcess {
 		service = process.NewInProcessService(process.Configuration{
@@ -100,30 +84,6 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	provider.service = service
 
 	return provider, nil
-}
-
-func configureProvider(p *Provider) {
-	if len(p.providerConfiguration.OfflineFlagSourcePath) > 0 && p.providerConfiguration.Resolver == inProcess {
-		p.providerConfiguration.Resolver = file
-	}
-
-	if p.providerConfiguration.Port == 0 {
-		switch p.providerConfiguration.Resolver {
-		case rpc:
-			p.providerConfiguration.Port = defaultRpcPort
-		case inProcess:
-			p.providerConfiguration.Port = defaultInProcessPort
-		}
-	}
-}
-
-func validateProvider(p *Provider) error {
-	// We need a file path for file mode
-	if len(p.providerConfiguration.OfflineFlagSourcePath) == 0 && p.providerConfiguration.Resolver == file {
-		return errors.New("Resolver Type 'file' requires a OfflineFlagSourcePath")
-	}
-
-	return nil
 }
 
 func (p *Provider) Init(_ of.EvaluationContext) error {
@@ -235,56 +195,56 @@ func (p *Provider) setStatus(status of.State) {
 
 // ProviderOptions
 
-type ProviderOption func(*Provider)
+type ProviderOption func(*ProviderConfiguration)
 
 // WithSocketPath overrides the default hostname and expectPort, a unix socket connection is made to flagd instead
 func WithSocketPath(socketPath string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.SocketPath = socketPath
+	return func(p *ProviderConfiguration) {
+		p.SocketPath = socketPath
 	}
 }
 
 // WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials.
 // If certificate loading fails insecure credentials will be used instead
 func WithCertificatePath(path string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.CertificatePath = path
-		p.providerConfiguration.TLSEnabled = true
+	return func(p *ProviderConfiguration) {
+		p.CertificatePath = path
+		p.TLSEnabled = true
 	}
 }
 
 // WithPort specifies the port of the flagd server. Defaults to 8013
 func WithPort(port uint16) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Port = port
+	return func(p *ProviderConfiguration) {
+		p.Port = port
 	}
 }
 
 // WithHost specifies the host name of the flagd server. Defaults to localhost
 func WithHost(host string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Host = host
+	return func(p *ProviderConfiguration) {
+		p.Host = host
 	}
 }
 
 // WithTargetUri specifies the custom gRPC target URI
 func WithTargetUri(targetUri string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.TargetUri = targetUri
+	return func(p *ProviderConfiguration) {
+		p.TargetUri = targetUri
 	}
 }
 
 // WithoutCache disables caching
 func WithoutCache() ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.CacheType = cache.DisabledValue
+	return func(p *ProviderConfiguration) {
+		p.CacheType = cache.DisabledValue
 	}
 }
 
 // WithBasicInMemoryCache applies a basic in memory cache store (with no memory limits)
 func WithBasicInMemoryCache() ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.CacheType = cache.InMemValue
+	return func(p *ProviderConfiguration) {
+		p.CacheType = cache.InMemValue
 	}
 }
 
@@ -292,90 +252,90 @@ func WithBasicInMemoryCache() ProviderOption {
 // The provided size is the limit of the number of cached values. Once the limit is reached each new entry replaces the
 // least recently used entry.
 func WithLRUCache(size int) ProviderOption {
-	return func(p *Provider) {
+	return func(p *ProviderConfiguration) {
 		if size > 0 {
-			p.providerConfiguration.MaxCacheSize = size
+			p.MaxCacheSize = size
 		}
-		p.providerConfiguration.CacheType = cache.LRUValue
+		p.CacheType = cache.LRUValue
 	}
 }
 
 // WithEventStreamConnectionMaxAttempts sets the maximum number of attempts to connect to flagd's event stream.
 // On successful connection the attempts are reset.
 func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.EventStreamConnectionMaxAttempts = i
+	return func(p *ProviderConfiguration) {
+		p.EventStreamConnectionMaxAttempts = i
 	}
 }
 
 // WithLogger sets the logger used by the provider.
 func WithLogger(l logr.Logger) ProviderOption {
-	return func(p *Provider) {
-		p.logger = l
+	return func(p *ProviderConfiguration) {
+		p.log = l
 	}
 }
 
 // WithTLS enables TLS. If certPath is not given, system certs are used.
 func WithTLS(certPath string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.TLSEnabled = true
-		p.providerConfiguration.CertificatePath = certPath
+	return func(p *ProviderConfiguration) {
+		p.TLSEnabled = true
+		p.CertificatePath = certPath
 	}
 }
 
 // WithOtelInterceptor enable/disable otel interceptor for flagd communication
 func WithOtelInterceptor(intercept bool) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.OtelIntercept = intercept
+	return func(p *ProviderConfiguration) {
+		p.OtelIntercept = intercept
 	}
 }
 
 // WithRPCResolver sets flag resolver to RPC. RPC is the default resolving mechanism
 func WithRPCResolver() ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Resolver = rpc
+	return func(p *ProviderConfiguration) {
+		p.Resolver = rpc
 	}
 }
 
 // WithInProcessResolver sets flag resolver to InProcess
 func WithInProcessResolver() ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Resolver = inProcess
+	return func(p *ProviderConfiguration) {
+		p.Resolver = inProcess
 	}
 }
 
 // WithOfflineFilePath file path to obtain flags used for provider in file mode.
 func WithOfflineFilePath(path string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.OfflineFlagSourcePath = path
+	return func(p *ProviderConfiguration) {
+		p.OfflineFlagSourcePath = path
 	}
 }
 
 // WithFileResolver sets flag resolver to File
 func WithFileResolver() ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Resolver = file
+	return func(p *ProviderConfiguration) {
+		p.Resolver = file
 	}
 }
 
 // WithSelector sets the selector to be used for InProcess flag sync calls
 func WithSelector(selector string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.Selector = selector
+	return func(p *ProviderConfiguration) {
+		p.Selector = selector
 	}
 }
 
 // WithProviderID sets the providerID to be used for InProcess flag sync calls
 func WithProviderID(providerID string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.ProviderID = providerID
+	return func(p *ProviderConfiguration) {
+		p.ProviderID = providerID
 	}
 }
 
 // FromEnv sets the provider configuration from environment variables (if set)
 func FromEnv() ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.updateFromEnvVar()
+	return func(p *ProviderConfiguration) {
+		p.updateFromEnvVar()
 	}
 }
 
@@ -388,9 +348,9 @@ func WithCustomSyncProvider(customSyncProvider sync.ISync) ProviderOption {
 // WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
 // This is only useful with inProcess resolver type
 func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProviderUri string) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.CustomSyncProvider = customSyncProvider
-		p.providerConfiguration.CustomSyncProviderUri = customSyncProviderUri
+	return func(p *ProviderConfiguration) {
+		p.CustomSyncProvider = customSyncProvider
+		p.CustomSyncProviderUri = customSyncProviderUri
 	}
 }
 
@@ -399,7 +359,7 @@ func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProvi
 // will be silently ignored.
 // This is only useful with inProcess resolver type
 func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) ProviderOption {
-	return func(p *Provider) {
-		p.providerConfiguration.GrpcDialOptionsOverride = grpcDialOptionsOverride
+	return func(p *ProviderConfiguration) {
+		p.GrpcDialOptionsOverride = grpcDialOptionsOverride
 	}
 }

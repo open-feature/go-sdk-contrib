@@ -24,7 +24,7 @@ func TestETestEvaluationFlagdInRPC(t *testing.T) {
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		TestSuiteInitializer: integration.InitializeTestSuite(func() openfeature.FeatureProvider {
+		TestSuiteInitializer: integration.InitializeEvaluationTestSuite(func() openfeature.FeatureProvider {
 			provider, err := flagd.NewProvider(flagd.WithPort(8013))
 
 			if err != nil {
@@ -59,7 +59,7 @@ func TestJsonEvaluatorFlagdInProcess(t *testing.T) {
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		TestSuiteInitializer: integration.InitializeTestSuite(func() openfeature.FeatureProvider {
+		TestSuiteInitializer: integration.InitializeEvaluationTestSuite(func() openfeature.FeatureProvider {
 			provider, err := flagd.NewProvider(flagd.WithInProcessResolver(), flagd.WithPort(9090))
 
 			if err != nil {
