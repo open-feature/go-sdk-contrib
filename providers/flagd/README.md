@@ -22,7 +22,8 @@ Flag evaluations take place remotely at the connected flagd instance.
 To use in this mode, set the provider to the `openfeature` global singleton as shown below (using default values which align with those of `flagd`)
 
 ```go
-openfeature.SetProvider(flagd.NewProvider())
+provider, err := flagd.NewProvider()
+openfeature.SetProvider(provider)
 ```  
 
 ### In-process resolver
@@ -33,29 +34,11 @@ Flag configurations for evaluation are obtained via gRPC protocol using [sync pr
 Consider following example to create a `FlagdProvider` with in-process evaluations,
 
 ```go
-provider := flagd.NewProvider(
-        flagd.WithInProcessResolver(),
-        flagd.WithHost("localhost"),
-        flagd.WithPort(8013))
+provider, err := flagd.NewProvider(flagd.WithInProcessResolver())
 openfeature.SetProvider(provider)
 ```
 
 In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
-
-#### Offline mode
-
-In-process resolvers can also work in an offline mode.
-To enable this mode, you should provide a [valid flag configuration](https://flagd.dev/reference/flag-definitions/) file with the option `WithOfflineFilePath`.
-
-```go
-provider := flagd.NewProvider(
-        flagd.WithInProcessResolver(),
-        flagd.WithOfflineFilePath(OFFLINE_FLAG_PATH))
-openfeature.SetProvider(provider)
-```
-
-The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
-This mode is useful for local development, tests and offline applications.
 
 #### Custom sync provider
 
@@ -65,9 +48,10 @@ The custom sync provider must implement the [sync.ISync interface](https://githu
 ```go
 var syncProvider sync.ISync = MyAwesomeSyncProvider{}
 
-provider := flagd.NewProvider(
+provider, err := flagd.NewProvider(
         flagd.WithInProcessResolver(),
-        flagd.WithCustomSyncProvider(syncProvider))
+        flagd.WithCustomSyncProvider(syncProvider),
+)
 openfeature.SetProvider(provider)
 ```
 
@@ -75,9 +59,10 @@ openfeature.SetProvider(provider)
 var syncProvider sync.ISync = MyAwesomeSyncProvider{}
 var syncProviderUri string = "myawesome://sync.uri"
 
-provider := flagd.NewProvider(
+provider, err := flagd.NewProvider(
         flagd.WithInProcessResolver(),
-        flagd.WithCustomSyncProviderAndUri(syncProvider, syncProviderUri))
+        flagd.WithCustomSyncProviderAndUri(syncProvider, syncProviderUri),
+)
 openfeature.SetProvider(provider)
 ```
 
@@ -85,8 +70,22 @@ openfeature.SetProvider(provider)
 > Note that the in-process resolver can only use a single flag source.
 > If multiple sources are configured then only one would be selected based on the following order of preference:
 >   1. Custom sync provider
->   2. Offline file
->   3. gRPC
+>   2. gRPC
+
+### File mode
+
+This mode obtains the flag configurations from a local file and performs flag evaluations locally.
+
+```go
+provider, err := flagd.NewProvider(
+        flagd.WithFileResolver(),
+        flagd.WithOfflineFilePath(OFFLINE_FLAG_PATH),
+)
+openfeature.SetProvider(provider)
+```
+
+The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
+This mode is useful for local development, tests and offline applications.
 
 ## Configuration options
 
@@ -102,7 +101,7 @@ Configuration can be provided as constructor options or as environment variables
 | WithCertificatePath                                      | FLAGD_SERVER_CERT_PATH         | string                      | ""        | rpc & in-process    |
 | WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | rpc                 |
 | WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
-| WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | in-process          |
+| WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | file                |
 | WithProviderID                                           | FLAGD_SOURCE_PROVIDER_ID       | string                      | ""        | in-process          |
 | WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          | 
 
@@ -115,10 +114,11 @@ In the event that another configuration option is passed to the `flagd.NewProvid
 
 e.g. below the values set by `FromEnv()` overwrite the value set by `WithHost("localhost")`.
 ```go
-openfeature.SetProvider(flagd.NewProvider(
+provider, err := flagd.NewProvider(
         flagd.WithHost("localhost"),
         flagd.FromEnv(),
-    ))
+)
+openfeature.SetProvider(provider)
 ```
 
 ### Caching
@@ -138,10 +138,11 @@ and one custom resolver for `envoy` proxy resolution. For more details, please r
 [RFC](https://github.com/open-feature/flagd/blob/main/docs/reference/specifications/proposal/rfc-grpc-custom-name-resolver.md) document.
 
 ```go
-openfeature.SetProvider(flagd.NewProvider(
+provider, err := flagd.NewProvider(
         flagd.WithInProcessResolver(),
         flagd.WithTargetUri("envoy://localhost:9211/test.service"),
-    ))
+)
+openfeature.SetProvider(provider)
 ```
 
 ### gRPC DialOptions override
@@ -158,11 +159,12 @@ dialOptions := []grpc.DialOption{
         grpc.WithAuthority(...),
     }
 
-openfeature.SetProvider(flagd.NewProvider(
+provider, err := flagd.NewProvider(
         flagd.WithInProcessResolver(),
         flagd.WithHost("example.com/flagdSyncApi"), flagd.WithPort(443),
         flagd.WithGrpcDialOptionsOverride(dialOptions),
-    ))
+)
+openfeature.SetProvider(provider)
 ```
 
 ## Supported Events
@@ -199,7 +201,7 @@ for many of the popular logger packages.
 var l logr.Logger
 l = integratedlogr.New() // replace with your chosen integrator
 
-provider := flagd.NewProvider(flagd.WithLogger(l)) // set the provider's logger
+provider, err := flagd.NewProvider(flagd.WithLogger(l)) // set the provider's logger
 ```
 
 [logr](https://github.com/go-logr/logr) uses incremental verbosity levels (akin to named levels but in integer form).
