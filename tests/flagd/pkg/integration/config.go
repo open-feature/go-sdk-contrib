@@ -77,7 +77,7 @@ var valueGeneratorMap = map[string]valueProvider{
 	"cache": {
 		currentValue: func(config *flagd.ProviderConfiguration) interface{} {
 			return fmt.Sprintf(
-				"%s",
+				"%v",
 				config.CacheType,
 			)
 		},
@@ -261,7 +261,7 @@ func theOptionOfTypeShouldHaveTheValue(
 
 	if currentValue != expectedValue {
 		return ctx, fmt.Errorf(
-			"expected response of type '%s' with value '%s', got '%s'",
+			"expected config of type '%s' with value '%s', got '%s'",
 			valueType,
 			expectedValueS,
 			currentValue,
@@ -290,13 +290,4 @@ func stringToInt(str string) int {
 		panic(err)
 	}
 	return i
-}
-
-func stringToBool(str string) bool {
-	b, err := strconv.ParseBool(str)
-	if err != nil {
-		panic(err)
-	}
-
-	return b
 }
