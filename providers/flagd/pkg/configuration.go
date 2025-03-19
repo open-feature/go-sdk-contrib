@@ -1,13 +1,16 @@
 package flagd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"google.golang.org/grpc"
 )
 
@@ -43,7 +46,7 @@ const (
 	flagdTargetUriEnvironmentVariableName             = "FLAGD_TARGET_URI"
 )
 
-type providerConfiguration struct {
+type ProviderConfiguration struct {
 	CacheType                        cache.Type
 	CertificatePath                  string
 	EventStreamConnectionMaxAttempts int
@@ -65,8 +68,8 @@ type providerConfiguration struct {
 	log logr.Logger
 }
 
-func newDefaultConfiguration(log logr.Logger) *providerConfiguration {
-	p := &providerConfiguration{
+func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
+	p := &ProviderConfiguration{
 		CacheType:                        defaultCache,
 		EventStreamConnectionMaxAttempts: defaultMaxEventStreamRetries,
 		Host:                             defaultHost,
@@ -80,8 +83,50 @@ func newDefaultConfiguration(log logr.Logger) *providerConfiguration {
 	return p
 }
 
+func NewProviderConfiguration(opts []ProviderOption) (*ProviderConfiguration, error) {
+
+	log := logr.New(logger.Logger{})
+
+	// initialize with default configurations
+	providerConfiguration := newDefaultConfiguration(log)
+
+	// explicitly declared options have the highest priority
+	for _, opt := range opts {
+		opt(providerConfiguration)
+	}
+
+	configureProviderConfiguration(providerConfiguration)
+	err := validateProviderConfiguration(providerConfiguration)
+
+	return providerConfiguration, err
+}
+
+func configureProviderConfiguration(p *ProviderConfiguration) {
+	if len(p.OfflineFlagSourcePath) > 0 && p.Resolver == inProcess {
+		p.Resolver = file
+	}
+
+	if p.Port == 0 {
+		switch p.Resolver {
+		case rpc:
+			p.Port = defaultRpcPort
+		case inProcess:
+			p.Port = defaultInProcessPort
+		}
+	}
+}
+
+func validateProviderConfiguration(p *ProviderConfiguration) error {
+	// We need a file path for file mode
+	if len(p.OfflineFlagSourcePath) == 0 && p.Resolver == file {
+		return errors.New("resolver Type 'file' requires a OfflineFlagSourcePath")
+	}
+
+	return nil
+}
+
 // updateFromEnvVar is a utility to update configurations based on current environment variables
-func (cfg *providerConfiguration) updateFromEnvVar() {
+func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	portS := os.Getenv(flagdPortEnvironmentVariableName)
 	if portS != "" {
 		port, err := strconv.Atoi(portS)
@@ -151,12 +196,12 @@ func (cfg *providerConfiguration) updateFromEnvVar() {
 	}
 
 	if resolver := os.Getenv(flagdResolverEnvironmentVariableName); resolver != "" {
-		switch ResolverType(resolver) {
-		case rpc:
+		switch strings.ToLower(resolver) {
+		case "rpc":
 			cfg.Resolver = rpc
-		case inProcess:
+		case "in-process":
 			cfg.Resolver = inProcess
-		case file:
+		case "file":
 			cfg.Resolver = file
 		default:
 			cfg.log.Info("invalid resolver type: %s, falling back to default: %s", resolver, defaultResolver)
