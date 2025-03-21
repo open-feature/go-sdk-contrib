@@ -290,7 +290,7 @@ Feature: Configuration Test
     @rpc @caching
     Scenarios: Caching
       | option       | env                  | type      | value    | env-value |
-      | cache        | FLAGD_CACHE          | CacheType | disabled | lru       |
+      | cache        | FLAGD_CACHE          | CacheType | disabled | LRU       |
       | maxCacheSize | FLAGD_MAX_CACHE_SIZE | Integer   | 1236     | 2345      |
 
     @file
