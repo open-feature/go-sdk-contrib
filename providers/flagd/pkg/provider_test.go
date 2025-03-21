@@ -285,14 +285,14 @@ func TestNewProvider(t *testing.T) {
 
 			config := flagdProvider.providerConfiguration
 
-			if config.TLSEnabled != test.expectTlsEnabled {
-				t.Errorf("incorrect configuration TLSEnabled, expected %v, got %v",
-					test.expectTlsEnabled, config.TLSEnabled)
+			if config.Tls != test.expectTlsEnabled {
+				t.Errorf("incorrect configuration Tls, expected %v, got %v",
+					test.expectTlsEnabled, config.Tls)
 			}
 
-			if config.CertificatePath != test.expectCertPath {
-				t.Errorf("incorrect configuration CertificatePath, expected %v, got %v",
-					test.expectCertPath, config.CertificatePath)
+			if config.CertPath != test.expectCertPath {
+				t.Errorf("incorrect configuration CertPath, expected %v, got %v",
+					test.expectCertPath, config.CertPath)
 			}
 
 			if config.OtelIntercept != test.expectOtelIntercept {
@@ -310,9 +310,9 @@ func TestNewProvider(t *testing.T) {
 					test.expectCacheSize, config.MaxCacheSize)
 			}
 
-			if config.CacheType != test.expectCacheType {
-				t.Errorf("incorrect configuration CacheType, expected %v, got %v",
-					test.expectCacheType, config.CacheType)
+			if config.Cache != test.expectCacheType {
+				t.Errorf("incorrect configuration Cache, expected %v, got %v",
+					test.expectCacheType, config.Cache)
 			}
 
 			if config.Host != test.expectHost {

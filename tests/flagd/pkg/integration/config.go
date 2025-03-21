@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/cucumber/godog"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 // providerOption is a struct to store the defined options between steps
@@ -34,12 +36,6 @@ type ctxErrorAwareProviderConfigurationKey struct{}
 // setEnvVar is a function to define env vars to be used to create provider configurations
 var setEnvVar func(key, value string)
 
-// valueProvider is a struct with functions to obtain the current and expected configuration value
-type valueProvider struct {
-	currentValue  func(config *flagd.ProviderConfiguration) interface{}
-	expectedValue func(value string) interface{}
-}
-
 // ignoredOptions a list of options that are currently not supported
 var ignoredOptions = []string{
 	"deadlineMs",
@@ -49,102 +45,6 @@ var ignoredOptions = []string{
 	"retryBackoffMaxMs",
 	"retryGracePeriod",
 	"offlinePollIntervalMs",
-	"tls", // tls option needs to be ignored because the env var FLAGD_TLS is not processed
-}
-
-// valueGeneratorMap a map that defines the value generators for supported options
-var valueGeneratorMap = map[string]valueProvider{
-	"resolver": {
-		currentValue:  func(config *flagd.ProviderConfiguration) interface{} { return config.Resolver },
-		expectedValue: func(value string) interface{} { return flagd.ResolverType(strings.ToLower(value)) },
-	},
-	"port": {
-		currentValue:  func(config *flagd.ProviderConfiguration) interface{} { return config.Port },
-		expectedValue: func(value string) interface{} { return uint16(stringToInt(value)) },
-	},
-	"host": {
-		currentValue: func(config *flagd.ProviderConfiguration) interface{} { return config.Host },
-	},
-	"targetUri": {
-		currentValue: func(config *flagd.ProviderConfiguration) interface{} { return config.TargetUri },
-	},
-	"certPath": {
-		currentValue: func(config *flagd.ProviderConfiguration) interface{} { return config.CertificatePath },
-	},
-	"socketPath": {
-		currentValue: func(config *flagd.ProviderConfiguration) interface{} { return config.SocketPath },
-	},
-	"cache": {
-		currentValue: func(config *flagd.ProviderConfiguration) interface{} {
-			return fmt.Sprintf(
-				"%v",
-				config.CacheType,
-			)
-		},
-	},
-	"selector": {
-		currentValue: func(config *flagd.ProviderConfiguration) interface{} { return config.Selector },
-	},
-	"maxCacheSize": {
-		currentValue:  func(config *flagd.ProviderConfiguration) interface{} { return config.MaxCacheSize },
-		expectedValue: func(value string) interface{} { return stringToInt(value) },
-	},
-	"offlineFlagSourcePath": {
-		currentValue: func(config *flagd.ProviderConfiguration) interface{} {
-			return config.OfflineFlagSourcePath
-		},
-	},
-}
-
-// providerOptionGeneratorMap a map that defines the provider options generators for supported options
-var providerOptionGeneratorMap = map[string]func(value string) (flagd.ProviderOption, error){
-	"resolver": func(value string) (flagd.ProviderOption, error) {
-		switch strings.ToLower(value) {
-		case "rpc":
-			return flagd.WithRPCResolver(), nil
-		case "in-process":
-			return flagd.WithInProcessResolver(), nil
-		case "file":
-			return flagd.WithFileResolver(), nil
-		}
-		return nil, fmt.Errorf("invalid resolver '%s'", value)
-	},
-	"offlineFlagSourcePath": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithOfflineFilePath(value), nil
-	},
-	"host": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithHost(value), nil
-	},
-	"port": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithPort(uint16(stringToInt(value))), nil
-	},
-	"targetUri": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithTargetUri(value), nil
-	},
-	"certPath": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithCertificatePath(value), nil
-	},
-	"socketPath": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithSocketPath(value), nil
-	},
-	"selector": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithSelector(value), nil
-	},
-	"cache": func(value string) (flagd.ProviderOption, error) {
-		switch strings.ToLower(value) {
-		case "lru":
-			return flagd.WithLRUCache(2500), nil
-		case "mem":
-			return flagd.WithBasicInMemoryCache(), nil
-		case "disabled":
-
-			return flagd.WithoutCache(), nil
-		}
-		return nil, fmt.Errorf("invalid cache type '%s'", value)
-	},
-	"maxCacheSize": func(value string) (flagd.ProviderOption, error) {
-		return flagd.WithLRUCache(stringToInt(value)), nil
-	},
 }
 
 // InitializeConfigTestSuite register provider supplier and register test steps
@@ -173,24 +73,10 @@ func aConfigWasInitialized(ctx context.Context) (context.Context, error) {
 
 	for _, providerOption := range providerOptions {
 		if !slices.Contains(ignoredOptions, providerOption.option) {
-			optionSupplier, ok := providerOptionGeneratorMap[providerOption.option]
-
-			if !ok {
-				return ctx, fmt.Errorf(
-					"invalid config with option '%s' with type '%s' and value '%s'",
-					providerOption.option,
-					providerOption.valueType,
-					providerOption.value,
-				)
-			}
-
-			option, err := optionSupplier(providerOption.value)
-
-			if err != nil {
-				return ctx, err
-			}
-
-			opts = append(opts, option)
+			opts = append(
+				opts,
+				genericProviderOption(providerOption.option, providerOption.valueType, providerOption.value),
+			)
 		}
 	}
 
@@ -240,31 +126,16 @@ func theOptionOfTypeShouldHaveTheValue(
 	}
 
 	config := errorAwareConfiguration.configuration
+	currentValue := reflect.ValueOf(config).Elem().FieldByName(toFieldName(option))
 
-	valueGenerator, ok := valueGeneratorMap[option]
+	var expectedValue = convertValue(valueType, expectedValueS, currentValue.Type())
 
-	if !ok {
-		return ctx, fmt.Errorf(
-			"invalid option '%s' with type '%s' and value '%s'",
-			option,
-			valueType,
-			expectedValueS,
-		)
-	}
-
-	currentValue := valueGenerator.currentValue(config)
-
-	var expectedValue interface{} = expectedValueS
-	if valueGenerator.expectedValue != nil {
-		expectedValue = valueGenerator.expectedValue(expectedValueS)
-	}
-
-	if currentValue != expectedValue {
+	if valueToString(currentValue) != valueToString(expectedValue) {
 		return ctx, fmt.Errorf(
 			"expected config of type '%s' with value '%s', got '%s'",
 			valueType,
 			expectedValueS,
-			currentValue,
+			fmt.Sprintf("%v", currentValue),
 		)
 	}
 
@@ -290,4 +161,41 @@ func stringToInt(str string) int {
 		panic(err)
 	}
 	return i
+}
+
+func stringToBoolean(str string) bool {
+	b, err := strconv.ParseBool(str)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func valueToString(value interface{}) string {
+	return fmt.Sprintf("%v", value)
+}
+
+func toFieldName(option string) string {
+	r := []rune(option)
+	return string(append([]rune{unicode.ToUpper(r[0])}, r[1:]...))
+}
+
+func genericProviderOption(option, valueType, value string) flagd.ProviderOption {
+	return func(p *flagd.ProviderConfiguration) {
+		field := reflect.ValueOf(p).Elem().FieldByName(toFieldName(option))
+
+		field.Set(convertValue(valueType, value, field.Type()))
+	}
+}
+
+func convertValue(valueType, value string, fieldType reflect.Type) reflect.Value {
+	if valueType == "Integer" {
+		return reflect.ValueOf(stringToInt(value)).Convert(fieldType)
+	} else if valueType == "Boolean" {
+		return reflect.ValueOf(stringToBoolean(value)).Convert(fieldType)
+	} else if valueType == "ResolverType" {
+		return reflect.ValueOf(flagd.ResolverType(strings.ToLower(value))).Convert(fieldType)
+	} else {
+		return reflect.ValueOf(value).Convert(fieldType)
+	}
 }

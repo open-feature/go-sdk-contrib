@@ -6,13 +6,10 @@ import (
 
 	parallel "sync"
 
-	"github.com/go-logr/logr"
-	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/openfeature"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -44,7 +41,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	}
 
 	cacheService := cache.NewCacheService(
-		provider.providerConfiguration.CacheType,
+		provider.providerConfiguration.Cache,
 		provider.providerConfiguration.MaxCacheSize,
 		provider.providerConfiguration.log)
 
@@ -54,9 +51,9 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			rpcService.Configuration{
 				Host:            provider.providerConfiguration.Host,
 				Port:            provider.providerConfiguration.Port,
-				CertificatePath: provider.providerConfiguration.CertificatePath,
+				CertificatePath: provider.providerConfiguration.CertPath,
 				SocketPath:      provider.providerConfiguration.SocketPath,
-				TLSEnabled:      provider.providerConfiguration.TLSEnabled,
+				TLSEnabled:      provider.providerConfiguration.Tls,
 				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
 			},
 			cacheService,
@@ -69,7 +66,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			ProviderID:              provider.providerConfiguration.ProviderID,
 			Selector:                provider.providerConfiguration.Selector,
 			TargetUri:               provider.providerConfiguration.TargetUri,
-			TLSEnabled:              provider.providerConfiguration.TLSEnabled,
+			TLSEnabled:              provider.providerConfiguration.Tls,
 			OfflineFlagSource:       provider.providerConfiguration.OfflineFlagSourcePath,
 			CustomSyncProvider:      provider.providerConfiguration.CustomSyncProvider,
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
@@ -191,175 +188,4 @@ func (p *Provider) setStatus(status of.State) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 	p.status = status
-}
-
-// ProviderOptions
-
-type ProviderOption func(*ProviderConfiguration)
-
-// WithSocketPath overrides the default hostname and expectPort, a unix socket connection is made to flagd instead
-func WithSocketPath(socketPath string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.SocketPath = socketPath
-	}
-}
-
-// WithCertificatePath specifies the location of the certificate to be used in the gRPC dial credentials.
-// If certificate loading fails insecure credentials will be used instead
-func WithCertificatePath(path string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.CertificatePath = path
-		p.TLSEnabled = true
-	}
-}
-
-// WithPort specifies the port of the flagd server. Defaults to 8013
-func WithPort(port uint16) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.Port = port
-	}
-}
-
-// WithHost specifies the host name of the flagd server. Defaults to localhost
-func WithHost(host string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.Host = host
-	}
-}
-
-// WithTargetUri specifies the custom gRPC target URI
-func WithTargetUri(targetUri string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.TargetUri = targetUri
-	}
-}
-
-// WithoutCache disables caching
-func WithoutCache() ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.CacheType = cache.DisabledValue
-	}
-}
-
-// WithBasicInMemoryCache applies a basic in memory cache store (with no memory limits)
-func WithBasicInMemoryCache() ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.CacheType = cache.InMemValue
-	}
-}
-
-// WithLRUCache applies least recently used caching (github.com/hashicorp/golang-lru).
-// The provided size is the limit of the number of cached values. Once the limit is reached each new entry replaces the
-// least recently used entry.
-func WithLRUCache(size int) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		if size > 0 {
-			p.MaxCacheSize = size
-		}
-		p.CacheType = cache.LRUValue
-	}
-}
-
-// WithEventStreamConnectionMaxAttempts sets the maximum number of attempts to connect to flagd's event stream.
-// On successful connection the attempts are reset.
-func WithEventStreamConnectionMaxAttempts(i int) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.EventStreamConnectionMaxAttempts = i
-	}
-}
-
-// WithLogger sets the logger used by the provider.
-func WithLogger(l logr.Logger) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.log = l
-	}
-}
-
-// WithTLS enables TLS. If certPath is not given, system certs are used.
-func WithTLS(certPath string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.TLSEnabled = true
-		p.CertificatePath = certPath
-	}
-}
-
-// WithOtelInterceptor enable/disable otel interceptor for flagd communication
-func WithOtelInterceptor(intercept bool) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.OtelIntercept = intercept
-	}
-}
-
-// WithRPCResolver sets flag resolver to RPC. RPC is the default resolving mechanism
-func WithRPCResolver() ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.Resolver = rpc
-	}
-}
-
-// WithInProcessResolver sets flag resolver to InProcess
-func WithInProcessResolver() ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.Resolver = inProcess
-	}
-}
-
-// WithOfflineFilePath file path to obtain flags used for provider in file mode.
-func WithOfflineFilePath(path string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.OfflineFlagSourcePath = path
-	}
-}
-
-// WithFileResolver sets flag resolver to File
-func WithFileResolver() ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.Resolver = file
-	}
-}
-
-// WithSelector sets the selector to be used for InProcess flag sync calls
-func WithSelector(selector string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.Selector = selector
-	}
-}
-
-// WithProviderID sets the providerID to be used for InProcess flag sync calls
-func WithProviderID(providerID string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.ProviderID = providerID
-	}
-}
-
-// FromEnv sets the provider configuration from environment variables (if set)
-func FromEnv() ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.updateFromEnvVar()
-	}
-}
-
-// WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
-// This is only useful with inProcess resolver type
-func WithCustomSyncProvider(customSyncProvider sync.ISync) ProviderOption {
-	return WithCustomSyncProviderAndUri(customSyncProvider, defaultCustomSyncProviderUri)
-}
-
-// WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
-// This is only useful with inProcess resolver type
-func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProviderUri string) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.CustomSyncProvider = customSyncProvider
-		p.CustomSyncProviderUri = customSyncProviderUri
-	}
-}
-
-// WithGrpcDialOptionsOverride provides a set of custom grps.DialOption that will fully override the gRPC dial options used by
-// the InProcess resolver with gRPC syncer. All the other provider options that also set dial options (e.g. WithTLS, or WithCertificatePath)
-// will be silently ignored.
-// This is only useful with inProcess resolver type
-func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) ProviderOption {
-	return func(p *ProviderConfiguration) {
-		p.GrpcDialOptionsOverride = grpcDialOptionsOverride
-	}
 }
