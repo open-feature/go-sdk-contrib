@@ -14,8 +14,8 @@ test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
 
 e2e-start-helpers:
-	docker run --name $(FLAGD_TESTBED) -d -p 8013:8013 ghcr.io/open-feature/flagd-testbed:v0.5.6
-	docker run --name $(FLAGD_SYNC) -d -p 9090:9090 ghcr.io/open-feature/sync-testbed:v0.5.6
+	docker run --name $(FLAGD_TESTBED) -d -p 8013:8013 ghcr.io/open-feature/flagd-testbed:v0.5.21
+	docker run --name $(FLAGD_SYNC) -d -p 9090:9090 ghcr.io/open-feature/sync-testbed:v0.5.21
 
 e2e-remove-helpers:
 	docker stop $(FLAGD_TESTBED)
