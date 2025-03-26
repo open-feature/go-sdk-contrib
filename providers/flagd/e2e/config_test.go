@@ -26,10 +26,14 @@ func TestConfig(t *testing.T) {
 
 	testSuite := godog.TestSuite{
 		Name: name,
-		TestSuiteInitializer: integration.InitializeConfigTestSuite(func(envVar, envVarValue string) {
-			t.Setenv(envVar, envVarValue)
-			usedEnvVars = append(usedEnvVars, envVar)
-		}),
+		TestSuiteInitializer: func(testSuiteContext *godog.TestSuiteContext) {
+			integration.PrepareConfigTestSuite(
+				func(envVar, envVarValue string) {
+					t.Setenv(envVar, envVarValue)
+					usedEnvVars = append(usedEnvVars, envVar)
+				},
+			)
+		},
 		ScenarioInitializer: func(ctx *godog.ScenarioContext) {
 			for _, envVar := range usedEnvVars {
 				err := os.Unsetenv(envVar)
@@ -43,7 +47,7 @@ func TestConfig(t *testing.T) {
 		},
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"./gherkin/config.feature"},
+			Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
 			TestingT: t, // Testing instance that will run subtests.
 			Strict:   true,
 		},

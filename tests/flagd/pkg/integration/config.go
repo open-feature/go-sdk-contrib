@@ -47,11 +47,9 @@ var ignoredOptions = []string{
 	"offlinePollIntervalMs",
 }
 
-// InitializeConfigTestSuite register provider supplier and register test steps
-func InitializeConfigTestSuite(setEnvVarFunc func(key, value string)) func(*godog.TestSuiteContext) {
+// PrepareConfigTestSuite register provider supplier and register test steps
+func PrepareConfigTestSuite(setEnvVarFunc func(key, value string)) {
 	setEnvVar = setEnvVarFunc
-
-	return func(suiteContext *godog.TestSuiteContext) {}
 }
 
 // InitializeConfigScenario initializes the config test scenario
