@@ -54,8 +54,6 @@ func NewFlagd(ctx context.Context) (*FlagdContainer, error) {
 		return nil, err
 	}
 
-	fmt.Println(version)
-
 	c := &flagdConfig{
 		version: fmt.Sprintf("v%v", version),
 	}
