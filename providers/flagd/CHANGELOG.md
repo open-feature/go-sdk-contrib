@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.6...providers/flagd/v0.3.0) (2025-03-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **flagd:** add file mode to flagd provider ([#648](https://github.com/open-feature/go-sdk-contrib/issues/648))
+
+### 🐛 Bug Fixes
+
+* **deps:** Remove dependency on sigs.k8s.io/controller-runtime/pkg/lo… ([#639](https://github.com/open-feature/go-sdk-contrib/issues/639)) ([c2e1a73](https://github.com/open-feature/go-sdk-contrib/commit/c2e1a73e5d4297625b048b1a589101150b7c4136))
+
+
+### ✨ New Features
+
+* **flagd:** add file mode to flagd provider ([#648](https://github.com/open-feature/go-sdk-contrib/issues/648)) ([3ac923c](https://github.com/open-feature/go-sdk-contrib/commit/3ac923c17efb04959297fe8ba9fe1eb923bbbfc1))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency go to v1.24.1 ([#564](https://github.com/open-feature/go-sdk-contrib/issues/564)) ([2a99abc](https://github.com/open-feature/go-sdk-contrib/commit/2a99abc0a4afbb54e8acc2149daaeecbecc3b694))
+
 ## [0.2.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.5...providers/flagd/v0.2.6) (2025-02-22)
 
 
