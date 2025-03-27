@@ -10,10 +10,9 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// InitializeEvaluationTestSuite register provider supplier for this test run
-func InitializeEvaluationTestSuite(providerSupplier func() openfeature.FeatureProvider) func(*godog.TestSuiteContext) {
+// PrepareEvaluationTestSuite register provider supplier for this test run
+func PrepareEvaluationTestSuite(providerSupplier func() openfeature.FeatureProvider) {
 	test_provider_supplier = providerSupplier
-	return func(suiteContext *godog.TestSuiteContext) {}
 }
 
 // InitializeEvaluationScenario initializes the evaluation test scenario
