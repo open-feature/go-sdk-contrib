@@ -2,7 +2,7 @@ module github.com/open-feature/go-sdk-contrib/providers/flagd
 
 go 1.22.7
 
-toolchain go1.23.6
+toolchain go1.24.1
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.17.0-20240906125204-0a6a901b42e8.1
@@ -17,6 +17,7 @@ require (
 	github.com/open-feature/flagd/core v0.11.2
 	github.com/open-feature/go-sdk v1.11.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.1
+	github.com/testcontainers/testcontainers-go v0.32.0
 	go.uber.org/mock v0.5.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac
@@ -72,7 +73,6 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/testcontainers/testcontainers-go v0.32.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
