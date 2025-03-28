@@ -25,10 +25,9 @@ func testJsonEvaluatorFlagd(
 	runGherkinTestWithFeatureProvider(
 		gherkinTestRunConfig{
 			t:                   t,
-			prepareTestSuite:    integration.PrepareEvaluationTestSuite,
 			scenarioInitializer: integration.InitializeEvaluationScenario,
 			name:                "evaluation.feature",
-			gherkinFile:         "../spec/specification/assets/gherkin/evaluation.feature",
+			gherkinFiles:        []string{"../spec/specification/assets/gherkin/evaluation.feature"},
 			port:                exposedPort,
 			providerOptions:     providerOptions,
 		},

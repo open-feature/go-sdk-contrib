@@ -33,23 +33,9 @@ type ctxProviderOptionsKey struct{}
 // ctxErrorAwareProviderConfigurationKey is the key used to pass the errorAwareProviderConfiguration across tests
 type ctxErrorAwareProviderConfigurationKey struct{}
 
-// setEnvVar is a function to define env vars to be used to create provider configurations
-var setEnvVar func(key, value string)
-
-// ignoredOptions a list of options that are currently not supported
+// ignoredOptions a list of options that are currently not supported and cannot be ignored with tags
 var ignoredOptions = []string{
 	"deadlineMs",
-	"streamDeadlineMs",
-	"keepAliveTime",
-	"retryBackoffMs",
-	"retryBackoffMaxMs",
-	"retryGracePeriod",
-	"offlinePollIntervalMs",
-}
-
-// PrepareConfigTestSuite register provider supplier and register test steps
-func PrepareConfigTestSuite(setEnvVarFunc func(key, value string)) {
-	setEnvVar = setEnvVarFunc
 }
 
 // InitializeConfigScenario initializes the config test scenario
