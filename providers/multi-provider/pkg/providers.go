@@ -184,14 +184,17 @@ func (mp *MultiProvider) Init(evalCtx openfeature.EvaluationContext) error {
 	if len(errors) > 0 {
 		var aggErr err.AggregateError
 		aggErr.Construct(errors)
+		mp.status = openfeature.ErrorState
 		return &aggErr
 	}
+
+	mp.status = openfeature.ReadyState
 
 	return nil
 }
 
 func (mp *MultiProvider) Status() openfeature.State {
-	return openfeature.ReadyState
+	return mp.status
 }
 
 func (mp *MultiProvider) Shutdown() {
@@ -211,6 +214,5 @@ func (mp *MultiProvider) Shutdown() {
 }
 
 func (mp *MultiProvider) EventChannel() <-chan openfeature.Event {
-	ev := make(chan openfeature.Event)
-	return ev
+	return mp.events
 }
