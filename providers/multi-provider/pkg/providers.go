@@ -31,6 +31,8 @@ type MultiMetadata struct {
 	OriginalMetadata map[string]openfeature.Metadata `json:"originalMetadata"`
 }
 
+var _ openfeature.FeatureProvider = (*MultiProvider)(nil)
+
 // MultiProvider implements openfeature `FeatureProvider` in a way to accept an array of providers.
 type MultiProvider struct {
 	providersEntries       []UniqueNameProvider
