@@ -191,7 +191,6 @@ func TestMultiProvider_ProviderByNameMethod(t *testing.T) {
 
 }
 
-// todo: currently the `multiProvider.Metadata()` just give the `Name` of the multi provider it doesn't aggregate the passed providers as stated in this specification https://openfeature.dev/specification/appendix-a/#metadata so this test fails
 func TestMultiProvider_MetaData(t *testing.T) {
 	initializations := 0
 	shutdowns := 0
@@ -276,6 +275,10 @@ func TestMultiProvider_Init(t *testing.T) {
 		t.Errorf("Expected the initialization process to be successful, got error: '%s'", err)
 	}
 
+	if mp.status != openfeature.ReadyState {
+		t.Errorf("Expected the state of the multiprovider to be in 'Error', got: '%s'", mp.status)
+	}
+
 	if initializations == 0 {
 		t.Errorf("Expected there to be initializations, but none were ran.")
 	}
@@ -345,6 +348,9 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 		t.Errorf("Expected there to be '2' errors found, got: '%d'", len(errors))
 	}
 
+	if mp.status != openfeature.ErrorState {
+		t.Errorf("Expected the state of the multiprovider to be in 'Error', got: '%s'", mp.status)
+	}
 }
 
 func TestMultiProvider_Shutdown(t *testing.T) {
