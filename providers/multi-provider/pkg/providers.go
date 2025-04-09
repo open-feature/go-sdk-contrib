@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	err "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal"
+	strategies "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/hooks"
@@ -35,7 +36,7 @@ type MultiProvider struct {
 	providersEntries       []UniqueNameProvider
 	providersEntriesByName map[string]UniqueNameProvider
 	AggregatedMetadata     MultiMetadata
-	EvaluationStrategy     string
+	EvaluationStrategy     strategies.Strategy
 	events                 chan openfeature.Event
 	status                 openfeature.State
 	mu                     sync.Mutex
@@ -52,10 +53,12 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 		},
 	}
 
-	err := registerProviders(multiProvider, passedProviders)
+	err := multiProvider.registerProviders(passedProviders)
 	if err != nil {
 		return nil, err
 	}
+
+	multiProvider.EvaluationStrategy = multiProvider.strategyMethod(evaluationStrategy, multiProvider.providersEntries)
 
 	return multiProvider, nil
 }
@@ -75,7 +78,7 @@ func (mp *MultiProvider) ProviderByName(name string) (UniqueNameProvider, bool) 
 
 // registerProviders ensures that when setting up an instant of MultiProvider the providers provided either have a unique name or the base `metadata.Name` is made unique by adding an indexed based number to it.
 // registerProviders also stores the providers by their unique name and in an array for easy usage.
-func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error {
+func (mp *MultiProvider) registerProviders(providers []UniqueNameProvider) error {
 	providersByName := make(map[string][]UniqueNameProvider)
 
 	for _, provider := range providers {
@@ -111,6 +114,20 @@ func registerProviders(mp *MultiProvider, providers []UniqueNameProvider) error 
 	return nil
 }
 
+// strategyMethod determines the strategy for the evaluation of the flags in the providers based on the passed value in the set up
+func (mp *MultiProvider) strategyMethod(name string, providers []UniqueNameProvider) strategies.Strategy {
+	switch name {
+	case string(strategies.StrategyFirstMatch):
+		return strategies.strategies.NewFirstMatchStrategy(providers)
+	case string(strategies.StrategyFirstSuccess):
+		return strategies.strategies.NewFirstSuccessStrategy(providers)
+	case string(strategies.StrategyComparison):
+		return strategies.strategies.NewComparisonStrategy(providers)
+	default:
+		return strategies.strategies.NewFirstMatchStrategy(providers)
+	}
+}
+
 // Metadata provides the name `multiprovider` and the names of each provider passed.
 func (mp *MultiProvider) Metadata() openfeature.Metadata {
 	metaJSON, _ := json.Marshal(mp.AggregatedMetadata)
@@ -126,32 +143,32 @@ func (mp *MultiProvider) Hooks() []openfeature.Hook {
 
 // BooleanEvaluation returns a boolean flag
 func (mp *MultiProvider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
-	// code to evaluate boolean
-	return openfeature.BoolResolutionDetail{}
+
+	return mp.EvaluationStrategy.BooleanEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // StringEvaluation returns a string flag
 func (mp *MultiProvider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
-	// code to evaluate string
-	return openfeature.StringResolutionDetail{}
+
+	return mp.EvaluationStrategy.StringEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // FloatEvaluation returns a float flag
 func (mp *MultiProvider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
-	// code to evaluate float
-	return openfeature.FloatResolutionDetail{}
+
+	return mp.EvaluationStrategy.FloatEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // IntEvaluation returns an int flag
 func (mp *MultiProvider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
-	// code to evaluate int
-	return openfeature.IntResolutionDetail{}
+
+	return mp.EvaluationStrategy.IntEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // ObjectEvaluation returns an object flag
 func (mp *MultiProvider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
-	// code to evaluate object
-	return openfeature.InterfaceResolutionDetail{}
+	
+	return mp.EvaluationStrategy.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // Init will run the initialize method for all of provides and aggregate the errors.
