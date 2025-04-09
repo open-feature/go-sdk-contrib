@@ -6,6 +6,8 @@ import (
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -46,8 +48,14 @@ type resultWrapper[R resultConstraint] struct {
 // buildDefaultResult Creates a default result using reflection via generics
 func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 | interface{}](strategy EvaluationStrategy, defaultValue DV, err error) resultWrapper[R] {
 	result := *new(R)
+	var resolutionErr of.ResolutionError
+	if err == nil {
+		resolutionErr = of.NewFlagNotFoundResolutionError("not found in any provider")
+	} else {
+		resolutionErr = of.NewGeneralResolutionError(cleanErrorMessage(err.Error()))
+	}
 	details := of.ProviderResolutionDetail{
-		ResolutionError: of.NewFlagNotFoundResolutionError(err.Error()),
+		ResolutionError: resolutionErr,
 		Reason:          of.DefaultReason,
 		FlagMetadata:    of.FlagMetadata{MetadataSuccessfulProviderName: "none", MetadataStrategyUsed: strategy},
 	}
@@ -89,4 +97,23 @@ func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string
 	metadata[MetadataSuccessfulProviderName] = successProviderName
 	metadata[MetadataStrategyUsed] = strategyUsed
 	return metadata
+}
+
+func cleanErrorMessage(msg string) string {
+	codeRegex := strings.Join([]string{
+		string(of.ProviderNotReadyCode),
+		string(of.ProviderFatalCode),
+		string(of.FlagNotFoundCode),
+		string(of.ParseErrorCode),
+		string(of.TypeMismatchCode),
+		string(of.TargetingKeyMissingCode),
+		string(of.GeneralCode),
+	}, "|")
+	re := regexp.MustCompile("(?:" + codeRegex + "): (.*)")
+	matches := re.FindSubmatch([]byte(msg))
+	if len(matches) == 1 {
+		return msg
+	}
+
+	return strings.TrimSpace(string(matches[1]))
 }
