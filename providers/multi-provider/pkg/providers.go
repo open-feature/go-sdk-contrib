@@ -43,7 +43,7 @@ type MultiProvider struct {
 }
 
 // NewMultiProvider returns the unified interface of multiple providers for interaction.
-func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy string, logger *hooks.LoggingHook) (*MultiProvider, error) {
+func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy strategies.Strategy, logger *hooks.LoggingHook) (*MultiProvider, error) {
 	multiProvider := &MultiProvider{
 		providersEntries:       []UniqueNameProvider{},
 		providersEntriesByName: map[string]UniqueNameProvider{},
@@ -51,6 +51,7 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 			Name:             "multiprovider",
 			OriginalMetadata: map[string]openfeature.Metadata{},
 		},
+		EvaluationStrategy: evaluationStrategy,
 	}
 
 	err := multiProvider.registerProviders(passedProviders)
@@ -58,7 +59,7 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 		return nil, err
 	}
 
-	multiProvider.EvaluationStrategy = multiProvider.strategyMethod(evaluationStrategy, multiProvider.providersEntries)
+	// multiProvider.EvaluationStrategy = multiProvider.strategyMethod(evaluationStrategy, multiProvider.providersEntries)
 
 	return multiProvider, nil
 }
@@ -114,17 +115,30 @@ func (mp *MultiProvider) registerProviders(providers []UniqueNameProvider) error
 	return nil
 }
 
+// // strategyMethod determines the strategy for the evaluation of the flags in the providers based on the passed value in the set up
+// func (mp *MultiProvider) strategyMethod(name string, providers []UniqueNameProvider) strategies.Strategy {
+// 	switch name {
+// 	case string(strategies.StrategyFirstMatch):
+// 		return strategies.strategies.NewFirstMatchStrategy(providers)
+// 	case string(strategies.StrategyFirstSuccess):
+// 		return strategies.strategies.NewFirstSuccessStrategy(providers)
+// 	case string(strategies.StrategyComparison):
+// 		return strategies.strategies.NewComparisonStrategy(providers)
+// 	default:
+// 		return strategies.strategies.NewFirstMatchStrategy(providers)
+// 	}
+// }
 // strategyMethod determines the strategy for the evaluation of the flags in the providers based on the passed value in the set up
 func (mp *MultiProvider) strategyMethod(name string, providers []UniqueNameProvider) strategies.Strategy {
 	switch name {
 	case string(strategies.StrategyFirstMatch):
-		return strategies.strategies.NewFirstMatchStrategy(providers)
+		return strategies.NewFirstMatchStrategy(providers)
 	case string(strategies.StrategyFirstSuccess):
-		return strategies.strategies.NewFirstSuccessStrategy(providers)
+		return strategies.NewFirstSuccessStrategy(providers)
 	case string(strategies.StrategyComparison):
-		return strategies.strategies.NewComparisonStrategy(providers)
+		return strategies.NewComparisonStrategy(providers)
 	default:
-		return strategies.strategies.NewFirstMatchStrategy(providers)
+		return strategies.NewFirstMatchStrategy(providers)
 	}
 }
 
