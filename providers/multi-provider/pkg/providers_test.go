@@ -8,6 +8,7 @@ import (
 	"time"
 
 	errs "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal"
+	strategies "github.com/open-feature/go-sdk-contrib/providers/multi-provider/strategies"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/hooks"
@@ -60,6 +61,8 @@ func NewMockProvider(initCount *int, shutCount *int, testErr string, initDelay i
 	}
 }
 
+// todo: the test that check the unique names of the providers are too dependent on order needs to use a map or something to better verify the correct unique name to the provider but not dependent on the order of a slice
+
 func TestMultiProvider_ProvidersMethod(t *testing.T) {
 	testProvider1 := oft.NewTestProvider()
 	testProvider2 := oft.NewTestProvider()
@@ -77,7 +80,7 @@ func TestMultiProvider_ProvidersMethod(t *testing.T) {
 			Provider:   testProvider2,
 			UniqueName: "provider2",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -114,7 +117,7 @@ func TestMultiProvider_ProvidersByNamesMethod(t *testing.T) {
 			Provider:   testProvider2,
 			UniqueName: "provider2",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -167,7 +170,7 @@ func TestMultiProvider_ProviderByNameMethod(t *testing.T) {
 			Provider:   testProvider2,
 			UniqueName: "provider2",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -211,7 +214,7 @@ func TestMultiProvider_MetaData(t *testing.T) {
 			Provider:   testProvider2,
 			UniqueName: "provider2",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -259,7 +262,7 @@ func TestMultiProvider_Init(t *testing.T) {
 			Provider:   testProvider3,
 			UniqueName: "provider3",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -313,7 +316,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 			Provider:   testProvider3,
 			UniqueName: "provider3",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -377,7 +380,7 @@ func TestMultiProvider_Shutdown(t *testing.T) {
 			Provider:   testProvider3,
 			UniqueName: "provider3",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -412,7 +415,7 @@ func TestNewMultiProvider_ProviderUniqueNames(t *testing.T) {
 		}, {
 			Provider: testProvider2,
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -454,7 +457,7 @@ func TestNewMultiProvider_DuplicateProviderGenerateUniqueNames(t *testing.T) {
 		}, {
 			Provider: testProvider4,
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -497,7 +500,7 @@ func TestNewMultiProvider_ProvidersUsePassedNames(t *testing.T) {
 			Provider:   testProvider2,
 			UniqueName: "theSecond",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err != nil {
 		t.Errorf("Expected the multiprovider to successfully make an instance, '%s'", err)
@@ -534,7 +537,7 @@ func TestNewMultiProvider_ProvidersErrorNameNotUnique(t *testing.T) {
 			Provider:   testProvider2,
 			UniqueName: "provider",
 		},
-	}, "test", defaultLogger)
+	}, strategies.BaseEvaluationStrategy{}, defaultLogger)
 
 	if err == nil {
 		t.Errorf("Expected the multiprovider to have an error")
