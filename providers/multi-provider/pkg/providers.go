@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
 	"sync"
 
 	err "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal"
@@ -38,14 +39,15 @@ type MultiProvider struct {
 	providersEntries       []UniqueNameProvider
 	providersEntriesByName map[string]UniqueNameProvider
 	AggregatedMetadata     MultiMetadata
-	EvaluationStrategy     strategies.BaseEvaluationStrategy
+	EvaluationStrategy     string
 	events                 chan openfeature.Event
 	status                 openfeature.State
 	mu                     sync.Mutex
+	strategy               strategies.Strategy
 }
 
 // NewMultiProvider returns the unified interface of multiple providers for interaction.
-func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy strategies.BaseEvaluationStrategy, logger *hooks.LoggingHook) (*MultiProvider, error) {
+func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy strategies.EvaluationStrategy, logger *hooks.LoggingHook) (*MultiProvider, error) {
 	multiProvider := &MultiProvider{
 		providersEntries:       []UniqueNameProvider{},
 		providersEntriesByName: map[string]UniqueNameProvider{},
@@ -60,6 +62,17 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 	if err != nil {
 		return nil, err
 	}
+
+	var strategy strategies.Strategy
+	switch evaluationStrategy {
+	case strategies.StrategyFirstMatch:
+		strategy = strategies.NewFirstMatchStrategy(multiProvider.Providers())
+	case strategies.StrategyFirstSuccess:
+		strategy = strategies.NewFirstSuccessStrategy(multiProvider.Providers())
+	default:
+		return nil, fmt.Errorf("%s is an unknown evalutation strategy", strategy)
+	}
+	multiProvider.strategy = strategy
 
 	return multiProvider, nil
 }
