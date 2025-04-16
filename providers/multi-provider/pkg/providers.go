@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	err "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal"
-	strategies "github.com/open-feature/go-sdk-contrib/providers/multi-provider/strategies"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/hooks"
@@ -54,7 +53,6 @@ func NewMultiProvider(passedProviders []UniqueNameProvider, evaluationStrategy s
 			Name:             "multiprovider",
 			OriginalMetadata: map[string]openfeature.Metadata{},
 		},
-		EvaluationStrategy: evaluationStrategy,
 	}
 
 	err := multiProvider.registerProviders(passedProviders)
@@ -160,7 +158,7 @@ func (mp *MultiProvider) FloatEvaluation(ctx context.Context, flag string, defau
 }
 
 // IntEvaluation returns an int flag
-func (imp *MultiProvider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
+func (mp *MultiProvider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
 	return mp.strategy.IntEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
