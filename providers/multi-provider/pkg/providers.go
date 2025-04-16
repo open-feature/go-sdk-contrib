@@ -39,7 +39,6 @@ type MultiProvider struct {
 	providersEntries       []UniqueNameProvider
 	providersEntriesByName map[string]UniqueNameProvider
 	AggregatedMetadata     MultiMetadata
-	EvaluationStrategy     string
 	events                 chan openfeature.Event
 	status                 openfeature.State
 	mu                     sync.Mutex
@@ -88,6 +87,10 @@ func (mp *MultiProvider) ProvidersByName() map[string]UniqueNameProvider {
 func (mp *MultiProvider) ProviderByName(name string) (UniqueNameProvider, bool) {
 	provider, exists := mp.providersEntriesByName[name]
 	return provider, exists
+}
+
+func (mp *MultiProvider) EvaluationStrategy() string {
+	return mp.strategy.Name()
 }
 
 // registerProviders ensures that when setting up an instant of MultiProvider the providers provided either have a unique name or the base `metadata.Name` is made unique by adding an indexed based number to it.
