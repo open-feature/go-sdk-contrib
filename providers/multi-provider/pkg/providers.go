@@ -143,32 +143,27 @@ func (mp *MultiProvider) Hooks() []openfeature.Hook {
 
 // BooleanEvaluation returns a boolean flag
 func (mp *MultiProvider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
-	// code to evaluate boolean
-	return openfeature.BoolResolutionDetail{}
+	return mp.strategy.BooleanEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // StringEvaluation returns a string flag
 func (mp *MultiProvider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
-	// code to evaluate string
-	return openfeature.StringResolutionDetail{}
+	return mp.strategy.StringEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // FloatEvaluation returns a float flag
 func (mp *MultiProvider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
-	// code to evaluate float
-	return openfeature.FloatResolutionDetail{}
+	return mp.strategy.FloatEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // IntEvaluation returns an int flag
 func (imp *MultiProvider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
-	// code to evaluate int
-	return openfeature.IntResolutionDetail{}
+	return mp.strategy.IntEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // ObjectEvaluation returns an object flag
 func (mp *MultiProvider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
-	// code to evaluate object
-	return openfeature.InterfaceResolutionDetail{}
+	return mp.strategy.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
 }
 
 // Init will run the initialize method for all of provides and aggregate the errors.
