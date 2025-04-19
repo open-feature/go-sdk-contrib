@@ -8,10 +8,15 @@ import (
 )
 
 const (
-	MetadataSuccessfulProviderName = "multiprovider-successful-provider-name"
-	MetadataStrategyUsed           = "multiprovider-strategy-used"
-	StrategyFirstMatch             = "strategy-first-match"
-	StrategyFirstSuccess           = "strategy-first-success"
+	MetadataSuccessfulProviderName           = "multiprovider-successful-provider-name"
+	MetadataStrategyUsed                     = "multiprovider-strategy-used"
+	MetadataFallbackUsed                     = "multiprovider-fallback-used"
+	StrategyFirstMatch                       = "strategy-first-match"
+	StrategyFirstSuccess                     = "strategy-first-success"
+	StrategyComparison                       = "strategy-comparison"
+	ReasonAggregated               of.Reason = "AGGREGATED"
+	ReasonAggregatedFallback       of.Reason = "AGGREGATED_FALLBACK"
+	ErrAggregationNotAllowedText             = "object evaluation not allowed for non-comparable types"
 )
 
 type (
@@ -34,14 +39,28 @@ type (
 		Provider of.FeatureProvider
 	}
 
+	providerError struct {
+		providerName string
+		err          error
+	}
+
 	resultConstraint interface {
 		of.BoolResolutionDetail | of.IntResolutionDetail | of.StringResolutionDetail | of.FloatResolutionDetail | of.InterfaceResolutionDetail
 	}
 
 	resultWrapper[R resultConstraint] struct {
+		name   string
 		result *R
+		value  any
+		detail of.ProviderResolutionDetail
 	}
 )
+
+var _ error = (*providerError)(nil)
+
+func (p providerError) Error() string {
+	return p.providerName + ": " + p.err.Error()
+}
 
 // buildDefaultResult Creates a default result using reflection via generics
 func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 | interface{}](strategy EvaluationStrategy, defaultValue DV, err error) resultWrapper[R] {
