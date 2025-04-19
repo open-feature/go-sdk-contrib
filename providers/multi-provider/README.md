@@ -27,13 +27,13 @@ go get github.com/open-feature/go-sdk
 ```go
 import (
 	"github.com/open-feature/go-sdk/openfeature"
-    "github.com/open-feature/go-sdk/openfeature/hooks"
+	mp "github.com/open-feature/go-sdk-contrib/providers/multi-provider"
 )
 
-namedProviderA := UniqueNameProvider{ Provider: myProvider, UniqueName: "Provider A" }
-namedProviderB := UniqueNameProvider{ Provider: myOtherProvider, UniqueName: "Provider B" }
-
-provider, err := NewMultiProvider([]UniqueNameProvider{namedProviderA, namedProviderB}, StrategyFirstMatch, hooks.NewLoggingHook(false))
+providers := make(mp.ProviderMap)
+providers["providerA"] = providerA
+providers["providerB"] = providerB
+provider, err := mp.NewMultiProvider(providers, mp.StrategyFirstMatch, WithLogger(myLogger))
 openfeature.SetProvider(provider)
 ```
  
