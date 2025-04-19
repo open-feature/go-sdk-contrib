@@ -1,4 +1,4 @@
-package internal
+package errors
 
 import (
 	"encoding/json"
