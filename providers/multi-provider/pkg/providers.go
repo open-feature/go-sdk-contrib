@@ -26,7 +26,7 @@ type (
 
 	Configuration struct {
 		useFallback      bool
-		fallbackProvider *strategies.NamedProvider
+		fallbackProvider of.FeatureProvider
 		logger           *slog.Logger
 		publishEvents    bool
 		metadata         *of.Metadata
@@ -87,15 +87,12 @@ func WithLogger(l *slog.Logger) Option {
 
 func WithFallbackProvider(p of.FeatureProvider, name string) Option {
 	return func(conf *Configuration) {
-		conf.fallbackProvider = &strategies.NamedProvider{
-			Provider: p,
-			Name:     name,
-		}
+		conf.fallbackProvider = p
 		conf.useFallback = true
 	}
 }
 
-func WithNamedFallbackProvider(p *strategies.NamedProvider) Option {
+func WithNamedFallbackProvider(p of.FeatureProvider) Option {
 	return func(conf *Configuration) {
 		conf.fallbackProvider = p
 		conf.useFallback = true
@@ -158,9 +155,11 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 	var strategy strategies.Strategy
 	switch evaluationStrategy {
 	case StrategyFirstMatch:
-		strategy = strategies.NewFirstMatchStrategy(multiProvider.Providers(), logger, eventChannel)
+		strategy = strategies.NewFirstMatchStrategy(multiProvider.Providers())
 	case StrategyFirstSuccess:
-		strategy = strategies.NewFirstSuccessStrategy(multiProvider.Providers(), logger, eventChannel)
+		strategy = strategies.NewFirstSuccessStrategy(multiProvider.Providers())
+	case StrategyComparison:
+		strategy = strategies.NewComparisonStrategy(multiProvider.Providers(), config.fallbackProvider)
 	default:
 		return nil, fmt.Errorf("%s is an unknown evalutation strategy", strategy)
 	}
