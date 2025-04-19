@@ -4,7 +4,6 @@ package strategies
 import (
 	"context"
 	of "github.com/open-feature/go-sdk/openfeature"
-	"github.com/open-feature/go-sdk/pkg/openfeature"
 	"reflect"
 	"regexp"
 	"strings"
@@ -13,37 +12,38 @@ import (
 const (
 	MetadataSuccessfulProviderName = "multiprovider-successful-provider-name"
 	MetadataStrategyUsed           = "multiprovider-strategy-used"
-	// StrategyFirstMatch First provider whose response that is not FlagNotFound will be returned. This is executed
-	// sequentially, and not in parallel.
-	StrategyFirstMatch EvaluationStrategy = "first-match"
-	// StrategyFirstSuccess First provider response that is not an error will be returned. This is executed in parallel
-	StrategyFirstSuccess EvaluationStrategy = "first-success"
-	// StrategyComparison All providers are called in parallel. If all responses agree the value will be returned.
-	// Otherwise, the value from the designated fallback provider's response will be returned. The fallback provider
-	// will be assigned to the first provider registered. (NOT YET IMPLEMENTED, SUBJECT TO CHANGE)
-	StrategyComparison EvaluationStrategy = "comparison"
+	StrategyFirstMatch             = "strategy-first-match"
+	StrategyFirstSuccess           = "strategy-first-success"
 )
 
-// EvaluationStrategy Defines a strategy to use for resolving the result from multiple providers
-type EvaluationStrategy = string
+type (
+	// EvaluationStrategy Defines a strategy to use for resolving the result from multiple providers
+	EvaluationStrategy = string
+	// Strategy Interface for evaluating providers within the multi-provider.
+	Strategy interface {
+		Name() EvaluationStrategy
+		BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail
+		StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail
+		FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail
+		IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail
+		ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail
+	}
 
-// Strategy Interface for evaluating providers within the multi-provider.
-type Strategy interface {
-	Name() EvaluationStrategy
-	BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail
-	StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail
-	FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail
-	IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail
-	ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail
-}
+	// NamedProvider allows for a unique name to be assigned to a provider during a multi-provider set up.
+	// The name will be used when reporting errors & results to specify the provider associated.
+	NamedProvider struct {
+		Name     string
+		Provider of.FeatureProvider
+	}
 
-type resultConstraint interface {
-	of.BoolResolutionDetail | of.IntResolutionDetail | of.StringResolutionDetail | of.FloatResolutionDetail | of.InterfaceResolutionDetail
-}
+	resultConstraint interface {
+		of.BoolResolutionDetail | of.IntResolutionDetail | of.StringResolutionDetail | of.FloatResolutionDetail | of.InterfaceResolutionDetail
+	}
 
-type resultWrapper[R resultConstraint] struct {
-	result *R
-}
+	resultWrapper[R resultConstraint] struct {
+		result *R
+	}
+)
 
 // buildDefaultResult Creates a default result using reflection via generics
 func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 | interface{}](strategy EvaluationStrategy, defaultValue DV, err error) resultWrapper[R] {

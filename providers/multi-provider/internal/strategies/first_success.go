@@ -3,19 +3,18 @@ package strategies
 import (
 	"context"
 	"errors"
-	multiprovider "github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"sync"
 )
 
 type FirstSuccessStrategy struct {
-	providers []multiprovider.UniqueNameProvider
+	providers []*NamedProvider
 }
 
 var _ Strategy = (*FirstSuccessStrategy)(nil)
 
 // NewFirstSuccessStrategy Creates a new FirstSuccessStrategy instance as a Strategy
-func NewFirstSuccessStrategy(providers []multiprovider.UniqueNameProvider) Strategy {
+func NewFirstSuccessStrategy(providers []*NamedProvider) Strategy {
 	return &FirstSuccessStrategy{providers: providers}
 }
 
@@ -43,7 +42,7 @@ func (f *FirstSuccessStrategy) ObjectEvaluation(ctx context.Context, flag string
 	return *evaluateFirstSuccess[of.InterfaceResolutionDetail](ctx, f.providers, flag, defaultValue, evalCtx).result
 }
 
-func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64 | interface{}](ctx context.Context, providers []multiprovider.UniqueNameProvider, flag string, defaultValue DV, evalCtx of.FlattenedContext) resultWrapper[R] {
+func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64 | interface{}](ctx context.Context, providers []*NamedProvider, flag string, defaultValue DV, evalCtx of.FlattenedContext) resultWrapper[R] {
 	var (
 		mutex  sync.Mutex
 		wg     sync.WaitGroup
@@ -54,7 +53,7 @@ func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64
 	defer cancel()
 	for _, provider := range providers {
 		wg.Add(1)
-		go func(p multiprovider.UniqueNameProvider) {
+		go func(p *NamedProvider) {
 			defer wg.Done()
 			switch any(defaultValue).(type) {
 			case bool:
