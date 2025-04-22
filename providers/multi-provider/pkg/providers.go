@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
 	"log/slog"
+	"maps"
+	"slices"
 	"sync"
 
 	mperr "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/errors"
@@ -67,8 +69,10 @@ func (m ProviderMap) AsNamedProviderSlice() []*strategies.NamedProvider {
 func (m ProviderMap) buildMetadata() of.Metadata {
 	var separator string
 	metaName := "MultiProvider {"
-	for name, provider := range m {
-		metaName = fmt.Sprintf("%s%s%s: %s", metaName, separator, name, provider.Metadata().Name)
+	names := slices.Collect(maps.Keys(m))
+	slices.Sort(names)
+	for _, name := range names {
+		metaName = fmt.Sprintf("%s%s%s: %s", metaName, separator, name, m[name].Metadata().Name)
 		if separator == "" {
 			separator = ", "
 		}
