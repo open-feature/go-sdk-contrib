@@ -3,18 +3,18 @@ package strategies
 import (
 	"context"
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
+	m "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"testing"
 )
 
-func createMockProviders(ctrl *gomock.Controller, count int) ([]*NamedProvider, map[string]*mocks.MockFeatureProvider) {
+func createMockProviders(ctrl *gomock.Controller, count int) ([]*NamedProvider, map[string]*m.MockFeatureProvider) {
 	providers := make([]*NamedProvider, 0, count)
-	providerMocks := make(map[string]*mocks.MockFeatureProvider)
+	providerMocks := make(map[string]*m.MockFeatureProvider)
 	for index := range count {
-		provider := mocks.NewMockFeatureProvider(ctrl)
+		provider := m.NewMockFeatureProvider(ctrl)
 		namedProvider := NamedProvider{
 			Provider: provider,
 			Name:     fmt.Sprintf("%d", index),
