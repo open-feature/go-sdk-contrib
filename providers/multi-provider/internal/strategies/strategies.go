@@ -106,7 +106,7 @@ func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 |
 		result = any(r).(R)
 	}
 
-	return resultWrapper[R]{result: &result}
+	return resultWrapper[R]{result: &result, detail: details}
 }
 
 func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string, metadata of.FlagMetadata) of.FlagMetadata {
