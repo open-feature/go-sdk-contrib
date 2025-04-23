@@ -27,9 +27,8 @@ func createMockProviders(ctrl *gomock.Controller, count int) ([]*NamedProvider, 
 }
 
 func Test_FirstMatchStrategy_BooleanEvaluation(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
 	t.Run("Single Provider Match", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		providers, mocks := createMockProviders(ctrl, 1)
 		mocks[providers[0].Name].EXPECT().
 			BooleanEvaluation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -43,6 +42,7 @@ func Test_FirstMatchStrategy_BooleanEvaluation(t *testing.T) {
 	})
 
 	t.Run("Default Resolution", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		providers, mocks := createMockProviders(ctrl, 1)
 		mocks[providers[0].Name].EXPECT().
 			BooleanEvaluation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -62,6 +62,7 @@ func Test_FirstMatchStrategy_BooleanEvaluation(t *testing.T) {
 	})
 
 	t.Run("Evaluation stops after match", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		providers, mocks := createMockProviders(ctrl, 5)
 		mocks[providers[0].Name].EXPECT().
 			BooleanEvaluation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -89,6 +90,7 @@ func Test_FirstMatchStrategy_BooleanEvaluation(t *testing.T) {
 	})
 
 	t.Run("Evaluation stops after first error that is not a FLAG_NOT_FOUND error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		providers, mocks := createMockProviders(ctrl, 5)
 		mocks[providers[0].Name].EXPECT().
 			BooleanEvaluation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
