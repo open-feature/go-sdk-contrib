@@ -109,3 +109,24 @@ func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string
 	metadata[MetadataStrategyUsed] = strategyUsed
 	return metadata
 }
+
+func cleanErrorMessage(msg string) string {
+	codeRegex := strings.Join([]string{
+		string(of.ProviderNotReadyCode),
+		string(of.ProviderFatalCode),
+		string(of.FlagNotFoundCode),
+		string(of.ParseErrorCode),
+		string(of.TypeMismatchCode),
+		string(of.TargetingKeyMissingCode),
+		string(of.GeneralCode),
+	}, "|")
+	re := regexp.MustCompile("(?:" + codeRegex + "): (.*)")
+	matches := re.FindSubmatch([]byte(msg))
+	matchCount := len(matches)
+	switch matchCount {
+	case 0, 1:
+		return msg
+	default:
+		return strings.TrimSpace(string(matches[1]))
+	}
+}
