@@ -3,11 +3,18 @@ package multiprovider
 import (
 	of "github.com/open-feature/go-sdk/openfeature"
 	"log/slog"
+	"time"
 )
 
 func WithLogger(l *slog.Logger) Option {
 	return func(conf *Configuration) {
 		conf.logger = l
+	}
+}
+
+func WithTimeout(d time.Duration) Option {
+	return func(conf *Configuration) {
+		conf.timeout = d
 	}
 }
 
