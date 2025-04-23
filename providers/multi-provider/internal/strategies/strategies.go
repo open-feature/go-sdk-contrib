@@ -138,3 +138,22 @@ func cleanErrorMessage(msg string) string {
 		return strings.TrimSpace(string(matches[1]))
 	}
 }
+
+// mergeFlagTags Merges flag metadata together into a single FlagMetadata instance by performing a shallow merge
+func mergeFlagTags(tags ...of.FlagMetadata) of.FlagMetadata {
+	size := len(tags)
+	switch size {
+	case 0:
+		return make(of.FlagMetadata)
+	case 1:
+		return tags[0]
+	default:
+		merged := make(of.FlagMetadata)
+		for _, t := range tags {
+			for key, value := range t {
+				merged[key] = value
+			}
+		}
+		return merged
+	}
+}
