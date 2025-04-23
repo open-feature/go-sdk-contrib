@@ -7,7 +7,7 @@
 //
 
 // Package strategies is a generated GoMock package.
-package strategies
+package mocks
 
 import (
 	context "context"

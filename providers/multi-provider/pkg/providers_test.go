@@ -3,6 +3,7 @@ package multiprovider
 import (
 	"errors"
 	"fmt"
+	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +94,7 @@ func TestMultiProvider_ProvidersByNamesMethod(t *testing.T) {
 func TestMultiProvider_MetaData(t *testing.T) {
 	testProvider1 := oft.NewTestProvider()
 	ctrl := gomock.NewController(t)
-	testProvider2 := strategies.NewMockFeatureProvider(ctrl)
+	testProvider2 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider2.EXPECT().Metadata().Return(of.Metadata{
 		Name: "MockProvider",
 	})
@@ -113,10 +114,10 @@ func TestMultiProvider_MetaData(t *testing.T) {
 func TestMultiProvider_Init(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	testProvider1 := strategies.NewMockFeatureProvider(ctrl)
+	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := strategies.NewMockFeatureProvider(ctrl)
+	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 
 	providers := make(ProviderMap)
@@ -139,9 +140,9 @@ func TestMultiProvider_Init(t *testing.T) {
 
 func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	errProvider := strategies.NewMockFeatureProvider(ctrl)
+	errProvider := mocks.NewMockFeatureProvider(ctrl)
 	errProvider.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
-	errHandler := strategies.NewMockStateHandler(ctrl)
+	errHandler := mocks.NewMockStateHandler(ctrl)
 	errHandler.EXPECT().Init(gomock.Any()).Return(errors.New("test error"))
 	testProvider3 := struct {
 		of.FeatureProvider
@@ -151,7 +152,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 		errHandler,
 	}
 
-	testProvider1 := strategies.NewMockFeatureProvider(ctrl)
+	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 	testProvider2 := oft.NewTestProvider()
 
@@ -176,10 +177,10 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 func TestMultiProvider_Shutdown(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	testProvider1 := strategies.NewMockFeatureProvider(ctrl)
+	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := strategies.NewMockFeatureProvider(ctrl)
+	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 
 	providers := make(ProviderMap)
