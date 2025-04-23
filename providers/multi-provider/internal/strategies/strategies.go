@@ -130,9 +130,11 @@ func cleanErrorMessage(msg string) string {
 	}, "|")
 	re := regexp.MustCompile("(?:" + codeRegex + "): (.*)")
 	matches := re.FindSubmatch([]byte(msg))
-	if len(matches) == 1 {
+	matchCount := len(matches)
+	switch matchCount {
+	case 0, 1:
 		return msg
+	default:
+		return strings.TrimSpace(string(matches[1]))
 	}
-
-	return strings.TrimSpace(string(matches[1]))
 }
