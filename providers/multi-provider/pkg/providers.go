@@ -83,38 +83,6 @@ func (m ProviderMap) buildMetadata() of.Metadata {
 	}
 }
 
-func WithLogger(l *slog.Logger) Option {
-	return func(conf *Configuration) {
-		conf.logger = l
-	}
-}
-
-func WithFallbackProvider(p of.FeatureProvider, name string) Option {
-	return func(conf *Configuration) {
-		conf.fallbackProvider = p
-		conf.useFallback = true
-	}
-}
-
-func WithNamedFallbackProvider(p of.FeatureProvider) Option {
-	return func(conf *Configuration) {
-		conf.fallbackProvider = p
-		conf.useFallback = true
-	}
-}
-
-func WithEventPublishing() Option {
-	return func(conf *Configuration) {
-		conf.publishEvents = true
-	}
-}
-
-func WithoutEventPublishing() Option {
-	return func(conf *Configuration) {
-		conf.publishEvents = false
-	}
-}
-
 // NewMultiProvider returns the unified interface of multiple providers for interaction.
 func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStrategy, options ...Option) (*MultiProvider, error) {
 	if len(providerMap) == 0 {
