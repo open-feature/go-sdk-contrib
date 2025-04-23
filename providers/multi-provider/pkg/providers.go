@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
+	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"maps"
 	"slices"
 	"sync"
 
-	mperr "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/errors"
+	mperr "github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/errors"
 
 	of "github.com/open-feature/go-sdk/openfeature"
 )
@@ -190,55 +191,47 @@ func (mp *MultiProvider) ObjectEvaluation(ctx context.Context, flag string, defa
 
 // Init will run the initialize method for all of provides and aggregate the errors.
 func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
-	var wg sync.WaitGroup
-	errChan := make(chan mperr.StateErr)
+	var eg errgroup.Group
 
 	for name, provider := range mp.providers {
-		wg.Add(1)
-		go func(p of.FeatureProvider, name string) {
-			defer wg.Done()
-			if stateHandle, ok := provider.(of.StateHandler); ok {
-				if initErr := stateHandle.Init(evalCtx); initErr != nil {
-					errChan <- mperr.StateErr{ProviderName: name, Err: initErr, ErrMessage: initErr.Error()}
+		eg.Go(func() error {
+			stateHandle, ok := provider.(of.StateHandler)
+			if !ok {
+				return nil
+			}
+			if err := stateHandle.Init(evalCtx); err != nil {
+				return &mperr.ProviderError{
+					Err:          err,
+					ProviderName: name,
 				}
 			}
-		}(provider, name)
+
+			return nil
+		})
 	}
 
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	errs := make([]mperr.StateErr, 0, 1)
-	for err := range errChan {
-		errs = append(errs, err)
-	}
-
-	if len(errs) > 0 {
-		var aggErr mperr.AggregateError
-		aggErr.Construct(errs)
-		mp.mu.RLock()
+	if err := eg.Wait(); err != nil {
+		mp.mu.Lock()
 		defer mp.mu.Unlock()
 		mp.status = of.ErrorState
 
-		return &aggErr
+		return err
 	}
 
-	mp.mu.RLock()
+	mp.mu.Lock()
 	defer mp.mu.Unlock()
 	mp.status = of.ReadyState
-
 	return nil
 }
 
 func (mp *MultiProvider) Status() of.State {
+	mp.mu.RLock()
+	defer mp.mu.RUnlock()
 	return mp.status
 }
 
 func (mp *MultiProvider) Shutdown() {
 	var wg sync.WaitGroup
-
 	for _, provider := range mp.providers {
 		wg.Add(1)
 		go func(p of.FeatureProvider) {

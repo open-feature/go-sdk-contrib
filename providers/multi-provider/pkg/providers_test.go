@@ -1,20 +1,17 @@
 package multiprovider
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"golang.org/x/exp/maps"
+	"maps"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
-
-	mperrs "github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/errors"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	oft "github.com/open-feature/go-sdk/openfeature/testing"
@@ -142,12 +139,21 @@ func TestMultiProvider_Init(t *testing.T) {
 
 func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	errProvider := strategies.NewMockFeatureProvider(ctrl)
+	errProvider.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	errHandler := strategies.NewMockStateHandler(ctrl)
+	errHandler.EXPECT().Init(gomock.Any()).Return(errors.New("test error"))
+	testProvider3 := struct {
+		of.FeatureProvider
+		of.StateHandler
+	}{
+		errProvider,
+		errHandler,
+	}
 
 	testProvider1 := strategies.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 	testProvider2 := oft.NewTestProvider()
-	testProvider3 := strategies.NewMockFeatureProvider(ctrl)
-	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -163,19 +169,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
 
 	err = mp.Init(evalCtx)
-	require.Error(t, err)
-
-	var errors []mperrs.StateErr
-
-	fullErr := err.Error()
-	fullErrArr := strings.SplitAfterN(fullErr, "end", 2)
-	errJSON := fullErrArr[1]
-	errMsg := fullErrArr[0]
-	assert.Contains(t, errMsg, "Provider errors occurred:")
-
-	err = json.Unmarshal([]byte(errJSON), &errors)
-	require.NoError(t, err)
-	assert.Len(t, errors, 2)
+	require.Errorf(t, err, "Provider provider1: test error")
 	assert.Equal(t, of.ErrorState, mp.status)
 }
 
