@@ -2,20 +2,22 @@ package strategies
 
 import (
 	"context"
-	"errors"
 	of "github.com/open-feature/go-sdk/openfeature"
-	"sync"
+	"time"
+
+	mperr "github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/errors"
 )
 
 type FirstSuccessStrategy struct {
 	providers []*NamedProvider
+	timeout   time.Duration
 }
 
 var _ Strategy = (*FirstSuccessStrategy)(nil)
 
 // NewFirstSuccessStrategy Creates a new FirstSuccessStrategy instance as a Strategy
-func NewFirstSuccessStrategy(providers []*NamedProvider) Strategy {
-	return &FirstSuccessStrategy{providers: providers}
+func NewFirstSuccessStrategy(providers []*NamedProvider, timeout time.Duration) Strategy {
+	return &FirstSuccessStrategy{providers: providers, timeout: timeout}
 }
 
 func (f *FirstSuccessStrategy) Name() EvaluationStrategy {
@@ -23,102 +25,135 @@ func (f *FirstSuccessStrategy) Name() EvaluationStrategy {
 }
 
 func (f *FirstSuccessStrategy) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
-	return *evaluateFirstSuccess[of.BoolResolutionDetail](ctx, f.providers, flag, defaultValue, evalCtx).result
+	evalFunc := func(c context.Context, p *NamedProvider) resultWrapper[of.BoolResolutionDetail] {
+		result := p.Provider.BooleanEvaluation(c, flag, defaultValue, evalCtx)
+		return resultWrapper[of.BoolResolutionDetail]{
+			result: &result,
+			name:   p.Name,
+			value:  result.Value,
+			detail: result.ProviderResolutionDetail,
+		}
+	}
+	result, metadata := evaluateFirstSuccess[of.BoolResolutionDetail](ctx, f.providers, evalFunc, defaultValue, f.timeout)
+	r := *result.result
+	r.ProviderResolutionDetail.FlagMetadata = mergeFlagTags(r.ProviderResolutionDetail.FlagMetadata, metadata)
+	return r
 }
 
 func (f *FirstSuccessStrategy) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
-	return *evaluateFirstSuccess[of.StringResolutionDetail](ctx, f.providers, flag, defaultValue, evalCtx).result
+	evalFunc := func(c context.Context, p *NamedProvider) resultWrapper[of.StringResolutionDetail] {
+		result := p.Provider.StringEvaluation(c, flag, defaultValue, evalCtx)
+		return resultWrapper[of.StringResolutionDetail]{
+			result: &result,
+			name:   p.Name,
+			value:  result.Value,
+			detail: result.ProviderResolutionDetail,
+		}
+	}
+	result, metadata := evaluateFirstSuccess[of.StringResolutionDetail](ctx, f.providers, evalFunc, defaultValue, f.timeout)
+	r := *result.result
+	r.ProviderResolutionDetail.FlagMetadata = mergeFlagTags(r.ProviderResolutionDetail.FlagMetadata, metadata)
+	return r
 }
 
 func (f *FirstSuccessStrategy) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
-	return *evaluateFirstSuccess[of.FloatResolutionDetail](ctx, f.providers, flag, defaultValue, evalCtx).result
+	evalFunc := func(c context.Context, p *NamedProvider) resultWrapper[of.FloatResolutionDetail] {
+		result := p.Provider.FloatEvaluation(c, flag, defaultValue, evalCtx)
+		return resultWrapper[of.FloatResolutionDetail]{
+			result: &result,
+			name:   p.Name,
+			value:  result.Value,
+			detail: result.ProviderResolutionDetail,
+		}
+	}
+	result, metadata := evaluateFirstSuccess[of.FloatResolutionDetail](ctx, f.providers, evalFunc, defaultValue, f.timeout)
+	r := *result.result
+	r.ProviderResolutionDetail.FlagMetadata = mergeFlagTags(r.ProviderResolutionDetail.FlagMetadata, metadata)
+	return r
 }
 
 func (f *FirstSuccessStrategy) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
-	return *evaluateFirstSuccess[of.IntResolutionDetail](ctx, f.providers, flag, defaultValue, evalCtx).result
+	evalFunc := func(c context.Context, p *NamedProvider) resultWrapper[of.IntResolutionDetail] {
+		result := p.Provider.IntEvaluation(c, flag, defaultValue, evalCtx)
+		return resultWrapper[of.IntResolutionDetail]{
+			result: &result,
+			name:   p.Name,
+			value:  result.Value,
+			detail: result.ProviderResolutionDetail,
+		}
+	}
+	result, metadata := evaluateFirstSuccess[of.IntResolutionDetail](ctx, f.providers, evalFunc, defaultValue, f.timeout)
+	r := *result.result
+	r.ProviderResolutionDetail.FlagMetadata = mergeFlagTags(r.ProviderResolutionDetail.FlagMetadata, metadata)
+	return r
 }
 
 func (f *FirstSuccessStrategy) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-	return *evaluateFirstSuccess[of.InterfaceResolutionDetail](ctx, f.providers, flag, defaultValue, evalCtx).result
+	evalFunc := func(c context.Context, p *NamedProvider) resultWrapper[of.InterfaceResolutionDetail] {
+		result := p.Provider.ObjectEvaluation(c, flag, defaultValue, evalCtx)
+		return resultWrapper[of.InterfaceResolutionDetail]{
+			result: &result,
+			name:   p.Name,
+			value:  result.Value,
+			detail: result.ProviderResolutionDetail,
+		}
+	}
+	result, metadata := evaluateFirstSuccess[of.InterfaceResolutionDetail](ctx, f.providers, evalFunc, defaultValue, f.timeout)
+	r := *result.result
+	r.ProviderResolutionDetail.FlagMetadata = mergeFlagTags(r.ProviderResolutionDetail.FlagMetadata, metadata)
+	return r
 }
 
-func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64 | interface{}](ctx context.Context, providers []*NamedProvider, flag string, defaultValue DV, evalCtx of.FlattenedContext) resultWrapper[R] {
-	var (
-		mutex  sync.Mutex
-		wg     sync.WaitGroup
-		result *resultWrapper[R]
-	)
-	errChan := make(chan error)
-	ctx, cancel := context.WithCancel(ctx)
+func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64 | interface{}](ctx context.Context, providers []*NamedProvider, e evaluator[R], defaultVal DV, timeout time.Duration) (resultWrapper[R], of.FlagMetadata) {
+	metadata := make(of.FlagMetadata)
+	metadata[MetadataStrategyUsed] = StrategyFirstSuccess
+	errChan := make(chan mperr.ProviderError, len(providers))
+	finishChan := make(chan *resultWrapper[R], len(providers))
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	for _, provider := range providers {
-		wg.Add(1)
-		go func(p *NamedProvider) {
-			defer wg.Done()
-			switch any(defaultValue).(type) {
-			case bool:
-				r := provider.Provider.BooleanEvaluation(ctx, flag, any(defaultValue).(bool), evalCtx)
-				if r.Error() == nil {
-					mutex.Lock()
-					result = &resultWrapper[R]{result: any(r).(*R)}
-					cancel()
-					mutex.Unlock()
+		go func(c context.Context, p *NamedProvider) {
+			resultChan := make(chan *resultWrapper[R])
+			go func() {
+				r := e(c, provider)
+				resultChan <- &r
+			}()
+
+			select {
+			case <-c.Done():
+				return
+			case r := <-resultChan:
+				if r.detail.Error() != nil {
+					errChan <- mperr.ProviderError{
+						Err:          r.detail.ResolutionError,
+						ProviderName: p.Name,
+					}
+					return
 				}
-				errChan <- r.Error()
-			case string:
-				r := provider.Provider.StringEvaluation(ctx, flag, any(defaultValue).(string), evalCtx)
-				if r.Error() == nil {
-					mutex.Lock()
-					result = &resultWrapper[R]{result: any(r).(*R)}
-					cancel()
-					mutex.Unlock()
-				}
-				errChan <- r.Error()
-			case int64:
-				r := provider.Provider.IntEvaluation(ctx, flag, any(defaultValue).(int64), evalCtx)
-				if r.Error() == nil {
-					mutex.Lock()
-					result = &resultWrapper[R]{result: any(r).(*R)}
-					cancel()
-					mutex.Unlock()
-				}
-				errChan <- r.Error()
-			case float64:
-				r := provider.Provider.FloatEvaluation(ctx, flag, any(defaultValue).(float64), evalCtx)
-				if r.Error() == nil {
-					mutex.Lock()
-					result = &resultWrapper[R]{result: any(r).(*R)}
-					cancel()
-					mutex.Unlock()
-				}
-				errChan <- r.Error()
-			default:
-				r := provider.Provider.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
-				if r.Error() == nil {
-					mutex.Lock()
-					result = &resultWrapper[R]{result: any(r).(*R)}
-					cancel()
-					mutex.Unlock()
-				}
-				errChan <- r.Error()
+				finishChan <- r
 			}
 
-		}(provider)
-	}
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	errs := make([]error, 0, 1)
-	for e := range errChan {
-		errs = append(errs, e)
+		}(ctx, provider)
 	}
 
-	if result != nil {
-		return *result
-	}
+	errs := make([]mperr.ProviderError, 0, len(providers))
+	for {
+		if len(errs) == len(providers) {
+			err := mperr.NewAggregateError(errs)
+			r := buildDefaultResult[R](StrategyFirstSuccess, defaultVal, err)
+			return r, r.detail.FlagMetadata
+		}
 
-	err := errors.Join(errs...)
-	return buildDefaultResult[R](StrategyFirstSuccess, defaultValue, err)
+		select {
+		case result := <-finishChan:
+			metadata[MetadataSuccessfulProviderName] = result.name
+			cancel()
+			return *result, metadata
+		case err := <-errChan:
+			errs = append(errs, err)
+		case <-ctx.Done():
+			r := buildDefaultResult[R](StrategyFirstSuccess, defaultVal, ctx.Err())
+			return r, r.detail.FlagMetadata
+		}
+	}
 }

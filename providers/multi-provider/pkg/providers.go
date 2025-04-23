@@ -10,6 +10,7 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"time"
 
 	mperr "github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/errors"
 
@@ -33,6 +34,7 @@ type (
 		logger           *slog.Logger
 		publishEvents    bool
 		metadata         *of.Metadata
+		timeout          time.Duration
 		hooks            []of.Hook // Not implemented yet
 	}
 
@@ -125,12 +127,17 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 		metadata:  providerMap.buildMetadata(),
 	}
 
+	var zeroDuration time.Duration
+	if config.timeout == zeroDuration {
+		config.timeout = 5 * time.Second
+	}
+
 	var strategy strategies.Strategy
 	switch evaluationStrategy {
 	case StrategyFirstMatch:
 		strategy = strategies.NewFirstMatchStrategy(multiProvider.Providers())
 	case StrategyFirstSuccess:
-		strategy = strategies.NewFirstSuccessStrategy(multiProvider.Providers())
+		strategy = strategies.NewFirstSuccessStrategy(multiProvider.Providers(), config.timeout)
 	case StrategyComparison:
 		strategy = strategies.NewComparisonStrategy(multiProvider.Providers(), config.fallbackProvider)
 	default:
