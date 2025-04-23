@@ -9,7 +9,7 @@ require (
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.5.1-20250127221518-be6d1143b690.2
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.6-20250127221518-be6d1143b690.1
 	connectrpc.com/connect v1.18.1
-	connectrpc.com/otelconnect v0.7.1
+	connectrpc.com/otelconnect v0.7.2
 	github.com/cucumber/godog v0.15.0
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-cmp v0.6.0
