@@ -36,17 +36,24 @@ providers["providerB"] = providerB
 provider, err := mp.NewMultiProvider(providers, mp.StrategyFirstMatch, WithLogger(myLogger))
 openfeature.SetProvider(provider)
 ```
- 
+
+# Options
+
+- `WithTimeout` - the duration is used for the total timeout across parallel operations. If none is set it will default 
+to 5 seconds. This is not supported for `FirstMatch` yet, which executes sequentially
+- `WithFallbackProvider` - Used for setting a fallback provider for the `Comparison` strategy
+- `WithLogger` - Provides slog support
 
 # Strategies
 
 There are multiple strategies that can be used to determine the result returned to the caller. A strategy must be set at
 initialization time.
 
-There are 2 strategies available currently:
+There are 3 strategies available currently:
 
 - _First Match_
 - _First Success_
+- _Comparison_
 
 ## First Match Strategy
 
@@ -60,3 +67,17 @@ value along with setting the error details if a detailed request is issued. (all
 The First Success strategy works by calling each provider in **parallel**. The first provider that returns a response
 with no errors is returned and all other calls are cancelled. If no provider provides a successful result the default
 value will be returned to the caller.
+
+## Comparison
+
+The Comparison strategy works by calling each provider in **parallel**. All results are collected from each provider and
+then the resolved results are compared to each other. If they all agree then that value is returned. If not and a fallback
+provider is specified then the fallback will be executed. If no fallback is configured then the default value will be 
+returned. If a provider returns `FLAG_NOT_FOUND` that is not included in the comparison. If all providers
+return not found then the default value is returned. Finally, if any provider returns an error other than `FLAG_NOT_FOUND`
+the evaluation immediately stops and that error result is returned. This strategy does NOT support `ObjectEvaluation`
+
+# Not Yet Implemented
+
+- Hooks support
+- Event support
