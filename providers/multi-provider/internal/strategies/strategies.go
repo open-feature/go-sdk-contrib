@@ -58,9 +58,18 @@ type (
 // buildDefaultResult Creates a default result using reflection via generics
 func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 | interface{}](strategy EvaluationStrategy, defaultValue DV, err error) resultWrapper[R] {
 	result := *new(R)
+	var rErr of.ResolutionError
+	var reason of.Reason
+	if err != nil {
+		rErr = of.NewGeneralResolutionError(cleanErrorMessage(err.Error()))
+		reason = of.ErrorReason
+	} else {
+		rErr = of.NewFlagNotFoundResolutionError("not found in any provider")
+		reason = of.DefaultReason
+	}
 	details := of.ProviderResolutionDetail{
-		ResolutionError: of.NewFlagNotFoundResolutionError(err.Error()),
-		Reason:          of.DefaultReason,
+		ResolutionError: rErr,
+		Reason:          reason,
 		FlagMetadata:    of.FlagMetadata{MetadataSuccessfulProviderName: "none", MetadataStrategyUsed: strategy},
 	}
 	switch reflect.TypeOf(result).Name() {
