@@ -102,7 +102,11 @@ func evaluateFirstMatch[R resultConstraint, DV bool | string | int64 | float64 |
 			continue
 		}
 		if r.detail.Error() != nil {
-			return buildDefaultResult[R](StrategyFirstMatch, defaultVal, r.detail.Error())
+			r.detail.FlagMetadata = mergeFlagTags(r.detail.FlagMetadata, of.FlagMetadata{
+				MetadataSuccessfulProviderName: "none",
+				MetadataStrategyUsed:           StrategyFirstMatch,
+			})
+			return r
 		}
 
 		// success!
