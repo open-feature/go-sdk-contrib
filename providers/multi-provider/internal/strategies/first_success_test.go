@@ -12,14 +12,19 @@ import (
 
 const TestFlag = "test-flag"
 
-func configureFirstSuccessProvider[R bool | int64 | float64 | string | interface{}](provider *mocks.MockFeatureProvider, resultVal R, state bool, error bool, delay time.Duration) {
+func configureFirstSuccessProvider[R bool | int64 | float64 | string | interface{}](provider *mocks.MockFeatureProvider, resultVal R, state bool, error int, delay time.Duration) {
 	var rErr of.ResolutionError
 	var variant string
 	var reason of.Reason
-	if error {
+	switch error {
+	case TestErrorError:
 		rErr = of.NewGeneralResolutionError("test error")
-		reason = of.DisabledReason
+		reason = of.ErrorReason
+	case TestErrorNotFound:
+		rErr = of.NewFlagNotFoundResolutionError("test not found")
+		reason = of.DefaultReason
 	}
+
 	if state {
 		variant = "on"
 	} else {
@@ -80,7 +85,7 @@ func Test_FirstSuccessStrategy_BooleanEvaluation(t *testing.T) {
 	t.Run("single success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider, true, true, false, 0*time.Millisecond)
+		configureFirstSuccessProvider(provider, true, true, TestErrorNone, 0*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -99,9 +104,9 @@ func Test_FirstSuccessStrategy_BooleanEvaluation(t *testing.T) {
 	t.Run("first success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, true, true, false, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider1, true, true, TestErrorNone, 5*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, false, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider2, false, false, TestErrorError, 50*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -124,9 +129,9 @@ func Test_FirstSuccessStrategy_BooleanEvaluation(t *testing.T) {
 	t.Run("second success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, true, true, false, 500*time.Millisecond)
+		configureFirstSuccessProvider(provider1, true, true, TestErrorNone, 500*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, false, false, true, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider2, false, false, TestErrorError, 5*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -146,14 +151,46 @@ func Test_FirstSuccessStrategy_BooleanEvaluation(t *testing.T) {
 		assert.Equal(t, "success-provider", result.FlagMetadata[MetadataSuccessfulProviderName])
 	})
 
-	t.Run("all errors", func(t *testing.T) {
+	t.Run("all errors (not including flag not found)", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, false, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider1, false, false, TestErrorError, 50*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, false, false, true, 40*time.Millisecond)
+		configureFirstSuccessProvider(provider2, false, false, TestErrorError, 40*time.Millisecond)
 		provider3 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider3, false, false, true, 30*time.Millisecond)
+		configureFirstSuccessProvider(provider3, false, false, TestErrorError, 30*time.Millisecond)
+
+		strategy := NewFirstSuccessStrategy([]*NamedProvider{
+			{
+				Name:     "provider1",
+				Provider: provider1,
+			},
+			{
+				Name:     "provider2",
+				Provider: provider2,
+			},
+			{
+				Name:     "provider3",
+				Provider: provider3,
+			},
+		}, 2*time.Second)
+
+		result := strategy.BooleanEvaluation(context.Background(), TestFlag, false, of.FlattenedContext{})
+		assert.False(t, result.Value)
+		assert.Equal(t, StrategyFirstSuccess, result.FlagMetadata[MetadataStrategyUsed])
+		assert.Contains(t, result.FlagMetadata, MetadataSuccessfulProviderName)
+		assert.Equal(t, "none", result.FlagMetadata[MetadataSuccessfulProviderName])
+		assert.Equal(t, of.ErrorReason, result.Reason)
+	})
+
+	t.Run("all not found", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		provider1 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider1, false, false, TestErrorNotFound, 50*time.Millisecond)
+		provider2 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider2, false, false, TestErrorNotFound, 40*time.Millisecond)
+		provider3 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider3, false, false, TestErrorNotFound, 30*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -185,7 +222,7 @@ func Test_FirstSuccessStrategy_StringEvaluation(t *testing.T) {
 	t.Run("single success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider, successVal, true, false, 0*time.Millisecond)
+		configureFirstSuccessProvider(provider, successVal, true, TestErrorNone, 0*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -204,9 +241,9 @@ func Test_FirstSuccessStrategy_StringEvaluation(t *testing.T) {
 	t.Run("first success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 5*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 50*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -229,9 +266,9 @@ func Test_FirstSuccessStrategy_StringEvaluation(t *testing.T) {
 	t.Run("second success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 500*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 500*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 5*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -254,11 +291,43 @@ func Test_FirstSuccessStrategy_StringEvaluation(t *testing.T) {
 	t.Run("all errors", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorError, 50*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 40*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 40*time.Millisecond)
 		provider3 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider3, defaultVal, false, true, 30*time.Millisecond)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorError, 30*time.Millisecond)
+
+		strategy := NewFirstSuccessStrategy([]*NamedProvider{
+			{
+				Name:     "provider1",
+				Provider: provider1,
+			},
+			{
+				Name:     "provider2",
+				Provider: provider2,
+			},
+			{
+				Name:     "provider3",
+				Provider: provider3,
+			},
+		}, 2*time.Second)
+
+		result := strategy.StringEvaluation(context.Background(), TestFlag, defaultVal, of.FlattenedContext{})
+		assert.Equal(t, defaultVal, result.Value)
+		assert.Equal(t, StrategyFirstSuccess, result.FlagMetadata[MetadataStrategyUsed])
+		assert.Contains(t, result.FlagMetadata, MetadataSuccessfulProviderName)
+		assert.Equal(t, "none", result.FlagMetadata[MetadataSuccessfulProviderName])
+		assert.Equal(t, of.ErrorReason, result.Reason)
+	})
+
+	t.Run("all not found", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		provider1 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorNotFound, 50*time.Millisecond)
+		provider2 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorNotFound, 40*time.Millisecond)
+		provider3 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorNotFound, 30*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -290,7 +359,7 @@ func Test_FirstSuccessStrategy_IntEvaluation(t *testing.T) {
 	t.Run("single success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider, successVal, true, false, 0*time.Millisecond)
+		configureFirstSuccessProvider(provider, successVal, true, TestErrorNone, 0*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -309,9 +378,9 @@ func Test_FirstSuccessStrategy_IntEvaluation(t *testing.T) {
 	t.Run("first success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 5*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 50*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -334,9 +403,9 @@ func Test_FirstSuccessStrategy_IntEvaluation(t *testing.T) {
 	t.Run("second success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 500*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 500*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 5*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -359,11 +428,43 @@ func Test_FirstSuccessStrategy_IntEvaluation(t *testing.T) {
 	t.Run("all errors", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorError, 50*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 40*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 40*time.Millisecond)
 		provider3 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider3, defaultVal, false, true, 30*time.Millisecond)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorError, 30*time.Millisecond)
+
+		strategy := NewFirstSuccessStrategy([]*NamedProvider{
+			{
+				Name:     "provider1",
+				Provider: provider1,
+			},
+			{
+				Name:     "provider2",
+				Provider: provider2,
+			},
+			{
+				Name:     "provider3",
+				Provider: provider3,
+			},
+		}, 2*time.Second)
+
+		result := strategy.IntEvaluation(context.Background(), TestFlag, defaultVal, of.FlattenedContext{})
+		assert.Equal(t, defaultVal, result.Value)
+		assert.Equal(t, StrategyFirstSuccess, result.FlagMetadata[MetadataStrategyUsed])
+		assert.Contains(t, result.FlagMetadata, MetadataSuccessfulProviderName)
+		assert.Equal(t, "none", result.FlagMetadata[MetadataSuccessfulProviderName])
+		assert.Equal(t, of.ErrorReason, result.Reason)
+	})
+
+	t.Run("all not found", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		provider1 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorNotFound, 50*time.Millisecond)
+		provider2 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorNotFound, 40*time.Millisecond)
+		provider3 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorNotFound, 30*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -395,7 +496,7 @@ func Test_FirstSuccessStrategy_FloatEvaluation(t *testing.T) {
 	t.Run("single success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider, successVal, true, false, 0*time.Millisecond)
+		configureFirstSuccessProvider(provider, successVal, true, TestErrorNone, 0*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -414,9 +515,9 @@ func Test_FirstSuccessStrategy_FloatEvaluation(t *testing.T) {
 	t.Run("first success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 5*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 50*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -439,9 +540,9 @@ func Test_FirstSuccessStrategy_FloatEvaluation(t *testing.T) {
 	t.Run("second success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 500*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 500*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 5*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -464,11 +565,43 @@ func Test_FirstSuccessStrategy_FloatEvaluation(t *testing.T) {
 	t.Run("all errors", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorError, 50*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 40*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 40*time.Millisecond)
 		provider3 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider3, defaultVal, false, true, 30*time.Millisecond)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorError, 30*time.Millisecond)
+
+		strategy := NewFirstSuccessStrategy([]*NamedProvider{
+			{
+				Name:     "provider1",
+				Provider: provider1,
+			},
+			{
+				Name:     "provider2",
+				Provider: provider2,
+			},
+			{
+				Name:     "provider3",
+				Provider: provider3,
+			},
+		}, 2*time.Second)
+
+		result := strategy.FloatEvaluation(context.Background(), TestFlag, defaultVal, of.FlattenedContext{})
+		assert.Equal(t, defaultVal, result.Value)
+		assert.Equal(t, StrategyFirstSuccess, result.FlagMetadata[MetadataStrategyUsed])
+		assert.Contains(t, result.FlagMetadata, MetadataSuccessfulProviderName)
+		assert.Equal(t, "none", result.FlagMetadata[MetadataSuccessfulProviderName])
+		assert.Equal(t, of.ErrorReason, result.Reason)
+	})
+
+	t.Run("all not found", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		provider1 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorNotFound, 50*time.Millisecond)
+		provider2 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorNotFound, 40*time.Millisecond)
+		provider3 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorNotFound, 30*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -500,7 +633,7 @@ func Test_FirstSuccessStrategy_ObjectEvaluation(t *testing.T) {
 	t.Run("single success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider, successVal, true, false, 0*time.Millisecond)
+		configureFirstSuccessProvider(provider, successVal, true, TestErrorNone, 0*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -519,9 +652,9 @@ func Test_FirstSuccessStrategy_ObjectEvaluation(t *testing.T) {
 	t.Run("first success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 5*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 50*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -544,9 +677,9 @@ func Test_FirstSuccessStrategy_ObjectEvaluation(t *testing.T) {
 	t.Run("second success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, successVal, true, false, 500*time.Millisecond)
+		configureFirstSuccessProvider(provider1, successVal, true, TestErrorNone, 500*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 5*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 5*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{
@@ -569,11 +702,43 @@ func Test_FirstSuccessStrategy_ObjectEvaluation(t *testing.T) {
 	t.Run("all errors", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		provider1 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider1, defaultVal, false, true, 50*time.Millisecond)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorError, 50*time.Millisecond)
 		provider2 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider2, defaultVal, false, true, 40*time.Millisecond)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorError, 40*time.Millisecond)
 		provider3 := mocks.NewMockFeatureProvider(ctrl)
-		configureFirstSuccessProvider(provider3, defaultVal, false, true, 30*time.Millisecond)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorError, 30*time.Millisecond)
+
+		strategy := NewFirstSuccessStrategy([]*NamedProvider{
+			{
+				Name:     "provider1",
+				Provider: provider1,
+			},
+			{
+				Name:     "provider2",
+				Provider: provider2,
+			},
+			{
+				Name:     "provider3",
+				Provider: provider3,
+			},
+		}, 2*time.Second)
+
+		result := strategy.ObjectEvaluation(context.Background(), TestFlag, defaultVal, of.FlattenedContext{})
+		assert.Equal(t, defaultVal, result.Value)
+		assert.Equal(t, StrategyFirstSuccess, result.FlagMetadata[MetadataStrategyUsed])
+		assert.Contains(t, result.FlagMetadata, MetadataSuccessfulProviderName)
+		assert.Equal(t, "none", result.FlagMetadata[MetadataSuccessfulProviderName])
+		assert.Equal(t, of.ErrorReason, result.Reason)
+	})
+
+	t.Run("all not found", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		provider1 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider1, defaultVal, false, TestErrorNotFound, 50*time.Millisecond)
+		provider2 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider2, defaultVal, false, TestErrorNotFound, 40*time.Millisecond)
+		provider3 := mocks.NewMockFeatureProvider(ctrl)
+		configureFirstSuccessProvider(provider3, defaultVal, false, TestErrorNotFound, 30*time.Millisecond)
 
 		strategy := NewFirstSuccessStrategy([]*NamedProvider{
 			{

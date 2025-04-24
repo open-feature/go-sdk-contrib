@@ -108,6 +108,7 @@ func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64
 	metadata := make(of.FlagMetadata)
 	metadata[MetadataStrategyUsed] = StrategyFirstSuccess
 	errChan := make(chan mperr.ProviderError, len(providers))
+	notFoundChan := make(chan interface{})
 	finishChan := make(chan *resultWrapper[R], len(providers))
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -123,7 +124,10 @@ func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64
 			case <-c.Done():
 				return
 			case r := <-resultChan:
-				if r.detail.Error() != nil {
+				if r.detail.Error() != nil && r.detail.ResolutionDetail().ErrorCode == of.FlagNotFoundCode {
+					notFoundChan <- struct{}{}
+					return
+				} else if r.detail.Error() != nil {
 					errChan <- mperr.ProviderError{
 						Err:          r.detail.ResolutionError,
 						ProviderName: p.Name,
@@ -137,6 +141,7 @@ func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64
 	}
 
 	errs := make([]mperr.ProviderError, 0, len(providers))
+	notFoundCount := 0
 	for {
 		if len(errs) == len(providers) {
 			err := mperr.NewAggregateError(errs)
@@ -151,8 +156,20 @@ func evaluateFirstSuccess[R resultConstraint, DV bool | string | int64 | float64
 			return *result, metadata
 		case err := <-errChan:
 			errs = append(errs, err)
+		case <-notFoundChan:
+			notFoundCount += 1
+			if notFoundCount == len(providers) {
+				r := buildDefaultResult[R](StrategyFirstSuccess, defaultVal, nil)
+				return r, r.detail.FlagMetadata
+			}
 		case <-ctx.Done():
-			r := buildDefaultResult[R](StrategyFirstSuccess, defaultVal, ctx.Err())
+			var err error
+			if len(errs) > 0 {
+				err = mperr.NewAggregateError(errs)
+			} else {
+				err = ctx.Err()
+			}
+			r := buildDefaultResult[R](StrategyFirstSuccess, defaultVal, err)
 			return r, r.detail.FlagMetadata
 		}
 	}
