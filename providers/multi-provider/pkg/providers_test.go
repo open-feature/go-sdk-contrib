@@ -3,7 +3,7 @@ package multiprovider
 import (
 	"errors"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
-	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
+	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
 	"github.com/open-feature/go-sdk/openfeature"
 	of "github.com/open-feature/go-sdk/openfeature"
 	oft "github.com/open-feature/go-sdk/openfeature/testing"

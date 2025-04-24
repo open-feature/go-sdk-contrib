@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
+	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"maps"
