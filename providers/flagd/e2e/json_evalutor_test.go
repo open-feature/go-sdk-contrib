@@ -3,69 +3,30 @@
 package e2e
 
 import (
-	"flag"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/e2e/containers"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	"testing"
-
-	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
-	"github.com/open-feature/go-sdk/openfeature"
+	"testing"
 )
 
 func TestJsonEvaluatorInRPC(t *testing.T) {
-	if testing.Short() {
-		// skip e2e if testing -short
-		t.Skip()
-	}
-
-	flag.Parse()
-
-	name := "flagd-json-evaluator.feature"
-
-	testSuite := godog.TestSuite{
-		Name: name,
-		TestSuiteInitializer: integration.InitializeFlagdJsonTestSuite(func() openfeature.FeatureProvider {
-			return flagd.NewProvider(flagd.WithPort(8013))
-		}),
-		ScenarioInitializer: integration.InitializeFlagdJsonScenario,
-		Options: &godog.Options{
-			Format:   "pretty",
-			Paths:    []string{"../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
-			TestingT: t, // Testing instance that will run subtests.
-			Strict:   true,
-		},
-	}
-
-	if testSuite.Run() != 0 {
-		t.Fatal("non-zero status returned, failed to run evaluation tests")
-	}
+	testJsonEvaluator(t, containers.Remote)
 }
 
 func TestJsonEvaluatorInProcess(t *testing.T) {
-	if testing.Short() {
-		// skip e2e if testing -short
-		t.Skip()
-	}
+	testJsonEvaluator(t, containers.InProcess, flagd.WithInProcessResolver())
+}
 
-	flag.Parse()
-
-	name := "flagd-json-evaluator.feature"
-
-	testSuite := godog.TestSuite{
-		Name: name,
-		TestSuiteInitializer: integration.InitializeFlagdJsonTestSuite(func() openfeature.FeatureProvider {
-			return flagd.NewProvider(flagd.WithInProcessResolver(), flagd.WithPort(9090))
-		}),
-		ScenarioInitializer: integration.InitializeFlagdJsonScenario,
-		Options: &godog.Options{
-			Format:   "pretty",
-			Paths:    []string{"../flagd-testbed/gherkin/flagd-json-evaluator.feature"},
-			TestingT: t, // Testing instance that will run subtests.
-			Strict:   true,
+func testJsonEvaluator(t *testing.T, exposedPort containers.ExposedPort, providerOptions ...flagd.ProviderOption) {
+	runGherkinTestWithFeatureProvider(
+		gherkinTestRunConfig{
+			t:                   t,
+			prepareTestSuite:    integration.PrepareFlagdJsonTestSuite,
+			scenarioInitializer: integration.InitializeFlagdJsonScenario,
+			name:                "flagd-json-evaluator.feature",
+			gherkinFile:         "../flagd-testbed/gherkin/flagd-json-evaluator.feature",
+			port:                exposedPort,
+			providerOptions:     providerOptions,
 		},
-	}
-
-	if testSuite.Run() != 0 {
-		t.Fatal("non-zero status returned, failed to run evaluation tests")
-	}
+	)
 }

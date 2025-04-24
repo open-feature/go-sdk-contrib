@@ -2,7 +2,7 @@ module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
 
 go 1.21.0
 
-toolchain go1.22.5
+toolchain go1.24.1
 
 require (
 	github.com/bluele/gcache v0.0.2

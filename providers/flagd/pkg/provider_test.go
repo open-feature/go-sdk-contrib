@@ -38,6 +38,7 @@ func TestNewProvider(t *testing.T) {
 		expectSelector                string
 		expectCustomSyncProvider      sync.ISync
 		expectCustomSyncProviderUri   string
+		expectOfflineFlagSourcePath   string
 		expectGrpcDialOptionsOverride []grpc.DialOption
 		options                       []ProviderOption
 	}{
@@ -239,11 +240,43 @@ func TestNewProvider(t *testing.T) {
 				WithProviderID("testProvider"),
 			},
 		},
+		{
+			name:                        "with OfflineFilePath with in-process resolver",
+			expectedResolver:            file,
+			expectHost:                  defaultHost,
+			expectPort:                  0,
+			expectCacheType:             defaultCache,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectOfflineFlagSourcePath: "offlineFilePath",
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithOfflineFilePath("offlineFilePath"),
+			},
+		},
+		{
+			name:                        "with OfflineFilePath with file resolver",
+			expectedResolver:            file,
+			expectHost:                  defaultHost,
+			expectPort:                  0,
+			expectCacheType:             defaultCache,
+			expectCacheSize:             defaultMaxCacheSize,
+			expectMaxRetries:            defaultMaxEventStreamRetries,
+			expectOfflineFlagSourcePath: "offlineFilePath",
+			options: []ProviderOption{
+				WithFileResolver(),
+				WithOfflineFilePath("offlineFilePath"),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			flagdProvider := NewProvider(test.options...)
+			flagdProvider, err := NewProvider(test.options...)
+
+			if err != nil {
+				t.Fatal("error creating new provider", err)
+			}
 
 			metadata := flagdProvider.Metadata()
 			if metadata.Name != "flagd" {
@@ -252,14 +285,14 @@ func TestNewProvider(t *testing.T) {
 
 			config := flagdProvider.providerConfiguration
 
-			if config.TLSEnabled != test.expectTlsEnabled {
-				t.Errorf("incorrect configuration TLSEnabled, expected %v, got %v",
-					test.expectTlsEnabled, config.TLSEnabled)
+			if config.Tls != test.expectTlsEnabled {
+				t.Errorf("incorrect configuration Tls, expected %v, got %v",
+					test.expectTlsEnabled, config.Tls)
 			}
 
-			if config.CertificatePath != test.expectCertPath {
-				t.Errorf("incorrect configuration CertificatePath, expected %v, got %v",
-					test.expectCertPath, config.CertificatePath)
+			if config.CertPath != test.expectCertPath {
+				t.Errorf("incorrect configuration CertPath, expected %v, got %v",
+					test.expectCertPath, config.CertPath)
 			}
 
 			if config.OtelIntercept != test.expectOtelIntercept {
@@ -277,9 +310,9 @@ func TestNewProvider(t *testing.T) {
 					test.expectCacheSize, config.MaxCacheSize)
 			}
 
-			if config.CacheType != test.expectCacheType {
-				t.Errorf("incorrect configuration CacheType, expected %v, got %v",
-					test.expectCacheType, config.CacheType)
+			if config.Cache != test.expectCacheType {
+				t.Errorf("incorrect configuration Cache, expected %v, got %v",
+					test.expectCacheType, config.Cache)
 			}
 
 			if config.Host != test.expectHost {
@@ -317,6 +350,11 @@ func TestNewProvider(t *testing.T) {
 					test.expectCustomSyncProviderUri, config.CustomSyncProviderUri)
 			}
 
+			if config.OfflineFlagSourcePath != test.expectOfflineFlagSourcePath {
+				t.Errorf("incorrect configuration OfflineFlagSourcePath, expected %v, got %v",
+					test.expectOfflineFlagSourcePath, config.OfflineFlagSourcePath)
+			}
+
 			if test.expectGrpcDialOptionsOverride != nil {
 				if config.GrpcDialOptionsOverride == nil {
 					t.Errorf("incorrent configuration GrpcDialOptionsOverride, expected %v, got nil", config.GrpcDialOptionsOverride)
@@ -345,8 +383,14 @@ func TestEventHandling(t *testing.T) {
 	svcMock.EXPECT().EventChannel().Return(customChan).AnyTimes()
 	svcMock.EXPECT().Init().Times(1)
 
-	provider := NewProvider()
+	var err error
+
+	provider, err := NewProvider()
 	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
 
 	if provider.Status() != of.NotReadyState {
 		t.Errorf("expected initial status to be not ready, but got %v", provider.Status())
@@ -372,7 +416,7 @@ func TestEventHandling(t *testing.T) {
 	}()
 
 	// Check initial readiness
-	err := provider.Init(of.EvaluationContext{})
+	err = provider.Init(of.EvaluationContext{})
 	if err != nil {
 		t.Fatal("error initialization provider", err)
 	}
@@ -409,8 +453,12 @@ func TestInitializeOnlyOnce(t *testing.T) {
 	svcMock.EXPECT().EventChannel().Return(eventChan).MaxTimes(2)
 	svcMock.EXPECT().Shutdown().Times(1)
 
-	provider := NewProvider()
+	provider, err := NewProvider()
 	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
 
 	// make service ready with events
 	go func() {
