@@ -69,6 +69,15 @@ func (m ProviderMap) AsNamedProviderSlice() []*strategies.NamedProvider {
 	return s
 }
 
+// Size The size of the map. This operates in O(n) time.
+func (m ProviderMap) Size() int {
+	count := 0
+	for range m {
+		count += 1
+	}
+	return count
+}
+
 func (m ProviderMap) buildMetadata() of.Metadata {
 	var separator string
 	metaName := "MultiProvider {"
@@ -165,7 +174,7 @@ func (mp *MultiProvider) Metadata() of.Metadata {
 	return mp.metadata
 }
 
-// Hooks returns a collection of of.Hook defined by this provider
+// Hooks returns a collection of.Hook defined by this provider
 func (mp *MultiProvider) Hooks() []of.Hook {
 	// Hooks that should be included with the provider
 	return []of.Hook{}

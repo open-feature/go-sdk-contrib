@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"maps"
 	"regexp"
 	"testing"
 	"time"
@@ -84,10 +83,10 @@ func TestMultiProvider_ProvidersByNamesMethod(t *testing.T) {
 
 	p := mp.ProvidersByName()
 
-	require.Len(t, p, 2)
-	require.Contains(t, maps.Keys(p), "provider1")
+	assert.Equal(t, 2, p.Size())
+	require.Contains(t, p, "provider1")
 	assert.Equal(t, p["provider1"], testProvider1)
-	require.Contains(t, maps.Keys(p), "provider2")
+	require.Contains(t, p, "provider2")
 	assert.Equal(t, p["provider2"], testProvider2)
 }
 
