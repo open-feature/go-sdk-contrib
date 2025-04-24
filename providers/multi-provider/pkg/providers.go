@@ -18,6 +18,7 @@ import (
 )
 
 type (
+	// MultiProvider Provider used for combining multiple providers
 	MultiProvider struct {
 		providers ProviderMap
 		metadata  of.Metadata
@@ -28,6 +29,7 @@ type (
 		logger    *slog.Logger
 	}
 
+	// Configuration MultiProvider's internal configuration
 	Configuration struct {
 		useFallback      bool
 		fallbackProvider of.FeatureProvider
@@ -41,8 +43,10 @@ type (
 
 	// EvaluationStrategy Defines a strategy to use for resolving the result from multiple providers
 	EvaluationStrategy = string
-	ProviderMap        map[string]of.FeatureProvider
-	Option             func(*Configuration)
+	// ProviderMap A map where the keys are names of providers and the values are the providers themselves
+	ProviderMap map[string]of.FeatureProvider
+	// Option Function used for setting Configuration via the options pattern
+	Option func(*Configuration)
 )
 
 const (
@@ -62,8 +66,7 @@ const (
 
 var _ of.FeatureProvider = (*MultiProvider)(nil)
 
-// MultiProvider implements of `FeatureProvider` in a way to accept an array of providers.
-
+// AsNamedProviderSlice Converts the map into a slice of NamedProvider instances
 func (m ProviderMap) AsNamedProviderSlice() []*strategies.NamedProvider {
 	s := make([]*strategies.NamedProvider, 0, len(m))
 	for name, provider := range m {
@@ -167,14 +170,17 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 	return multiProvider, nil
 }
 
+// Providers Returns slice of providers wrapped in NamedProvider structs
 func (mp *MultiProvider) Providers() []*strategies.NamedProvider {
 	return mp.providers.AsNamedProviderSlice()
 }
 
+// ProvidersByName Returns the internal ProviderMap of the MultiProvider
 func (mp *MultiProvider) ProvidersByName() ProviderMap {
 	return mp.providers
 }
 
+// EvaluationStrategy The current set strategy
 func (mp *MultiProvider) EvaluationStrategy() string {
 	return mp.strategy.Name()
 }
@@ -250,12 +256,14 @@ func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
 	return nil
 }
 
+// Status the current status of the MultiProvider
 func (mp *MultiProvider) Status() of.State {
 	mp.mu.RLock()
 	defer mp.mu.RUnlock()
 	return mp.status
 }
 
+// Shutdown Shuts down all internal providers
 func (mp *MultiProvider) Shutdown() {
 	var wg sync.WaitGroup
 	for _, provider := range mp.providers {
@@ -271,6 +279,7 @@ func (mp *MultiProvider) Shutdown() {
 	wg.Wait()
 }
 
+// EventChannel the channel emits are emitted on
 func (mp *MultiProvider) EventChannel() <-chan of.Event {
 	return mp.events
 }
