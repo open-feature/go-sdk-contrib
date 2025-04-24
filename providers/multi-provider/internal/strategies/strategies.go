@@ -5,6 +5,8 @@ import (
 	"context"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 const (
