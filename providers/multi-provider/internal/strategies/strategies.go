@@ -56,6 +56,8 @@ type (
 		value  any
 		detail of.ProviderResolutionDetail
 	}
+
+	evaluator[R resultConstraint] func(ctx context.Context, p *NamedProvider) resultWrapper[R]
 )
 
 var _ error = (*providerError)(nil)
