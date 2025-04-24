@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	mperr "github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/errors"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/sync/errgroup"
 	"slices"
@@ -256,9 +257,9 @@ func evaluateComparison[R resultConstraint, DV bool | string | int64 | float64](
 			case r := <-localChan:
 				notFound := r.detail.ResolutionDetail().ErrorCode == of.FlagNotFoundCode
 				if !notFound && r.detail.Error() != nil {
-					return &providerError{
-						providerName: r.name,
-						err:          r.detail.Error(),
+					return &mperr.ProviderError{
+						ProviderName: r.name,
+						Err:          r.detail.Error(),
 					}
 				}
 				if !notFound {

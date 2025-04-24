@@ -39,11 +39,6 @@ type (
 		Provider of.FeatureProvider
 	}
 
-	providerError struct {
-		providerName string
-		err          error
-	}
-
 	resultConstraint interface {
 		of.BoolResolutionDetail | of.IntResolutionDetail | of.StringResolutionDetail | of.FloatResolutionDetail | of.InterfaceResolutionDetail
 	}
@@ -57,12 +52,6 @@ type (
 
 	evaluator[R resultConstraint] func(ctx context.Context, p *NamedProvider) resultWrapper[R]
 )
-
-var _ error = (*providerError)(nil)
-
-func (p providerError) Error() string {
-	return p.providerName + ": " + p.err.Error()
-}
 
 // buildDefaultResult Creates a default result using reflection via generics
 func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 | interface{}](strategy EvaluationStrategy, defaultValue DV, err error) resultWrapper[R] {
