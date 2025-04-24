@@ -31,6 +31,7 @@ type (
 	Configuration struct {
 		useFallback      bool
 		fallbackProvider of.FeatureProvider
+		customStrategy   strategies.Strategy
 		logger           *slog.Logger
 		publishEvents    bool
 		metadata         *of.Metadata
@@ -54,6 +55,9 @@ const (
 	// Otherwise, the value from the designated fallback provider's response will be returned. The fallback provider
 	// will be assigned to the first provider registered. (NOT YET IMPLEMENTED, SUBJECT TO CHANGE)
 	StrategyComparison EvaluationStrategy = "comparison"
+	// StrategyCustom allows for using a custom Strategy implementation. If this is set you MUST use the WithCustomStrategy
+	// option to set it
+	StrategyCustom EvaluationStrategy = "strategy-custom"
 )
 
 var _ of.FeatureProvider = (*MultiProvider)(nil)
@@ -149,6 +153,12 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 		strategy = strategies.NewFirstSuccessStrategy(multiProvider.Providers(), config.timeout)
 	case StrategyComparison:
 		strategy = strategies.NewComparisonStrategy(multiProvider.Providers(), config.fallbackProvider)
+	case StrategyCustom:
+		if config.customStrategy != nil {
+			strategy = config.customStrategy
+		} else {
+			return nil, fmt.Errorf("A custom strategy must be set via an option if StrategyCustom is set")
+		}
 	default:
 		return nil, fmt.Errorf("%s is an unknown evalutation strategy", strategy)
 	}

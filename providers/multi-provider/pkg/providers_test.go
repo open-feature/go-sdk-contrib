@@ -33,6 +33,59 @@ func TestMultiProvider_ProvidersMethod(t *testing.T) {
 	assert.NotNil(t, p[1].Provider)
 }
 
+func TestMultiProvider_NewMultiProvider(t *testing.T) {
+	t.Run("nil providerMap returns an error", func(t *testing.T) {
+		_, err := NewMultiProvider(nil, strategies.StrategyFirstMatch)
+		require.Errorf(t, err, "providerMap cannot be nil or empty")
+	})
+
+	t.Run("naming a provider the empty string returns an error", func(t *testing.T) {
+		providers := make(ProviderMap)
+		providers[""] = oft.NewTestProvider()
+		_, err := NewMultiProvider(providers, strategies.StrategyFirstMatch)
+		require.Errorf(t, err, "provider name cannot be the empty string")
+	})
+
+	t.Run("nil provider within map returns an error", func(t *testing.T) {
+		providers := make(ProviderMap)
+		providers["provider1"] = nil
+		_, err := NewMultiProvider(providers, strategies.StrategyFirstMatch)
+		require.Errorf(t, err, "provider provider1 cannot be nil")
+	})
+
+	t.Run("unknown evaluation strategy returns an error", func(t *testing.T) {
+		providers := make(ProviderMap)
+		providers["provider1"] = oft.NewTestProvider()
+		_, err := NewMultiProvider(providers, "unknown")
+		require.Errorf(t, err, "unknown is an unknown evaluation strategy")
+	})
+
+	t.Run("setting custom strategy without custom strategy option returns error", func(t *testing.T) {
+		providers := make(ProviderMap)
+		providers["provider1"] = oft.NewTestProvider()
+		_, err := NewMultiProvider(providers, StrategyCustom)
+		require.Errorf(t, err, "A custom strategy must be set via an option if StrategyCustom is set")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		providers := make(ProviderMap)
+		providers["provider1"] = oft.NewTestProvider()
+		mp, err := NewMultiProvider(providers, StrategyComparison)
+		require.NoError(t, err)
+		assert.NotZero(t, mp)
+	})
+
+	t.Run("success with custom provider", func(t *testing.T) {
+		providers := make(ProviderMap)
+		providers["provider1"] = oft.NewTestProvider()
+		ctrl := gomock.NewController(t)
+		strategy := strategies.NewMockStrategy(ctrl)
+		mp, err := NewMultiProvider(providers, StrategyCustom, WithCustomStrategy(strategy))
+		require.NoError(t, err)
+		assert.NotZero(t, mp)
+	})
+}
+
 func TestMultiProvider_ProvidersByNamesMethod(t *testing.T) {
 	testProvider1 := oft.NewTestProvider()
 	testProvider2 := oft.NewTestProvider()
