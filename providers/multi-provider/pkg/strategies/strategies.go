@@ -1,6 +1,6 @@
 // Package strategies Resolution strategies are defined within this package
 //
-//go:generate go run go.uber.org/mock/mockgen -source=strategies.go -destination=../../internal/mocks/strategy_mock.go -package=mocks
+//go:generate go run go.uber.org/mock/mockgen -source=strategies.go -destination=../../pkg/strategies/strategy_mock.go -package=strategies
 package strategies
 
 import (
