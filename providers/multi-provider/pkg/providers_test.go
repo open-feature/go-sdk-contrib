@@ -2,54 +2,17 @@ package multiprovider
 
 import (
 	"errors"
-	"fmt"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/strategies"
+	"github.com/open-feature/go-sdk/openfeature"
 	of "github.com/open-feature/go-sdk/openfeature"
+	oft "github.com/open-feature/go-sdk/openfeature/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"regexp"
 	"testing"
-	"time"
-
-	"github.com/open-feature/go-sdk/openfeature"
-	oft "github.com/open-feature/go-sdk/openfeature/testing"
 )
-
-// MockProvider utilizes openfeature's TestProvider to add testable Init & Shutdown methods to test the MultiProvider functionality
-type MockProvider struct {
-	oft.TestProvider
-	InitCount *int
-	ShutCount *int
-	TestErr   string
-	InitDelay int
-	ShutDelay int
-	MockMeta  string
-}
-
-func (m *MockProvider) Init(evalCtx openfeature.EvaluationContext) error {
-	if m.TestErr != "" {
-		return fmt.Errorf(m.TestErr)
-	}
-
-	if m.InitDelay != 0 {
-		time.Sleep(time.Duration(m.InitDelay) * time.Millisecond)
-	}
-	*m.InitCount += 1
-	return nil
-}
-
-func (m *MockProvider) Shutdown() {
-	if m.ShutDelay != 0 {
-		time.Sleep(time.Duration(m.ShutDelay) * time.Millisecond)
-	}
-	*m.ShutCount += 1
-}
-
-func (m *MockProvider) Metadata() openfeature.Metadata {
-	return openfeature.Metadata{Name: m.MockMeta}
-}
 
 func TestMultiProvider_ProvidersMethod(t *testing.T) {
 	testProvider1 := oft.NewTestProvider()
