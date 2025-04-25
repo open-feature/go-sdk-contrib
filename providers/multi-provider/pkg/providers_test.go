@@ -6,7 +6,7 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
 	"github.com/open-feature/go-sdk/openfeature"
 	of "github.com/open-feature/go-sdk/openfeature"
-	oft "github.com/open-feature/go-sdk/openfeature/testing"
+	imp "github.com/open-feature/go-sdk/openfeature/memprovider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -15,8 +15,8 @@ import (
 )
 
 func TestMultiProvider_ProvidersMethod(t *testing.T) {
-	testProvider1 := oft.NewTestProvider()
-	testProvider2 := oft.NewTestProvider()
+	testProvider1 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
+	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -41,7 +41,7 @@ func TestMultiProvider_NewMultiProvider(t *testing.T) {
 
 	t.Run("naming a provider the empty string returns an error", func(t *testing.T) {
 		providers := make(ProviderMap)
-		providers[""] = oft.NewTestProvider()
+		providers[""] = imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 		_, err := NewMultiProvider(providers, strategies.StrategyFirstMatch)
 		require.Errorf(t, err, "provider name cannot be the empty string")
 	})
@@ -55,21 +55,21 @@ func TestMultiProvider_NewMultiProvider(t *testing.T) {
 
 	t.Run("unknown evaluation strategy returns an error", func(t *testing.T) {
 		providers := make(ProviderMap)
-		providers["provider1"] = oft.NewTestProvider()
+		providers["provider1"] = imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 		_, err := NewMultiProvider(providers, "unknown")
 		require.Errorf(t, err, "unknown is an unknown evaluation strategy")
 	})
 
 	t.Run("setting custom strategy without custom strategy option returns error", func(t *testing.T) {
 		providers := make(ProviderMap)
-		providers["provider1"] = oft.NewTestProvider()
+		providers["provider1"] = imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 		_, err := NewMultiProvider(providers, StrategyCustom)
 		require.Errorf(t, err, "A custom strategy must be set via an option if StrategyCustom is set")
 	})
 
 	t.Run("success", func(t *testing.T) {
 		providers := make(ProviderMap)
-		providers["provider1"] = oft.NewTestProvider()
+		providers["provider1"] = imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 		mp, err := NewMultiProvider(providers, StrategyComparison)
 		require.NoError(t, err)
 		assert.NotZero(t, mp)
@@ -77,7 +77,7 @@ func TestMultiProvider_NewMultiProvider(t *testing.T) {
 
 	t.Run("success with custom provider", func(t *testing.T) {
 		providers := make(ProviderMap)
-		providers["provider1"] = oft.NewTestProvider()
+		providers["provider1"] = imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 		ctrl := gomock.NewController(t)
 		strategy := strategies.NewMockStrategy(ctrl)
 		mp, err := NewMultiProvider(providers, StrategyCustom, WithCustomStrategy(strategy))
@@ -87,8 +87,8 @@ func TestMultiProvider_NewMultiProvider(t *testing.T) {
 }
 
 func TestMultiProvider_ProvidersByNamesMethod(t *testing.T) {
-	testProvider1 := oft.NewTestProvider()
-	testProvider2 := oft.NewTestProvider()
+	testProvider1 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
+	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -107,7 +107,7 @@ func TestMultiProvider_ProvidersByNamesMethod(t *testing.T) {
 }
 
 func TestMultiProvider_MetaData(t *testing.T) {
-	testProvider1 := oft.NewTestProvider()
+	testProvider1 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	ctrl := gomock.NewController(t)
 	testProvider2 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider2.EXPECT().Metadata().Return(of.Metadata{
@@ -131,7 +131,7 @@ func TestMultiProvider_Init(t *testing.T) {
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
-	testProvider2 := oft.NewTestProvider()
+	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 
@@ -169,7 +169,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
-	testProvider2 := oft.NewTestProvider()
+	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -194,7 +194,7 @@ func TestMultiProvider_Shutdown(t *testing.T) {
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
-	testProvider2 := oft.NewTestProvider()
+	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 
