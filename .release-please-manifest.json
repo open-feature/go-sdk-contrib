@@ -16,5 +16,5 @@
     "providers/prefab": "0.0.2",
     "tests/flagd": "1.4.1",
     "providers/go-feature-flag-in-process": "0.1.0",
-    "providers/multi-provider": "0.0.3"
+    "providers/multi-provider": "0.0.4"
 }
