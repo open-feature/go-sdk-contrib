@@ -78,11 +78,7 @@ func (m ProviderMap) AsNamedProviderSlice() []*strategies.NamedProvider {
 
 // Size The size of the map. This operates in O(n) time.
 func (m ProviderMap) Size() int {
-	count := 0
-	for range m {
-		count += 1
-	}
-	return count
+	return len(m.AsNamedProviderSlice())
 }
 
 func (m ProviderMap) buildMetadata() of.Metadata {
@@ -279,7 +275,7 @@ func (mp *MultiProvider) Shutdown() {
 	wg.Wait()
 }
 
-// EventChannel the channel emits are emitted on
+// EventChannel the channel events are emitted on (Not Yet Implemented)
 func (mp *MultiProvider) EventChannel() <-chan of.Event {
 	return mp.events
 }
