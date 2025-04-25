@@ -123,7 +123,7 @@ func TestMultiProvider_MetaData(t *testing.T) {
 
 	metadata := mp.Metadata()
 	require.NotZero(t, metadata)
-	assert.Equal(t, "MultiProvider {provider1: NoopProvider, provider2: MockProvider}", metadata.Name)
+	assert.Equal(t, "MultiProvider {provider1: InMemoryProvider, provider2: MockProvider}", metadata.Name)
 }
 
 func TestMultiProvider_Init(t *testing.T) {
