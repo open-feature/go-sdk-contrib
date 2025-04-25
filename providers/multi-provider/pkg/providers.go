@@ -57,7 +57,7 @@ const (
 	StrategyFirstSuccess EvaluationStrategy = strategies.StrategyFirstSuccess
 	// StrategyComparison All providers are called in parallel. If all responses agree the value will be returned.
 	// Otherwise, the value from the designated fallback provider's response will be returned. The fallback provider
-	// will be assigned to the first provider registered. (NOT YET IMPLEMENTED, SUBJECT TO CHANGE)
+	// will be assigned to the first provider registered.
 	StrategyComparison EvaluationStrategy = "comparison"
 	// StrategyCustom allows for using a custom Strategy implementation. If this is set you MUST use the WithCustomStrategy
 	// option to set it

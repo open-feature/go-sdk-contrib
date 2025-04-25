@@ -81,3 +81,4 @@ the evaluation immediately stops and that error result is returned. This strateg
 
 - Hooks support
 - Event support
+- Full slog support
