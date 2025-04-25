@@ -9,7 +9,7 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v3
+      - uses: googleapis/release-please-action@db8f2c60ee802b3748b512940dde88eabd7b7e01 # v3
         id: release
         with:
           command: manifest
@@ -31,14 +31,14 @@ jobs:
       TAG: ${{ fromJSON(needs.release-please.outputs.all)[format('{0}--tag_name', matrix.release)] }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@19bb51245e9c80abacb2e91cc42b33fa478b8639 # v4
         with:
           go-version: ${{ env.GO_VERSION }}
       # Create SBOM
       - name: Generate SBOM
-        uses: CycloneDX/gh-gomod-generate-sbom@v2
+        uses: CycloneDX/gh-gomod-generate-sbom@efc74245d6802c8cefd925620515442756c70d8f # v2
         with:
           version: v1
           args: mod -licenses -json -output bom.json ${{ matrix.release }}
