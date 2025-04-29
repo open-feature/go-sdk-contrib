@@ -6,8 +6,8 @@ require (
 	github.com/open-feature/go-sdk v1.13.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/mock v0.5.2
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
-	golang.org/x/sync v0.7.0
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
+	golang.org/x/sync v0.13.0
 )
 
 require (
