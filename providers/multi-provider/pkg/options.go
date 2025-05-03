@@ -14,6 +14,21 @@ func WithLogger(l *slog.Logger) Option {
 	}
 }
 
+// WithLoggerDefault Uses the default [slog.Logger] (this is the default setting)
+// use WithoutLogging to disable logging completely
+func WithLoggerDefault() Option {
+	return func(conf *Configuration) {
+		conf.logger = slog.Default()
+	}
+}
+
+// WithoutLogging Disables logging functionality
+func WithoutLogging() Option {
+	return func(conf *Configuration) {
+		conf.logger = nil
+	}
+}
+
 // WithTimeout Set a timeout for the total runtime for evaluation of parallel strategies
 func WithTimeout(d time.Duration) Option {
 	return func(conf *Configuration) {
@@ -33,19 +48,5 @@ func WithFallbackProvider(p of.FeatureProvider) Option {
 func WithCustomStrategy(s strategies.Strategy) Option {
 	return func(conf *Configuration) {
 		conf.customStrategy = s
-	}
-}
-
-// WithEventPublishing Enables event publishing (Not Yet Implemented)
-func WithEventPublishing() Option {
-	return func(conf *Configuration) {
-		conf.publishEvents = true
-	}
-}
-
-// WithoutEventPublishing Disables event publishing (this is the default, but included for explicit usage)
-func WithoutEventPublishing() Option {
-	return func(conf *Configuration) {
-		conf.publishEvents = false
 	}
 }
