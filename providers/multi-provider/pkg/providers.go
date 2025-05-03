@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/logger"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
@@ -20,13 +21,19 @@ import (
 type (
 	// MultiProvider Provider used for combining multiple providers
 	MultiProvider struct {
-		providers ProviderMap
-		metadata  of.Metadata
-		events    chan of.Event
-		status    of.State
-		mu        sync.RWMutex
-		strategy  strategies.Strategy
-		logger    *slog.Logger
+		providers          ProviderMap
+		metadata           of.Metadata
+		status             of.State
+		totalStatusLock    sync.RWMutex
+		strategy           strategies.Strategy
+		logger             *logger.ConditionalLogger
+		outboundEvents     chan of.Event
+		inboundEvents      chan namedEvent
+		workerGroup        sync.WaitGroup
+		shutdownFunc       context.CancelFunc
+		providerStatusLock sync.Mutex
+		providerStatus     map[string]of.State
+		initialized        bool
 	}
 
 	// Configuration MultiProvider's internal configuration
@@ -47,6 +54,12 @@ type (
 	ProviderMap map[string]of.FeatureProvider
 	// Option Function used for setting Configuration via the options pattern
 	Option func(*Configuration)
+
+	// Private Types
+	namedEvent struct {
+		of.Event
+		providerName string
+	}
 )
 
 const (
@@ -61,10 +74,42 @@ const (
 	StrategyComparison EvaluationStrategy = "comparison"
 	// StrategyCustom allows for using a custom Strategy implementation. If this is set you MUST use the WithCustomStrategy
 	// option to set it
-	StrategyCustom EvaluationStrategy = "strategy-custom"
+	StrategyCustom        EvaluationStrategy = "strategy-custom"
+	MetadataProviderName                     = "multiprovider-provider-name"
+	MetadataProviderType                     = "multiprovider-provider-type"
+	MetadataInternalError                    = "multiprovider-internal-error"
 )
 
-var _ of.FeatureProvider = (*MultiProvider)(nil)
+var (
+	_                of.FeatureProvider = (*MultiProvider)(nil)
+	_                of.EventHandler    = (*MultiProvider)(nil)
+	_                of.StateHandler    = (*MultiProvider)(nil)
+	stateValues      map[of.State]int
+	stateTable       [3]of.State
+	eventTypeToState map[of.EventType]of.State
+)
+
+func init() {
+	// used for mapping provider event types & provider states to comparable values for evaluation
+	stateValues = map[of.State]int{
+		"":            -1, // Not a real state, but used for handling provider config changes
+		of.ErrorState: 0,
+		of.StaleState: 1,
+		of.ReadyState: 2,
+	}
+	// used for mapping
+	stateTable = [3]of.State{
+		of.ReadyState, // 0
+		of.StaleState, // 1
+		of.ErrorState, // 2
+	}
+	eventTypeToState = map[of.EventType]of.State{
+		of.ProviderConfigChange: "",
+		of.ProviderReady:        of.ReadyState,
+		of.ProviderStale:        of.StaleState,
+		of.ProviderError:        of.ErrorState,
+	}
+}
 
 // AsNamedProviderSlice Converts the map into a slice of NamedProvider instances
 func (m ProviderMap) AsNamedProviderSlice() []*strategies.NamedProvider {
@@ -115,28 +160,20 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 	}
 
 	config := &Configuration{
-		logger: slog.Default(),
+		logger: slog.Default(), // Logging enabled by default using default slog logger
 	}
 
 	for _, opt := range options {
 		opt(config)
 	}
 
-	var eventChannel chan of.Event
-	if config.publishEvents {
-		eventChannel = make(chan of.Event)
-	}
-
-	logger := config.logger
-	if logger == nil {
-		logger = slog.Default()
-	}
-
 	multiProvider := &MultiProvider{
-		providers: providerMap,
-		events:    eventChannel,
-		logger:    logger,
-		metadata:  providerMap.buildMetadata(),
+		providers:      providerMap,
+		outboundEvents: make(chan of.Event),
+		logger:         logger.NewConditionalLogger(config.logger),
+		metadata:       providerMap.buildMetadata(),
+		status:         of.NotReadyState,
+		providerStatus: make(map[string]of.State),
 	}
 
 	var zeroDuration time.Duration
@@ -220,47 +257,184 @@ func (mp *MultiProvider) ObjectEvaluation(ctx context.Context, flag string, defa
 // Init will run the initialize method for all of provides and aggregate the errors.
 func (mp *MultiProvider) Init(evalCtx of.EvaluationContext) error {
 	var eg errgroup.Group
-
+	// wrapper type used only for initialization of event listener workers
+	type namedEventHandler struct {
+		of.EventHandler
+		name string
+	}
+	mp.logger.LogDebug(context.Background(), "start initialization")
+	mp.inboundEvents = make(chan namedEvent, len(mp.providers))
+	handlers := make(chan namedEventHandler)
 	for name, provider := range mp.providers {
+		// Initialize each provider to not ready state. No locks required there are no workers running
+		mp.providerStatus[name] = of.NotReadyState
+		l := mp.logger.With(slog.String("multiprovider-provider-name", name))
+
 		eg.Go(func() error {
+			l.LogDebug(context.Background(), "starting initialization")
 			stateHandle, ok := provider.(of.StateHandler)
 			if !ok {
-				return nil
-			}
-			if err := stateHandle.Init(evalCtx); err != nil {
+				l.LogDebug(context.Background(), "StateHandle not implemented, skipping initialization")
+			} else if err := stateHandle.Init(evalCtx); err != nil {
+				l.LogError(context.Background(), "initialization failed", slog.Any("error", err))
 				return &mperr.ProviderError{
 					Err:          err,
 					ProviderName: name,
 				}
 			}
-
+			l.LogDebug(context.Background(), "initialization successful")
+			if eventer, ok := provider.(of.EventHandler); ok {
+				l.LogDebug(context.Background(), "detected EventHandler implementation")
+				handlers <- namedEventHandler{eventer, name}
+			} else {
+				// Do not yet update providers that need event handling
+				mp.providerStatusLock.Lock()
+				defer mp.providerStatusLock.Unlock()
+				mp.providerStatus[name] = of.ReadyState
+			}
 			return nil
 		})
 	}
 
 	if err := eg.Wait(); err != nil {
-		mp.mu.Lock()
-		defer mp.mu.Unlock()
-		mp.status = of.ErrorState
-
+		mp.setStatus(of.ErrorState)
+		var pErr *mperr.ProviderError
+		if errors.As(err, &pErr) {
+			// Update provider status to error, no event needs to be emitted.
+			// No locks needed as no workers are active at this point
+			mp.providerStatus[pErr.ProviderName] = of.ErrorState
+		} else {
+			pErr = &mperr.ProviderError{
+				Err:          err,
+				ProviderName: "unknown",
+			}
+		}
+		mp.outboundEvents <- of.Event{
+			ProviderName: mp.Metadata().Name,
+			EventType:    of.ProviderError,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message:     fmt.Sprintf("internal provider %s encountered an error during initialization: %+v", pErr.ProviderName, pErr.Err),
+				FlagChanges: nil,
+				EventMetadata: map[string]interface{}{
+					MetadataProviderName:  pErr.ProviderName,
+					MetadataInternalError: pErr.Error(),
+				},
+			},
+		}
 		return err
 	}
+	close(handlers)
+	workerCtx, shutdownFunc := context.WithCancel(context.Background())
+	for h := range handlers {
+		go mp.startListening(workerCtx, h.name, h.EventHandler, &mp.workerGroup)
+	}
+	mp.shutdownFunc = shutdownFunc
 
-	mp.mu.Lock()
-	defer mp.mu.Unlock()
-	mp.status = of.ReadyState
+	go func() {
+		workerLogger := mp.logger.With(slog.String("multiprovider-worker", "event-forwarder-worker"))
+		mp.workerGroup.Add(1)
+		defer mp.workerGroup.Done()
+		for e := range mp.inboundEvents {
+			l := workerLogger.With(
+				slog.String("multiprovider-provider-name", e.providerName),
+				slog.String("multiprovider-provider-type", e.ProviderName),
+			)
+			l.LogDebug(context.Background(), fmt.Sprintf("received %s event from provider", e.EventType))
+			state := mp.updateProviderStateAndEvaluateTotalState(e, l)
+			if state != mp.Status() {
+				mp.setStatus(state)
+				mp.outboundEvents <- e.Event
+				l.LogDebug(context.Background(), "forwarded state update event")
+			} else {
+				l.LogDebug(context.Background(), "total state not updated, inbound event will not be emitted")
+			}
+		}
+	}()
+
+	mp.setStatus(of.ReadyState)
+	mp.outboundEvents <- of.Event{
+		ProviderName: mp.Metadata().Name,
+		EventType:    of.ProviderReady,
+		ProviderEventDetails: of.ProviderEventDetails{
+			Message:     "all internal providers initialized successfully",
+			FlagChanges: nil,
+			EventMetadata: map[string]interface{}{
+				MetadataProviderName: "all",
+			},
+		},
+	}
+	mp.initialized = true
 	return nil
 }
 
-// Status the current status of the MultiProvider
-func (mp *MultiProvider) Status() of.State {
-	mp.mu.RLock()
-	defer mp.mu.RUnlock()
-	return mp.status
+// startListening is intended to be
+func (mp *MultiProvider) startListening(ctx context.Context, name string, h of.EventHandler, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
+	for {
+		select {
+		case e := <-h.EventChannel():
+			e.EventMetadata[MetadataProviderName] = name
+			e.EventMetadata[MetadataProviderType] = h.(of.FeatureProvider).Metadata().Name
+			mp.inboundEvents <- namedEvent{
+				Event:        e,
+				providerName: name,
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (mp *MultiProvider) updateProviderStateAndEvaluateTotalState(e namedEvent, l *logger.ConditionalLogger) of.State {
+	if e.EventType == of.ProviderConfigChange {
+		l.LogDebug(context.Background(), fmt.Sprintf("ProviderConfigChange event: %s", e.Message))
+		return mp.Status()
+	}
+	mp.providerStatusLock.Lock()
+	defer mp.providerStatusLock.Unlock()
+	logProviderState(l, e, mp.providerStatus[e.providerName])
+	mp.providerStatus[e.providerName] = eventTypeToState[e.EventType]
+	maxState := stateValues[of.ReadyState] // initialize to the lowest state value
+	for _, s := range mp.providerStatus {
+		if stateValues[s] > maxState {
+			// change in state due to higher priority
+			maxState = stateValues[s]
+		}
+	}
+	return stateTable[maxState]
+}
+
+func logProviderState(l *logger.ConditionalLogger, e namedEvent, previousState of.State) {
+	switch eventTypeToState[e.EventType] {
+	case of.ReadyState:
+		if previousState != of.NotReadyState {
+			l.LogInfo(context.Background(), fmt.Sprintf("provider %s has returned to ready state from %s", e.providerName, previousState))
+			return
+		}
+		l.LogDebug(context.Background(), fmt.Sprintf("provider %s is ready", e.providerName))
+	case of.StaleState:
+		l.LogWarn(context.Background(), fmt.Sprintf("provider %s is stale: %s", e.providerName, e.Message))
+	case of.ErrorState:
+		l.LogError(context.Background(), fmt.Sprintf("provider %s is in an error state: %s", e.providerName, e.Message))
+	}
 }
 
 // Shutdown Shuts down all internal providers
 func (mp *MultiProvider) Shutdown() {
+	if !mp.initialized {
+		// Don't do anything if we were never initialized
+		return
+	}
+	// Stop all event listener workers, shutdown events should not affect overall state
+	mp.shutdownFunc()
+	// Stop forwarding worker
+	close(mp.inboundEvents)
+	mp.logger.LogDebug(context.Background(), "triggered worker shutdown")
+	// Wait for workers to stop
+	mp.workerGroup.Wait()
+	mp.logger.LogDebug(context.Background(), "worker shutdown completed")
+	mp.logger.LogDebug(context.Background(), "starting provider shutdown")
 	var wg sync.WaitGroup
 	for _, provider := range mp.providers {
 		wg.Add(1)
@@ -272,10 +446,31 @@ func (mp *MultiProvider) Shutdown() {
 		}(provider)
 	}
 
+	mp.logger.LogDebug(context.Background(), "waiting for provider shutdown completion")
 	wg.Wait()
+	mp.logger.LogDebug(context.Background(), "provider shutdown completed")
+	mp.setStatus(of.NotReadyState)
+	close(mp.outboundEvents)
+	mp.outboundEvents = nil
+	mp.inboundEvents = nil
+	mp.initialized = false
 }
 
-// EventChannel the channel events are emitted on (Not Yet Implemented)
+// Status the current status of the MultiProvider
+func (mp *MultiProvider) Status() of.State {
+	mp.totalStatusLock.RLock()
+	defer mp.totalStatusLock.RUnlock()
+	return mp.status
+}
+
+func (mp *MultiProvider) setStatus(state of.State) {
+	mp.totalStatusLock.Lock()
+	defer mp.totalStatusLock.Unlock()
+	mp.status = state
+	mp.logger.LogDebug(context.Background(), "state updated", slog.String("state", string(state)))
+}
+
+// EventChannel the channel events are emitted on
 func (mp *MultiProvider) EventChannel() <-chan of.Event {
-	return mp.events
+	return mp.outboundEvents
 }
