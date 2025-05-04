@@ -42,7 +42,14 @@ openfeature.SetProvider(provider)
 - `WithTimeout` - the duration is used for the total timeout across parallel operations. If none is set it will default 
 to 5 seconds. This is not supported for `FirstMatch` yet, which executes sequentially
 - `WithFallbackProvider` - Used for setting a fallback provider for the `Comparison` strategy
-- `WithLogger` - Provides slog support
+- `WithLogger` - Provides slog support using the specified logger
+- `WithLoggerDefault` - Default setting. Uses the slog default logger
+- `WithoutLogging` - Disables internal logging of the multiprovider
+- `WithCustomStrategy` - Allows for passing in an instance of a custom `Strategy` implementation. Must be used in 
+conjunction with the `StrategyCustom` `EvaluationStrategy` parameter.
+- `WithGlobalHooks` - Sets any hooks that should be executed globally across all internal providers. For hooks targeting
+specific providers they should either be attached directly to the provider or use `WithProviderHooks`
+- `WithProviderHooks` - Sets any hooks that should be executed only for a specific named provider
 
 # Strategies
 
@@ -77,8 +84,12 @@ returned. If a provider returns `FLAG_NOT_FOUND` that is not included in the com
 return not found then the default value is returned. Finally, if any provider returns an error other than `FLAG_NOT_FOUND`
 the evaluation immediately stops and that error result is returned. This strategy does NOT support `ObjectEvaluation`
 
+## Custom
+
+Users can opt to write their own strategy by implementing the interface if they have needs that the three built-in
+strategies cannot meet. When setting the `StrategyCustom` strategy make sure to pass in an instance of your `Strategy`
+implementation using the `WithCustomStrategy` option.
+
 # Not Yet Implemented
 
-- Hooks support
-- Event support
 - Full slog support
