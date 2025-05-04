@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/logger"
+	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/wrappers"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
@@ -34,9 +35,7 @@ type (
 		inboundEvents      chan namedEvent
 		workerGroup        sync.WaitGroup
 		shutdownFunc       context.CancelFunc
-		providerStatusLock sync.Mutex
-		providerStatus     map[string]of.State
-		initialized        bool
+		globalHooks        []of.Hook
 	}
 
 	// Configuration MultiProvider's internal configuration
@@ -48,7 +47,8 @@ type (
 		publishEvents    bool
 		metadata         *of.Metadata
 		timeout          time.Duration
-		hooks            []of.Hook // Not implemented yet
+		hooks            []of.Hook
+		providerHooks    map[string][]of.Hook
 	}
 
 	// EvaluationStrategy Defines a strategy to use for resolving the result from multiple providers
@@ -163,20 +163,37 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 	}
 
 	config := &Configuration{
-		logger: slog.Default(), // Logging enabled by default using default slog logger
+		logger:        slog.Default(), // Logging enabled by default using default slog logger
+		providerHooks: make(map[string][]of.Hook),
 	}
 
 	for _, opt := range options {
 		opt(config)
 	}
 
+	providers := providerMap
+	// Wrap any providers that include hooks
+	for name, provider := range providerMap {
+		if (len(provider.Hooks()) + len(config.providerHooks[name])) == 0 {
+			continue
+		}
+
+		if _, ok := provider.(of.EventHandler); ok {
+			providers[name] = wrappers.IsolateProviderWithEvents(provider, config.providerHooks[name])
+			continue
+		}
+
+		providers[name] = wrappers.IsolateProvider(provider, config.providerHooks[name])
+	}
+
 	multiProvider := &MultiProvider{
-		providers:      providerMap,
+		providers:      providers,
 		outboundEvents: make(chan of.Event),
 		logger:         logger.NewConditionalLogger(config.logger),
 		metadata:       providerMap.buildMetadata(),
 		totalStatus:    of.NotReadyState,
 		providerStatus: make(map[string]of.State),
+		globalHooks:    config.hooks,
 	}
 
 	var zeroDuration time.Duration

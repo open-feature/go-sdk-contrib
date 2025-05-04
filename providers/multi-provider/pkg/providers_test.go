@@ -114,6 +114,7 @@ func TestMultiProvider_MetaData(t *testing.T) {
 	testProvider2.EXPECT().Metadata().Return(of.Metadata{
 		Name: "MockProvider",
 	})
+	testProvider2.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -132,9 +133,11 @@ func TestMultiProvider_Init(t *testing.T) {
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider3.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -182,6 +185,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	errProvider := mocks.NewMockFeatureProvider(ctrl)
 	errProvider.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	errProvider.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	errHandler := mocks.NewMockStateHandler(ctrl)
 	errHandler.EXPECT().Init(gomock.Any()).Return(errors.New("test error"))
 	testProvider3 := struct {
@@ -193,6 +197,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	}
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 
@@ -241,9 +246,11 @@ func TestMultiProvider_Shutdown_WithoutInit(t *testing.T) {
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider3.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -260,9 +267,11 @@ func TestMultiProvider_Shutdown_WithInit(t *testing.T) {
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	handlingProvider := mocks.NewMockFeatureProvider(ctrl)
 	handlingProvider.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	handlingProvider.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	handledHandler := mocks.NewMockStateHandler(ctrl)
 	handledHandler.EXPECT().Init(gomock.Any()).Return(nil)
 	handledHandler.EXPECT().Shutdown()
