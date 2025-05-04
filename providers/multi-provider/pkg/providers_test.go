@@ -220,7 +220,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	}()
 	err = mp.Init(evalCtx)
 	require.Errorf(t, err, "Provider provider3: test error")
-	assert.Equal(t, of.ErrorState, mp.status)
+	assert.Equal(t, of.ErrorState, mp.totalStatus)
 	cancel()
 	event := <-eventChan
 	assert.NotZero(t, event)

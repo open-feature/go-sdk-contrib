@@ -23,8 +23,11 @@ type (
 	MultiProvider struct {
 		providers          ProviderMap
 		metadata           of.Metadata
-		status             of.State
+		initialized        bool
+		totalStatus        of.State
 		totalStatusLock    sync.RWMutex
+		providerStatus     map[string]of.State
+		providerStatusLock sync.Mutex
 		strategy           strategies.Strategy
 		logger             *logger.ConditionalLogger
 		outboundEvents     chan of.Event
@@ -172,7 +175,7 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 		outboundEvents: make(chan of.Event),
 		logger:         logger.NewConditionalLogger(config.logger),
 		metadata:       providerMap.buildMetadata(),
-		status:         of.NotReadyState,
+		totalStatus:    of.NotReadyState,
 		providerStatus: make(map[string]of.State),
 	}
 
@@ -456,17 +459,17 @@ func (mp *MultiProvider) Shutdown() {
 	mp.initialized = false
 }
 
-// Status the current status of the MultiProvider
+// Status the current state of the MultiProvider
 func (mp *MultiProvider) Status() of.State {
 	mp.totalStatusLock.RLock()
 	defer mp.totalStatusLock.RUnlock()
-	return mp.status
+	return mp.totalStatus
 }
 
 func (mp *MultiProvider) setStatus(state of.State) {
 	mp.totalStatusLock.Lock()
 	defer mp.totalStatusLock.Unlock()
-	mp.status = state
+	mp.totalStatus = state
 	mp.logger.LogDebug(context.Background(), "state updated", slog.String("state", string(state)))
 }
 
