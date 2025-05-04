@@ -152,7 +152,7 @@ func TestMultiProvider_Init(t *testing.T) {
 	}
 	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
 	eventChan := make(chan of.Event)
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		select {
 		case e := <-mp.EventChannel():
@@ -214,7 +214,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	}
 	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
 	eventChan := make(chan of.Event)
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		select {
 		case e := <-mp.EventChannel():
@@ -293,7 +293,7 @@ func TestMultiProvider_Shutdown_WithInit(t *testing.T) {
 		"foo": "bar",
 	})
 	eventChan := make(chan of.Event)
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		select {
 		case e := <-mp.EventChannel():

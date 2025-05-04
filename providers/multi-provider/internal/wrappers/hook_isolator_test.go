@@ -1,6 +1,7 @@
 package wrappers
 
 import (
+	"context"
 	"errors"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -27,7 +28,7 @@ func Test_HookIsolator_BeforeCapturesData(t *testing.T) {
 	isolator := IsolateProvider(provider, []of.Hook{})
 	assert.Zero(t, isolator.capturedContext)
 	assert.Zero(t, isolator.capturedHints)
-	evalCtx, err := isolator.Before(t.Context(), hookCtx, hookHints)
+	evalCtx, err := isolator.Before(context.Background(), hookCtx, hookHints)
 	require.NoError(t, err)
 	assert.NotNil(t, evalCtx)
 	assert.Equal(t, hookCtx, isolator.capturedContext)
@@ -60,7 +61,7 @@ func Test_HookIsolator_ExecutesHooksDuringEvaluation_NoError(t *testing.T) {
 	})
 
 	isolator := IsolateProvider(provider, nil)
-	result := isolator.BooleanEvaluation(t.Context(), "test-flag", false, of.FlattenedContext{"targetingKey": "anon"})
+	result := isolator.BooleanEvaluation(context.Background(), "test-flag", false, of.FlattenedContext{"targetingKey": "anon"})
 	assert.True(t, result.Value)
 }
 
@@ -76,7 +77,7 @@ func Test_HookIsolator_ExecutesHooksDuringEvaluation_BeforeErrorAbortsExecution(
 	provider.EXPECT().Hooks().Return([]of.Hook{testHook})
 
 	isolator := IsolateProvider(provider, nil)
-	result := isolator.BooleanEvaluation(t.Context(), "test-flag", false, of.FlattenedContext{"targetingKey": "anon"})
+	result := isolator.BooleanEvaluation(context.Background(), "test-flag", false, of.FlattenedContext{"targetingKey": "anon"})
 	assert.False(t, result.Value)
 }
 
@@ -96,6 +97,6 @@ func Test_HookIsolator_ExecutesHooksDuringEvaluation_WithAfterError(t *testing.T
 	})
 
 	isolator := IsolateProvider(provider, nil)
-	result := isolator.BooleanEvaluation(t.Context(), "test-flag", false, of.FlattenedContext{"targetingKey": "anon"})
+	result := isolator.BooleanEvaluation(context.Background(), "test-flag", false, of.FlattenedContext{"targetingKey": "anon"})
 	assert.False(t, result.Value)
 }

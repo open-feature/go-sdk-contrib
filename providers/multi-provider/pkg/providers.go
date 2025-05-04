@@ -44,8 +44,6 @@ type (
 		fallbackProvider of.FeatureProvider
 		customStrategy   strategies.Strategy
 		logger           *slog.Logger
-		publishEvents    bool
-		metadata         *of.Metadata
 		timeout          time.Duration
 		hooks            []of.Hook
 		providerHooks    map[string][]of.Hook
@@ -77,10 +75,11 @@ const (
 	StrategyComparison EvaluationStrategy = "comparison"
 	// StrategyCustom allows for using a custom Strategy implementation. If this is set you MUST use the WithCustomStrategy
 	// option to set it
-	StrategyCustom        EvaluationStrategy = "strategy-custom"
-	MetadataProviderName                     = "multiprovider-provider-name"
-	MetadataProviderType                     = "multiprovider-provider-type"
-	MetadataInternalError                    = "multiprovider-internal-error"
+	StrategyCustom EvaluationStrategy = "strategy-custom"
+
+	MetadataProviderName  = "multiprovider-provider-name"
+	MetadataProviderType  = "multiprovider-provider-type"
+	MetadataInternalError = "multiprovider-internal-error"
 )
 
 var (
