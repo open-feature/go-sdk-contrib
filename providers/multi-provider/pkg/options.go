@@ -50,3 +50,22 @@ func WithCustomStrategy(s strategies.Strategy) Option {
 		conf.customStrategy = s
 	}
 }
+
+// WithGlobalHooks sets the global hooks for the provider. These are hooks that affect ALL providers. For hooks that
+// target specific providers make sure to attach them to that provider directly, or use the WithProviderHook Option if
+// that provider does not provide its own hook functionality
+func WithGlobalHooks(hooks ...of.Hook) Option {
+	return func(conf *Configuration) {
+		conf.hooks = hooks
+	}
+}
+
+// WithProviderHooks sets hooks that execute only for a specific provider. The providerName must match the unique provider
+// name set during MultiProvider creation. This should only be used if you need hooks that execute around a specific
+// provider, but that provider does not currently accept a way to set hooks. This option can be used multiple times using
+// unique provider names. Using a provider name that is not known will cause an error.
+func WithProviderHooks(providerName string, hooks ...of.Hook) Option {
+	return func(conf *Configuration) {
+		conf.providerHooks[providerName] = hooks
+	}
+}
