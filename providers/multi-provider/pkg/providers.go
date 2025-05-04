@@ -150,16 +150,6 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 	if len(providerMap) == 0 {
 		return nil, errors.New("providerMap cannot be nil or empty")
 	}
-	// Validate Providers
-	for name, provider := range providerMap {
-		if name == "" {
-			return nil, errors.New("provider name cannot be the empty string")
-		}
-
-		if provider == nil {
-			return nil, fmt.Errorf("provider %s cannot be nil", name)
-		}
-	}
 
 	config := &Configuration{
 		logger:        slog.Default(), // Logging enabled by default using default slog logger
@@ -171,18 +161,31 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 	}
 
 	providers := providerMap
-	// Wrap any providers that include hooks
+	collectedHooks := make([]of.Hook, 0, len(providerMap))
 	for name, provider := range providerMap {
+		// Validate Providers
+		if name == "" {
+			return nil, errors.New("provider name cannot be the empty string")
+		}
+
+		if provider == nil {
+			return nil, fmt.Errorf("provider %s cannot be nil", name)
+		}
+
+		// Wrap any providers that include hooks
 		if (len(provider.Hooks()) + len(config.providerHooks[name])) == 0 {
 			continue
 		}
 
+		var wrappedProvider of.FeatureProvider
 		if _, ok := provider.(of.EventHandler); ok {
-			providers[name] = wrappers.IsolateProviderWithEvents(provider, config.providerHooks[name])
-			continue
+			wrappedProvider = wrappers.IsolateProviderWithEvents(provider, config.providerHooks[name])
+		} else {
+			wrappedProvider = wrappers.IsolateProvider(provider, config.providerHooks[name])
 		}
 
-		providers[name] = wrappers.IsolateProvider(provider, config.providerHooks[name])
+		providers[name] = wrappedProvider
+		collectedHooks = append(collectedHooks, wrappedProvider.Hooks()...)
 	}
 
 	multiProvider := &MultiProvider{
@@ -192,7 +195,7 @@ func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStra
 		metadata:       providerMap.buildMetadata(),
 		totalStatus:    of.NotReadyState,
 		providerStatus: make(map[string]of.State),
-		globalHooks:    config.hooks,
+		globalHooks:    slices.Concat(config.hooks, collectedHooks),
 	}
 
 	var zeroDuration time.Duration
