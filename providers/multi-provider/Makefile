@@ -1,4 +1,4 @@
-.PHONY: generate test
+.PHONY: generate test lint
 GOPATH_LOC = ${GOPATH}
 
 generate:
