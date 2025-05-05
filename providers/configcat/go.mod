@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/configcat
 go 1.21
 
 require (
-	github.com/configcat/go-sdk/v9 v9.0.6
+	github.com/configcat/go-sdk/v9 v9.0.7
 	github.com/open-feature/go-sdk v1.11.0
 	github.com/stretchr/testify v1.9.0
 )
