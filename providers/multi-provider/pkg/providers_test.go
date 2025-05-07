@@ -1,6 +1,7 @@
 package multiprovider
 
 import (
+	"context"
 	"errors"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
@@ -113,6 +114,7 @@ func TestMultiProvider_MetaData(t *testing.T) {
 	testProvider2.EXPECT().Metadata().Return(of.Metadata{
 		Name: "MockProvider",
 	})
+	testProvider2.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -131,9 +133,11 @@ func TestMultiProvider_Init(t *testing.T) {
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider3.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -147,16 +151,41 @@ func TestMultiProvider_Init(t *testing.T) {
 		"foo": "bar",
 	}
 	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
-
+	eventChan := make(chan of.Event)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		select {
+		case e := <-mp.EventChannel():
+			eventChan <- e
+		case <-ctx.Done():
+			return
+		}
+	}()
 	err = mp.Init(evalCtx)
 	require.NoError(t, err)
-	assert.Equal(t, of.ReadyState, mp.status)
+	assert.Equal(t, of.ReadyState, mp.Status())
+	cancel()
+	event := <-eventChan
+	assert.NotZero(t, event)
+	assert.Equal(t, mp.Metadata().Name, event.ProviderName)
+	assert.Equal(t, of.ProviderReady, event.EventType)
+	assert.Equal(t, of.ProviderEventDetails{
+		Message:     "all internal providers initialized successfully",
+		FlagChanges: nil,
+		EventMetadata: map[string]interface{}{
+			MetadataProviderName: "all",
+		},
+	}, event.ProviderEventDetails)
+	t.Cleanup(func() {
+		mp.Shutdown()
+	})
 }
 
 func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	errProvider := mocks.NewMockFeatureProvider(ctrl)
 	errProvider.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	errProvider.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	errHandler := mocks.NewMockStateHandler(ctrl)
 	errHandler.EXPECT().Init(gomock.Any()).Return(errors.New("test error"))
 	testProvider3 := struct {
@@ -168,6 +197,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	}
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
 	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 
@@ -183,20 +213,44 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 		"foo": "bar",
 	}
 	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
-
+	eventChan := make(chan of.Event)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		select {
+		case e := <-mp.EventChannel():
+			eventChan <- e
+		case <-ctx.Done():
+			return
+		}
+	}()
 	err = mp.Init(evalCtx)
-	require.Errorf(t, err, "Provider provider1: test error")
-	assert.Equal(t, of.ErrorState, mp.status)
+	require.Errorf(t, err, "Provider provider3: test error")
+	assert.Equal(t, of.ErrorState, mp.totalStatus)
+	cancel()
+	event := <-eventChan
+	assert.NotZero(t, event)
+	assert.Equal(t, mp.Metadata().Name, event.ProviderName)
+	assert.Equal(t, of.ProviderError, event.EventType)
+	assert.Equal(t, of.ProviderEventDetails{
+		Message:     "internal provider provider3 encountered an error during initialization: test error",
+		FlagChanges: nil,
+		EventMetadata: map[string]interface{}{
+			MetadataProviderName:  "provider3",
+			MetadataInternalError: "Provider provider3: test error",
+		},
+	}, event.ProviderEventDetails)
 }
 
-func TestMultiProvider_Shutdown(t *testing.T) {
+func TestMultiProvider_Shutdown_WithoutInit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
 	testProvider3 := mocks.NewMockFeatureProvider(ctrl)
 	testProvider3.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider3.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
 
 	providers := make(ProviderMap)
 	providers["provider1"] = testProvider1
@@ -206,4 +260,52 @@ func TestMultiProvider_Shutdown(t *testing.T) {
 	require.NoError(t, err)
 
 	mp.Shutdown()
+}
+
+func TestMultiProvider_Shutdown_WithInit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	testProvider1 := mocks.NewMockFeatureProvider(ctrl)
+	testProvider1.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	testProvider1.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
+	testProvider2 := imp.NewInMemoryProvider(map[string]imp.InMemoryFlag{})
+	handlingProvider := mocks.NewMockFeatureProvider(ctrl)
+	handlingProvider.EXPECT().Metadata().Return(of.Metadata{Name: "MockProvider"})
+	handlingProvider.EXPECT().Hooks().Return([]of.Hook{}).MinTimes(1)
+	handledHandler := mocks.NewMockStateHandler(ctrl)
+	handledHandler.EXPECT().Init(gomock.Any()).Return(nil)
+	handledHandler.EXPECT().Shutdown()
+	testProvider3 := struct {
+		of.FeatureProvider
+		of.StateHandler
+	}{
+		handlingProvider,
+		handledHandler,
+	}
+
+	providers := make(ProviderMap)
+	providers["provider1"] = testProvider1
+	providers["provider2"] = testProvider2
+	providers["provider3"] = testProvider3
+	mp, err := NewMultiProvider(providers, strategies.StrategyFirstMatch)
+	require.NoError(t, err)
+	evalCtx := openfeature.NewTargetlessEvaluationContext(map[string]interface{}{
+		"foo": "bar",
+	})
+	eventChan := make(chan of.Event)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		select {
+		case e := <-mp.EventChannel():
+			eventChan <- e
+		case <-ctx.Done():
+			return
+		}
+	}()
+	err = mp.Init(evalCtx)
+	require.NoError(t, err)
+	assert.Equal(t, of.ReadyState, mp.Status())
+	cancel()
+	mp.Shutdown()
+	assert.Equal(t, of.NotReadyState, mp.Status())
 }

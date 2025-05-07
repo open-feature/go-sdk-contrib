@@ -14,6 +14,21 @@ func WithLogger(l *slog.Logger) Option {
 	}
 }
 
+// WithLoggerDefault Uses the default [slog.Logger] (this is the default setting)
+// use WithoutLogging to disable logging completely
+func WithLoggerDefault() Option {
+	return func(conf *Configuration) {
+		conf.logger = slog.Default()
+	}
+}
+
+// WithoutLogging Disables logging functionality
+func WithoutLogging() Option {
+	return func(conf *Configuration) {
+		conf.logger = nil
+	}
+}
+
 // WithTimeout Set a timeout for the total runtime for evaluation of parallel strategies
 func WithTimeout(d time.Duration) Option {
 	return func(conf *Configuration) {
@@ -36,16 +51,21 @@ func WithCustomStrategy(s strategies.Strategy) Option {
 	}
 }
 
-// WithEventPublishing Enables event publishing (Not Yet Implemented)
-func WithEventPublishing() Option {
+// WithGlobalHooks sets the global hooks for the provider. These are hooks that affect ALL providers. For hooks that
+// target specific providers make sure to attach them to that provider directly, or use the WithProviderHook Option if
+// that provider does not provide its own hook functionality
+func WithGlobalHooks(hooks ...of.Hook) Option {
 	return func(conf *Configuration) {
-		conf.publishEvents = true
+		conf.hooks = hooks
 	}
 }
 
-// WithoutEventPublishing Disables event publishing (this is the default, but included for explicit usage)
-func WithoutEventPublishing() Option {
+// WithProviderHooks sets hooks that execute only for a specific provider. The providerName must match the unique provider
+// name set during MultiProvider creation. This should only be used if you need hooks that execute around a specific
+// provider, but that provider does not currently accept a way to set hooks. This option can be used multiple times using
+// unique provider names. Using a provider name that is not known will cause an error.
+func WithProviderHooks(providerName string, hooks ...of.Hook) Option {
 	return func(conf *Configuration) {
-		conf.publishEvents = false
+		conf.providerHooks[providerName] = hooks
 	}
 }
