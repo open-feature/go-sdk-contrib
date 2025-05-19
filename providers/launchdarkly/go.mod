@@ -8,7 +8,7 @@ require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.1.0
 	github.com/launchdarkly/go-server-sdk/v7 v7.6.2
-	github.com/open-feature/go-sdk v1.12.0
+	github.com/open-feature/go-sdk v1.14.1
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 )
 

@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/multi-provider
 go 1.23.0
 
 require (
-	github.com/open-feature/go-sdk v1.13.1
+	github.com/open-feature/go-sdk v1.14.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/mock v0.5.2
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
