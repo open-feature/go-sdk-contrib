@@ -3,7 +3,6 @@ package flagdhttpconnector
 import (
 	context "context"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	flagdsync "github.com/open-feature/flagd/core/pkg/sync"
+	"go.uber.org/zap"
 )
 
 const (
@@ -38,12 +38,11 @@ const (
 type HttpConnector struct {
 	options                    HttpConnectorOptions
 	client                     *http.Client
-	queue                      chan QueuePayload
 	scheduler                  *time.Ticker
 	cacheFetcher               *HttpCacheFetcher
 	failSafeCache              *FailSafeCache
 	shutdownChan               chan struct{}
-	wg                         sync.WaitGroup
+	wg                         *sync.WaitGroup
 	payloadCachePollTtlSeconds int
 }
 
@@ -56,11 +55,6 @@ func (h HttpConnector) IsReady() bool {
 }
 
 func (h HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
-	success := h.fetchAndUpdate()
-	if !success {
-		h.updateFromCache()
-	}
-
 	h.scheduler = time.NewTicker(time.Duration(h.options.PollIntervalSeconds) * time.Second)
 	h.wg.Add(1)
 	go func() {
@@ -79,23 +73,15 @@ func (h HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataS
 	return nil
 }
 
-func (fps HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
+func (h HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
+	success := h.fetchAndUpdate()
+	if !success {
+		h.updateFromCache()
+	}
 	return nil
 }
 
 var _ flagdsync.ISync = &HttpConnector{}
-
-// QueuePayloadType represents the type of payload in the queue.
-type QueuePayloadType string
-
-const (
-	PayloadTypeData QueuePayloadType = "DATA"
-)
-
-type QueuePayload struct {
-	Type    QueuePayloadType
-	Payload string
-}
 
 func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
 	timeout := time.Duration(opts.RequestTimeoutSeconds) * time.Second
@@ -115,9 +101,8 @@ func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
 	}
 
 	h := &HttpConnector{
-		options: opts,
-		client:  client,
-		// queue:        make(chan QueuePayload, opts.QueueSize),
+		options:      opts,
+		client:       client,
 		shutdownChan: make(chan struct{}),
 	}
 
@@ -136,31 +121,6 @@ func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
 	return h, nil
 }
 
-func (h *HttpConnector) GetStreamQueue() <-chan QueuePayload {
-	success := h.fetchAndUpdate()
-	if !success {
-		log.Println("Initial fetch failed, attempting from cache")
-		h.updateFromCache()
-	}
-
-	h.scheduler = time.NewTicker(time.Duration(h.options.PollIntervalSeconds) * time.Second)
-	h.wg.Add(1)
-	go func() {
-		defer h.wg.Done()
-		for {
-			select {
-			case <-h.scheduler.C:
-				h.fetchAndUpdate()
-			case <-h.shutdownChan:
-				h.scheduler.Stop()
-				return
-			}
-		}
-	}()
-
-	return h.queue
-}
-
 func (h *HttpConnector) fetchAndUpdate() bool {
 	if h.options.UsePollingCache && h.options.PayloadCache != nil {
 		payload, err := h.options.PayloadCache.Get(PollingPayloadCacheKey)
@@ -174,7 +134,6 @@ func (h *HttpConnector) fetchAndUpdate() bool {
 
 	req, err := http.NewRequest("GET", h.options.URL, nil)
 	if err != nil {
-		log.Println("Failed to build request:", err)
 		return false
 	}
 	for k, v := range h.options.Headers {
@@ -196,30 +155,25 @@ func (h *HttpConnector) fetchAndUpdate() bool {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotModified {
 			body, _ := io.ReadAll(resp.Body)
-			log.Printf("Received non-OK status: %d, body: %s", resp.StatusCode, string(body))
+			h.options.log.Error("HTTP request failed", zap.Error(err), zap.String("response", string(body)))
 			return false
 		}
 
 		if resp.StatusCode == http.StatusNotModified {
-			log.Println("Received 304 Not Modified")
 			return true
 		}
 
 		payload, err := io.ReadAll(resp.Body)
 		if err != nil || len(payload) == 0 {
-			log.Println("Empty or unreadable payload")
 			return false
 		}
 	}
 
-	// select {
-	// case h.queue <- QueuePayload{Type: PayloadTypeData, Payload: string(payload)}:
-	// default:
-	// 	log.Println("Queue full, dropping payload")
-	// }
-
-	// TODO instead of routine, use more robust
-	go h.updateCache(string(payload))
+	h.wg.Add(1)
+	go func() {
+		defer h.wg.Done()
+		h.updateCache(string(payload))
+	}()
 	return true
 }
 
@@ -244,13 +198,6 @@ func (h *HttpConnector) updateFromCache() {
 	if flagData == "" && h.failSafeCache != nil {
 		flagData = h.failSafeCache.Get()
 	}
-	// if flagData != "" {
-	// 	select {
-	// 	case h.queue <- QueuePayload{Type: PayloadTypeData, Payload: flagData}:
-	// 	default:
-	// 		log.Println("Queue full, dropping cached payload")
-	// 	}
-	// }
 }
 
 func (h *HttpConnector) Shutdown() {

@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+
+	flagdlogger "github.com/open-feature/flagd/core/pkg/logger"
 )
 
 type HttpConnectorOptions struct {
+	log                         flagdlogger.Logger
 	PollIntervalSeconds         int
 	ConnectTimeoutSeconds       int
 	RequestTimeoutSeconds       int
