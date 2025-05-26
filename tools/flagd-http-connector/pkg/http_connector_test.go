@@ -7,13 +7,15 @@ import (
 	"testing"
 	"time"
 
+	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // MockPayloadCache PayloadCache implementation based on map
 type MockPayloadCache struct {
-	cache sync.Map
+	cache           sync.Map
+	SuccessGetCount int
 }
 
 func NewMockPayloadCache() *MockPayloadCache {
@@ -30,6 +32,7 @@ func (m *MockPayloadCache) Get(key string) (string, error) {
 	if !ok {
 		return "", errors.New("invalid payload type")
 	}
+	m.SuccessGetCount++
 	return payload, nil
 }
 
@@ -262,3 +265,26 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T)
 	err := validateHttpConnectorOptions(opts)
 	assert.NoError(t, err)
 }
+
+// test using flagd provider
+func TestWithFlagdProvider(t *testing.T) {
+	opts := &HttpConnectorOptions{
+		PollIntervalSeconds:   10,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		URL:                   "http://example.com",
+	}
+
+	connector, err := NewHttpConnector(*opts)
+	require.NoError(t, err)
+	assert.NotNil(t, connector)
+
+	provider := flagd.NewProvider(
+		flagd.WithInProcessResolver(),
+		flagd.WithCustomSyncProvider(connector),
+	)
+	require.NoError(t, err)
+	assert.NotNil(t, provider)
+}
+
+// TODO add more for test coverage

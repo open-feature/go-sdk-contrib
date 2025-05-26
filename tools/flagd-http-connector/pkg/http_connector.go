@@ -58,6 +58,14 @@ func (h HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataS
 	h.options.log.Logger.Info("Starting HTTP connector sync",
 		zap.Int("poll_interval_seconds", h.options.PollIntervalSeconds),
 	)
+
+	h.options.log.Logger.Debug("Initial polling for updates")
+	success := h.fetchAndUpdate(dataSync)
+	if !success {
+		h.options.log.Logger.Warn("Failed to fetch initial data from HTTP source, using cache if available")
+		h.updateFromCache(dataSync)
+	}
+
 	h.scheduler = time.NewTicker(time.Duration(h.options.PollIntervalSeconds) * time.Second)
 	h.wg.Add(1)
 	go func() {
@@ -134,8 +142,7 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 	if h.options.UsePollingCache && h.options.PayloadCache != nil {
 		payload, err := h.options.PayloadCache.Get(PollingPayloadCacheKey)
 		if err != nil {
-			h.options.log.Error("Failed to get payload from cache", zap.Error(err))
-			return false
+			h.options.log.Debug("Failed to get payload from cache", zap.Error(err))
 		}
 		if payload != "" {
 			h.options.log.Logger.Debug("Using cached payload", zap.String("payload", payload))
@@ -207,10 +214,13 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 
 func (h *HttpConnector) updateCache(payload string) {
 	if h.options.PayloadCache != nil {
+		h.options.log.Logger.Debug("Updating payload cache")
 		if h.failSafeCache != nil {
+			h.options.log.Logger.Debug("Updating fail-safe cache with new payload")
 			h.failSafeCache.UpdatePayloadIfNeeded(payload)
 		}
-		h.options.PayloadCache.PutWithTTL(PollingPayloadCacheKey, payload, h.payloadCachePollTtlSeconds)
+		h.options.PayloadCache.PutWithTTL(FailSafePayloadCacheKey, payload,
+			h.options.PayloadCacheOptions.FailSafeTTLSeconds)
 	}
 }
 
@@ -218,15 +228,22 @@ func (h *HttpConnector) updateFromCache(dataSync chan<- flagdsync.DataSync) {
 	var flagData string
 	var err error
 	if h.options.PayloadCache != nil {
+		h.options.log.Logger.Debug("Fetching cached payload from cache")
 		flagData, err = h.options.PayloadCache.Get(PollingPayloadCacheKey)
-		if err != nil {
-			return
+		if err == nil {
+			h.options.log.Logger.Debug("Cached payload found", zap.String("payload", flagData))
+		} else {
+			h.options.log.Logger.Error("Failed to get cached payload", zap.Error(err))
 		}
 	}
 	if flagData == "" && h.failSafeCache != nil {
+		h.options.log.Logger.Debug("Fetching cached payload from fail-safe cache")
 		flagData = h.failSafeCache.Get()
+		if flagData == "" {
+			h.options.log.Logger.Debug("No cached payload found in fail-safe cache")
+		}
 	}
-	if dataSync != nil {
+	if dataSync != nil && flagData != "" {
 		h.options.log.Logger.Debug("Sending cached data sync", zap.String("payload", flagData))
 		dataSync <- flagdsync.DataSync{
 			FlagData: flagData,

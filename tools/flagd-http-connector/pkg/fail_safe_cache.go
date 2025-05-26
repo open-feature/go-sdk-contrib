@@ -1,7 +1,6 @@
 package flagdhttpconnector
 
 import (
-	"errors"
 	"time"
 )
 
@@ -17,7 +16,10 @@ type FailSafeCache struct {
 // NewFailSafeCache constructs a new FailSafeCache.
 func NewFailSafeCache(cache PayloadCache, opts *PayloadCacheOptions) (*FailSafeCache, error) {
 	if opts == nil || opts.UpdateIntervalSeconds < 1 {
-		return nil, errors.New("updateIntervalSeconds must be >= 1")
+		opts.UpdateIntervalSeconds = 30 * 60 // Default to 30 minutes if not specified
+	}
+	if opts.FailSafeTTLSeconds < 1 {
+		opts.FailSafeTTLSeconds = 30 * 60 // Default to 30 minutes if not specified
 	}
 	return &FailSafeCache{
 		updateInterval: time.Duration(opts.UpdateIntervalSeconds) * time.Second,
