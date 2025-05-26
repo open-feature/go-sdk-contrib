@@ -9,21 +9,19 @@ import (
 )
 
 type HttpConnectorOptions struct {
-	log                         flagdlogger.Logger
-	PollIntervalSeconds         int
-	ConnectTimeoutSeconds       int
-	RequestTimeoutSeconds       int
-	LinkedBlockingQueueCapacity int
-	ScheduledThreadPoolSize     int
-	Headers                     map[string]string
-	ProxyHost                   string
-	ProxyPort                   int
-	PayloadCacheOptions         *PayloadCacheOptions
-	PayloadCache                PayloadCache
-	UseHttpCache                bool
-	UseFailsafeCache            bool
-	UsePollingCache             bool
-	URL                         string
+	log                   *flagdlogger.Logger
+	PollIntervalSeconds   int
+	ConnectTimeoutSeconds int
+	RequestTimeoutSeconds int
+	Headers               map[string]string
+	ProxyHost             string
+	ProxyPort             int
+	PayloadCacheOptions   *PayloadCacheOptions
+	PayloadCache          PayloadCache
+	UseHttpCache          bool
+	UseFailsafeCache      bool
+	UsePollingCache       bool
+	URL                   string
 }
 
 // NewHttpConnectorOptions creates a new instance and validates it
@@ -37,12 +35,6 @@ func NewHttpConnectorOptions(opts HttpConnectorOptions) (*HttpConnectorOptions, 
 func validateHttpConnectorOptions(o *HttpConnectorOptions) error {
 	if err := validateURL(o.URL); err != nil {
 		return err
-	}
-	if o.LinkedBlockingQueueCapacity < 1 || o.LinkedBlockingQueueCapacity > 1000 {
-		return errors.New("linkedBlockingQueueCapacity must be between 1 and 1000")
-	}
-	if o.ScheduledThreadPoolSize < 1 || o.ScheduledThreadPoolSize > 10 {
-		return errors.New("scheduledThreadPoolSize must be between 1 and 10")
 	}
 	if o.RequestTimeoutSeconds < 1 || o.RequestTimeoutSeconds > 60 {
 		return errors.New("requestTimeoutSeconds must be between 1 and 60")

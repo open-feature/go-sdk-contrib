@@ -2,7 +2,6 @@ package flagdhttpconnector
 
 import (
 	"errors"
-	"log"
 	"time"
 )
 
@@ -29,14 +28,11 @@ func NewFailSafeCache(cache PayloadCache, opts *PayloadCacheOptions) (*FailSafeC
 // UpdatePayloadIfNeeded updates the cache if the update interval has elapsed.
 func (f *FailSafeCache) UpdatePayloadIfNeeded(payload string) {
 	if time.Since(f.lastUpdateTime) < f.updateInterval {
-		log.Println("[DEBUG] Not updating payload; updateInterval not reached")
 		return
 	}
 
-	log.Println("[DEBUG] Updating payload")
 	err := f.payloadCache.Put(FailSafePayloadCacheKey, payload)
 	if err != nil {
-		log.Printf("[ERROR] Failed updating cache: %v\n", err)
 		return
 	}
 	f.lastUpdateTime = time.Now()
@@ -46,7 +42,6 @@ func (f *FailSafeCache) UpdatePayloadIfNeeded(payload string) {
 func (f *FailSafeCache) Get() string {
 	val, err := f.payloadCache.Get(FailSafePayloadCacheKey)
 	if err != nil {
-		log.Printf("[ERROR] Failed getting from cache: %v\n", err)
 		return ""
 	}
 	return val
