@@ -2,14 +2,19 @@ package flagdhttpconnector
 
 // generate full unit tests
 import (
+	context "context"
 	"errors"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/open-feature/flagd/core/pkg/logger"
+	flagdsync "github.com/open-feature/flagd/core/pkg/sync"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // MockPayloadCache PayloadCache implementation based on map
@@ -285,6 +290,48 @@ func TestWithFlagdProvider(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.NotNil(t, provider)
+}
+
+func TestShutdownHttpConnector(t *testing.T) {
+	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	logger := logger.NewLogger(zapLogger, false)
+	opts := &HttpConnectorOptions{
+		log:                   logger,
+		PollIntervalSeconds:   10,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		URL:                   "http://example.com",
+	}
+
+	connector, err := NewHttpConnector(*opts)
+	require.NoError(t, err)
+	assert.NotNil(t, connector)
+
+	connector.Init(context.Background())
+	syncChan := make(chan flagdsync.DataSync, 1)
+	connector.Sync(context.Background(), syncChan)
+
+	connector.Shutdown()
+	assert.NotPanics(t, func() { connector.Shutdown() }) // Ensure shutdown is idempotent
+}
+
+func TestShutdownWithoutSyncHttpConnector(t *testing.T) {
+	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	logger := logger.NewLogger(zapLogger, false)
+	opts := &HttpConnectorOptions{
+		log:                   logger,
+		PollIntervalSeconds:   10,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		URL:                   "http://example.com",
+	}
+
+	connector, err := NewHttpConnector(*opts)
+	require.NoError(t, err)
+	assert.NotNil(t, connector)
+
+	connector.Shutdown()
+	assert.NotPanics(t, func() { connector.Shutdown() }) // Ensure shutdown is idempotent
 }
 
 // TODO add more for test coverage

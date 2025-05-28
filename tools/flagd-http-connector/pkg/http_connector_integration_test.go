@@ -207,6 +207,45 @@ func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
 		"and cache should be hit once")
 }
 
+func TestGithubRawContentUsingHttpCache(t *testing.T) {
+	testURL := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/testing-flags.json"
+
+	opts := HttpConnectorOptions{
+		URL:                   testURL,
+		PollIntervalSeconds:   5,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		log:                   logger.NewLogger(NewRaw(), false),
+		UseHttpCache:          true,
+	}
+
+	connector, err := NewHttpConnector(opts)
+	require.NoError(t, err)
+	defer connector.Shutdown()
+
+	connector.Init(context.Background())
+
+	syncChan := make(chan flagdsync.DataSync, 1)
+
+	connector.Sync(context.Background(), syncChan)
+
+	dataCount := 0
+
+	go func() {
+		select {
+		case data := <-syncChan:
+			assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
+			assert.Equal(t, testURL, data.Source, "Source should match the test URL")
+			assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
+			dataCount++
+		}
+	}()
+
+	time.Sleep(16 * time.Second)
+
+	assert.Equal(t, 1, dataCount, "Sync channel should receive data exactly once")
+}
+
 type EncoderConfigOption func(*zapcore.EncoderConfig)
 
 func newJSONEncoder(opts ...EncoderConfigOption) zapcore.Encoder {
@@ -221,12 +260,6 @@ func NewRaw() *zap.Logger {
 	level := zap.NewAtomicLevelAt(zap.DebugLevel)
 
 	var zapOpts []zap.Option
-	if level.Enabled(zapcore.Level(-2)) {
-		zapOpts = append(zapOpts,
-			zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-				return zapcore.NewSamplerWithOptions(core, time.Second, 100, 100)
-			}))
-	}
 	zapOpts = append(zapOpts, zap.AddStacktrace(zap.NewAtomicLevelAt(zap.ErrorLevel)))
 
 	f := func(ecfg *zapcore.EncoderConfig) {
@@ -234,7 +267,7 @@ func NewRaw() *zap.Logger {
 	}
 	encoder := newJSONEncoder(f)
 
-	sink := zapcore.AddSync(os.Stderr)
+	sink := zapcore.AddSync(zapcore.Lock(os.Stderr))
 	zapOpts = append(zapOpts, zap.ErrorOutput(sink))
 	log := zap.New(zapcore.NewCore(encoder, sink, level))
 	log = log.WithOptions(zapOpts...)

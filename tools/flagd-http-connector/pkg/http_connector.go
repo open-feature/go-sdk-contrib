@@ -2,6 +2,7 @@ package flagdhttpconnector
 
 import (
 	context "context"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -17,44 +18,26 @@ const (
 	PollingPayloadCacheKey = "HttpConnector.polling-payload"
 )
 
-// type HttpConnector struct {
-// 	PollIntervalSeconds        int
-// 	RequestTimeoutSeconds      int
-// 	Queue                      chan QueuePayload
-// 	Client                     *http.Client
-// 	HttpClientExecutor         sync.WaitGroup // Use WaitGroup or goroutines
-// 	Scheduler                  *time.Ticker   // Can be used for periodic polling
-// 	Headers                    map[string]string
-// 	FailSafeCache              *FailSafeCache
-// 	PayloadCache               *PayloadCache
-// 	HttpCacheFetcher           *HttpCacheFetcher
-// 	PayloadCachePollTtlSeconds int
-// 	UsePollingCache            bool
-// 	URL                        string
-// 	URI                        *url.URL
-// }
-
-// HttpConnector polls a URL and feeds a queue.
 type HttpConnector struct {
 	options                    HttpConnectorOptions
 	client                     *http.Client
-	scheduler                  *time.Ticker
+	ticker                     *time.Ticker
 	cacheFetcher               *HttpCacheFetcher
 	failSafeCache              *FailSafeCache
-	shutdownChan               chan struct{}
-	wg                         *sync.WaitGroup
+	shutdownChan               chan bool
 	payloadCachePollTtlSeconds int
+	shutdownOnce               sync.Once
 }
 
-func (h HttpConnector) Init(ctx context.Context) error {
+func (h *HttpConnector) Init(ctx context.Context) error {
 	return nil
 }
 
-func (h HttpConnector) IsReady() bool {
+func (h *HttpConnector) IsReady() bool {
 	return true
 }
 
-func (h HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
+func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
 	h.options.log.Logger.Info("Starting HTTP connector sync",
 		zap.Int("poll_interval_seconds", h.options.PollIntervalSeconds),
 	)
@@ -66,18 +49,15 @@ func (h HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataS
 		h.updateFromCache(dataSync)
 	}
 
-	h.scheduler = time.NewTicker(time.Duration(h.options.PollIntervalSeconds) * time.Second)
-	h.wg.Add(1)
+	h.ticker = time.NewTicker(time.Duration(h.options.PollIntervalSeconds) * time.Second)
 	go func() {
-		defer h.wg.Done()
 		for {
 			select {
-			case <-h.scheduler.C:
+			case <-h.ticker.C:
 				h.options.log.Logger.Debug("Polling for updates")
 				h.fetchAndUpdate(dataSync)
 			case <-h.shutdownChan:
 				h.options.log.Logger.Info("Shutting down HTTP connector sync")
-				h.scheduler.Stop()
 				return
 			}
 		}
@@ -86,7 +66,7 @@ func (h HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataS
 	return nil
 }
 
-func (h HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
+func (h *HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
 	success := h.fetchAndUpdate(dataSync)
 	if !success {
 		h.options.log.Logger.Warn("Failed to fetch initial data from HTTP source, using cache if available")
@@ -98,6 +78,9 @@ func (h HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.Dat
 var _ flagdsync.ISync = &HttpConnector{}
 
 func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
+	if opts.log == nil {
+		return nil, errors.New("log is required for HttpConnector")
+	}
 	timeout := time.Duration(opts.RequestTimeoutSeconds) * time.Second
 	transport := &http.Transport{}
 
@@ -117,7 +100,7 @@ func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
 	h := &HttpConnector{
 		options:      opts,
 		client:       client,
-		shutdownChan: make(chan struct{}),
+		shutdownChan: make(chan bool),
 	}
 
 	var err error
@@ -131,8 +114,6 @@ func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
 		h.cacheFetcher = &HttpCacheFetcher{}
 	}
 	h.payloadCachePollTtlSeconds = opts.PollIntervalSeconds
-
-	h.wg = &sync.WaitGroup{}
 
 	return h, nil
 }
@@ -193,14 +174,16 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 		payload = string(body)
 	}
 
-	h.wg.Add(1)
+	if resp.StatusCode == http.StatusNotModified {
+		h.options.log.Logger.Debug("HTTP response not modified, skipping update")
+		return true
+	}
+
 	go func() {
-		defer h.wg.Done()
-		h.options.log.Logger.Debug("Updating cache with new payload", zap.String("payload", payload))
 		h.updateCache(payload)
 	}()
 	if dataSync != nil {
-		h.options.log.Logger.Debug("Sending data sync", zap.String("payload", payload))
+		h.options.log.Logger.Debug("Sending data sync")
 		dataSync <- flagdsync.DataSync{
 			FlagData: payload,
 			Source:   h.options.URL,
@@ -255,11 +238,32 @@ func (h *HttpConnector) updateFromCache(dataSync chan<- flagdsync.DataSync) {
 }
 
 func (h *HttpConnector) Shutdown() {
-	h.options.log.Logger.Info("Shutting down HTTP connector")
-	if h.shutdownChan != nil {
-		close(h.shutdownChan)
-	}
-	if h.wg != nil {
-		h.wg.Wait()
+	h.shutdownOnce.Do(func() {
+		h.options.log.Logger.Info("Shutting down HTTP connector")
+		if h.shutdownChan != nil {
+			h.options.log.Logger.Debug("Closing shutdown channel")
+			close(h.shutdownChan)
+		}
+		if (h.ticker != nil) && (h.ticker.C != nil) {
+			h.options.log.Logger.Debug("Stopping ticker")
+			h.ticker.Stop()
+		}
+		h.options.log.Logger.Info("HTTP connector shutdown complete")
+	})
+
+}
+
+func waitWithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return true // completed normally
+	case <-time.After(timeout):
+		return false // timed out
 	}
 }
