@@ -1,3 +1,3 @@
-test-integration: ## Run integration tests (requires flagd)
+test-integration: ## Run integration tests
 	@echo "Running integration tests..."
-	@go test -v -tags=integration ./...
+	@go test -tags=integration ./pkg/... -timeout 5m

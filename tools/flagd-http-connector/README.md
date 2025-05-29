@@ -139,7 +139,6 @@ opts := HttpConnectorOptions{
     UseFailsafeCache:      true,
     PayloadCacheOptions: &PayloadCacheOptions{
         UpdateIntervalSeconds: 5,
-        FailSafeTTLSeconds:    30 * 60,
     },
 }
 
@@ -167,6 +166,3 @@ The Http Connector can be configured using the following properties in the `Http
 | useFailsafeCache                          | Boolean             | Whether to use a failsafe cache for initialization. Default is false.                                                                                                                                                                                                                                                                                                               |
 | usePollingCache                           | Boolean             | Whether to use a polling cache for initialization. Default is false.                                                                                                                                                                                                                                                                                                                |
 | PayloadCacheOptions.updateIntervalSeconds | Integer             | The interval, in seconds, at which the cache is updated. By default, this is set to 30 minutes. The goal is to avoid overloading fallback cache writes, since the cache serves only as a fallback mechanism. Typically, this value can be tuned to be shorter than the cache's TTL, balancing the need to minimize unnecessary updates while still handling edge cases effectively. |
-
-| PayloadCacheOptions.FailSafeTTLSeconds | Integer             | The time-to-live, in seconds, for the failsafe cache. By default, this is set to 30 minutes. To be effective, the TTL of the
-fallback cache should be longer than the expected duration of the source downtime during initialization.

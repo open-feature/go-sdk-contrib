@@ -126,7 +126,7 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 			h.options.log.Debug("Failed to get payload from cache", zap.Error(err))
 		}
 		if payload != "" {
-			h.options.log.Logger.Debug("Using cached payload", zap.String("payload", payload))
+			h.options.log.Logger.Debug("Using cached payload")
 			return true
 		}
 	}
@@ -150,11 +150,11 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 	} else {
 		h.options.log.Logger.Debug("Using direct HTTP request", zap.String("url", h.options.URL))
 		resp, err = h.client.Do(req)
+		defer resp.Body.Close()
 		if err != nil {
 			h.options.log.Error("HTTP request failed", zap.Error(err), zap.String("url", h.options.URL))
 			return false
 		}
-		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotModified {
 			body, _ := io.ReadAll(resp.Body)
 			h.options.log.Error("HTTP request failed", zap.Error(err), zap.String("response", string(body)))
@@ -180,10 +180,14 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 	}
 
 	go func() {
+		h.options.log.Logger.Debug("scheduling cache update if needed")
 		h.updateCache(payload)
 	}()
 	if dataSync != nil {
 		h.options.log.Logger.Debug("Sending data sync")
+
+		h.options.log.Logger.Sync()
+
 		dataSync <- flagdsync.DataSync{
 			FlagData: payload,
 			Source:   h.options.URL,
@@ -196,14 +200,15 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 }
 
 func (h *HttpConnector) updateCache(payload string) {
+	h.options.log.Logger.Debug("Updating payload cache")
+	if h.failSafeCache != nil {
+		h.options.log.Logger.Debug("Updating fail-safe cache with new payload")
+		h.failSafeCache.UpdatePayloadIfNeeded(payload)
+	}
 	if h.options.PayloadCache != nil {
-		h.options.log.Logger.Debug("Updating payload cache")
-		if h.failSafeCache != nil {
-			h.options.log.Logger.Debug("Updating fail-safe cache with new payload")
-			h.failSafeCache.UpdatePayloadIfNeeded(payload)
-		}
-		h.options.PayloadCache.PutWithTTL(FailSafePayloadCacheKey, payload,
-			h.options.PayloadCacheOptions.FailSafeTTLSeconds)
+		h.options.log.Logger.Debug("Updating polling payload cache with new payload")
+		h.options.PayloadCache.PutWithTTL(PollingPayloadCacheKey, payload,
+			h.payloadCachePollTtlSeconds)
 	}
 }
 
@@ -227,7 +232,10 @@ func (h *HttpConnector) updateFromCache(dataSync chan<- flagdsync.DataSync) {
 		}
 	}
 	if dataSync != nil && flagData != "" {
-		h.options.log.Logger.Debug("Sending cached data sync", zap.String("payload", flagData))
+		h.options.log.Logger.Debug("Sending cached data sync")
+
+		h.options.log.Logger.Sync()
+
 		dataSync <- flagdsync.DataSync{
 			FlagData: flagData,
 			Source:   h.options.URL,

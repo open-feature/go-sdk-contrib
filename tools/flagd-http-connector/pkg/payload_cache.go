@@ -17,5 +17,4 @@ var ErrPutWithTTLNotSupported = errors.New("PutWithTTL not supported")
 
 type PayloadCacheOptions struct {
 	UpdateIntervalSeconds int
-	FailSafeTTLSeconds    int
 }

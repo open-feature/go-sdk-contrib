@@ -273,11 +273,14 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T)
 
 // test using flagd provider
 func TestWithFlagdProvider(t *testing.T) {
+	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		PollIntervalSeconds:   10,
 		ConnectTimeoutSeconds: 5,
 		RequestTimeoutSeconds: 15,
 		URL:                   "http://example.com",
+		log:                   logger,
 	}
 
 	connector, err := NewHttpConnector(*opts)
