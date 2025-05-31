@@ -2,8 +2,6 @@ module github.com/open-feature/go-sdk-contrib/providers/flagd
 
 go 1.23.0
 
-toolchain go1.24.3
-
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.18.1-20250127221518-be6d1143b690.1
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.5.1-20250127221518-be6d1143b690.2
