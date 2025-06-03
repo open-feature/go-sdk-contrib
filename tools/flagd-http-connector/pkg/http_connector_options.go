@@ -62,6 +62,9 @@ func Validate(o *HttpConnectorOptions) error {
 	if o.UsePollingCache && !implementsPutWithTTL(o.PayloadCache) {
 		return errors.New("when usePollingCache is set, payloadCache must implement Put(key, payload, ttlSeconds)")
 	}
+	if o.Log == nil {
+		return errors.New("log is required for HttpConnector")
+	}
 	return nil
 }
 

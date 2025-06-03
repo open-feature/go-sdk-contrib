@@ -43,9 +43,11 @@ func (h *HttpConnector) IsReady() bool {
 }
 
 func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
+	h.options.Log.Logger.Debug("Sync called")
 	h.initLock.Lock()
 	defer h.initLock.Unlock()
 	if h.client == nil {
+		h.options.Log.Logger.Error("HTTP client is not initialized")
 		return errors.New("not initialized")
 	}
 	if h.isInitialized {
@@ -82,11 +84,7 @@ func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.Data
 }
 
 func (h *HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
-	success := h.fetchAndUpdate(dataSync)
-	if !success {
-		h.options.Log.Logger.Warn("Failed to fetch initial data from HTTP source, using cache if available")
-		h.updateFromCache(dataSync)
-	}
+	h.options.Log.Logger.Debug("ReSync called, doing nothing as HttpConnector does not support re-sync")
 	return nil
 }
 
@@ -107,21 +105,6 @@ func NewHttpConnector(options HttpConnectorOptions) (*HttpConnector, error) {
 	if err := Validate(&opts); err != nil {
 		return nil, err
 	}
-	if opts.Log == nil {
-		return nil, errors.New("log is required for HttpConnector")
-	}
-	if opts.URL == "" {
-		return nil, errors.New("URL is required for HttpConnector")
-	}
-	if opts.ConnectTimeoutSeconds < 1 || opts.ConnectTimeoutSeconds > 60 {
-		return nil, errors.New("connectTimeoutSeconds must be between 1 and 60")
-	}
-	if opts.PollIntervalSeconds < 1 || opts.PollIntervalSeconds > 3600 {
-		return nil, errors.New("pollIntervalSeconds must be between 1 and 3600")
-	}
-	if opts.RequestTimeoutSeconds < 1 || opts.RequestTimeoutSeconds > 60 {
-		return nil, errors.New("requestTimeoutSeconds must be between 1 and 60")
-	}
 	timeout := time.Duration(opts.RequestTimeoutSeconds) * time.Second
 	transport := &http.Transport{}
 
@@ -138,11 +121,13 @@ func NewHttpConnector(options HttpConnectorOptions) (*HttpConnector, error) {
 		shutdownChan: make(chan bool),
 	}
 
-	if opts.Client != nil {
+	if opts.Client == nil {
 		h.client = &http.Client{
 			Timeout:   timeout,
 			Transport: transport,
 		}
+	} else {
+		h.client = opts.Client
 	}
 
 	var err error
@@ -311,6 +296,7 @@ func waitWithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 }
 
 func (h *HttpConnector) Shutdown() {
+	h.options.Log.Logger.Debug("Shutdown called")
 	h.initLock.Lock()
 	defer h.initLock.Unlock()
 	if !h.isInitialized {
