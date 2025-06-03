@@ -26,13 +26,13 @@ type HttpConnectorOptions struct {
 
 // NewHttpConnectorOptions creates a new instance and validates it
 func NewHttpConnectorOptions(opts HttpConnectorOptions) (*HttpConnectorOptions, error) {
-	if err := validateHttpConnectorOptions(&opts); err != nil {
+	if err := Validate(&opts); err != nil {
 		return nil, err
 	}
 	return &opts, nil
 }
 
-func validateHttpConnectorOptions(o *HttpConnectorOptions) error {
+func Validate(o *HttpConnectorOptions) error {
 	if err := validateURL(o.URL); err != nil {
 		return err
 	}

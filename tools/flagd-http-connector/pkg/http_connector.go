@@ -15,7 +15,10 @@ import (
 )
 
 const (
-	PollingPayloadCacheKey = "HttpConnector.polling-payload"
+	PollingPayloadCacheKey       = "HttpConnector.polling-payload"
+	DefaultPollIntervalSeconds   = 60
+	DefaultConnectTimeoutSeconds = 10
+	DefaultRequestTimeoutSeconds = 10
 )
 
 type HttpConnector struct {
@@ -26,7 +29,9 @@ type HttpConnector struct {
 	failSafeCache              *FailSafeCache
 	shutdownChan               chan bool
 	payloadCachePollTtlSeconds int
-	shutdownOnce               sync.Once
+	initLock                   sync.Mutex
+	isInitialized              bool
+	isClosed                   bool
 }
 
 func (h *HttpConnector) Init(ctx context.Context) error {
@@ -38,6 +43,15 @@ func (h *HttpConnector) IsReady() bool {
 }
 
 func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
+	h.initLock.Lock()
+	defer h.initLock.Unlock()
+	if h.client == nil {
+		return errors.New("not initialized")
+	}
+	if h.isInitialized {
+		h.options.log.Logger.Info("HttpConnector is already initialized, skipping re-initialization")
+		return nil
+	}
 	h.options.log.Logger.Info("Starting HTTP connector sync",
 		zap.Int("poll_interval_seconds", h.options.PollIntervalSeconds),
 	)
@@ -63,6 +77,7 @@ func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.Data
 		}
 	}()
 
+	h.isInitialized = true
 	return nil
 }
 
@@ -77,9 +92,35 @@ func (h *HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.Da
 
 var _ flagdsync.ISync = &HttpConnector{}
 
-func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
+func NewHttpConnector(options HttpConnectorOptions) (*HttpConnector, error) {
+	opts := options
+	if opts.PollIntervalSeconds == 0 {
+		opts.PollIntervalSeconds = DefaultPollIntervalSeconds
+	}
+	if opts.ConnectTimeoutSeconds == 0 {
+		opts.ConnectTimeoutSeconds = DefaultConnectTimeoutSeconds
+	}
+	if opts.RequestTimeoutSeconds == 0 {
+		opts.RequestTimeoutSeconds = DefaultRequestTimeoutSeconds
+	}
+
+	if err := Validate(&opts); err != nil {
+		return nil, err
+	}
 	if opts.log == nil {
 		return nil, errors.New("log is required for HttpConnector")
+	}
+	if opts.URL == "" {
+		return nil, errors.New("URL is required for HttpConnector")
+	}
+	if opts.ConnectTimeoutSeconds < 1 || opts.ConnectTimeoutSeconds > 60 {
+		return nil, errors.New("connectTimeoutSeconds must be between 1 and 60")
+	}
+	if opts.PollIntervalSeconds < 1 || opts.PollIntervalSeconds > 3600 {
+		return nil, errors.New("pollIntervalSeconds must be between 1 and 3600")
+	}
+	if opts.RequestTimeoutSeconds < 1 || opts.RequestTimeoutSeconds > 60 {
+		return nil, errors.New("requestTimeoutSeconds must be between 1 and 60")
 	}
 	timeout := time.Duration(opts.RequestTimeoutSeconds) * time.Second
 	transport := &http.Transport{}
@@ -104,7 +145,10 @@ func NewHttpConnector(opts HttpConnectorOptions) (*HttpConnector, error) {
 	}
 
 	var err error
-	if opts.UseFailsafeCache && opts.PayloadCache != nil {
+	if opts.UseFailsafeCache {
+		if opts.PayloadCache == nil || opts.PayloadCacheOptions == nil {
+			return nil, errors.New("payloadCache and payloadCacheOptions must be set when UseFailsafeCache is true")
+		}
 		h.failSafeCache, err = NewFailSafeCache(opts.PayloadCache, opts.PayloadCacheOptions)
 		if err != nil {
 			return nil, err
@@ -150,7 +194,12 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 	} else {
 		h.options.log.Logger.Debug("Using direct HTTP request", zap.String("url", h.options.URL))
 		resp, err = h.client.Do(req)
-		defer resp.Body.Close()
+		defer func() {
+			if resp != nil && resp.Body != nil {
+				io.Copy(io.Discard, resp.Body) // drain the body to avoid resource leaks
+				resp.Body.Close()
+			}
+		}()
 		if err != nil {
 			h.options.log.Error("HTTP request failed", zap.Error(err), zap.String("url", h.options.URL))
 			return false
@@ -245,22 +294,6 @@ func (h *HttpConnector) updateFromCache(dataSync chan<- flagdsync.DataSync) {
 	}
 }
 
-func (h *HttpConnector) Shutdown() {
-	h.shutdownOnce.Do(func() {
-		h.options.log.Logger.Info("Shutting down HTTP connector")
-		if h.shutdownChan != nil {
-			h.options.log.Logger.Debug("Closing shutdown channel")
-			close(h.shutdownChan)
-		}
-		if (h.ticker != nil) && (h.ticker.C != nil) {
-			h.options.log.Logger.Debug("Stopping ticker")
-			h.ticker.Stop()
-		}
-		h.options.log.Logger.Info("HTTP connector shutdown complete")
-	})
-
-}
-
 func waitWithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	done := make(chan struct{})
 	go func() {
@@ -274,4 +307,28 @@ func waitWithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return false // timed out
 	}
+}
+
+func (h *HttpConnector) Shutdown() {
+	h.initLock.Lock()
+	defer h.initLock.Unlock()
+	if !h.isInitialized {
+		h.options.log.Logger.Info("HTTP connector is not initialized, nothing to shutdown")
+		return
+	}
+	if h.isClosed {
+		h.options.log.Logger.Info("HTTP connector is already closed, skipping shutdown")
+		return
+	}
+	h.options.log.Logger.Info("Shutting down HTTP connector")
+	if h.shutdownChan != nil {
+		h.options.log.Logger.Debug("Closing shutdown channel")
+		close(h.shutdownChan)
+	}
+	if (h.ticker != nil) && (h.ticker.C != nil) {
+		h.options.log.Logger.Debug("Stopping ticker")
+		h.ticker.Stop()
+	}
+	h.options.log.Logger.Info("HTTP connector shutdown complete")
+	h.isClosed = true
 }

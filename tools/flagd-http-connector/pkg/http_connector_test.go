@@ -117,7 +117,7 @@ func TestValidateHttpConnectorOptions(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	require.NoError(t, err)
 }
 
@@ -136,7 +136,7 @@ func TestValidateHttpConnectorOptions_InvalidURL(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "invalid-url",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.Error(t, err)
 }
 
@@ -155,7 +155,7 @@ func TestValidateHttpConnectorOptions_InvalidRequestTimeout(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.Error(t, err)
 }
 
@@ -174,7 +174,7 @@ func TestValidateHttpConnectorOptions_InvalidConnectTimeout(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.Error(t, err)
 }
 
@@ -193,7 +193,7 @@ func TestValidateHttpConnectorOptions_InvalidPollInterval(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.Error(t, err)
 }
 
@@ -212,7 +212,7 @@ func TestValidateHttpConnectorOptions_InvalidProxyConfig(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.Error(t, err)
 }
 func TestValidateHttpConnectorOptions_ValidProxyConfig(t *testing.T) {
@@ -230,7 +230,7 @@ func TestValidateHttpConnectorOptions_ValidProxyConfig(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.NoError(t, err)
 }
 
@@ -249,7 +249,7 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheConfig(t *testing.T) {
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.NoError(t, err)
 }
 func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T) {
@@ -267,7 +267,7 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T)
 		UsePollingCache:       true, // Valid with PutWithTTL support
 		URL:                   "http://example.com",
 	}
-	err := validateHttpConnectorOptions(opts)
+	err := Validate(opts)
 	assert.NoError(t, err)
 }
 
@@ -335,6 +335,202 @@ func TestShutdownWithoutSyncHttpConnector(t *testing.T) {
 
 	connector.Shutdown()
 	assert.NotPanics(t, func() { connector.Shutdown() }) // Ensure shutdown is idempotent
+}
+func TestHttpConnector_Init_IsReady(t *testing.T) {
+	zapLogger, _ := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	l := logger.NewLogger(zapLogger, false)
+	opts := HttpConnectorOptions{
+		log:                   l,
+		PollIntervalSeconds:   1,
+		ConnectTimeoutSeconds: 1,
+		RequestTimeoutSeconds: 1,
+		URL:                   "http://example.com",
+	}
+	conn, err := NewHttpConnector(opts)
+	require.NoError(t, err)
+	assert.NoError(t, conn.Init(context.Background()))
+	assert.True(t, conn.IsReady())
+}
+
+// type DummyFailSafeCache struct {
+// 	UpdateCalled bool
+// 	Payload      string
+// }
+
+// // Ensure DummyFailSafeCache implements the FailSafeCache interface
+// var _ FailSafeCache = (*DummyFailSafeCache)(nil)
+
+// func (d *DummyFailSafeCache) UpdatePayloadIfNeeded(payload string) {
+// 	d.UpdateCalled = true
+// 	d.Payload = payload
+// }
+// func (d *DummyFailSafeCache) Get() string {
+// 	return d.Payload
+// }
+
+// DummyPayloadCache is a simple in-memory implementation of PayloadCache.
+// type DummyPayloadCache struct {
+// 	store map[string]string
+// 	mu    sync.RWMutex
+// }
+
+// // NewDummyPayloadCache creates a new DummyPayloadCache.
+// func NewDummyPayloadCache() *DummyPayloadCache {
+// 	return &DummyPayloadCache{
+// 		store: make(map[string]string),
+// 	}
+// }
+
+// // Get retrieves a value by key.
+// func (d *DummyPayloadCache) Get(key string) (string, error) {
+// 	d.mu.RLock()
+// 	defer d.mu.RUnlock()
+
+// 	val, ok := d.store[key]
+// 	if !ok {
+// 		return "", errors.New("key not found")
+// 	}
+// 	return val, nil
+// }
+
+// // Put sets a value by key.
+// func (d *DummyPayloadCache) Put(key string, value string) error {
+// 	d.mu.Lock()
+// 	defer d.mu.Unlock()
+
+// 	d.store[key] = value
+// 	return nil
+// }
+
+func TestHttpConnector_updateCache(t *testing.T) {
+	zapLogger, _ := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	l := logger.NewLogger(zapLogger, false)
+	mockCache := NewMockPayloadCache()
+	// failSafe := &DummyFailSafeCache{}
+	// cache := NewDummyPayloadCache()
+	// opts := &PayloadCacheOptions{UpdateIntervalSeconds: 10}
+	cache := &MockPayloadCache{}
+	opts := &PayloadCacheOptions{UpdateIntervalSeconds: 10}
+	failSafeCache, _ := NewFailSafeCache(cache, opts)
+	conn := &HttpConnector{
+		options: HttpConnectorOptions{
+			log:          l,
+			PayloadCache: mockCache,
+		},
+		failSafeCache:              failSafeCache,
+		payloadCachePollTtlSeconds: 1,
+	}
+	conn.updateCache("payload1")
+	time.Sleep(10 * time.Millisecond)
+	val, err := mockCache.Get(PollingPayloadCacheKey)
+	assert.NoError(t, err)
+	assert.Equal(t, "payload1", val)
+	// assert.True(t, failSafeCache.UpdateCalled)
+	assert.Equal(t, "payload1", failSafeCache.Get())
+}
+
+func TestHttpConnector_updateFromCache_PayloadCache(t *testing.T) {
+	zapLogger, _ := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	l := logger.NewLogger(zapLogger, false)
+	mockCache := NewMockPayloadCache()
+	mockCache.Put(PollingPayloadCacheKey, "payload2")
+	conn := &HttpConnector{
+		options: HttpConnectorOptions{
+			log:          l,
+			PayloadCache: mockCache,
+			URL:          "http://example.com",
+		},
+	}
+	ch := make(chan flagdsync.DataSync, 1)
+	conn.updateFromCache(ch)
+	select {
+	case ds := <-ch:
+		assert.Equal(t, "payload2", ds.FlagData)
+		assert.Equal(t, "http://example.com", ds.Source)
+	default:
+		t.Fatal("expected data sync")
+	}
+}
+
+func TestHttpConnector_updateFromCache_FailSafeCache(t *testing.T) {
+	zapLogger, _ := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	l := logger.NewLogger(zapLogger, false)
+	cache := &MockPayloadCache{}
+	// opts := &PayloadCacheOptions{UpdateIntervalSeconds: 10}
+	// failSafeCache, _ := NewFailSafeCache(cache, opts)
+	conn, err := NewHttpConnector(HttpConnectorOptions{
+		log:              l,
+		URL:              "http://example.com",
+		PayloadCache:     cache,
+		UseFailsafeCache: true,
+	})
+	require.NoError(t, err)
+	ch := make(chan flagdsync.DataSync, 1)
+	err = conn.Sync(context.Background(), ch)
+	require.NoError(t, err)
+	conn.updateFromCache(ch)
+	select {
+	case ds := <-ch:
+		assert.Equal(t, "failsafe", ds.FlagData)
+		assert.Equal(t, "http://example.com", ds.Source)
+	default:
+		t.Fatal("expected data sync")
+	}
+}
+
+func TestHttpConnector_updateFromCache_NoCache(t *testing.T) {
+	zapLogger, _ := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	l := logger.NewLogger(zapLogger, false)
+	conn, err := NewHttpConnector(HttpConnectorOptions{
+		log: l,
+		URL: "http://example.com",
+	})
+	require.NoError(t, err)
+	ch := make(chan flagdsync.DataSync, 1)
+
+	err = conn.Sync(context.Background(), ch)
+	require.NoError(t, err)
+	conn.updateFromCache(ch)
+	select {
+	case <-ch:
+		t.Fatal("should not send data sync when no cache")
+	default:
+	}
+}
+
+func TestHttpConnector_Shutdown_Idempotent(t *testing.T) {
+	zapLogger, _ := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	l := logger.NewLogger(zapLogger, false)
+	conn, err := NewHttpConnector(HttpConnectorOptions{
+		log: l,
+		URL: "http://example.com",
+	})
+	require.NoError(t, err)
+	ch := make(chan flagdsync.DataSync, 1)
+	err = conn.Sync(context.Background(), ch)
+	require.NoError(t, err)
+	conn.Shutdown()
+	assert.NotPanics(t, func() { conn.Shutdown() })
+}
+
+func TestWaitWithTimeout_Completes(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	done := make(chan struct{})
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		close(done)
+	}()
+	ok := waitWithTimeout(&wg, 1*time.Second)
+	assert.True(t, ok)
+}
+
+func TestWaitWithTimeout_TimesOut(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ok := waitWithTimeout(&wg, 10*time.Millisecond)
+	assert.False(t, ok)
 }
 
 // TODO add more for test coverage

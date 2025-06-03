@@ -18,9 +18,6 @@ func NewFailSafeCache(cache PayloadCache, opts *PayloadCacheOptions) (*FailSafeC
 	if opts == nil || opts.UpdateIntervalSeconds < 1 {
 		opts.UpdateIntervalSeconds = 30 * 60 // Default to 30 minutes if not specified
 	}
-	if opts.FailSafeTTLSeconds < 1 {
-		opts.FailSafeTTLSeconds = 30 * 60 // Default to 30 minutes if not specified
-	}
 	return &FailSafeCache{
 		updateInterval: time.Duration(opts.UpdateIntervalSeconds) * time.Second,
 		payloadCache:   cache,
