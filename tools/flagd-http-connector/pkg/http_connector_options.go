@@ -3,13 +3,14 @@ package flagdhttpconnector
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	flagdlogger "github.com/open-feature/flagd/core/pkg/logger"
 )
 
 type HttpConnectorOptions struct {
-	log                   *flagdlogger.Logger
+	Log                   *flagdlogger.Logger
 	PollIntervalSeconds   int
 	ConnectTimeoutSeconds int
 	RequestTimeoutSeconds int
@@ -22,6 +23,7 @@ type HttpConnectorOptions struct {
 	UseFailsafeCache      bool
 	UsePollingCache       bool
 	URL                   string
+	Client                *http.Client
 }
 
 // NewHttpConnectorOptions creates a new instance and validates it

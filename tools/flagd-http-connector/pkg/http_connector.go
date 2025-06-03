@@ -49,17 +49,17 @@ func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.Data
 		return errors.New("not initialized")
 	}
 	if h.isInitialized {
-		h.options.log.Logger.Info("HttpConnector is already initialized, skipping re-initialization")
+		h.options.Log.Logger.Info("HttpConnector is already initialized, skipping re-initialization")
 		return nil
 	}
-	h.options.log.Logger.Info("Starting HTTP connector sync",
+	h.options.Log.Logger.Info("Starting HTTP connector sync",
 		zap.Int("poll_interval_seconds", h.options.PollIntervalSeconds),
 	)
 
-	h.options.log.Logger.Debug("Initial polling for updates")
+	h.options.Log.Logger.Debug("Initial polling for updates")
 	success := h.fetchAndUpdate(dataSync)
 	if !success {
-		h.options.log.Logger.Warn("Failed to fetch initial data from HTTP source, using cache if available")
+		h.options.Log.Logger.Warn("Failed to fetch initial data from HTTP source, using cache if available")
 		h.updateFromCache(dataSync)
 	}
 
@@ -68,10 +68,10 @@ func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.Data
 		for {
 			select {
 			case <-h.ticker.C:
-				h.options.log.Logger.Debug("Polling for updates")
+				h.options.Log.Logger.Debug("Polling for updates")
 				h.fetchAndUpdate(dataSync)
 			case <-h.shutdownChan:
-				h.options.log.Logger.Info("Shutting down HTTP connector sync")
+				h.options.Log.Logger.Info("Shutting down HTTP connector sync")
 				return
 			}
 		}
@@ -84,7 +84,7 @@ func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.Data
 func (h *HttpConnector) ReSync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
 	success := h.fetchAndUpdate(dataSync)
 	if !success {
-		h.options.log.Logger.Warn("Failed to fetch initial data from HTTP source, using cache if available")
+		h.options.Log.Logger.Warn("Failed to fetch initial data from HTTP source, using cache if available")
 		h.updateFromCache(dataSync)
 	}
 	return nil
@@ -107,7 +107,7 @@ func NewHttpConnector(options HttpConnectorOptions) (*HttpConnector, error) {
 	if err := Validate(&opts); err != nil {
 		return nil, err
 	}
-	if opts.log == nil {
+	if opts.Log == nil {
 		return nil, errors.New("log is required for HttpConnector")
 	}
 	if opts.URL == "" {
@@ -133,15 +133,16 @@ func NewHttpConnector(options HttpConnectorOptions) (*HttpConnector, error) {
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
 
-	client := &http.Client{
-		Timeout:   timeout,
-		Transport: transport,
-	}
-
 	h := &HttpConnector{
 		options:      opts,
-		client:       client,
 		shutdownChan: make(chan bool),
+	}
+
+	if opts.Client != nil {
+		h.client = &http.Client{
+			Timeout:   timeout,
+			Transport: transport,
+		}
 	}
 
 	var err error
@@ -163,14 +164,14 @@ func NewHttpConnector(options HttpConnectorOptions) (*HttpConnector, error) {
 }
 
 func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool {
-	h.options.log.Logger.Debug("fetchAndUpdate called")
+	h.options.Log.Logger.Debug("fetchAndUpdate called")
 	if h.options.UsePollingCache && h.options.PayloadCache != nil {
 		payload, err := h.options.PayloadCache.Get(PollingPayloadCacheKey)
 		if err != nil {
-			h.options.log.Debug("Failed to get payload from cache", zap.Error(err))
+			h.options.Log.Debug("Failed to get payload from cache", zap.Error(err))
 		}
 		if payload != "" {
-			h.options.log.Logger.Debug("Using cached payload")
+			h.options.Log.Logger.Debug("Using cached payload")
 			return true
 		}
 	}
@@ -186,13 +187,13 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 	var resp *http.Response
 	var payload string
 	if h.cacheFetcher != nil {
-		h.options.log.Logger.Debug("Using HTTP cache fetcher")
+		h.options.Log.Logger.Debug("Using HTTP cache fetcher")
 		resp, payload, err = h.cacheFetcher.FetchContent(h.client, req)
 		if err != nil {
 			return false
 		}
 	} else {
-		h.options.log.Logger.Debug("Using direct HTTP request", zap.String("url", h.options.URL))
+		h.options.Log.Logger.Debug("Using direct HTTP request", zap.String("url", h.options.URL))
 		resp, err = h.client.Do(req)
 		defer func() {
 			if resp != nil && resp.Body != nil {
@@ -201,41 +202,41 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 			}
 		}()
 		if err != nil {
-			h.options.log.Error("HTTP request failed", zap.Error(err), zap.String("url", h.options.URL))
+			h.options.Log.Error("HTTP request failed", zap.Error(err), zap.String("url", h.options.URL))
 			return false
 		}
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotModified {
 			body, _ := io.ReadAll(resp.Body)
-			h.options.log.Error("HTTP request failed", zap.Error(err), zap.String("response", string(body)))
+			h.options.Log.Error("HTTP request failed", zap.Error(err), zap.String("response", string(body)))
 			return false
 		}
 
 		if resp.StatusCode == http.StatusNotModified {
-			h.options.log.Logger.Debug("HTTP response not modified, using cached payload")
+			h.options.Log.Logger.Debug("HTTP response not modified, using cached payload")
 			return true
 		}
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			h.options.log.Error("Failed to read response body", zap.Error(err))
+			h.options.Log.Error("Failed to read response body", zap.Error(err))
 			return false
 		}
 		payload = string(body)
 	}
 
 	if resp.StatusCode == http.StatusNotModified {
-		h.options.log.Logger.Debug("HTTP response not modified, skipping update")
+		h.options.Log.Logger.Debug("HTTP response not modified, skipping update")
 		return true
 	}
 
 	go func() {
-		h.options.log.Logger.Debug("scheduling cache update if needed")
+		h.options.Log.Logger.Debug("scheduling cache update if needed")
 		h.updateCache(payload)
 	}()
 	if dataSync != nil {
-		h.options.log.Logger.Debug("Sending data sync")
+		h.options.Log.Logger.Debug("Sending data sync")
 
-		h.options.log.Logger.Sync()
+		h.options.Log.Logger.Sync()
 
 		dataSync <- flagdsync.DataSync{
 			FlagData: payload,
@@ -243,19 +244,19 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 			Selector: "",
 			Type:     flagdsync.ALL,
 		}
-		h.options.log.Logger.Debug("Data sync sent successfully")
+		h.options.Log.Logger.Debug("Data sync sent successfully")
 	}
 	return true
 }
 
 func (h *HttpConnector) updateCache(payload string) {
-	h.options.log.Logger.Debug("Updating payload cache")
+	h.options.Log.Logger.Debug("Updating payload cache")
 	if h.failSafeCache != nil {
-		h.options.log.Logger.Debug("Updating fail-safe cache with new payload")
+		h.options.Log.Logger.Debug("Updating fail-safe cache with new payload")
 		h.failSafeCache.UpdatePayloadIfNeeded(payload)
 	}
 	if h.options.PayloadCache != nil {
-		h.options.log.Logger.Debug("Updating polling payload cache with new payload")
+		h.options.Log.Logger.Debug("Updating polling payload cache with new payload")
 		h.options.PayloadCache.PutWithTTL(PollingPayloadCacheKey, payload,
 			h.payloadCachePollTtlSeconds)
 	}
@@ -265,25 +266,25 @@ func (h *HttpConnector) updateFromCache(dataSync chan<- flagdsync.DataSync) {
 	var flagData string
 	var err error
 	if h.options.PayloadCache != nil {
-		h.options.log.Logger.Debug("Fetching cached payload from cache")
+		h.options.Log.Logger.Debug("Fetching cached payload from cache")
 		flagData, err = h.options.PayloadCache.Get(PollingPayloadCacheKey)
 		if err == nil {
-			h.options.log.Logger.Debug("Cached payload found", zap.String("payload", flagData))
+			h.options.Log.Logger.Debug("Cached payload found")
 		} else {
-			h.options.log.Logger.Error("Failed to get cached payload", zap.Error(err))
+			h.options.Log.Logger.Error("Failed to get cached payload", zap.Error(err))
 		}
 	}
 	if flagData == "" && h.failSafeCache != nil {
-		h.options.log.Logger.Debug("Fetching cached payload from fail-safe cache")
+		h.options.Log.Logger.Debug("Fetching cached payload from fail-safe cache")
 		flagData = h.failSafeCache.Get()
 		if flagData == "" {
-			h.options.log.Logger.Debug("No cached payload found in fail-safe cache")
+			h.options.Log.Logger.Debug("No cached payload found in fail-safe cache")
 		}
 	}
 	if dataSync != nil && flagData != "" {
-		h.options.log.Logger.Debug("Sending cached data sync")
+		h.options.Log.Logger.Debug("Sending cached data sync")
 
-		h.options.log.Logger.Sync()
+		h.options.Log.Logger.Sync()
 
 		dataSync <- flagdsync.DataSync{
 			FlagData: flagData,
@@ -313,22 +314,22 @@ func (h *HttpConnector) Shutdown() {
 	h.initLock.Lock()
 	defer h.initLock.Unlock()
 	if !h.isInitialized {
-		h.options.log.Logger.Info("HTTP connector is not initialized, nothing to shutdown")
+		h.options.Log.Logger.Info("HTTP connector is not initialized, nothing to shutdown")
 		return
 	}
 	if h.isClosed {
-		h.options.log.Logger.Info("HTTP connector is already closed, skipping shutdown")
+		h.options.Log.Logger.Info("HTTP connector is already closed, skipping shutdown")
 		return
 	}
-	h.options.log.Logger.Info("Shutting down HTTP connector")
+	h.options.Log.Logger.Info("Shutting down HTTP connector")
 	if h.shutdownChan != nil {
-		h.options.log.Logger.Debug("Closing shutdown channel")
+		h.options.Log.Logger.Debug("Closing shutdown channel")
 		close(h.shutdownChan)
 	}
 	if (h.ticker != nil) && (h.ticker.C != nil) {
-		h.options.log.Logger.Debug("Stopping ticker")
+		h.options.Log.Logger.Debug("Stopping ticker")
 		h.ticker.Stop()
 	}
-	h.options.log.Logger.Info("HTTP connector shutdown complete")
+	h.options.Log.Logger.Info("HTTP connector shutdown complete")
 	h.isClosed = true
 }
