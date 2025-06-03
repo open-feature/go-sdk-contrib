@@ -135,10 +135,6 @@ func TestIntegrationGithubRawContentUsingCache(t *testing.T) {
 		return opts.PayloadCache.(*MockPayloadCache).SuccessGetCount >= 2 && success
 	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds and cache should be hit once")
 
-	// TODO shutdown the connectors gracefully
-	connector.Shutdown()
-	connector2.Shutdown()
-
 }
 
 func TestIntegrationGithubRawContentUsingFailsafeCache(t *testing.T) {

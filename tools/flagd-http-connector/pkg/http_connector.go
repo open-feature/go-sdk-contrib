@@ -31,7 +31,8 @@ type HttpConnector struct {
 	payloadCachePollTtlSeconds int
 	initLock                   sync.Mutex
 	isInitialized              bool
-	isClosed                   bool
+	shutdownLock               sync.RWMutex
+	isShutdown                 bool
 }
 
 func (h *HttpConnector) Init(ctx context.Context) error {
@@ -132,9 +133,6 @@ func NewHttpConnector(options HttpConnectorOptions) (*HttpConnector, error) {
 
 	var err error
 	if opts.UseFailsafeCache {
-		if opts.PayloadCache == nil || opts.PayloadCacheOptions == nil {
-			return nil, errors.New("payloadCache and payloadCacheOptions must be set when UseFailsafeCache is true")
-		}
 		h.failSafeCache, err = NewFailSafeCache(opts.PayloadCache, opts.PayloadCacheOptions)
 		if err != nil {
 			return nil, err
@@ -179,6 +177,10 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 		}
 	} else {
 		h.options.Log.Logger.Debug("Using direct HTTP request", zap.String("url", h.options.URL))
+		if h.isShutdown {
+			h.options.Log.Debug("HTTP connector is closed, skipping request")
+			return false
+		}
 		resp, err = h.client.Do(req)
 		defer func() {
 			if resp != nil && resp.Body != nil {
@@ -219,18 +221,28 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 		h.updateCache(payload)
 	}()
 	if dataSync != nil {
-		h.options.Log.Logger.Debug("Sending data sync")
-
-		h.options.Log.Logger.Sync()
-
-		dataSync <- flagdsync.DataSync{
-			FlagData: payload,
-			Source:   h.options.URL,
-			Selector: "",
-			Type:     flagdsync.ALL,
-		}
-		h.options.Log.Logger.Debug("Data sync sent successfully")
+		sent := h.sendDataSync(dataSync, payload)
+		return sent
 	}
+	return true
+}
+
+func (h *HttpConnector) sendDataSync(dataSync chan<- flagdsync.DataSync, payload string) bool {
+	h.shutdownLock.RLock()
+	defer h.shutdownLock.RUnlock()
+	if h.isShutdown {
+		h.options.Log.Debug("HTTP connector is closed, skipping data sync")
+		return false
+	}
+
+	h.options.Log.Logger.Debug("Sending data sync")
+	dataSync <- flagdsync.DataSync{
+		FlagData: payload,
+		Source:   h.options.URL,
+		Selector: "",
+		Type:     flagdsync.ALL,
+	}
+	h.options.Log.Logger.Debug("Data sync sent successfully")
 	return true
 }
 
@@ -267,43 +279,20 @@ func (h *HttpConnector) updateFromCache(dataSync chan<- flagdsync.DataSync) {
 		}
 	}
 	if dataSync != nil && flagData != "" {
-		h.options.Log.Logger.Debug("Sending cached data sync")
-
-		h.options.Log.Logger.Sync()
-
-		dataSync <- flagdsync.DataSync{
-			FlagData: flagData,
-			Source:   h.options.URL,
-			Selector: "",
-			Type:     flagdsync.ALL,
-		}
-	}
-}
-
-func waitWithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		return true // completed normally
-	case <-time.After(timeout):
-		return false // timed out
+		sent := h.sendDataSync(dataSync, flagData)
+		h.options.Log.Logger.Debug("Data sync sent from cache", zap.Bool("sent", sent))
 	}
 }
 
 func (h *HttpConnector) Shutdown() {
 	h.options.Log.Logger.Debug("Shutdown called")
-	h.initLock.Lock()
-	defer h.initLock.Unlock()
+	h.shutdownLock.Lock()
+	defer h.shutdownLock.Unlock()
 	if !h.isInitialized {
 		h.options.Log.Logger.Info("HTTP connector is not initialized, nothing to shutdown")
 		return
 	}
-	if h.isClosed {
+	if h.isShutdown {
 		h.options.Log.Logger.Info("HTTP connector is already closed, skipping shutdown")
 		return
 	}
@@ -317,5 +306,5 @@ func (h *HttpConnector) Shutdown() {
 		h.ticker.Stop()
 	}
 	h.options.Log.Logger.Info("HTTP connector shutdown complete")
-	h.isClosed = true
+	h.isShutdown = true
 }

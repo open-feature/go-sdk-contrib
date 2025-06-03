@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -33,6 +34,7 @@ func NewMockPayloadCache() *MockPayloadCache {
 
 // Get retrieves a payload from the cache by key.
 func (m *MockPayloadCache) Get(key string) (string, error) {
+	slog.Info("Getting payload from cache", "key", key)
 	value, ok := m.cache.Load(key)
 	if !ok {
 		return "", errors.New("key not found")
@@ -47,29 +49,64 @@ func (m *MockPayloadCache) Get(key string) (string, error) {
 
 // Put adds or updates a payload in the cache by key.
 func (m *MockPayloadCache) Put(key, payload string) error {
+	slog.Info("Putting payload in cache", "key", key)
 	m.cache.Store(key, payload)
 	return nil
 }
 
 // PutWithTTL adds a payload to the cache with a time-to-live (TTL).
 func (m *MockPayloadCache) PutWithTTL(key, payload string, ttlSeconds int) error {
+	slog.Info("MockPayloadCache.PutWithTTL payload in cache", "key", key, "ttlSeconds", ttlSeconds)
 	m.cache.Store(key, payload)
 
 	// Start a goroutine to remove the key after the TTL expires.
 	go func() {
 		time.Sleep(time.Duration(ttlSeconds) * time.Second)
+		slog.Info("Removing key from cache after TTL", "key", key)
 		m.cache.Delete(key)
 	}()
 	return nil
 }
 
-type mockRoundTripper struct{}
+type mockRoundTripper struct {
+	mu        sync.Mutex
+	callCount int
+}
 
 func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Return a fake response
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.callCount++
 	body := io.NopCloser(strings.NewReader(`{"status": "ok"}`))
 	return &http.Response{
 		StatusCode: 200,
+		Body:       body,
+		Header:     make(http.Header),
+	}, nil
+}
+
+type mock304RoundTripper struct {
+	mu        sync.Mutex
+	callCount int
+}
+
+func (m *mock304RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.callCount++
+	if m.callCount == 1 {
+		// Return a fake response only on the first call
+		body := io.NopCloser(strings.NewReader(`{"status": "ok"}`))
+		return &http.Response{
+			StatusCode: 200,
+			Body:       body,
+			Header:     make(http.Header),
+		}, nil
+	}
+	// Simulate no new data (cache hit)
+	body := io.NopCloser(strings.NewReader(""))
+	return &http.Response{
+		StatusCode: 304, // Not Modified
 		Body:       body,
 		Header:     make(http.Header),
 	}, nil
@@ -184,6 +221,33 @@ func TestValidateHttpConnectorOptions_InvalidURL(t *testing.T) {
 		},
 	}
 	err := Validate(opts)
+	assert.Error(t, err)
+}
+
+func TestValidateHttpConnectorOptions_InvalidFailsafeConfig(t *testing.T) {
+	opts := &HttpConnectorOptions{
+		PollIntervalSeconds:   10,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		Headers:               map[string]string{"User-Agent": "Flagd"},
+		ProxyHost:             "proxy.example.com",
+		ProxyPort:             8080,
+		PayloadCacheOptions:   nil,
+		PayloadCache:          nil,
+		UseHttpCache:          true,
+		UseFailsafeCache:      true,
+		UsePollingCache:       false,
+		URL:                   "http://example.com",
+		Client: &http.Client{
+			Transport: &mockRoundTripper{},
+		},
+	}
+	err := Validate(opts)
+
+	if !strings.Contains(err.Error(), "payloadCache must be set if useFailsafeCache or usePollingCache is true") {
+		t.Errorf("Expected error about payloadCache, got: %v", err)
+	}
+
 	assert.Error(t, err)
 }
 
@@ -317,13 +381,13 @@ func TestValidateHttpConnectorOptions_ValidProxyConfig(t *testing.T) {
 		UseFailsafeCache:      false,
 		UsePollingCache:       false,
 		URL:                   "http://example.com",
-		Client: &http.Client{
-			Transport: &mockRoundTripper{},
-		},
-		Log: logger,
+		Log:                   logger,
 	}
 	err = Validate(opts)
 	assert.NoError(t, err)
+
+	_, err = NewHttpConnector(*opts)
+	require.NoError(t, err)
 }
 
 func TestValidateHttpConnectorOptions_ValidPayloadCacheConfig(t *testing.T) {
@@ -423,6 +487,14 @@ func TestShutdownHttpConnector(t *testing.T) {
 
 	connector.Init(context.Background())
 	syncChan := make(chan flagdsync.DataSync, 1)
+
+	go func() {
+		select {
+		case _ = <-syncChan:
+			return
+		}
+	}()
+
 	connector.Sync(context.Background(), syncChan)
 
 	connector.Shutdown()
@@ -512,6 +584,9 @@ func TestGithubRawContent(t *testing.T) {
 		Client: &http.Client{
 			Transport: &mockRoundTripper{},
 		},
+		Headers: map[string]string{
+			"User-Agent": "Flagd-Http-Connector-Test",
+		},
 	}
 
 	connector, err := NewHttpConnector(opts)
@@ -553,7 +628,6 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 		Log:                   logger,
 		PayloadCache:          NewMockPayloadCache(),
 		UsePollingCache:       true,
-		UseFailsafeCache:      true,
 		PayloadCacheOptions: &PayloadCacheOptions{
 			UpdateIntervalSeconds: 5,
 		},
@@ -569,9 +643,6 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 	connector.Init(context.Background())
 
 	// second connector to simulate a different micro-service instance using same cache (e.g. Redis)
-
-	// simulate start a bit later
-	time.Sleep(200 * time.Millisecond)
 
 	connector2, err := NewHttpConnector(opts)
 	require.NoError(t, err)
@@ -608,16 +679,18 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 
 	slog.Info("Starting sync for first connector")
 	connector.Sync(context.Background(), syncChan)
+
+	// simulate start a bit later
+	time.Sleep(200 * time.Millisecond)
+
 	slog.Info("Starting sync for second connector")
 	connector2.Sync(context.Background(), syncChan)
 	slog.Info("Sync started for both connectors")
 
 	assert.Eventually(t, func() bool {
 		return opts.PayloadCache.(*MockPayloadCache).SuccessGetCount >= 2 && success
-	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds and cache should be hit once")
-
-	connector.Shutdown()
-	connector2.Shutdown()
+	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds and cache should be hit once, "+
+		"successGetCount: "+strconv.Itoa(opts.PayloadCache.(*MockPayloadCache).SuccessGetCount)+" success: "+strconv.FormatBool(success))
 
 }
 
@@ -649,12 +722,14 @@ func (m *MockFailSafeCache) Get(key string) (string, error) {
 
 // Put adds or updates a payload in the cache by key.
 func (m *MockFailSafeCache) Put(key, payload string) error {
+	slog.Info("MockFailSafeCache.Put payload in cache", "key", key)
 	m.PutWithTTL(key, payload, 1)
 	return nil
 }
 
 // PutWithTTL adds a payload to the cache with a time-to-live (TTL).
 func (m *MockFailSafeCache) PutWithTTL(key, payload string, ttlSeconds int) error {
+	slog.Info("MockFailSafeCache.PutWithTTL payload in cache", "key", key)
 	m.cache.Store(key, payload)
 
 	// Start a goroutine to remove the key after the TTL expires.
@@ -750,7 +825,7 @@ func TestGithubRawContentUsingHttpCache(t *testing.T) {
 		Log:                   logger,
 		UseHttpCache:          true,
 		Client: &http.Client{
-			Transport: &mockRoundTripper{},
+			Transport: &mock304RoundTripper{},
 		},
 	}
 
