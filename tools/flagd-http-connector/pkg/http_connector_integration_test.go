@@ -7,6 +7,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -46,21 +47,21 @@ func TestIntegrationGithubRawContent(t *testing.T) {
 	syncChan := make(chan flagdsync.DataSync, 1)
 
 	// Check if the sync channel received any data
-	success := false
+	success := &atomic.Bool{}
 	go func() {
 		select {
 		case data := <-syncChan:
 			assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
 			assert.Equal(t, testURL, data.Source, "Source should match the test URL")
 			assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
-			success = true
+			success.Store(true)
 		}
 	}()
 
 	connector.Sync(context.Background(), syncChan)
 
 	assert.Eventually(t, func() bool {
-		return success
+		return success.Load()
 	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds")
 }
 
@@ -108,7 +109,7 @@ func TestIntegrationGithubRawContentUsingCache(t *testing.T) {
 	slog.Info("Sync started for both connectors")
 
 	// Check if the sync channel received any data
-	success := false
+	success := &atomic.Bool{}
 
 	go func() {
 		for {
@@ -126,13 +127,13 @@ func TestIntegrationGithubRawContentUsingCache(t *testing.T) {
 				assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
 				assert.Equal(t, testURL, data.Source, "Source should match the test URL")
 				assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
-				success = true
+				success.Store(true)
 			}
 		}
 	}()
 
 	assert.Eventually(t, func() bool {
-		return opts.PayloadCache.(*MockPayloadCache).SuccessGetCount >= 2 && success
+		return int(opts.PayloadCache.(*MockPayloadCache).SuccessGetCount.Load()) >= 2 && success.Load()
 	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds and cache should be hit once")
 
 }
@@ -170,7 +171,7 @@ func TestIntegrationGithubRawContentUsingFailsafeCache(t *testing.T) {
 	syncChan := make(chan flagdsync.DataSync, 1)
 
 	// Check if the sync channel received any data
-	success := false
+	success := &atomic.Bool{}
 
 	go func() {
 		for {
@@ -184,7 +185,7 @@ func TestIntegrationGithubRawContentUsingFailsafeCache(t *testing.T) {
 				assert.Equal(t, invalidTestUrl, data.Source, "Source should match the test URL")
 				assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
 				assert.Equal(t, testPayload, data.FlagData, "Flag data should match the cached payload")
-				success = true
+				success.Store(true)
 			}
 		}
 	}()
@@ -193,12 +194,12 @@ func TestIntegrationGithubRawContentUsingFailsafeCache(t *testing.T) {
 
 	assert.Eventually(t, func() bool {
 		slog.Debug("Checking if sync channel received data",
-			slog.Int("SuccessGetCount", connector.failSafeCache.payloadCache.(*MockFailSafeCache).SuccessGetCount),
-			slog.Int("FailureGetCount", connector.failSafeCache.payloadCache.(*MockFailSafeCache).FailureGetCount),
+			slog.Int("SuccessGetCount", int(connector.failSafeCache.payloadCache.(*MockFailSafeCache).SuccessGetCount.Load())),
+			slog.Int("FailureGetCount", int(connector.failSafeCache.payloadCache.(*MockFailSafeCache).FailureGetCount.Load())),
 		)
-		return connector.failSafeCache.payloadCache.(*MockFailSafeCache).SuccessGetCount == 1 && // Ensure that the cache was hit once for the initial fetch
-			opts.PayloadCache.(*MockFailSafeCache).FailureGetCount == 2 && // Ensure that the cache was hit once for the failure for payload cache
-			success
+		return connector.failSafeCache.payloadCache.(*MockFailSafeCache).SuccessGetCount.Load() == 1 && // Ensure that the cache was hit once for the initial fetch
+			opts.PayloadCache.(*MockFailSafeCache).FailureGetCount.Load() == 2 && // Ensure that the cache was hit once for the failure for payload cache
+			success.Load()
 	}, 3*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds "+
 		"and cache should be hit once")
 }
