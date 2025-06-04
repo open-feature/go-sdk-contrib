@@ -40,7 +40,7 @@ func (h *HttpConnector) Init(ctx context.Context) error {
 }
 
 func (h *HttpConnector) IsReady() bool {
-	return true
+	return h.isInitialized && !h.isShutdown
 }
 
 func (h *HttpConnector) Sync(ctx context.Context, dataSync chan<- flagdsync.DataSync) error {
@@ -236,6 +236,11 @@ func (h *HttpConnector) sendDataSync(dataSync chan<- flagdsync.DataSync, payload
 	}
 
 	h.options.Log.Logger.Debug("Sending data sync")
+	defer func() {
+		if r := recover(); r != nil {
+			h.options.Log.Logger.Warn("Recovered in sendDataSync (possibly closed channel)", zap.Any("recover", r))
+		}
+	}()
 	dataSync <- flagdsync.DataSync{
 		FlagData: payload,
 		Source:   h.options.URL,
@@ -284,17 +289,17 @@ func (h *HttpConnector) updateFromCache(dataSync chan<- flagdsync.DataSync) {
 	}
 }
 
-func (h *HttpConnector) Shutdown() {
+func (h *HttpConnector) Shutdown() error {
 	h.options.Log.Logger.Debug("Shutdown called")
 	h.shutdownLock.Lock()
 	defer h.shutdownLock.Unlock()
 	if !h.isInitialized {
 		h.options.Log.Logger.Info("HTTP connector is not initialized, nothing to shutdown")
-		return
+		return nil
 	}
 	if h.isShutdown {
 		h.options.Log.Logger.Info("HTTP connector is already closed, skipping shutdown")
-		return
+		return nil
 	}
 	h.options.Log.Logger.Info("Shutting down HTTP connector")
 	if h.shutdownChan != nil {
@@ -307,4 +312,5 @@ func (h *HttpConnector) Shutdown() {
 	}
 	h.options.Log.Logger.Info("HTTP connector shutdown complete")
 	h.isShutdown = true
+	return nil
 }

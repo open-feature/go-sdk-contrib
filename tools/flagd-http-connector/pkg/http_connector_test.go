@@ -16,6 +16,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/logger"
 	flagdsync "github.com/open-feature/flagd/core/pkg/sync"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -457,14 +458,47 @@ func TestWithFlagdProvider(t *testing.T) {
 	connector, err := NewHttpConnector(*opts)
 	require.NoError(t, err)
 	assert.NotNil(t, connector)
-	assert.True(t, connector.IsReady())
 
-	provider := flagd.NewProvider(
+	provider, err := flagd.NewProvider(
 		flagd.WithInProcessResolver(),
 		flagd.WithCustomSyncProvider(connector),
 	)
 	require.NoError(t, err)
 	assert.NotNil(t, provider)
+
+	err = provider.Init(of.EvaluationContext{})
+	if err != nil {
+		t.Fatal("error initialization provider", err)
+	}
+
+	// check event emitting from provider in order
+	// event := <-provider.EventChannel()
+	// if event.EventType != of.ProviderConfigChange {
+	// 	t.Errorf("expected event %v, got %v", of.ProviderReady, event.EventType)
+	// }
+
+	if provider.Status() != of.ReadyState {
+		t.Errorf("expected status to be ready, but got %v", provider.Status())
+	}
+
+	assert.True(t, connector.IsReady(), "Connector should be ready after initialization")
+
+	// event = <-provider.EventChannel()
+	// if event.EventType != of.ProviderError {
+	// 	t.Errorf("expected event %v, got %v", of.ProviderError, event.EventType)
+	// }
+
+	// if provider.Status() != of.ErrorState {
+	// 	t.Errorf("expected status to be error, but got %v", provider.Status())
+	// }
+
+	provider.Shutdown()
+
+	// check connector isReady
+	// assert.False(t, connector.IsReady(), "Connector should not be ready after shutdown")
+	assert.Eventually(t, func() bool {
+		return !connector.IsReady()
+	}, 5*time.Second, 200*time.Millisecond, "Connector should not be ready after shutdown")
 }
 
 func TestShutdownHttpConnector(t *testing.T) {
