@@ -43,7 +43,8 @@ In the above example, in-process handlers attempt to connect to a sync service o
 #### Custom sync provider
 
 In-process resolver can also be configured with a custom sync provider to change how the in-process resolver fetches flags.
-The custom sync provider must implement the [sync.ISync interface](https://github.com/open-feature/flagd/blob/main/core/pkg/sync/isync.go). Optional URI can be provided for the custom sync provider.
+The custom sync provider must implement the [sync.ISync interface](https://github.com/open-feature/flagd/blob/main/core/pkg/sync/isync.go). Optional URI can be provided for the custom sync provider.  
+The custom sync provider can implement the _sync.Shutdowner_ interface from [service](https://github.com/open-feature/go-sdk-contrib/blob/main/providers/flagd/pkg/service/in_process/service.go).
 
 ```go
 var syncProvider sync.ISync = MyAwesomeSyncProvider{}
