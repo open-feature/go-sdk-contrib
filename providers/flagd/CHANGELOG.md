@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.6...providers/flagd/v0.3.0) (2025-06-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **flagd:** add file mode to flagd provider ([#648](https://github.com/open-feature/go-sdk-contrib/issues/648))
+
+### 🐛 Bug Fixes
+
+* **deps:** Remove dependency on sigs.k8s.io/controller-runtime/pkg/lo… ([#639](https://github.com/open-feature/go-sdk-contrib/issues/639)) ([c2e1a73](https://github.com/open-feature/go-sdk-contrib/commit/c2e1a73e5d4297625b048b1a589101150b7c4136))
+* **deps:** update golang.org/x/exp digest to 7e4ce0a ([#515](https://github.com/open-feature/go-sdk-contrib/issues/515)) ([4a04445](https://github.com/open-feature/go-sdk-contrib/commit/4a04445ee4e327bc0cfe497f0d7bab64697b8b61))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/connectrpc/go to v1.18.1-20250127221518-be6d1143b690.1 ([#605](https://github.com/open-feature/go-sdk-contrib/issues/605)) ([6ff206c](https://github.com/open-feature/go-sdk-contrib/commit/6ff206c11517e168d864e24fc1ad28f672599a1f))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/protocolbuffers/go to v1.36.6-20250127221518-be6d1143b690.1 ([#663](https://github.com/open-feature/go-sdk-contrib/issues/663)) ([665759d](https://github.com/open-feature/go-sdk-contrib/commit/665759d7ef1bc00aa5db9b658c7cfc135f3c7ea0))
+* **deps:** update module connectrpc.com/otelconnect to v0.7.2 ([#664](https://github.com/open-feature/go-sdk-contrib/issues/664)) ([7762020](https://github.com/open-feature/go-sdk-contrib/commit/7762020a6f74dcc4d2e1dadc37b51d57ae589e01))
+* **deps:** update module github.com/google/go-cmp to v0.7.0 ([#675](https://github.com/open-feature/go-sdk-contrib/issues/675)) ([b435fb4](https://github.com/open-feature/go-sdk-contrib/commit/b435fb47b3c31d5518079e4f8ed2edf4c8ff23ff))
+* **deps:** update module go.uber.org/mock to v0.5.2 ([#667](https://github.com/open-feature/go-sdk-contrib/issues/667)) ([b609a70](https://github.com/open-feature/go-sdk-contrib/commit/b609a7089307f92cb4e43477f3f98736f7a6d2d2))
+* **deps:** update module golang.org/x/net to v0.38.0 [security] ([#649](https://github.com/open-feature/go-sdk-contrib/issues/649)) ([0ccc7e3](https://github.com/open-feature/go-sdk-contrib/commit/0ccc7e36044e90e7972505651ac8dfbc6680c49c))
+
+
+### ✨ New Features
+
+* **flagd:** add file mode to flagd provider ([#648](https://github.com/open-feature/go-sdk-contrib/issues/648)) ([3ac923c](https://github.com/open-feature/go-sdk-contrib/commit/3ac923c17efb04959297fe8ba9fe1eb923bbbfc1))
+* **flagd:** add Shutdown support for in-process sync ([#687](https://github.com/open-feature/go-sdk-contrib/issues/687)) ([ecf95d6](https://github.com/open-feature/go-sdk-contrib/commit/ecf95d60df95e679d6876795f4c9bffa799857fc))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency go to v1.24.1 ([#564](https://github.com/open-feature/go-sdk-contrib/issues/564)) ([2a99abc](https://github.com/open-feature/go-sdk-contrib/commit/2a99abc0a4afbb54e8acc2149daaeecbecc3b694))
+* **deps:** update dependency go to v1.24.3 ([#661](https://github.com/open-feature/go-sdk-contrib/issues/661)) ([bc218c1](https://github.com/open-feature/go-sdk-contrib/commit/bc218c12116e77af17f19fc773ee458df0d4d4b0))
+
 ## [0.2.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.5...providers/flagd/v0.2.6) (2025-02-22)
 
 
