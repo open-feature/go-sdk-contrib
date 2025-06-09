@@ -13,6 +13,8 @@ import (
 
 	"github.com/open-feature/flagd/core/pkg/logger"
 	flagdsync "github.com/open-feature/flagd/core/pkg/sync"
+	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -62,6 +64,49 @@ func TestIntegrationGithubRawContent(t *testing.T) {
 
 	assert.Eventually(t, func() bool {
 		return success.Load()
+	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds")
+}
+
+func TestIntegrationGithubRawContentWithProviderEvaluation(t *testing.T) {
+
+	testUrl := "https://raw.githubusercontent.com/openfeature/go-sdk-contrib/refs/heads/feature/flagd-http-connector/tools/flagd-http-connector/pkg/testing-flags.json"
+
+	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	logger := logger.NewLogger(zapLogger, false)
+	opts := &HttpConnectorOptions{
+		PollIntervalSeconds:   10,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		URL:                   testUrl,
+		Log:                   logger,
+	}
+
+	connector, err := NewHttpConnector(*opts)
+	require.NoError(t, err)
+	assert.NotNil(t, connector)
+
+	provider, err := flagd.NewProvider(
+		flagd.WithInProcessResolver(),
+		flagd.WithCustomSyncProvider(connector),
+	)
+	require.NoError(t, err)
+	assert.NotNil(t, provider)
+	defer provider.Shutdown()
+
+	err = provider.Init(of.EvaluationContext{})
+	if err != nil {
+		t.Fatal("error initialization provider", err)
+	}
+
+	if provider.Status() != of.ReadyState {
+		t.Errorf("expected status to be ready, but got %v", provider.Status())
+	}
+
+	assert.True(t, connector.IsReady(), "Connector should be ready after initialization")
+
+	assert.Eventually(t, func() bool {
+		evalResult := provider.BooleanEvaluation(context.Background(), "myBoolFlag", false, of.FlattenedContext{})
+		return evalResult.Value
 	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds")
 }
 

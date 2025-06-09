@@ -16,6 +16,8 @@ import (
 
 	"github.com/open-feature/flagd/core/pkg/logger"
 	flagdsync "github.com/open-feature/flagd/core/pkg/sync"
+	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -77,7 +79,7 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.callCount++
-	body := io.NopCloser(strings.NewReader(`{"status": "ok"}`))
+	body := io.NopCloser(strings.NewReader(`{"$schema":"https://flagd.dev/schema/v0/flags.json","flags":{"myBoolFlag":{"state":"ENABLED","variants":{"on":true,"off":false},"defaultVariant":"on"}}}`))
 	return &http.Response{
 		StatusCode: 200,
 		Body:       body,
@@ -439,49 +441,46 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T)
 	assert.NoError(t, err)
 }
 
-// test using flagd provider
-// func TestWithFlagdProvider(t *testing.T) {
-// 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
-// 	logger := logger.NewLogger(zapLogger, false)
-// 	opts := &HttpConnectorOptions{
-// 		PollIntervalSeconds:   10,
-// 		ConnectTimeoutSeconds: 5,
-// 		RequestTimeoutSeconds: 15,
-// 		URL:                   "http://example.com",
-// 		Client: &http.Client{
-// 			Transport: &mockRoundTripper{},
-// 		},
-// 		Log: logger,
-// 	}
+func TestWithFlagdProvider(t *testing.T) {
+	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	logger := logger.NewLogger(zapLogger, false)
+	opts := &HttpConnectorOptions{
+		PollIntervalSeconds:   10,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		URL:                   "http://example.com",
+		Client: &http.Client{
+			Transport: &mockRoundTripper{},
+		},
+		Log: logger,
+	}
 
-// 	connector, err := NewHttpConnector(*opts)
-// 	require.NoError(t, err)
-// 	assert.NotNil(t, connector)
+	connector, err := NewHttpConnector(*opts)
+	require.NoError(t, err)
+	assert.NotNil(t, connector)
 
-// 	provider, err := flagd.NewProvider(
-// 		flagd.WithInProcessResolver(),
-// 		flagd.WithCustomSyncProvider(connector),
-// 	)
-// 	require.NoError(t, err)
-// 	assert.NotNil(t, provider)
+	provider, err := flagd.NewProvider(
+		flagd.WithInProcessResolver(),
+		flagd.WithCustomSyncProvider(connector),
+	)
+	require.NoError(t, err)
+	assert.NotNil(t, provider)
+	defer provider.Shutdown()
 
-// 	err = provider.Init(of.EvaluationContext{})
-// 	if err != nil {
-// 		t.Fatal("error initialization provider", err)
-// 	}
+	err = provider.Init(of.EvaluationContext{})
+	if err != nil {
+		t.Fatal("error initialization provider", err)
+	}
 
-// 	if provider.Status() != of.ReadyState {
-// 		t.Errorf("expected status to be ready, but got %v", provider.Status())
-// 	}
+	if provider.Status() != of.ReadyState {
+		t.Errorf("expected status to be ready, but got %v", provider.Status())
+	}
 
-// 	assert.True(t, connector.IsReady(), "Connector should be ready after initialization")
+	assert.True(t, connector.IsReady(), "Connector should be ready after initialization")
 
-// 	provider.Shutdown()
-
-// 	assert.Eventually(t, func() bool {
-// 		return !connector.IsReady()
-// 	}, 5*time.Second, 200*time.Millisecond, "Connector should not be ready after shutdown")
-// }
+	evalResult := provider.BooleanEvaluation(context.Background(), "myBoolFlag", false, of.FlattenedContext{})
+	assert.True(t, evalResult.Value, "Expected myBoolFlag to be true after initialization")
+}
 
 func TestShutdownHttpConnector(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
