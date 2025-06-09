@@ -259,8 +259,13 @@ func (h *HttpConnector) updateCache(payload string) {
 	}
 	if h.options.PayloadCache != nil {
 		h.options.Log.Logger.Debug("Updating polling payload cache with new payload")
-		h.options.PayloadCache.PutWithTTL(PollingPayloadCacheKey, payload,
+		err := h.options.PayloadCache.PutWithTTL(PollingPayloadCacheKey, payload,
 			h.payloadCachePollTtlSeconds)
+		if err != nil {
+			h.options.Log.Logger.Error("Failed to update polling payload cache", zap.Error(err))
+		} else {
+			h.options.Log.Logger.Debug("Polling payload cache updated successfully")
+		}
 	}
 }
 

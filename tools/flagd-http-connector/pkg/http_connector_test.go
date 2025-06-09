@@ -128,6 +128,7 @@ func (m *mockFailureRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 
 func TestNewHttpConnectorOptions(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		PollIntervalSeconds:   10,
@@ -181,6 +182,7 @@ func TestNewHttpConnectorOptions(t *testing.T) {
 
 func TestValidateHttpConnectorOptions(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		PollIntervalSeconds:   10,
@@ -369,6 +371,7 @@ func TestValidateHttpConnectorOptions_MissingLogger(t *testing.T) {
 
 func TestValidateHttpConnectorOptions_ValidProxyConfig(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		PollIntervalSeconds:   10,
@@ -394,6 +397,7 @@ func TestValidateHttpConnectorOptions_ValidProxyConfig(t *testing.T) {
 
 func TestValidateHttpConnectorOptions_ValidPayloadCacheConfig(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		PollIntervalSeconds:   10,
@@ -418,6 +422,7 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheConfig(t *testing.T) {
 }
 func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		PollIntervalSeconds:   10,
@@ -443,6 +448,7 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T)
 
 func TestWithFlagdProvider(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		PollIntervalSeconds:   10,
@@ -484,6 +490,7 @@ func TestWithFlagdProvider(t *testing.T) {
 
 func TestShutdownHttpConnector(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		Log:                   logger,
@@ -500,7 +507,8 @@ func TestShutdownHttpConnector(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, connector)
 
-	connector.Init(context.Background())
+	err = connector.Init(context.Background())
+	require.NoError(t, err)
 	syncChan := make(chan flagdsync.DataSync, 1)
 
 	go func() {
@@ -510,14 +518,17 @@ func TestShutdownHttpConnector(t *testing.T) {
 		}
 	}()
 
-	connector.Sync(context.Background(), syncChan)
+	err = connector.Sync(context.Background(), syncChan)
+	require.NoError(t, err)
 
-	connector.Shutdown()
+	err = connector.Shutdown()
+	require.NoError(t, err)
 	assert.NotPanics(t, func() { connector.Shutdown() }) // Ensure shutdown is idempotent
 }
 
 func TestShutdownWithoutSyncHttpConnector(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		Log:                   logger,
@@ -534,12 +545,14 @@ func TestShutdownWithoutSyncHttpConnector(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, connector)
 
-	connector.Shutdown()
+	err = connector.Shutdown()
+	require.NoError(t, err)
 	assert.NotPanics(t, func() { connector.Shutdown() }) // Ensure shutdown is idempotent
 }
 
 func TestSyncNotInitialized(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		Log:                   logger,
@@ -560,6 +573,7 @@ func TestSyncNotInitialized(t *testing.T) {
 
 func TestSyncHttpConnector(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := &HttpConnectorOptions{
 		Log: logger,
@@ -573,9 +587,11 @@ func TestSyncHttpConnector(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, connector)
 
-	connector.Init(context.Background())
+	err = connector.Init(context.Background())
+	require.NoError(t, err)
 	syncChan := make(chan flagdsync.DataSync, 1)
-	connector.Sync(context.Background(), syncChan)
+	err = connector.Sync(context.Background(), syncChan)
+	require.NoError(t, err)
 
 	err = connector.ReSync(context.Background(), syncChan)
 	require.NoError(t, err)
@@ -589,6 +605,7 @@ func TestGithubRawContent(t *testing.T) {
 	testURL := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/testing-flags.json"
 
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := HttpConnectorOptions{
 		URL:                   testURL,
@@ -608,7 +625,8 @@ func TestGithubRawContent(t *testing.T) {
 	require.NoError(t, err)
 	defer connector.Shutdown()
 
-	connector.Init(context.Background())
+	err = connector.Init(context.Background())
+	require.NoError(t, err)
 	syncChan := make(chan flagdsync.DataSync, 1)
 
 	// Check if the sync channel received any data
@@ -625,7 +643,8 @@ func TestGithubRawContent(t *testing.T) {
 		}
 	}()
 
-	connector.Sync(context.Background(), syncChan)
+	err = connector.Sync(context.Background(), syncChan)
+	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool {
 		return success.Load()
@@ -636,6 +655,7 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 	testURL := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/testing-flags.json"
 
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := HttpConnectorOptions{
 		URL:                   testURL,
@@ -655,17 +675,25 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 
 	connector, err := NewHttpConnector(opts)
 	require.NoError(t, err)
-	defer connector.Shutdown()
+	defer func() {
+		err := connector.Shutdown()
+		require.NoError(t, err)
+	}()
 
-	connector.Init(context.Background())
+	err = connector.Init(context.Background())
+	require.NoError(t, err)
 
 	// second connector to simulate a different micro-service instance using same cache (e.g. Redis)
 
 	connector2, err := NewHttpConnector(opts)
 	require.NoError(t, err)
-	defer connector2.Shutdown()
+	defer func() {
+		err := connector2.Shutdown()
+		require.NoError(t, err)
+	}()
 
-	connector2.Init(context.Background())
+	err = connector2.Init(context.Background())
+	require.NoError(t, err)
 
 	syncChan := make(chan flagdsync.DataSync, 1)
 	defer close(syncChan)
@@ -695,13 +723,15 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 	}()
 
 	slog.Info("Starting sync for first connector")
-	connector.Sync(context.Background(), syncChan)
+	err = connector.Sync(context.Background(), syncChan)
+	require.NoError(t, err)
 
 	// simulate start a bit later
 	time.Sleep(200 * time.Millisecond)
 
 	slog.Info("Starting sync for second connector")
-	connector2.Sync(context.Background(), syncChan)
+	err = connector2.Sync(context.Background(), syncChan)
+	require.NoError(t, err)
 	slog.Info("Sync started for both connectors")
 
 	assert.Eventually(t, func() bool {
@@ -770,6 +800,7 @@ func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
 	invalidTestUrl := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/non-existing-flags.json"
 
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := HttpConnectorOptions{
 		URL:                   invalidTestUrl,
@@ -790,7 +821,10 @@ func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
 
 	connector, err := NewHttpConnector(opts)
 	require.NoError(t, err)
-	defer connector.Shutdown()
+	defer func() {
+		err := connector.Shutdown()
+		require.NoError(t, err)
+	}()
 
 	connector.Init(context.Background())
 
@@ -815,7 +849,8 @@ func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
 		}
 	}()
 
-	connector.Sync(context.Background(), syncChan)
+	err = connector.Sync(context.Background(), syncChan)
+	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool {
 		slog.Debug("Checking if sync channel received data",
@@ -833,6 +868,7 @@ func TestGithubRawContentUsingHttpCache(t *testing.T) {
 	testURL := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/testing-flags.json"
 
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	require.NoError(t, err)
 	logger := logger.NewLogger(zapLogger, false)
 	opts := HttpConnectorOptions{
 		URL:                   testURL,
@@ -850,7 +886,8 @@ func TestGithubRawContentUsingHttpCache(t *testing.T) {
 	require.NoError(t, err)
 	defer connector.Shutdown()
 
-	connector.Init(context.Background())
+	err = connector.Init(context.Background())
+	require.NoError(t, err)
 
 	syncChan := make(chan flagdsync.DataSync, 1)
 
@@ -866,7 +903,8 @@ func TestGithubRawContentUsingHttpCache(t *testing.T) {
 		}
 	}()
 
-	connector.Sync(context.Background(), syncChan)
+	err = connector.Sync(context.Background(), syncChan)
+	require.NoError(t, err)
 
 	time.Sleep(16 * time.Second)
 

@@ -110,19 +110,25 @@ sequenceDiagram
 ### Usage example
 
 ```go
-opts := &HttpConnectorOptions{
-    PollIntervalSeconds:   10,
-    ConnectTimeoutSeconds: 5,
-    RequestTimeoutSeconds: 15,
-    URL:                   "http://example.com",
-}
 
-connector, err := NewHttpConnector(*opts)
+testUrl := "https://raw.githubusercontent.com/openfeature/go-sdk-contrib/refs/heads/feature/flagd-http-connector/tools/flagd-http-connector/pkg/testing-flags.json"
 
-provider := flagd.NewProvider(
-    flagd.WithInProcessResolver(),
-    flagd.WithCustomSyncProvider(connector),
-)
+	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+	logger := logger.NewLogger(zapLogger, false)
+	opts := &HttpConnectorOptions{
+		PollIntervalSeconds:   10,
+		ConnectTimeoutSeconds: 5,
+		RequestTimeoutSeconds: 15,
+		URL:                   testUrl,
+		Log:                   logger,
+	}
+
+	connector, err := NewHttpConnector(*opts)
+
+	provider, err := flagd.NewProvider(
+		flagd.WithInProcessResolver(),
+		flagd.WithCustomSyncProvider(connector),
+	)
 ```
 
 #### HttpConnector using fail-safe cache and polling cache
@@ -146,25 +152,41 @@ connector, err := NewHttpConnector(opts)
 ```
 
 ### Configuration
-The Http Connector can be configured using the following properties in the `HttpConnectorOptions` class.:
+The Http Connector can be configured using the following properties in the `HttpConnectorOptions` type:
 
-| Property Name                             | Type                | Description                                                                                                                                                                                                                                                                                                                                                                         |
-|-------------------------------------------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| url                                       | String              | The URL to poll for updates. This is a required field.                                                                                                                                                                                                                                                                                                                              |
-| pollIntervalSeconds                       | Integer             | The interval in seconds at which the connector will poll the URL for updates. Default is 60 seconds.                                                                                                                                                                                                                                                                                |
-| connectTimeoutSeconds                     | Integer             | The timeout in seconds for establishing a connection to the URL. Default is 10 seconds. Skipped if Client is configured.                                                                                                                                                                                                                                                                                             |
-| requestTimeoutSeconds                     | Integer             | The timeout in seconds for the request to complete. Default is 10 seconds. Skipped if Client is configured.                                                                                                                                                                                                                                                                                                         |
-                                                                                                                                                                                                                                                                                                   |
-| headers                                   | Map<String, String> | A map of headers to be included in the request. Default is an empty map.                                                                                                                                                                                                                                                                                                            |                                            |
-| proxyHost                                 | String              | The host of the proxy server to use for requests. Default is null.                                                                                                                                                                                                                                                                                                                  |
-| proxyPort                                 | Integer             | The port of the proxy server to use for requests. Default is null.                                                                                                                                                                                                                                                                                                                  |
-| payloadCacheOptions                       | PayloadCacheOptions | Options for configuring the payload cache. Default is null.                                                                                                                                                                                                                                                                                                                         |
-| payloadCache                              | PayloadCache        | The payload cache to use for caching responses. Default is null.                                                                                                                                                                                                                                                                                                                    |
-| useHttpCache                              | Boolean             | Whether to use HTTP caching for the requests. Default is false.                                                                                                                                                                                                                                                                                                                     |
-| useFailsafeCache                          | Boolean             | Whether to use a failsafe cache for initialization. Default is false.                                                                                                                                                                                                                                                                                                               |
-| usePollingCache                           | Boolean             | Whether to use a polling cache for initialization. Default is false.                                                                                                                                                                                                                                                                                                                                   |
-| Client | http.Client | Optional. The HTTP client to use for making requests. If not provided, a default HTTP client will be used.                                                                                                                                                                                                                                                                                   |
-| PayloadCacheOptions.updateIntervalSeconds | Integer             | The interval, in seconds, at which the cache is updated. By default, this is set to 30 minutes. The goal is to avoid overloading fallback cache writes, since the cache serves only as a fallback mechanism. Typically, this value can be tuned to be shorter than the cache's TTL, balancing the need to minimize unnecessary updates while still handling edge cases effectively. |
+---
+Log                   *flagdlogger.Logger
+	PollIntervalSeconds   int
+	ConnectTimeoutSeconds int
+	RequestTimeoutSeconds int
+	Headers               map[string]string
+	ProxyHost             string
+	ProxyPort             int
+	PayloadCacheOptions   *PayloadCacheOptions
+	PayloadCache          PayloadCache
+	UseHttpCache          bool
+	UseFailsafeCache      bool
+	UsePollingCache       bool
+	URL                   string
+	Client                *http.Client
+---
+
+| Property Name         | Type                 | Description                                                                                                                                                                 |
+|-----------------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Log                   | flagdlogger.Logger   | Logger for the Http Connector.                                                                                                                                              |
+| PollIntervalSeconds   | int                  | The interval in seconds at which the Http Connector polls the URL for updates.                                                                                              |
+| ConnectTimeoutSeconds | int                  | The timeout in seconds for establishing a connection to the URL.                                                                                                            |
+| RequestTimeoutSeconds | int                  | The timeout in seconds for sending a request to the URL.                                                                                                                    |
+| Headers               | map[string]string    | Additional headers to be sent with the HTTP request. Optional.                                                                                                              |
+| ProxyHost             | string               | The host of the proxy to be used for the HTTP request. Optional.                                                                                                            |
+| ProxyPort             | int                  | The port of the proxy to be used for the HTTP request. Optional.                                                                                                            |
+| PayloadCacheOptions   | *PayloadCacheOptions | Options for the payload cache. Optional.                                                                                                                                    |
+| PayloadCache          | PayloadCache         | The payload cache to be used for storing the fetched data. Optional.                                                                                                        |
+| UseHttpCache          | bool                 | Whether to use the HTTP cache mechanism. Optional.                                                                                                                          |
+| UseFailsafeCache      | bool                 | Whether to use the fail-safe cache for initialization. If true, the connector will attempt to load the initial payload from the cache if the initial fetch fails. Optional. |
+| UsePollingCache       | bool                 | Whether to use the polling cache. If true, the connector will store the fetched data in a cache that can be shared across multiple microservices. Optional.                 |
+| URL                   | string               | The URL from which to fetch the flag payload.                                                                                                                               |
+| Client                | *http.Client         | The HTTP client to be used for making requests to the URL. Optional.                                                                                                        |
 
 ### Notes
 

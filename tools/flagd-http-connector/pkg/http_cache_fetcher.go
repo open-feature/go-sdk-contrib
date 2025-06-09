@@ -2,7 +2,7 @@ package flagdhttpconnector
 
 import (
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -33,7 +33,10 @@ func (f *HttpCacheFetcher) FetchContent(client *http.Client, req *http.Request) 
 	defer func() {
 		// Only drain if body is not nil and status is not 200
 		if resp.StatusCode != http.StatusOK && resp.Body != nil {
-			io.Copy(io.Discard, resp.Body)
+			_, err := io.Copy(io.Discard, resp.Body)
+			if err != nil {
+				slog.Error("Failed to drain response body", "error", err)
+			}
 			resp.Body.Close()
 		}
 	}()
@@ -42,7 +45,7 @@ func (f *HttpCacheFetcher) FetchContent(client *http.Client, req *http.Request) 
 	case http.StatusOK:
 		f.cachedETag = resp.Header.Get("ETag")
 		f.cachedLastModified = resp.Header.Get("Last-Modified")
-		log.Println("[DEBUG] fetched new content")
+		slog.Debug("HTTP response received", "status", resp.Status, "etag", f.cachedETag, "lastModified", f.cachedLastModified)
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -51,7 +54,7 @@ func (f *HttpCacheFetcher) FetchContent(client *http.Client, req *http.Request) 
 		return resp, string(bodyBytes), nil
 
 	case http.StatusNotModified:
-		log.Println("[DEBUG] got 304 Not Modified")
+		slog.Debug("HTTP response not modified", "status", resp.Status, "etag", f.cachedETag, "lastModified", f.cachedLastModified)
 		return resp, "", nil
 
 	default:
