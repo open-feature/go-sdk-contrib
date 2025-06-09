@@ -184,7 +184,10 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 		resp, err = h.client.Do(req)
 		defer func() {
 			if resp != nil && resp.Body != nil {
-				io.Copy(io.Discard, resp.Body) // drain the body to avoid resource leaks
+				_, err = io.Copy(io.Discard, resp.Body) // drain the body to avoid resource leaks
+				if err != nil {
+					h.options.Log.Error("Failed to drain response body", zap.Error(err))
+				}
 				resp.Body.Close()
 			}
 		}()

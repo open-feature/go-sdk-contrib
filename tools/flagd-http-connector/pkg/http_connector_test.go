@@ -512,10 +512,7 @@ func TestShutdownHttpConnector(t *testing.T) {
 	syncChan := make(chan flagdsync.DataSync, 1)
 
 	go func() {
-		select {
-		case _ = <-syncChan:
-			return
-		}
+		<-syncChan
 	}()
 
 	err = connector.Sync(context.Background(), syncChan)
@@ -523,7 +520,10 @@ func TestShutdownHttpConnector(t *testing.T) {
 
 	err = connector.Shutdown()
 	require.NoError(t, err)
-	assert.NotPanics(t, func() { connector.Shutdown() }) // Ensure shutdown is idempotent
+	assert.NotPanics(t, func() {
+		err := connector.Shutdown()
+		require.NoError(t, err, "Shutdown should not panic on second call")
+	}) // Ensure shutdown is idempotent
 }
 
 func TestShutdownWithoutSyncHttpConnector(t *testing.T) {
@@ -547,7 +547,10 @@ func TestShutdownWithoutSyncHttpConnector(t *testing.T) {
 
 	err = connector.Shutdown()
 	require.NoError(t, err)
-	assert.NotPanics(t, func() { connector.Shutdown() }) // Ensure shutdown is idempotent
+	assert.NotPanics(t, func() {
+		err := connector.Shutdown()
+		require.NoError(t, err, "Shutdown should not panic on second call")
+	}) // Ensure shutdown is idempotent
 }
 
 func TestSyncNotInitialized(t *testing.T) {
@@ -623,7 +626,10 @@ func TestGithubRawContent(t *testing.T) {
 
 	connector, err := NewHttpConnector(opts)
 	require.NoError(t, err)
-	defer connector.Shutdown()
+	defer func() {
+		err := connector.Shutdown()
+		require.NoError(t, err)
+	}()
 
 	err = connector.Init(context.Background())
 	require.NoError(t, err)
@@ -633,14 +639,12 @@ func TestGithubRawContent(t *testing.T) {
 
 	success := &atomic.Bool{}
 	go func() {
-		select {
-		case data := <-syncChan:
-			assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
-			assert.Equal(t, testURL, data.Source, "Source should match the test URL")
-			assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
-			// set success = true via atomic operation
-			success.Store(true)
-		}
+		data := <-syncChan
+		assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
+		assert.Equal(t, testURL, data.Source, "Source should match the test URL")
+		assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
+		// set success = true via atomic operation
+		success.Store(true)
 	}()
 
 	err = connector.Sync(context.Background(), syncChan)
@@ -703,22 +707,20 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 
 	go func() {
 		for {
-			select {
-			case data := <-syncChan:
-				slog.Info("Received data from sync channel",
-					"source", data.Source,
-					"testURL", testURL,
-					"type", data.Type,
-				)
-				if data.FlagData == "" {
-					slog.Info("Received empty flag data from sync channel")
-					return
-				}
-				assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
-				assert.Equal(t, testURL, data.Source, "Source should match the test URL")
-				assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
-				success.Store(true)
+			data := <-syncChan
+			slog.Info("Received data from sync channel",
+				"source", data.Source,
+				"testURL", testURL,
+				"type", data.Type,
+			)
+			if data.FlagData == "" {
+				slog.Info("Received empty flag data from sync channel")
+				return
 			}
+			assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
+			assert.Equal(t, testURL, data.Source, "Source should match the test URL")
+			assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
+			success.Store(true)
 		}
 	}()
 
@@ -770,7 +772,10 @@ func (m *MockFailSafeCache) Get(key string) (string, error) {
 // Put adds or updates a payload in the cache by key.
 func (m *MockFailSafeCache) Put(key, payload string) error {
 	slog.Info("MockFailSafeCache.Put payload in cache", "key", key)
-	m.PutWithTTL(key, payload, 1)
+	err := m.PutWithTTL(key, payload, 1)
+	if err != nil {
+		slog.Error("Failed to put payload in cache", "key", key, "error", err)
+	}
 	return nil
 }
 
@@ -826,12 +831,14 @@ func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	connector.Init(context.Background())
+	err = connector.Init(context.Background())
+	require.NoError(t, err)
 
 	// simulate cache hit by pre-populating the fail-safe cache with a payload from previous micro-service run
 	testPayload := "test-payload"
 
-	connector.failSafeCache.payloadCache.Put(FailSafePayloadCacheKey, testPayload)
+	err = connector.failSafeCache.payloadCache.Put(FailSafePayloadCacheKey, testPayload)
+	require.NoError(t, err, "Failed to put payload in cache")
 
 	syncChan := make(chan flagdsync.DataSync, 1)
 
@@ -839,14 +846,12 @@ func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
 	success := &atomic.Bool{}
 
 	go func() {
-		select {
-		case data := <-syncChan:
-			assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
-			assert.Equal(t, invalidTestUrl, data.Source, "Source should match the test URL")
-			assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
-			assert.Equal(t, testPayload, data.FlagData, "Flag data should match the cached payload")
-			success.Store(true)
-		}
+		data := <-syncChan
+		assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
+		assert.Equal(t, invalidTestUrl, data.Source, "Source should match the test URL")
+		assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
+		assert.Equal(t, testPayload, data.FlagData, "Flag data should match the cached payload")
+		success.Store(true)
 	}()
 
 	err = connector.Sync(context.Background(), syncChan)
@@ -894,13 +899,11 @@ func TestGithubRawContentUsingHttpCache(t *testing.T) {
 	dataCount := atomic.Int32{}
 
 	go func() {
-		select {
-		case data := <-syncChan:
-			assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
-			assert.Equal(t, testURL, data.Source, "Source should match the test URL")
-			assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
-			dataCount.Add(1)
-		}
+		data := <-syncChan
+		assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
+		assert.Equal(t, testURL, data.Source, "Source should match the test URL")
+		assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
+		dataCount.Add(1)
 	}()
 
 	err = connector.Sync(context.Background(), syncChan)
