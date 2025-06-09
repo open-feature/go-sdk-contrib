@@ -599,7 +599,10 @@ func TestSyncHttpConnector(t *testing.T) {
 	err = connector.ReSync(context.Background(), syncChan)
 	require.NoError(t, err)
 
-	assert.NotPanics(t, func() { connector.Sync(context.Background(), syncChan) }) // Ensure Sync is idempotent
+	assert.NotPanics(t, func() {
+		err := connector.Sync(context.Background(), syncChan)
+		require.NoError(t, err, "Sync should not panic on second call")
+	}) // Ensure Sync is idempotent
 }
 
 // integration tests with mock http client
@@ -889,7 +892,10 @@ func TestGithubRawContentUsingHttpCache(t *testing.T) {
 
 	connector, err := NewHttpConnector(opts)
 	require.NoError(t, err)
-	defer connector.Shutdown()
+	defer func() {
+		err := connector.Shutdown()
+		require.NoError(t, err)
+	}()
 
 	err = connector.Init(context.Background())
 	require.NoError(t, err)
