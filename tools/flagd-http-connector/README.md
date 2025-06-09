@@ -113,22 +113,22 @@ sequenceDiagram
 
 testUrl := "https://raw.githubusercontent.com/openfeature/go-sdk-contrib/refs/heads/feature/flagd-http-connector/tools/flagd-http-connector/pkg/testing-flags.json"
 
-	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
-	logger := logger.NewLogger(zapLogger, false)
-	opts := &HttpConnectorOptions{
-		PollIntervalSeconds:   10,
-		ConnectTimeoutSeconds: 5,
-		RequestTimeoutSeconds: 15,
-		URL:                   testUrl,
-		Log:                   logger,
-	}
+zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
+logger := logger.NewLogger(zapLogger, false)
+opts := &HttpConnectorOptions{
+  PollIntervalSeconds:   10,
+  ConnectTimeoutSeconds: 5,
+  RequestTimeoutSeconds: 15,
+  URL:                   testUrl,
+  Log:                   logger,
+}
 
-	connector, err := NewHttpConnector(*opts)
+connector, err := NewHttpConnector(*opts)
 
-	provider, err := flagd.NewProvider(
-		flagd.WithInProcessResolver(),
-		flagd.WithCustomSyncProvider(connector),
-	)
+provider, err := flagd.NewProvider(
+  flagd.WithInProcessResolver(),
+  flagd.WithCustomSyncProvider(connector),
+)
 ```
 
 #### HttpConnector using fail-safe cache and polling cache
