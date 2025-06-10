@@ -2,8 +2,6 @@ module github.com/open-feature/go-sdk-contrib/hooks/open-telemetry
 
 go 1.23.0
 
-toolchain go1.24.3
-
 require (
 	github.com/open-feature/go-sdk v1.15.0
 	go.opentelemetry.io/otel v1.28.0

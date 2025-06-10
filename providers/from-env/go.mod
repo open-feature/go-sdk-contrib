@@ -2,8 +2,6 @@ module github.com/open-feature/go-sdk-contrib/providers/from-env
 
 go 1.23.0
 
-toolchain go1.24.3
-
 require github.com/open-feature/go-sdk v1.15.0
 
 require (
