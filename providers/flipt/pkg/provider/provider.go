@@ -110,8 +110,8 @@ func NewProvider(opts ...Option) *Provider {
 //go:generate mockery --name=Service --structname=mockService --case=underscore --output=. --outpkg=flipt --filename=provider_support.go --testonly --with-expecter --disable-version-string
 type Service interface {
 	GetFlag(ctx context.Context, namespaceKey, flagKey string) (*flipt.Flag, error)
-	Evaluate(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]interface{}) (*evaluation.VariantEvaluationResponse, error)
-	Boolean(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]interface{}) (*evaluation.BooleanEvaluationResponse, error)
+	Evaluate(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.VariantEvaluationResponse, error)
+	Boolean(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.BooleanEvaluationResponse, error)
 }
 
 // Provider implements the FeatureProvider interface and provides functions for evaluating flags with Flipt.
@@ -121,12 +121,12 @@ type Provider struct {
 }
 
 // Metadata returns the metadata of the provider.
-func (p Provider) Metadata() of.Metadata {
+func (p *Provider) Metadata() of.Metadata {
 	return of.Metadata{Name: "flipt-provider"}
 }
 
 // BooleanEvaluation returns a boolean flag.
-func (p Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
+func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
 	resp, err := p.svc.Boolean(ctx, p.config.Namespace, flag, evalCtx)
 	if err != nil {
 		var (
@@ -140,12 +140,12 @@ func (p Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVal
 		)
 
 		if errors.As(err, &rerr) {
-			detail.ProviderResolutionDetail.ResolutionError = rerr
+			detail.ResolutionError = rerr
 
 			return detail
 		}
 
-		detail.ProviderResolutionDetail.ResolutionError = of.NewGeneralResolutionError(err.Error())
+		detail.ResolutionError = of.NewGeneralResolutionError(err.Error())
 
 		return detail
 	}
@@ -159,255 +159,116 @@ func (p Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVal
 }
 
 // StringEvaluation returns a string flag.
-func (p Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
-	resp, err := p.svc.Evaluate(ctx, p.config.Namespace, flag, evalCtx)
-	if err != nil {
-		var (
-			rerr   of.ResolutionError
-			detail = of.StringResolutionDetail{
-				Value: defaultValue,
-				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
-				},
-			}
-		)
-
-		if errors.As(err, &rerr) {
-			detail.ProviderResolutionDetail.ResolutionError = rerr
-
-			return detail
-		}
-
-		detail.ProviderResolutionDetail.ResolutionError = of.NewGeneralResolutionError(err.Error())
-
-		return detail
-	}
-
-	if resp.Reason == evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON {
-		return of.StringResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DisabledReason,
-			},
-		}
-	}
-
-	if !resp.Match {
-		return of.StringResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DefaultReason,
-			},
-		}
-	}
-
+func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToString)
 	return of.StringResolutionDetail{
-		Value: resp.VariantKey,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason: of.TargetingMatchReason,
-		},
+		Value:                    value,
+		ProviderResolutionDetail: detail,
 	}
 }
 
 // FloatEvaluation returns a float flag.
 func (p Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
-	resp, err := p.svc.Evaluate(ctx, p.config.Namespace, flag, evalCtx)
-	if err != nil {
-		var (
-			rerr   of.ResolutionError
-			detail = of.FloatResolutionDetail{
-				Value: defaultValue,
-				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
-				},
-			}
-		)
-
-		if errors.As(err, &rerr) {
-			detail.ProviderResolutionDetail.ResolutionError = rerr
-
-			return detail
-		}
-
-		detail.ProviderResolutionDetail.ResolutionError = of.NewGeneralResolutionError(err.Error())
-
-		return detail
-	}
-
-	if resp.Reason == evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON {
-		return of.FloatResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DisabledReason,
-			},
-		}
-	}
-
-	if !resp.Match {
-		return of.FloatResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DefaultReason,
-			},
-		}
-	}
-
-	fv, err := strconv.ParseFloat(resp.VariantKey, 64)
-	if err != nil {
-		return of.FloatResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError("value is not a float"),
-				Reason:          of.ErrorReason,
-			},
-		}
-	}
-
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToFloat64)
 	return of.FloatResolutionDetail{
-		Value: fv,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason: of.TargetingMatchReason,
-		},
+		Value:                    value,
+		ProviderResolutionDetail: detail,
 	}
 }
 
 // IntEvaluation returns an int flag.
-func (p Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
-	resp, err := p.svc.Evaluate(ctx, p.config.Namespace, flag, evalCtx)
-	if err != nil {
-		var (
-			rerr   of.ResolutionError
-			detail = of.IntResolutionDetail{
-				Value: defaultValue,
-				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
-				},
-			}
-		)
-
-		if errors.As(err, &rerr) {
-			detail.ProviderResolutionDetail.ResolutionError = rerr
-
-			return detail
-		}
-
-		detail.ProviderResolutionDetail.ResolutionError = of.NewGeneralResolutionError(err.Error())
-
-		return detail
-	}
-
-	if resp.Reason == evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON {
-		return of.IntResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DisabledReason,
-			},
-		}
-	}
-
-	if !resp.Match {
-		return of.IntResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DefaultReason,
-			},
-		}
-	}
-
-	iv, err := strconv.ParseInt(resp.VariantKey, 10, 64)
-	if err != nil {
-		return of.IntResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError("value is not an integer"),
-				Reason:          of.ErrorReason,
-			},
-		}
-	}
-
+func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToInt64)
 	return of.IntResolutionDetail{
-		Value: iv,
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason: of.TargetingMatchReason,
-		},
+		Value:                    value,
+		ProviderResolutionDetail: detail,
 	}
 }
 
-// ObjectEvaluation returns an object flag with attachment if any. Value is a map of key/value pairs ([string]interface{}).
-func (p Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-	resp, err := p.svc.Evaluate(ctx, p.config.Namespace, flag, evalCtx)
-	if err != nil {
-		var (
-			rerr   of.ResolutionError
-			detail = of.InterfaceResolutionDetail{
-				Value: defaultValue,
-				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
-				},
-			}
-		)
-
-		if errors.As(err, &rerr) {
-			detail.ProviderResolutionDetail.ResolutionError = rerr
-
-			return detail
-		}
-
-		detail.ProviderResolutionDetail.ResolutionError = of.NewGeneralResolutionError(err.Error())
-
-		return detail
-	}
-
-	if resp.Reason == evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON {
-		return of.InterfaceResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DisabledReason,
-			},
-		}
-	}
-
-	if !resp.Match {
-		return of.InterfaceResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason: of.DefaultReason,
-			},
-		}
-	}
-
-	if resp.VariantAttachment == "" {
-		return of.InterfaceResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				Reason:  of.DefaultReason,
-				Variant: resp.VariantKey,
-			},
-		}
-	}
-
-	out := new(structpb.Struct)
-	if err := protojson.Unmarshal([]byte(resp.VariantAttachment), out); err != nil {
-		return of.InterfaceResolutionDetail{
-			Value: defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{
-				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("value is not an object: %q", resp.VariantAttachment)),
-				Reason:          of.ErrorReason,
-			},
-		}
-	}
-
+// ObjectEvaluation returns an object flag with attachment if any. Value is a map of key/value pairs ([string]any).
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToObject)
 	return of.InterfaceResolutionDetail{
-		Value: out.AsMap(),
-		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason:  of.TargetingMatchReason,
-			Variant: resp.VariantKey,
-		},
+		Value:                    value,
+		ProviderResolutionDetail: detail,
 	}
 }
 
 // Hooks returns hooks.
-func (p Provider) Hooks() []of.Hook {
+func (p *Provider) Hooks() []of.Hook {
 	// code to retrieve hooks
 	return []of.Hook{}
+}
+
+// evaluateVariantFlag is a helper which evaluates a variant flag and returns the value and resolution detail.
+func evaluateVariantFlag[T any](ctx context.Context, svc Service, namespace string, flag string, defaultValue T, evalCtx of.FlattenedContext, transform transformFunc[T]) (T, of.ProviderResolutionDetail) {
+	detail := of.ProviderResolutionDetail{
+		Reason: of.DefaultReason,
+	}
+	value := defaultValue
+	resp, err := svc.Evaluate(ctx, namespace, flag, evalCtx)
+	if err != nil {
+		var rerr of.ResolutionError
+
+		if errors.As(err, &rerr) {
+			detail.ResolutionError = rerr
+		} else {
+			detail.ResolutionError = of.NewGeneralResolutionError(err.Error())
+		}
+
+		return value, detail
+	}
+
+	if resp.Reason == evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON {
+		detail.Reason = of.DisabledReason
+		return value, detail
+	}
+
+	if resp.Match || resp.Reason == evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON {
+		value, err = transform(resp, defaultValue)
+		if err != nil {
+			detail.ResolutionError = of.NewTypeMismatchResolutionError(err.Error())
+			detail.Reason = of.ErrorReason
+			return value, detail
+		}
+	}
+
+	if resp.Match {
+		detail.Reason = of.TargetingMatchReason
+	}
+
+	return value, detail
+}
+
+type transformFunc[T any] func(*evaluation.VariantEvaluationResponse, T) (T, error)
+
+func transformToString(resp *evaluation.VariantEvaluationResponse, _ string) (string, error) {
+	return resp.VariantKey, nil
+}
+
+func transformToFloat64(resp *evaluation.VariantEvaluationResponse, defaultValue float64) (float64, error) {
+	fv, err := strconv.ParseFloat(resp.VariantKey, 64)
+	if err != nil {
+		return defaultValue, errors.New("value is not a float")
+	}
+	return fv, nil
+}
+
+func transformToInt64(resp *evaluation.VariantEvaluationResponse, defaultValue int64) (int64, error) {
+	iv, err := strconv.ParseInt(resp.VariantKey, 10, 64)
+	if err != nil {
+		return defaultValue, errors.New("value is not an integer")
+	}
+	return iv, nil
+}
+
+func transformToObject(resp *evaluation.VariantEvaluationResponse, defaultValue any) (any, error) {
+	if resp.VariantAttachment == "" {
+		return defaultValue, nil
+	}
+	out := new(structpb.Struct)
+	if err := protojson.Unmarshal([]byte(resp.VariantAttachment), out); err != nil {
+		return defaultValue, fmt.Errorf("value is not an object: %q", resp.VariantAttachment)
+	}
+	return out.AsMap(), nil
 }

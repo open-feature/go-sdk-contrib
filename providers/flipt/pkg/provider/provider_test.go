@@ -58,7 +58,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
 
-			actual := p.BooleanEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]interface{}{})
+			actual := p.BooleanEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected, actual)
 		})
@@ -161,6 +161,22 @@ func TestStringEvaluation(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:         "flipt-default",
+			flagKey:      "string-match",
+			defaultValue: "default",
+			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
+				Match:      false,
+				Reason:     evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON,
+				VariantKey: "abc",
+			},
+			expected: of.StringResolutionDetail{
+				Value: "abc",
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason: of.DefaultReason,
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -170,7 +186,7 @@ func TestStringEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc))
 
-			actual := p.StringEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]interface{}{})
+			actual := p.StringEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected, actual)
 		})
@@ -277,6 +293,23 @@ func TestFloatEvaluation(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:    "flipt-default",
+			flagKey: "float-default",
+
+			defaultValue: 1.0,
+			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
+				Match:      false,
+				Reason:     evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON,
+				VariantKey: "2.0",
+			},
+			expected: of.FloatResolutionDetail{
+				Value: 2.0,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason: of.DefaultReason,
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -286,8 +319,7 @@ func TestFloatEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
 
-			actual := p.FloatEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]interface{}{})
-
+			actual := p.FloatEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
 			assert.Equal(t, tt.expected, actual)
 		})
 	}
@@ -408,6 +440,22 @@ func TestIntEvaluation(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:         "flipt-default",
+			flagKey:      "int-match",
+			defaultValue: 1,
+			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
+				Match:      false,
+				Reason:     evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON,
+				VariantKey: "2",
+			},
+			expected: of.IntResolutionDetail{
+				Value: 2,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason: of.DefaultReason,
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -417,7 +465,7 @@ func TestIntEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc))
 
-			actual := p.IntEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]interface{}{})
+			actual := p.IntEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected, actual)
 		})
@@ -425,7 +473,7 @@ func TestIntEvaluation(t *testing.T) {
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	attachment := map[string]interface{}{
+	attachment := map[string]any{
 		"foo": "bar",
 	}
 
@@ -435,7 +483,7 @@ func TestObjectEvaluation(t *testing.T) {
 	tests := []struct {
 		name                  string
 		flagKey               string
-		defaultValue          map[string]interface{}
+		defaultValue          map[string]any
 		mockRespEvaluation    *evaluation.VariantEvaluationResponse
 		mockRespEvaluationErr error
 		expected              of.InterfaceResolutionDetail
@@ -444,7 +492,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "flag enabled",
 			flagKey: "obj-enabled",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
@@ -460,7 +508,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "flag disabled",
 			flagKey: "obj-disabled",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
@@ -468,7 +516,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Reason: evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON,
 			},
 			expected: of.InterfaceResolutionDetail{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"baz": "qux",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.DisabledReason},
@@ -478,12 +526,12 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "resolution error",
 			flagKey: "obj-res-error",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluationErr: of.NewInvalidContextResolutionError("boom"),
 			expected: of.InterfaceResolutionDetail{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"baz": "qux",
 				}, ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:          of.DefaultReason,
@@ -495,7 +543,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "unmarshal error",
 			flagKey: "obj-unmarshal-error",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
@@ -503,7 +551,7 @@ func TestObjectEvaluation(t *testing.T) {
 				VariantAttachment: "x",
 			},
 			expected: of.InterfaceResolutionDetail{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"baz": "qux",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -516,12 +564,12 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "error",
 			flagKey: "obj-error",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluationErr: errors.New("boom"),
 			expected: of.InterfaceResolutionDetail{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"baz": "qux",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -534,14 +582,14 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "no match",
 			flagKey: "obj-no-match",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match: false,
 			},
 			expected: of.InterfaceResolutionDetail{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"baz": "qux",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.DefaultReason},
@@ -551,7 +599,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "match",
 			flagKey: "obj-match",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
@@ -560,7 +608,7 @@ func TestObjectEvaluation(t *testing.T) {
 				VariantAttachment: "{\"foo\": \"bar\"}",
 			},
 			expected: of.InterfaceResolutionDetail{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"foo": "bar",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -572,7 +620,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:    "match no attachment",
 			flagKey: "obj-match-no-attach",
 
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"baz": "qux",
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
@@ -580,8 +628,30 @@ func TestObjectEvaluation(t *testing.T) {
 				VariantKey: "2",
 			},
 			expected: of.InterfaceResolutionDetail{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"baz": "qux",
+				},
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason: of.DefaultReason,
+				},
+			},
+		},
+		{
+			name:    "flipt-default",
+			flagKey: "obj-match",
+
+			defaultValue: map[string]any{
+				"baz": "qux",
+			},
+			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
+				Match:             false,
+				Reason:            evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON,
+				VariantKey:        "2",
+				VariantAttachment: "{\"foo\": \"bar\"}",
+			},
+			expected: of.InterfaceResolutionDetail{
+				Value: map[string]any{
+					"foo": "bar",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason: of.DefaultReason,
@@ -597,7 +667,7 @@ func TestObjectEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
 
-			actual := p.ObjectEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]interface{}{})
+			actual := p.ObjectEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected.Value, actual.Value)
 		})
