@@ -147,7 +147,15 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
-    }
+    },
+    "tools/flagd-http-connector": {
+      "release-type": "go",
+      "package-name": "tools/flagd-http-connector",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
   },
   "changelog-sections": [
     {
