@@ -2,6 +2,7 @@ ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | s
 MODULE_TYPE ?= providers
 FLAGD_TESTBED = flagd-testbed
 FLAGD_SYNC = sync-testbed
+GOLANGCI_LINT_VERSION := v1.64.8
 
 workspace-init:
 	go work init
@@ -47,7 +48,7 @@ golangci-lint/%: DIR=$*
 golangci-lint/%:
 	@echo 'golangci-lint $(if $(ARGS),$(ARGS) ,)$(DIR)' \
 		&& cd $(DIR) \
-		&& go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8 run --allow-serial-runners $(ARGS)
+		&& go run github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION} run --allow-serial-runners $(ARGS)
 
 .PHONY: test
 test-verbose: ARGS=-v
