@@ -7,6 +7,7 @@ import (
 	"regexp"
 	parallel "sync"
 
+	"go.uber.org/zap"
 	googlegrpc "google.golang.org/grpc"
 
 	"github.com/open-feature/flagd/core/pkg/evaluator"
@@ -44,6 +45,10 @@ type Configuration struct {
 	CustomSyncProvider      sync.ISync
 	CustomSyncProviderUri   string
 	GrpcDialOptionsOverride []googlegrpc.DialOption
+}
+
+type Shutdowner interface {
+	Shutdown() error
 }
 
 func NewInProcessService(cfg Configuration) *InProcess {
@@ -116,6 +121,12 @@ func (i *InProcess) Init() error {
 					ProviderEventDetails: of.ProviderEventDetails{Message: "New flag sync", FlagChanges: maps.Keys(changes)}}
 			case <-i.listenerShutdown:
 				i.logger.Info("Shutting down data sync listener")
+				if shutdowner, ok := i.sync.(Shutdowner); ok {
+					err := shutdowner.Shutdown()
+					if err != nil {
+						i.logger.Error("Error shutdown sync provider", zap.Error(err))
+					}
+				}
 				return
 			}
 		}
