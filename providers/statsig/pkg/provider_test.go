@@ -18,7 +18,7 @@ import (
 var provider *statsigProvider.Provider
 
 func TestBooleanEvaluation(t *testing.T) {
-	err := of.SetProvider(provider)
+	err := of.SetProviderAndWait(provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
@@ -37,7 +37,7 @@ func TestBooleanEvaluation(t *testing.T) {
 }
 
 func TestStringConfigEvaluation(t *testing.T) {
-	err := of.SetProvider(provider)
+	err := of.SetProviderAndWait(provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
@@ -64,7 +64,7 @@ func TestStringConfigEvaluation(t *testing.T) {
 }
 
 func TestBoolLayerEvaluation(t *testing.T) {
-	err := of.SetProvider(provider)
+	err := of.SetProviderAndWait(provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
@@ -176,7 +176,7 @@ func cleanup() {
 }
 
 func TestEvaluationMethods(t *testing.T) {
-	err := of.SetProvider(provider)
+	err := of.SetProviderAndWait(provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
@@ -227,8 +227,6 @@ func TestEvaluationMethods(t *testing.T) {
 
 	for _, test := range tests {
 
-		fmt.Println("test: {}", test)
-
 		rt := reflect.TypeOf(test.expected)
 		switch rt.Kind() {
 		case reflect.Bool:
@@ -251,7 +249,6 @@ func TestEvaluationMethods(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-
 	bytes, err := os.ReadFile("download_config_specs.json")
 	if err != nil {
 		os.Exit(1)
@@ -267,9 +264,9 @@ func TestMain(m *testing.M) {
 	provider, err = statsigProvider.NewProvider(providerOptions)
 	if err != nil {
 		fmt.Printf("Error during new provider: %v\n", err)
+		os.Exit(1)
 	}
 	provider.Init(of.EvaluationContext{})
-	fmt.Printf("provider: %v\n", provider)
 
 	// Run the tests
 	exitCode := m.Run()

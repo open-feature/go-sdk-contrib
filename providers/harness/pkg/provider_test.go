@@ -124,7 +124,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		require.Equal(t, false, resolution.Value)
 	})
 
-	of.SetProvider(provider)
+	of.SetProviderAndWait(provider)
 	ofClient := of.NewClient("my-app")
 
 	evalCtx := of.NewEvaluationContext(
@@ -136,10 +136,10 @@ func TestBooleanEvaluation(t *testing.T) {
 		},
 	)
 	enabled, err := ofClient.BooleanValue(context.Background(), "TestTrueOn", false, evalCtx)
+	require.NoError(t, err)
 	if enabled == false {
 		t.Fatalf("Expected feature to be enabled")
 	}
-
 }
 
 func TestStringEvaluation(t *testing.T) {
@@ -194,20 +194,18 @@ func TestStringEvaluation(t *testing.T) {
 	if resolution.Value != "A" {
 		t.Fatalf("Expected one of the variant payloads")
 	}
-
 }
 
 var AuthResponse = func(statusCode int, authToken string) func(req *http.Request) (*http.Response, error) {
-
 	return func(req *http.Request) (*http.Response, error) {
 		// Return the appropriate error based on the provided status code
 		return httpmock.NewJsonResponse(statusCode, rest.AuthenticationResponse{
-			AuthToken: authToken})
+			AuthToken: authToken,
+		})
 	}
 }
 
 var AuthResponseDetailed = func(statusCode int, status string, bodyString string) func(req *http.Request) (*http.Response, error) {
-
 	return func(req *http.Request) (*http.Response, error) {
 		response := &http.Response{
 			StatusCode: statusCode,

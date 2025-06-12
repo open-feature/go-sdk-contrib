@@ -15,13 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const ()
-
-var provider *prefabProvider.Provider
-var ofClient *of.Client
+var (
+	provider *prefabProvider.Provider
+	ofClient *of.Client
+)
 
 func TestBooleanEvaluation(t *testing.T) {
-
 	flattenedContext := map[string]interface{}{}
 
 	resolution := provider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
@@ -41,7 +40,6 @@ func TestBooleanEvaluation(t *testing.T) {
 	enabled, err := ofClient.BooleanValue(context.Background(), "sample_bool", false, evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, true, enabled)
-
 }
 
 // TODO handle conditional feature flags based on context where json/yaml parsing is implemented
@@ -80,7 +78,6 @@ func TestBooleanEvaluation(t *testing.T) {
 // }
 
 func TestFloatEvaluation(t *testing.T) {
-
 	flattenedContext := map[string]interface{}{}
 
 	resolution := provider.FloatEvaluation(context.Background(), "sample_double", 1.2, flattenedContext)
@@ -100,11 +97,9 @@ func TestFloatEvaluation(t *testing.T) {
 	value, err := ofClient.FloatValue(context.Background(), "sample_double", 1.2, evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, 12.12, value)
-
 }
 
 func TestIntEvaluation(t *testing.T) {
-
 	flattenedContext := map[string]interface{}{}
 
 	resolution := provider.IntEvaluation(context.Background(), "sample_int", 1, flattenedContext)
@@ -124,11 +119,9 @@ func TestIntEvaluation(t *testing.T) {
 	value, err := ofClient.IntValue(context.Background(), "sample_int", 1, evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, int64(123), value)
-
 }
 
 func TestStringEvaluation(t *testing.T) {
-
 	flattenedContext := map[string]interface{}{}
 
 	resolution := provider.StringEvaluation(context.Background(), "sample", "default", flattenedContext)
@@ -148,12 +141,10 @@ func TestStringEvaluation(t *testing.T) {
 	value, err := ofClient.StringValue(context.Background(), "sample", "default", evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, "test sample value", value)
-
 }
 
 // TODO test and enable when json/yaml parsing is implemented
 func TestObjectEvaluation(t *testing.T) {
-
 	flattenedContext := map[string]interface{}{}
 
 	t.Run("example.nested.path", func(t *testing.T) {
@@ -186,7 +177,6 @@ func TestObjectEvaluation(t *testing.T) {
 	// 	require.Equal(t, []string{"a", "b"}, value.Value)
 	// 	require.Nil(t, err)
 	// })
-
 }
 
 // Converts non-empty FlattenedContext to ContextSet correctly
@@ -214,7 +204,6 @@ func TestConvertsNonEmptyFlattenedContextToContextSet(t *testing.T) {
 }
 
 func TestUninitializedProviderStates(t *testing.T) {
-
 	flattenedContext := map[string]interface{}{}
 
 	providerConfig := prefabProvider.ProviderConfig{
@@ -239,7 +228,6 @@ func TestUninitializedProviderStates(t *testing.T) {
 }
 
 func TestErrorProviderStates(t *testing.T) {
-
 	flattenedContext := map[string]interface{}{}
 
 	providerConfig := prefabProvider.ProviderConfig{
@@ -359,7 +347,6 @@ func cleanup() {
 }
 
 func TestMain(m *testing.M) {
-
 	providerConfig := prefabProvider.ProviderConfig{
 		Sources: []string{"datafile://enabled.yaml"},
 	}
@@ -376,7 +363,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	of.SetProvider(provider)
+	of.SetProviderAndWait(provider)
 	ofClient = of.NewClient("my-app")
 
 	fmt.Printf("provider: %v\n", provider)

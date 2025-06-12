@@ -3,12 +3,13 @@ package otel
 import (
 	"context"
 	"errors"
+	"reflect"
+	"testing"
+
 	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-	"reflect"
-	"testing"
 )
 
 func TestMetricsHook_BeforeStage(t *testing.T) {
@@ -180,7 +181,7 @@ func TestMetricsHook_FinallyStage(t *testing.T) {
 	}
 
 	// when
-	metricsHook.Finally(ctx, hookContext, hookHints)
+	metricsHook.Finally(ctx, hookContext, openfeature.InterfaceEvaluationDetails{}, hookHints)
 
 	// then
 	var data metricdata.ResourceMetrics
@@ -215,7 +216,7 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 	ctx := context.Background()
 
 	hookContext := hookContext()
-	hookHints := openfeature.NewHookHints(map[string]interface{}{})
+	hookHints := openfeature.NewHookHints(map[string]any{})
 
 	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
@@ -230,7 +231,7 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 		return
 	}
 
-	metricsHook.Finally(ctx, hookContext, hookHints)
+	metricsHook.Finally(ctx, hookContext, openfeature.InterfaceEvaluationDetails{}, hookHints)
 
 	// then
 	var data metricdata.ResourceMetrics
@@ -428,7 +429,6 @@ func TestMetricHook_MetadataExtractionOptions(t *testing.T) {
 			t.Errorf("attribute %s is incorrectly configured", cachedKey)
 		}
 	})
-
 }
 
 func hookContext() openfeature.HookContext {
