@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.5...providers/launchdarkly/v0.1.6) (2025-06-13)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+* **deps:** update golang.org/x/exp digest to 7e4ce0a ([#515](https://github.com/open-feature/go-sdk-contrib/issues/515)) ([4a04445](https://github.com/open-feature/go-sdk-contrib/commit/4a04445ee4e327bc0cfe497f0d7bab64697b8b61))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency go to v1.24.3 ([#661](https://github.com/open-feature/go-sdk-contrib/issues/661)) ([bc218c1](https://github.com/open-feature/go-sdk-contrib/commit/bc218c12116e77af17f19fc773ee458df0d4d4b0))
+
 ## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.4...providers/launchdarkly/v0.1.5) (2024-09-10)
 
 
