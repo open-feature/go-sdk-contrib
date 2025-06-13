@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.0...providers/flagd/v0.3.1) (2025-06-13)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+
 ## [0.3.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.6...providers/flagd/v0.3.0) (2025-06-07)
 
 
