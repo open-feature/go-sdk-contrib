@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.5...providers/ofrep/v0.1.6) (2025-06-13)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+
 ## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.4...providers/ofrep/v0.1.5) (2024-08-27)
 
 
