@@ -76,8 +76,8 @@ func NewMetricsHookForProvider(provider api.MeterProvider, opts ...MetricOptions
 }
 
 func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
-	hint openfeature.HookHints) (*openfeature.EvaluationContext, error) {
-
+	hint openfeature.HookHints,
+) (*openfeature.EvaluationContext, error) {
 	h.activeCounter.Add(ctx, +1, api.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 
 	h.requestCounter.Add(ctx, 1,
@@ -89,11 +89,12 @@ func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
 }
 
 func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
-	details openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) error {
-
+	details openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints,
+) error {
 	attribs := []attribute.KeyValue{
 		semconv.FeatureFlagKey(hCtx.FlagKey()),
-		semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name)}
+		semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name),
+	}
 
 	if details.Variant != "" {
 		attribs = append(attribs, semconv.FeatureFlagVariant(details.Variant))
@@ -122,7 +123,7 @@ func (h *MetricsHook) Error(ctx context.Context, hCtx openfeature.HookContext, e
 			attribute.String(semconv.ExceptionEventName, err.Error())))
 }
 
-func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, evalCtx openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) {
+func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) {
 	h.activeCounter.Add(ctx, -1, api.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 }
 
@@ -167,7 +168,6 @@ func WithMetricsAttributeSetter(callback func(openfeature.FlagMetadata) []attrib
 // descriptionsToAttributes is a helper to extract dimensions from openfeature.FlagMetadata. Missing metadata
 // dimensions are ignore.
 func descriptionsToAttributes(metadata openfeature.FlagMetadata, descriptions []DimensionDescription) []attribute.KeyValue {
-
 	attribs := []attribute.KeyValue{}
 	for _, dimension := range descriptions {
 		switch dimension.Type {
