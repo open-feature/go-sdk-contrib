@@ -647,7 +647,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Match:             false,
 				Reason:            evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON,
 				VariantKey:        "2",
-				VariantAttachment: "{\"foo\": \"bar\"}",
+				VariantAttachment: `{"foo": "bar"}`,
 			},
 			expected: of.InterfaceResolutionDetail{
 				Value: map[string]any{
