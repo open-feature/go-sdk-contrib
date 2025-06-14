@@ -34,12 +34,15 @@ import (
 
 func main() {
     // http://localhost:8080 is the default Flipt address
-    openfeature.SetProvider(flipt.NewProvider())
+    err := openfeature.SetProviderAndWait(flipt.NewProvider())
+    if err != nil {
+      panic(err)
+    }
 
     client := openfeature.NewClient("my-app")
     value, err := client.BooleanValue(context.Background(), "v2_enabled", false, openfeature.NewEvaluationContext(
         "tim@apple.com",
-        map[string]interface{}{
+        map[string]any{
             "favorite_color": "blue",
         },
     ))

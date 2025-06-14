@@ -8,17 +8,19 @@ import (
 )
 
 func Example() {
-	openfeature.SetProvider(flipt.NewProvider(
+	err := openfeature.SetProviderAndWait(flipt.NewProvider(
 		flipt.WithAddress("localhost:9000"),
 	))
+	if err != nil {
+		panic(err)
+	}
 
 	client := openfeature.NewClient("my-app")
 	value, err := client.BooleanValue(
-		context.Background(), "v2_enabled", false, openfeature.NewEvaluationContext("tim@apple.com", map[string]interface{}{
+		context.TODO(), "v2_enabled", false, openfeature.NewEvaluationContext("tim@apple.com", map[string]any{
 			"favorite_color": "blue",
 		}),
 	)
-
 	if err != nil {
 		panic(err)
 	}

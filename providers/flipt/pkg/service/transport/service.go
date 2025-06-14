@@ -202,7 +202,7 @@ func (s *Service) GetFlag(ctx context.Context, namespaceKey, flagKey string) (*f
 }
 
 // Boolean evaluates a boolean type flag with the given context and namespace/flag key pair.
-func (s *Service) Boolean(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]interface{}) (*evaluation.BooleanEvaluationResponse, error) {
+func (s *Service) Boolean(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.BooleanEvaluationResponse, error) {
 	if evalCtx == nil {
 		return nil, of.NewInvalidContextResolutionError("evalCtx is nil")
 	}
@@ -228,7 +228,7 @@ func (s *Service) Boolean(ctx context.Context, namespaceKey, flagKey string, eva
 }
 
 // Evaluate evaluates a variant type flag with the given context and namespace/flag key pair.
-func (s *Service) Evaluate(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]interface{}) (*evaluation.VariantEvaluationResponse, error) {
+func (s *Service) Evaluate(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.VariantEvaluationResponse, error) {
 	if evalCtx == nil {
 		return nil, of.NewInvalidContextResolutionError("evalCtx is nil")
 	}
