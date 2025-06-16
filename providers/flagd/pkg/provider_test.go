@@ -15,6 +15,7 @@ import (
 )
 
 func TestNewProvider(t *testing.T) {
+	t.Parallel()
 	customSyncProvider := process.NewDoNothingCustomSyncProvider()
 	gRPCDialOptionOverride := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -272,6 +273,7 @@ func TestNewProvider(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			flagdProvider, err := NewProvider(test.options...)
 
 			if err != nil {
