@@ -39,6 +39,8 @@ components:
   providers/prefab:
     - liran2000
     - semanticart
+  tools/flagd-http-connector:
+    - liran2000
 
 ignored-authors:
   - renovate-bot
