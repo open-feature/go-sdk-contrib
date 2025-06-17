@@ -154,7 +154,7 @@ func TestContextEvaluation(t *testing.T) {
 		},
 	}
 
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProviderAndWait(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -172,7 +172,7 @@ func TestContextEvaluation(t *testing.T) {
 }
 
 func TestStringEvaluation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProviderAndWait(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -193,7 +193,7 @@ func TestStringEvaluation(t *testing.T) {
 }
 
 func TestFloatEvaluation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProviderAndWait(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
