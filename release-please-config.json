@@ -148,9 +148,9 @@
       "versioning": "default",
       "extra-files": []
     },
-    "providers/aws-sdk": {
+    "providers/aws-ssm": {
       "release-type": "go",
-      "package-name": "providers/aws-sdk",
+      "package-name": "providers/aws-ssm",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
