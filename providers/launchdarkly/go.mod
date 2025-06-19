@@ -2,8 +2,6 @@ module github.com/open-feature/go-sdk-contrib/providers/launchdarkly
 
 go 1.23.0
 
-toolchain go1.24.3
-
 require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.1.0
