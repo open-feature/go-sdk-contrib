@@ -155,7 +155,7 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
-    },
+    }
   },
   "changelog-sections": [
     {
