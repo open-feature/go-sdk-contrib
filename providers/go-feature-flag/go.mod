@@ -7,7 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/bluele/gcache v0.0.2
 	github.com/open-feature/go-sdk v1.15.1
-	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.5
+	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.6
 	github.com/stretchr/testify v1.9.0
 )
 
