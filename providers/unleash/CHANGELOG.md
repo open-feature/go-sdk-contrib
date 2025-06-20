@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.1.0-alpha...providers/unleash/v0.1.1-alpha) (2025-06-20)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+
 ## [0.1.0-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/unleash/v0.0.5-alpha...providers/unleash/v0.1.0-alpha) (2025-02-07)
 
 
