@@ -8,13 +8,11 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-
 const providerName = "AWS SSM"
 
 type Provider struct {
 	svc *service.AWS
 }
-
 
 func NewProvider(opts ProviderOptions) (*Provider, error) {
 
@@ -25,11 +23,10 @@ func NewProvider(opts ProviderOptions) (*Provider, error) {
 	}
 
 	return &Provider{
-		svc : svc,
+		svc: svc,
 	}, nil
 
 }
-
 
 func (p *Provider) Metadata() openfeature.Metadata {
 	return openfeature.Metadata{
@@ -40,7 +37,6 @@ func (p *Provider) Metadata() openfeature.Metadata {
 func (p *Provider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
 }
-
 
 func (p Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
 	return p.svc.ResolveBoolean(ctx, flag, defaultValue, evalCtx)

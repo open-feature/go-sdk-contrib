@@ -11,7 +11,7 @@ import (
 )
 
 type AWS struct {
-	client     *ssm.Client
+	client     SSMClient
 	decryption bool
 }
 
