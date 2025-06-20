@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.0...providers/flagd/v0.3.1) (2025-06-20)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+* **deps:** update jsonlogic module to fix race detection ([#691](https://github.com/open-feature/go-sdk-contrib/issues/691)) ([21f3de0](https://github.com/open-feature/go-sdk-contrib/commit/21f3de0d39a6d23000957bd6f278df466af385e4))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/connectrpc/go to v1.18.1-20250529171031-ebdc14163473.1 ([#699](https://github.com/open-feature/go-sdk-contrib/issues/699)) ([6c7044d](https://github.com/open-feature/go-sdk-contrib/commit/6c7044de8bf10d12ed07f4c66335e297c444a6fe))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/grpc/go to v1.5.1-20250529171031-ebdc14163473.2 ([#700](https://github.com/open-feature/go-sdk-contrib/issues/700)) ([4747395](https://github.com/open-feature/go-sdk-contrib/commit/474739580f3c7f72e031929b99ab0b86ba4812bb))
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency go to v1.24.4 ([#689](https://github.com/open-feature/go-sdk-contrib/issues/689)) ([23da33c](https://github.com/open-feature/go-sdk-contrib/commit/23da33c7a89c269960652a588185c94d6e6d254c))
+
 ## [0.3.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.6...providers/flagd/v0.3.0) (2025-06-07)
 
 
