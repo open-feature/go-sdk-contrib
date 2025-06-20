@@ -3,7 +3,7 @@
     "hooks/validator": "0.1.6",
     "providers/configcat": "0.2.2",
     "providers/flagd": "0.3.0",
-    "providers/flipt": "0.1.4",
+    "providers/flipt": "0.1.5",
     "providers/from-env": "0.1.5",
     "providers/go-feature-flag": "0.2.6",
     "providers/gcp": "0.0.1",
