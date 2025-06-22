@@ -15,6 +15,10 @@ type AWS struct {
 	decryption bool
 }
 
+type SSMClient interface {
+	GetParameter(ctx context.Context, params *ssm.GetParameterInput, opts ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+}
+
 func NewAWSService() (*AWS, error) {
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
