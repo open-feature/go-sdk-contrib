@@ -8,7 +8,6 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-const providerName = "AWS SSM"
 
 type Provider struct {
 	svc *service.AWS
