@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/aws-ssm
 
-go 1.24.3
+go 1.23
 
 require github.com/open-feature/go-sdk v1.15.1
 
