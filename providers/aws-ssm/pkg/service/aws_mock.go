@@ -12,13 +12,14 @@ type SSMClient interface {
 }
 
 type mockSSMClient struct {
-	output    *ssm.GetParameterOutput
 	err       error
 	responses map[string]*types.Parameter
 }
 
-var mockValue = "mock-value"
-var mockDataType = "text/plain"
+const (
+	mockValue    = "mock-value"
+	mockDataType = "text/plain"
+)
 
 func NewMockSSMClient() *mockSSMClient {
 	return &mockSSMClient{
