@@ -14,18 +14,15 @@ type Provider struct {
 	svc *service.AWS
 }
 
-func NewProvider(opts ProviderOptions) (*Provider, error) {
-
+func NewProvider() (*Provider, error) {
 	svc, err := service.NewAWSService()
-
 	if err != nil {
-		return nil, fmt.Errorf("could not inizialize provider: %v+", err)
+		return nil, fmt.Errorf("failed to initialize AWS SSM provider: %w", err)
 	}
 
 	return &Provider{
 		svc: svc,
 	}, nil
-
 }
 
 func (p *Provider) Metadata() openfeature.Metadata {
