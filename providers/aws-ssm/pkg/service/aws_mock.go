@@ -16,7 +16,7 @@ type mockSSMClient struct {
 	responses map[string]*types.Parameter
 }
 
-const (
+var (
 	mockValue    = "mock-value"
 	mockDataType = "text/plain"
 )
