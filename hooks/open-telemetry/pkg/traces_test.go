@@ -69,15 +69,15 @@ func TestHookMethods(t *testing.T) {
 		}
 		for _, attr := range spans[0].Events[0].Attributes {
 			switch attr.Key {
-			case EventPropertyFlagKey:
+			case semconv.FeatureFlagKeyKey:
 				if attr.Value.AsString() != flagKey {
 					t.Errorf("unexpected feature_flag.key attribute value: %s", attr.Value.AsString())
 				}
-			case EventPropertyProviderName:
+			case semconv.FeatureFlagProviderNameKey:
 				if attr.Value.AsString() != providerName {
 					t.Errorf("unexpected feature_flag.provider_name attribute value: %s", attr.Value.AsString())
 				}
-			case EventPropertyVariant:
+			case semconv.FeatureFlagResultVariantKey:
 				if attr.Value.AsString() != variant {
 					t.Errorf("unexpected feature_flag.variant attribute value: %s", attr.Value.AsString())
 				}

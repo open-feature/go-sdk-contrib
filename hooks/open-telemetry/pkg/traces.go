@@ -11,12 +11,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	EventName                 = "feature_flag"
-	EventPropertyFlagKey      = "feature_flag.key"
-	EventPropertyProviderName = "feature_flag.provider_name"
-	EventPropertyVariant      = "feature_flag.variant"
-)
+// EventName is the name of the span event.
+const EventName = "feature_flag.evaluation"
 
 // traceHook is the hook implementation for OTel traces.
 type traceHook struct {
