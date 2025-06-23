@@ -9,6 +9,9 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
+// SSMMetadataKey is the key used in flag metadata to store SSM result metadata
+const SSMMetadataKey = "SSMMetadata"
+
 type AWS struct {
 	client     SSMClient
 	decryption bool
@@ -58,7 +61,7 @@ func (svc *AWS) ResolveBoolean(ctx context.Context, flag string, defaultValue bo
 		ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 			Reason: openfeature.StaticReason,
 			FlagMetadata: openfeature.FlagMetadata{
-				"SSMMetadata": res.ResultMetadata,
+				SSMMetadataKey: res.ResultMetadata,
 			},
 		},
 	}
@@ -84,7 +87,7 @@ func (svc *AWS) ResolveString(ctx context.Context, flag string, defaultValue str
 		ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 			Reason: openfeature.StaticReason,
 			FlagMetadata: openfeature.FlagMetadata{
-				"SSMMetadata": res.ResultMetadata,
+				SSMMetadataKey: res.ResultMetadata,
 			},
 		},
 	}
@@ -157,7 +160,7 @@ func (svc *AWS) ResolveFloat(ctx context.Context, flag string, defaultValue floa
 		ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 			Reason: openfeature.StaticReason,
 			FlagMetadata: openfeature.FlagMetadata{
-				"SSMMetadata": res.ResultMetadata,
+				SSMMetadataKey: res.ResultMetadata,
 			},
 		},
 	}
@@ -181,7 +184,7 @@ func (svc *AWS) ResolveObject(ctx context.Context, flag string, defaultValue any
 		ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 			Reason: openfeature.StaticReason,
 			FlagMetadata: openfeature.FlagMetadata{
-				"SSMMetadata": res.ResultMetadata,
+				SSMMetadataKey: res.ResultMetadata,
 			},
 		},
 	}
