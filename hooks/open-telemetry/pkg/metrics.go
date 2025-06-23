@@ -10,9 +10,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 )
 
-// ScopeName is the instrumentation scope name.
-const ScopeName = "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry"
-
 const (
 	evaluationActive   = "feature_flag.evaluation_active_count"
 	evaluationRequests = "feature_flag.evaluation_requests_total"
@@ -32,13 +29,13 @@ type MetricsHook struct {
 
 var _ openfeature.Hook = &MetricsHook{}
 
-// NewMetricsHook builds a metric hook backed by a globally set metric.MeterProvider.
-// Use otel.SetMeterProvider to set the global provider or use NewMetricsHookForProvider.
+// NewMetricsHook builds a metric hook backed by a globally set [metric.MeterProvider].
+// Use [otel.SetMeterProvider] to set the global provider or use [NewMetricsHookForProvider].
 func NewMetricsHook(opts ...MetricOptions) (*MetricsHook, error) {
 	return NewMetricsHookForProvider(otel.GetMeterProvider(), opts...)
 }
 
-// NewMetricsHookForProvider builds a metric hook backed by metric.MeterProvider.
+// NewMetricsHookForProvider builds a metric hook backed by [metric.MeterProvider].
 func NewMetricsHookForProvider(provider metric.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
 	meter := provider.Meter(ScopeName)
 
@@ -79,7 +76,7 @@ func NewMetricsHookForProvider(provider metric.MeterProvider, opts ...MetricOpti
 func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
 	hint openfeature.HookHints,
 ) (*openfeature.EvaluationContext, error) {
-	h.activeCounter.Add(ctx, +1, metric.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
+	h.activeCounter.Add(ctx, 1, metric.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 
 	h.requestCounter.Add(ctx, 1,
 		metric.WithAttributes(
@@ -151,14 +148,14 @@ type DimensionDescription struct {
 }
 
 // WithFlagMetadataDimensions allows configuring extra dimensions for feature_flag.evaluation_success_total metric.
-// If provided, dimensions will be extracted from openfeature.FlagMetadata & added to the metric with the same key
+// If provided, dimensions will be extracted from [openfeature.FlagMetadata] & added to the metric with the same key.
 func WithFlagMetadataDimensions(descriptions ...DimensionDescription) MetricOptions {
 	return func(metricsHook *MetricsHook) {
 		metricsHook.flagEvalMetadataDimensions = descriptions
 	}
 }
 
-// WithMetricsAttributeSetter allows to set a extractionCallback which accept openfeature.FlagMetadata and returns
+// WithMetricsAttributeSetter allows to set a extractionCallback which accepts a [openfeature.FlagMetadata] and returns
 // []attribute.KeyValue derived from those metadata.
 func WithMetricsAttributeSetter(callback func(openfeature.FlagMetadata) []attribute.KeyValue) MetricOptions {
 	return func(metricsHook *MetricsHook) {
@@ -166,8 +163,8 @@ func WithMetricsAttributeSetter(callback func(openfeature.FlagMetadata) []attrib
 	}
 }
 
-// descriptionsToAttributes is a helper to extract dimensions from openfeature.FlagMetadata. Missing metadata
-// dimensions are ignore.
+// descriptionsToAttributes is a helper to extract dimensions from [openfeature.FlagMetadata]. Missing metadata
+// dimensions are ignored.
 func descriptionsToAttributes(metadata openfeature.FlagMetadata, descriptions []DimensionDescription) []attribute.KeyValue {
 	attribs := []attribute.KeyValue{}
 	for _, dimension := range descriptions {
