@@ -118,7 +118,9 @@ func (h *MetricsHook) Error(ctx context.Context, hCtx openfeature.HookContext, e
 		metric.WithAttributes(
 			semconv.FeatureFlagKey(hCtx.FlagKey()),
 			semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name),
-			attribute.String(semconv.ExceptionEventName, err.Error())))
+			semconv.FeatureFlagEvaluationErrorMessage(err.Error()),
+		),
+	)
 }
 
 func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) {
