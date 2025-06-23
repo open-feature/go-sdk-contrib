@@ -17,14 +17,24 @@ Here's a basic example of using the AWS SSM provider:
 import (
 	"context"
 	"fmt"
+	"log"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/open-feature/go-sdk/openfeature"
-	"github.com/open-feature/go-sdk-contrib/providers/aws-ssm"
+	ssm "github.com/open-feature/go-sdk-contrib/providers/aws-ssm"
 )
 
 func main() {
+
+	// Retrieve AWS Config
+	cfg, err := config.LoadDefaultConfig(context.Background())
+
+	if err != nil {
+		log.Fatalf("failed to load AWS config: %v", err)
+	}
+
 	// Initialize the provider
-	provider := aws.NewProvider()
+	provider := ssm.NewProvider(cfg)
 	err := openfeature.SetProvider(provider)
 
 	// Create OpenFeature client
