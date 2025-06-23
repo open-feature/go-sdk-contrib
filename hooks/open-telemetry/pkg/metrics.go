@@ -10,9 +10,10 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 )
 
-const (
-	meterName = "go.openfeature.dev"
+// ScopeName is the instrumentation scope name.
+const ScopeName = "github.com/open-feature/go-sdk-contrib/hooks/open-telemetry"
 
+const (
 	evaluationActive   = "feature_flag.evaluation_active_count"
 	evaluationRequests = "feature_flag.evaluation_requests_total"
 	evaluationSuccess  = "feature_flag.evaluation_success_total"
@@ -39,7 +40,7 @@ func NewMetricsHook(opts ...MetricOptions) (*MetricsHook, error) {
 
 // NewMetricsHookForProvider builds a metric hook backed by metric.MeterProvider.
 func NewMetricsHookForProvider(provider metric.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
-	meter := provider.Meter(meterName)
+	meter := provider.Meter(ScopeName)
 
 	activeCounter, err := meter.Int64UpDownCounter(evaluationActive, metric.WithDescription("active flag evaluations counter"))
 	if err != nil {
