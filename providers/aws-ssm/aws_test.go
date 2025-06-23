@@ -5,12 +5,20 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
 func TestNewAWSService(t *testing.T) {
-	aws, err := NewAWSService()
+
+	cfg, err := config.LoadDefaultConfig(context.Background())
+
+	if err != nil {
+		t.Fatalf("Failed to load AWS config: %v", err)
+	}
+
+	aws, err := NewAWSService(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create AWS service: %v", err)
 	}

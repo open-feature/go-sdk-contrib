@@ -3,17 +3,17 @@ package awsssm
 import (
 	"context"
 	"fmt"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/open-feature/go-sdk/openfeature"
 )
-
 
 type Provider struct {
 	svc *AWS
 }
 
-
-func NewProvider() (*Provider, error) {
-	svc, err := NewAWSService()
+func NewProvider(cfg aws.Config) (*Provider, error) {
+	svc, err := NewAWSService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize AWS SSM provider: %w", err)
 	}

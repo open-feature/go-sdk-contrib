@@ -2,10 +2,9 @@ package awsssm
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/open-feature/go-sdk/openfeature"
 )
@@ -19,13 +18,7 @@ type SSMClient interface {
 	GetParameter(ctx context.Context, params *ssm.GetParameterInput, opts ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
 
-func NewAWSService() (*AWS, error) {
-
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-
-	if err != nil {
-		return nil, fmt.Errorf("could not initialize aws config : %v+", err)
-	}
+func NewAWSService(cfg aws.Config) (*AWS, error) {
 
 	client := ssm.NewFromConfig(cfg)
 
