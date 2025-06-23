@@ -19,16 +19,16 @@ import (
 	"fmt"
 
 	"github.com/open-feature/go-sdk/openfeature"
-	"github.com/open-feature/go-sdk-contrib/providers/aws-ssm/pkg"
+	"github.com/open-feature/go-sdk-contrib/providers/aws-ssm"
 )
 
 func main() {
 	// Initialize the provider
 	provider := aws.NewProvider()
-	openfeature.SetProvider(provider)
+	err := openfeature.SetProvider(provider)
 
 	// Create OpenFeature client
-	client := openfeature.NewClient("app")
+	client := openfeature.NewClient("")
 
 	// Evaluate a feature flag
 	val, err := client.BooleanValue(context.Background(), "/path/to/feature/flag", false, nil)

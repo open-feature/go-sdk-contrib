@@ -1,4 +1,4 @@
-package service
+package awsssm
 
 import (
 	"context"
@@ -170,7 +170,7 @@ func (svc *AWS) ResolveFloat(ctx context.Context, flag string, defaultValue floa
 	}
 }
 
-func (svc *AWS) ResolveObject(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (svc *AWS) ResolveObject(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	res, err := svc.getValueFromSSM(ctx, flag)
 
 	if err != nil {
