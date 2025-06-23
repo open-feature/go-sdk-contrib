@@ -3,11 +3,11 @@ package otel
 import (
 	"context"
 	"errors"
-	"go.opentelemetry.io/otel/codes"
 	"testing"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
@@ -37,7 +37,7 @@ func TestHookMethods(t *testing.T) {
 				},
 				openfeature.NewEvaluationContext(
 					"test-targeting-key",
-					map[string]interface{}{
+					map[string]any{
 						"this": "that",
 					},
 				),
@@ -50,7 +50,7 @@ func TestHookMethods(t *testing.T) {
 				},
 			},
 			openfeature.NewHookHints(
-				map[string]interface{}{},
+				map[string]any{},
 			),
 		)
 		if err != nil {
@@ -164,7 +164,7 @@ func TestHookMethods(t *testing.T) {
 				},
 				openfeature.NewEvaluationContext(
 					"test-targeting-key",
-					map[string]interface{}{
+					map[string]any{
 						"this": "that",
 					},
 				),
@@ -177,7 +177,7 @@ func TestHookMethods(t *testing.T) {
 				},
 			},
 			openfeature.NewHookHints(
-				map[string]interface{}{},
+				map[string]any{},
 			),
 		)
 		if err != nil {
