@@ -6,7 +6,7 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	api "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
 )
 
@@ -20,10 +20,10 @@ const (
 )
 
 type MetricsHook struct {
-	activeCounter  api.Int64UpDownCounter
-	requestCounter api.Int64Counter
-	successCounter api.Int64Counter
-	errorCounter   api.Int64Counter
+	activeCounter  metric.Int64UpDownCounter
+	requestCounter metric.Int64Counter
+	successCounter metric.Int64Counter
+	errorCounter   metric.Int64Counter
 
 	flagEvalMetadataDimensions []DimensionDescription
 	attributeMapperCallback    func(openfeature.FlagMetadata) []attribute.KeyValue
@@ -38,25 +38,25 @@ func NewMetricsHook(opts ...MetricOptions) (*MetricsHook, error) {
 }
 
 // NewMetricsHookForProvider builds a metric hook backed by metric.MeterProvider.
-func NewMetricsHookForProvider(provider api.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
+func NewMetricsHookForProvider(provider metric.MeterProvider, opts ...MetricOptions) (*MetricsHook, error) {
 	meter := provider.Meter(meterName)
 
-	activeCounter, err := meter.Int64UpDownCounter(evaluationActive, api.WithDescription("active flag evaluations counter"))
+	activeCounter, err := meter.Int64UpDownCounter(evaluationActive, metric.WithDescription("active flag evaluations counter"))
 	if err != nil {
 		return nil, err
 	}
 
-	evalCounter, err := meter.Int64Counter(evaluationRequests, api.WithDescription("feature flag evaluation request counter"))
+	evalCounter, err := meter.Int64Counter(evaluationRequests, metric.WithDescription("feature flag evaluation request counter"))
 	if err != nil {
 		return nil, err
 	}
 
-	successCounter, err := meter.Int64Counter(evaluationSuccess, api.WithDescription("feature flag evaluation success counter"))
+	successCounter, err := meter.Int64Counter(evaluationSuccess, metric.WithDescription("feature flag evaluation success counter"))
 	if err != nil {
 		return nil, err
 	}
 
-	errorCounter, err := meter.Int64Counter(evaluationErrors, api.WithDescription("feature flag evaluation error counter"))
+	errorCounter, err := meter.Int64Counter(evaluationErrors, metric.WithDescription("feature flag evaluation error counter"))
 	if err != nil {
 		return nil, err
 	}
@@ -78,10 +78,10 @@ func NewMetricsHookForProvider(provider api.MeterProvider, opts ...MetricOptions
 func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
 	hint openfeature.HookHints,
 ) (*openfeature.EvaluationContext, error) {
-	h.activeCounter.Add(ctx, +1, api.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
+	h.activeCounter.Add(ctx, +1, metric.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 
 	h.requestCounter.Add(ctx, 1,
-		api.WithAttributes(
+		metric.WithAttributes(
 			semconv.FeatureFlagKey(hCtx.FlagKey()),
 			semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name)))
 
@@ -110,21 +110,21 @@ func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 		attribs = append(attribs, h.attributeMapperCallback(details.FlagMetadata)...)
 	}
 
-	h.successCounter.Add(ctx, 1, api.WithAttributes(attribs...))
+	h.successCounter.Add(ctx, 1, metric.WithAttributes(attribs...))
 
 	return nil
 }
 
 func (h *MetricsHook) Error(ctx context.Context, hCtx openfeature.HookContext, err error, hint openfeature.HookHints) {
 	h.errorCounter.Add(ctx, 1,
-		api.WithAttributes(
+		metric.WithAttributes(
 			semconv.FeatureFlagKey(hCtx.FlagKey()),
 			semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name),
 			attribute.String(semconv.ExceptionEventName, err.Error())))
 }
 
 func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) {
-	h.activeCounter.Add(ctx, -1, api.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
+	h.activeCounter.Add(ctx, -1, metric.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 }
 
 // Extra options for metrics hook
