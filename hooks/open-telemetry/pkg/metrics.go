@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 )
 
 const (
@@ -97,7 +97,7 @@ func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
 	}
 
 	if details.Variant != "" {
-		attribs = append(attribs, semconv.FeatureFlagVariant(details.Variant))
+		attribs = append(attribs, semconv.FeatureFlagResultVariant(details.Variant))
 	}
 
 	if details.Reason != "" {

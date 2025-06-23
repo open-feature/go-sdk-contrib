@@ -7,7 +7,7 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -46,7 +46,7 @@ func (h *traceHook) After(ctx context.Context, hookContext openfeature.HookConte
 		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),
 	}
 	if flagEvaluationDetails.Variant != "" {
-		attribs = append(attribs, semconv.FeatureFlagVariant(flagEvaluationDetails.Variant))
+		attribs = append(attribs, semconv.FeatureFlagResultVariant(flagEvaluationDetails.Variant))
 	}
 
 	if h.attributeMapperCallback != nil {
