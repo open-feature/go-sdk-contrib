@@ -9,11 +9,14 @@ import (
 )
 
 type Provider struct {
-	svc *AWS
+	svc *awsService
 }
 
-func NewProvider(cfg aws.Config) (*Provider, error) {
-	svc, err := NewAWSService(cfg)
+type ProviderOption func(*Provider)
+
+
+func NewProvider(cfg aws.Config, opts ...ProviderOption) (*Provider, error) {
+	svc, err := newAWSService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize AWS SSM provider: %w", err)
 	}

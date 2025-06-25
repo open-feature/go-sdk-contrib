@@ -18,7 +18,7 @@ func TestNewAWSService(t *testing.T) {
 		t.Fatalf("Failed to load AWS config: %v", err)
 	}
 
-	aws, err := NewAWSService(cfg)
+	aws, err := newAWSService(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create AWS service: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestResolveBoolean(t *testing.T) {
 	mockClient := NewMockSSMClient()
 	mockClient.WithResponse("test", "true", types.ParameterTypeString)
 
-	aws := &AWS{
+	aws := &awsService{
 		client: mockClient,
 	}
 
@@ -46,7 +46,7 @@ func TestResolveBoolean(t *testing.T) {
 	mockClient = NewMockSSMClient()
 	mockClient.WithResponse("test", "not-a-boolean", types.ParameterTypeString)
 
-	aws = &AWS{
+	aws = &awsService{
 		client: mockClient,
 	}
 	result = aws.ResolveBoolean(context.Background(), "test", false, openfeature.FlattenedContext{})
@@ -62,7 +62,7 @@ func TestResolveString(t *testing.T) {
 	mockClient := NewMockSSMClient()
 	mockClient.WithResponse("test", "mock-value", types.ParameterTypeString)
 
-	aws := &AWS{
+	aws := &awsService{
 		client: mockClient,
 	}
 
@@ -77,7 +77,7 @@ func TestResolveString(t *testing.T) {
 	mockClient = NewMockSSMClient()
 	mockClient.WithError(fmt.Errorf("mock error"))
 
-	aws = &AWS{
+	aws = &awsService{
 		client: mockClient,
 	}
 	result = aws.ResolveString(context.Background(), "test", "default", openfeature.FlattenedContext{})
@@ -92,7 +92,7 @@ func TestResolveString(t *testing.T) {
 func TestWithDecryption(t *testing.T) {
 	mockClient := NewMockSSMClient()
 
-	aws := &AWS{
+	aws := &awsService{
 		client:     mockClient,
 		decryption: false,
 	}
@@ -112,7 +112,7 @@ func TestResolveBooleanError(t *testing.T) {
 	mockClient := NewMockSSMClient()
 	mockClient.WithError(fmt.Errorf("mock error"))
 
-	aws := &AWS{
+	aws := &awsService{
 		client: mockClient,
 	}
 
@@ -129,7 +129,7 @@ func TestResolveStringError(t *testing.T) {
 	mockClient := NewMockSSMClient()
 	mockClient.WithError(fmt.Errorf("mock error"))
 
-	aws := &AWS{
+	aws := &awsService{
 		client: mockClient,
 	}
 
