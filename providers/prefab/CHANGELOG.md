@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/prefab/v0.0.3...providers/prefab/v0.0.4) (2025-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+
 ## [0.0.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/prefab/v0.0.2...providers/prefab/v0.0.3) (2025-06-19)
 
 
