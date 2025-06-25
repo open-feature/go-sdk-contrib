@@ -21,13 +21,13 @@ type ssmClient interface {
 	GetParameter(ctx context.Context, params *ssm.GetParameterInput, opts ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
 
-func newAWSService(cfg aws.Config) (*awsService, error) {
+func newAWSService(cfg aws.Config) (*awsService) {
 
 	client := ssm.NewFromConfig(cfg)
 
 	return &awsService{
 		client: client,
-	}, nil
+	}
 }
 
 func (svc *awsService) ResolveBoolean(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
