@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
 )
 
 const (
@@ -118,7 +118,7 @@ func (h *MetricsHook) Error(ctx context.Context, hCtx openfeature.HookContext, e
 		metric.WithAttributes(
 			semconv.FeatureFlagKey(hCtx.FlagKey()),
 			semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name),
-			semconv.FeatureFlagEvaluationErrorMessage(err.Error()),
+			semconv.ErrorMessage(err.Error()),
 		),
 	)
 }
