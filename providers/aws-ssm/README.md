@@ -27,7 +27,7 @@ import (
 func main() {
 
 	// Retrieve AWS Config
-	cfg, err := config.LoadDefaultConfig(context.Background())
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 
 	if err != nil {
 		log.Fatalf("failed to load AWS config: %v", err)
@@ -41,7 +41,7 @@ func main() {
 	client := openfeature.NewClient("")
 
 	// Evaluate a feature flag
-	val, err := client.BooleanValue(context.Background(), "/path/to/feature/flag", false, nil)
+	val, err := client.BooleanValue(context.TODO(), "/path/to/feature/flag", false, nil)
 	fmt.Printf("val: %+v - error: %v\n", val, err)
 }
 ```

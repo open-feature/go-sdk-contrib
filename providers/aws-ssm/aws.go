@@ -12,25 +12,25 @@ import (
 // SSMMetadataKey is the key used in flag metadata to store SSM result metadata
 const SSMMetadataKey = "SSMMetadata"
 
-type AWS struct {
-	client     SSMClient
+type awsService struct {
+	client     ssmClient
 	decryption bool
 }
 
-type SSMClient interface {
+type ssmClient interface {
 	GetParameter(ctx context.Context, params *ssm.GetParameterInput, opts ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
 
-func NewAWSService(cfg aws.Config) (*AWS, error) {
+func newAWSService(cfg aws.Config) (*awsService, error) {
 
 	client := ssm.NewFromConfig(cfg)
 
-	return &AWS{
+	return &awsService{
 		client: client,
 	}, nil
 }
 
-func (svc *AWS) ResolveBoolean(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
+func (svc *awsService) ResolveBoolean(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
 
 	res, err := svc.getValueFromSSM(ctx, flag)
 
@@ -68,7 +68,7 @@ func (svc *AWS) ResolveBoolean(ctx context.Context, flag string, defaultValue bo
 
 }
 
-func (svc *AWS) ResolveString(ctx context.Context, flag string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
+func (svc *awsService) ResolveString(ctx context.Context, flag string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
 
 	res, err := svc.getValueFromSSM(ctx, flag)
 
@@ -94,7 +94,7 @@ func (svc *AWS) ResolveString(ctx context.Context, flag string, defaultValue str
 
 }
 
-func (svc *AWS) ResolveInt(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
+func (svc *awsService) ResolveInt(ctx context.Context, flag string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
 	res, err := svc.getValueFromSSM(ctx, flag)
 
 	if err != nil {
@@ -130,7 +130,7 @@ func (svc *AWS) ResolveInt(ctx context.Context, flag string, defaultValue int64,
 	}
 }
 
-func (svc *AWS) ResolveFloat(ctx context.Context, flag string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
+func (svc *awsService) ResolveFloat(ctx context.Context, flag string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
 	res, err := svc.getValueFromSSM(ctx, flag)
 
 	if err != nil {
@@ -166,7 +166,7 @@ func (svc *AWS) ResolveFloat(ctx context.Context, flag string, defaultValue floa
 	}
 }
 
-func (svc *AWS) ResolveObject(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (svc *awsService) ResolveObject(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	res, err := svc.getValueFromSSM(ctx, flag)
 
 	if err != nil {
@@ -190,12 +190,12 @@ func (svc *AWS) ResolveObject(ctx context.Context, flag string, defaultValue any
 	}
 }
 
-func (svc *AWS) WithDecryption(decryption bool) *AWS {
+func (svc *awsService) WithDecryption(decryption bool) *awsService {
 	svc.decryption = decryption
 	return svc
 }
 
-func (svc *AWS) getValueFromSSM(ctx context.Context, flag string) (*ssm.GetParameterOutput, error) {
+func (svc *awsService) getValueFromSSM(ctx context.Context, flag string) (*ssm.GetParameterOutput, error) {
 
 	param := &ssm.GetParameterInput{
 		Name:           &flag,
