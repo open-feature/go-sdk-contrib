@@ -21,15 +21,8 @@ type ctxEvaluationCtxKey struct{}
 // ctxReasonKey is the key used to pass the evaluation reason across tests
 type ctxReasonKey struct{}
 
-// PrepareFlagdJsonTestSuite register provider supplier and register test steps
-func PrepareFlagdJsonTestSuite(providerSupplier func() openfeature.FeatureProvider) {
-	test_provider_supplier = providerSupplier
-}
-
 // InitializeFlagdJsonScenario initializes the flagd json evaluator test scenario
 func InitializeFlagdJsonScenario(ctx *godog.ScenarioContext) {
-	ctx.Step(`^a flagd provider is set$`, aFlagdProviderIsSet)
-
 	ctx.Step(`^a string flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aFlagdStringFlagWithKeyIsEvaluatedWithDefaultValue)
 	ctx.Step(`^an integer flag with key "([^"]*)" is evaluated with default value (\d+)$`, aFlagdIntegerFlagWithKeyIsEvaluatedWithDefaultValue)
 

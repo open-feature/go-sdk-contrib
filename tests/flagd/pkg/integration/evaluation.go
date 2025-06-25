@@ -10,61 +10,56 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// PrepareEvaluationTestSuite register provider supplier for this test run
-func PrepareEvaluationTestSuite(providerSupplier func() openfeature.FeatureProvider) {
-	test_provider_supplier = providerSupplier
-}
-
 // InitializeEvaluationScenario initializes the evaluation test scenario
 func InitializeEvaluationScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a provider is registered$`, aFlagdProviderIsSet)
 
-	ctx.Step(`^a boolean flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aBooleanFlagWithKeyIsEvaluatedWithDefaultValue)
-	ctx.Step(`^the resolved boolean value should be "([^"]*)"$`, theResolvedBooleanValueShouldBe)
+	ctx.Step(`^a boolean flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, evaluation_aBooleanFlagWithKeyIsEvaluatedWithDefaultValue)
+	ctx.Step(`^the resolved boolean value should be "([^"]*)"$`, evaluation_theResolvedBooleanValueShouldBe)
 
-	ctx.Step(`^a string flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aStringFlagWithKeyIsEvaluatedWithDefaultValue)
-	ctx.Step(`^the resolved string value should be "([^"]*)"$`, theResolvedStringValueShouldBe)
+	ctx.Step(`^a string flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, evaluation_aStringFlagWithKeyIsEvaluatedWithDefaultValue)
+	ctx.Step(`^the resolved string value should be "([^"]*)"$`, evaluation_theResolvedStringValueShouldBe)
 
-	ctx.Step(`^an integer flag with key "([^"]*)" is evaluated with default value (\d+)$`, anIntegerFlagWithKeyIsEvaluatedWithDefaultValue)
-	ctx.Step(`^the resolved integer value should be (\d+)$`, theResolvedIntegerValueShouldBe)
+	ctx.Step(`^an integer flag with key "([^"]*)" is evaluated with default value (\d+)$`, evaluation_anIntegerFlagWithKeyIsEvaluatedWithDefaultValue)
+	ctx.Step(`^the resolved integer value should be (\d+)$`, evaluation_theResolvedIntegerValueShouldBe)
 
-	ctx.Step(`^a float flag with key "([^"]*)" is evaluated with default value (\-*\d+\.\d+)$`, aFloatFlagWithKeyIsEvaluatedWithDefaultValue)
-	ctx.Step(`^the resolved float value should be (\-*\d+\.\d+)$`, theResolvedFloatValueShouldBe)
+	ctx.Step(`^a float flag with key "([^"]*)" is evaluated with default value (\-*\d+\.\d+)$`, evaluation_aFloatFlagWithKeyIsEvaluatedWithDefaultValue)
+	ctx.Step(`^the resolved float value should be (\-*\d+\.\d+)$`, evaluation_theResolvedFloatValueShouldBe)
 
-	ctx.Step(`^an object flag with key "([^"]*)" is evaluated with a null default value$`, anObjectFlagWithKeyIsEvaluatedWithANullDefaultValue)
-	ctx.Step(`^the resolved object value should be contain fields "([^"]*)", "([^"]*)", and "([^"]*)", with values "([^"]*)", "([^"]*)" and (\d+), respectively$`, theResolvedObjectValueShouldBeContainFieldsAndWithValuesAndRespectively)
+	ctx.Step(`^an object flag with key "([^"]*)" is evaluated with a null default value$`, evaluation_anObjectFlagWithKeyIsEvaluatedWithANullDefaultValue)
+	ctx.Step(`^the resolved object value should be contain fields "([^"]*)", "([^"]*)", and "([^"]*)", with values "([^"]*)", "([^"]*)" and (\d+), respectively$`, evaluation_theResolvedObjectValueShouldBeContainFieldsAndWithValuesAndRespectively)
 
-	ctx.Step(`^a boolean flag with key "([^"]*)" is evaluated with details and default value "([^"]*)"$`, aBooleanFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
-	ctx.Step(`^the resolved boolean details value should be "([^"]*)", the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, theResolvedBooleanDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
+	ctx.Step(`^a boolean flag with key "([^"]*)" is evaluated with details and default value "([^"]*)"$`, evaluation_aBooleanFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
+	ctx.Step(`^the resolved boolean details value should be "([^"]*)", the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, evaluation_theResolvedBooleanDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
 
-	ctx.Step(`^a string flag with key "([^"]*)" is evaluated with details and default value "([^"]*)"$`, aStringFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
-	ctx.Step(`^the resolved string details value should be "([^"]*)", the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, theResolvedStringDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
+	ctx.Step(`^a string flag with key "([^"]*)" is evaluated with details and default value "([^"]*)"$`, evaluation_aStringFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
+	ctx.Step(`^the resolved string details value should be "([^"]*)", the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, evaluation_theResolvedStringDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
 
-	ctx.Step(`^an integer flag with key "([^"]*)" is evaluated with details and default value (\d+)$`, anIntegerFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
-	ctx.Step(`^the resolved integer details value should be (\d+), the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, theResolvedIntegerDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
+	ctx.Step(`^an integer flag with key "([^"]*)" is evaluated with details and default value (\d+)$`, evaluation_anIntegerFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
+	ctx.Step(`^the resolved integer details value should be (\d+), the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, evaluation_theResolvedIntegerDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
 
-	ctx.Step(`^a float flag with key "([^"]*)" is evaluated with details and default value (\-*\d+\.\d+)$`, aFloatFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
-	ctx.Step(`^the resolved float details value should be (\-*\d+\.\d+), the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, theResolvedFloatDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
+	ctx.Step(`^a float flag with key "([^"]*)" is evaluated with details and default value (\-*\d+\.\d+)$`, evaluation_aFloatFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue)
+	ctx.Step(`^the resolved float details value should be (\-*\d+\.\d+), the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, evaluation_theResolvedFloatDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe)
 
-	ctx.Step(`^an object flag with key "([^"]*)" is evaluated with details and a null default value$`, anObjectFlagWithKeyIsEvaluatedWithDetailsAndANullDefaultValue)
-	ctx.Step(`^the resolved object details value should be contain fields "([^"]*)", "([^"]*)", and "([^"]*)", with values "([^"]*)", "([^"]*)" and (\d+), respectively$`, theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectively)
-	ctx.Step(`^the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, theVariantShouldBeAndTheReasonShouldBe)
+	ctx.Step(`^an object flag with key "([^"]*)" is evaluated with details and a null default value$`, evaluation_anObjectFlagWithKeyIsEvaluatedWithDetailsAndANullDefaultValue)
+	ctx.Step(`^the resolved object details value should be contain fields "([^"]*)", "([^"]*)", and "([^"]*)", with values "([^"]*)", "([^"]*)" and (\d+), respectively$`, evaluation_theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectively)
+	ctx.Step(`^the variant should be "([^"]*)", and the reason should be "([^"]*)"$`, evaluation_theVariantShouldBeAndTheReasonShouldBe)
 
-	ctx.Step(`^context contains keys "([^"]*)", "([^"]*)", "([^"]*)", "([^"]*)" with values "([^"]*)", "([^"]*)", (\d+), "([^"]*)"$`, contextContainsKeysWithValues)
-	ctx.Step(`^a flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, aFlagWithKeyIsEvaluatedWithDefaultValue)
-	ctx.Step(`^the resolved string response should be "([^"]*)"$`, theResolvedStringResponseShouldBe)
-	ctx.Step(`^the resolved flag value is "([^"]*)" when the context is empty$`, theResolvedFlagValueIsWhenTheContextIsEmpty)
+	ctx.Step(`^context contains keys "([^"]*)", "([^"]*)", "([^"]*)", "([^"]*)" with values "([^"]*)", "([^"]*)", (\d+), "([^"]*)"$`, evaluation_contextContainsKeysWithValues)
+	ctx.Step(`^a flag with key "([^"]*)" is evaluated with default value "([^"]*)"$`, evaluation_aFlagWithKeyIsEvaluatedWithDefaultValue)
+	ctx.Step(`^the resolved string response should be "([^"]*)"$`, evaluation_theResolvedStringResponseShouldBe)
+	ctx.Step(`^the resolved flag value is "([^"]*)" when the context is empty$`, evaluation_theResolvedFlagValueIsWhenTheContextIsEmpty)
 
-	ctx.Step(`^a non-existent string flag with key "([^"]*)" is evaluated with details and a default value "([^"]*)"$`, aNonexistentStringFlagWithKeyIsEvaluatedWithDetailsAndADefaultValue)
-	ctx.Step(`^the default string value should be returned$`, theDefaultStringValueShouldBeReturned)
-	ctx.Step(`^the reason should indicate an error and the error code should indicate a missing flag with "([^"]*)"$`, theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateAMissingFlagWith)
+	ctx.Step(`^a non-existent string flag with key "([^"]*)" is evaluated with details and a default value "([^"]*)"$`, evaluation_aNonexistentStringFlagWithKeyIsEvaluatedWithDetailsAndADefaultValue)
+	ctx.Step(`^the default string value should be returned$`, evaluation_theDefaultStringValueShouldBeReturned)
+	ctx.Step(`^the reason should indicate an error and the error code should indicate a missing flag with "([^"]*)"$`, evaluation_theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateAMissingFlagWith)
 
-	ctx.Step(`^a string flag with key "([^"]*)" is evaluated as an integer, with details and a default value (\d+)$`, aStringFlagWithKeyIsEvaluatedAsAnIntegerWithDetailsAndADefaultValue)
-	ctx.Step(`^the default integer value should be returned$`, theDefaultIntegerValueShouldBeReturned)
-	ctx.Step(`^the reason should indicate an error and the error code should indicate a type mismatch with "([^"]*)"$`, theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWith)
+	ctx.Step(`^a string flag with key "([^"]*)" is evaluated as an integer, with details and a default value (\d+)$`, evaluation_aStringFlagWithKeyIsEvaluatedAsAnIntegerWithDetailsAndADefaultValue)
+	ctx.Step(`^the default integer value should be returned$`, evaluation_theDefaultIntegerValueShouldBeReturned)
+	ctx.Step(`^the reason should indicate an error and the error code should indicate a type mismatch with "([^"]*)"$`, evaluation_theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWith)
 }
 
-func aBooleanFlagWithKeyIsEvaluatedWithDefaultValue(
+func evaluation_aBooleanFlagWithKeyIsEvaluatedWithDefaultValue(
 	ctx context.Context, flagKey, defaultValueStr string,
 ) (context.Context, error) {
 	defaultValue, err := strconv.ParseBool(defaultValueStr)
@@ -81,7 +76,7 @@ func aBooleanFlagWithKeyIsEvaluatedWithDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, got), nil
 }
 
-func theResolvedBooleanValueShouldBe(ctx context.Context, expectedValueStr string) error {
+func evaluation_theResolvedBooleanValueShouldBe(ctx context.Context, expectedValueStr string) error {
 	expectedValue, err := strconv.ParseBool(expectedValueStr)
 	if err != nil {
 		return errors.New("expected value must be of type bool")
@@ -99,7 +94,7 @@ func theResolvedBooleanValueShouldBe(ctx context.Context, expectedValueStr strin
 	return nil
 }
 
-func aStringFlagWithKeyIsEvaluatedWithDefaultValue(
+func evaluation_aStringFlagWithKeyIsEvaluatedWithDefaultValue(
 	ctx context.Context, flagKey, defaultValue string,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -111,7 +106,7 @@ func aStringFlagWithKeyIsEvaluatedWithDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, got), nil
 }
 
-func theResolvedStringValueShouldBe(ctx context.Context, expectedValue string) error {
+func evaluation_theResolvedStringValueShouldBe(ctx context.Context, expectedValue string) error {
 	got, ok := ctx.Value(ctxStorageKey{}).(string)
 	if !ok {
 		return errors.New("no flag resolution result")
@@ -124,7 +119,7 @@ func theResolvedStringValueShouldBe(ctx context.Context, expectedValue string) e
 	return nil
 }
 
-func anIntegerFlagWithKeyIsEvaluatedWithDefaultValue(
+func evaluation_anIntegerFlagWithKeyIsEvaluatedWithDefaultValue(
 	ctx context.Context, flagKey string, defaultValue int64,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -136,7 +131,7 @@ func anIntegerFlagWithKeyIsEvaluatedWithDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, got), nil
 }
 
-func theResolvedIntegerValueShouldBe(ctx context.Context, expectedValue int64) error {
+func evaluation_theResolvedIntegerValueShouldBe(ctx context.Context, expectedValue int64) error {
 	got, ok := ctx.Value(ctxStorageKey{}).(int64)
 	if !ok {
 		return errors.New("no flag resolution result")
@@ -149,7 +144,7 @@ func theResolvedIntegerValueShouldBe(ctx context.Context, expectedValue int64) e
 	return nil
 }
 
-func aFloatFlagWithKeyIsEvaluatedWithDefaultValue(
+func evaluation_aFloatFlagWithKeyIsEvaluatedWithDefaultValue(
 	ctx context.Context, flagKey string, defaultValue float64,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -161,7 +156,7 @@ func aFloatFlagWithKeyIsEvaluatedWithDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, got), nil
 }
 
-func theResolvedFloatValueShouldBe(ctx context.Context, expectedValue float64) error {
+func evaluation_theResolvedFloatValueShouldBe(ctx context.Context, expectedValue float64) error {
 	got, ok := ctx.Value(ctxStorageKey{}).(float64)
 	if !ok {
 		return errors.New("no flag resolution result")
@@ -174,7 +169,7 @@ func theResolvedFloatValueShouldBe(ctx context.Context, expectedValue float64) e
 	return nil
 }
 
-func anObjectFlagWithKeyIsEvaluatedWithANullDefaultValue(ctx context.Context, flagKey string) (context.Context, error) {
+func evaluation_anObjectFlagWithKeyIsEvaluatedWithANullDefaultValue(ctx context.Context, flagKey string) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
 	got, err := client.ObjectValue(ctx, flagKey, nil, openfeature.EvaluationContext{})
 	if err != nil {
@@ -184,7 +179,7 @@ func anObjectFlagWithKeyIsEvaluatedWithANullDefaultValue(ctx context.Context, fl
 	return context.WithValue(ctx, ctxStorageKey{}, got), nil
 }
 
-func theResolvedObjectValueShouldBeContainFieldsAndWithValuesAndRespectively(
+func evaluation_theResolvedObjectValueShouldBeContainFieldsAndWithValuesAndRespectively(
 	ctx context.Context, field1, field2, field3, value1, value2 string, value3 int,
 ) error {
 	got, ok := ctx.Value(ctxStorageKey{}).(map[string]interface{})
@@ -192,11 +187,11 @@ func theResolvedObjectValueShouldBeContainFieldsAndWithValuesAndRespectively(
 		return errors.New("no flag resolution result")
 	}
 
-	if err := compareValueToPotentialBool(got[field1], value1); err != nil {
+	if err := evaluation_compareValueToPotentialBool(got[field1], value1); err != nil {
 		return fmt.Errorf("field '%s': %w", field1, err)
 	}
 
-	if err := compareValueToPotentialBool(got[field2], value2); err != nil {
+	if err := evaluation_compareValueToPotentialBool(got[field2], value2); err != nil {
 		return fmt.Errorf("field '%s': %w", field2, err)
 	}
 
@@ -210,7 +205,7 @@ func theResolvedObjectValueShouldBeContainFieldsAndWithValuesAndRespectively(
 	return nil
 }
 
-func aBooleanFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
+func evaluation_aBooleanFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	ctx context.Context, flagKey string, defaultValueStr string,
 ) (context.Context, error) {
 	defaultValue, err := strconv.ParseBool(defaultValueStr)
@@ -234,7 +229,7 @@ func aBooleanFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, store), nil
 }
 
-func theResolvedBooleanDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
+func evaluation_theResolvedBooleanDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	ctx context.Context, valueStr, variant, reason string,
 ) error {
 	value, err := strconv.ParseBool(valueStr)
@@ -242,7 +237,7 @@ func theResolvedBooleanDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldB
 		return errors.New("value must be of type bool")
 	}
 
-	got, err := booleanEvaluationDetails(ctx)
+	got, err := evaluation_booleanEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -260,7 +255,7 @@ func theResolvedBooleanDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldB
 	return nil
 }
 
-func aStringFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
+func evaluation_aStringFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	ctx context.Context, flagKey, defaultValue string,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -279,10 +274,10 @@ func aStringFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, store), nil
 }
 
-func theResolvedStringDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
+func evaluation_theResolvedStringDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	ctx context.Context, value, variant, reason string,
 ) error {
-	got, err := stringEvaluationDetails(ctx)
+	got, err := evaluation_stringEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -300,7 +295,7 @@ func theResolvedStringDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe
 	return nil
 }
 
-func anIntegerFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
+func evaluation_anIntegerFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	ctx context.Context, flagKey string, defaultValue int64,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -319,10 +314,10 @@ func anIntegerFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, store), nil
 }
 
-func theResolvedIntegerDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
+func evaluation_theResolvedIntegerDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	ctx context.Context, value int64, variant, reason string,
 ) error {
-	got, err := integerEvaluationDetails(ctx)
+	got, err := evaluation_integerEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -340,7 +335,7 @@ func theResolvedIntegerDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldB
 	return nil
 }
 
-func aFloatFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
+func evaluation_aFloatFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	ctx context.Context, flagKey string, defaultValue float64,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -359,10 +354,10 @@ func aFloatFlagWithKeyIsEvaluatedWithDetailsAndDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, store), nil
 }
 
-func theResolvedFloatDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
+func evaluation_theResolvedFloatDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	ctx context.Context, value float64, variant, reason string,
 ) error {
-	got, err := floatEvaluationDetails(ctx)
+	got, err := evaluation_floatEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -380,7 +375,7 @@ func theResolvedFloatDetailsValueShouldBeTheVariantShouldBeAndTheReasonShouldBe(
 	return nil
 }
 
-func anObjectFlagWithKeyIsEvaluatedWithDetailsAndANullDefaultValue(
+func evaluation_anObjectFlagWithKeyIsEvaluatedWithDetailsAndANullDefaultValue(
 	ctx context.Context, flagKey string,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -399,10 +394,10 @@ func anObjectFlagWithKeyIsEvaluatedWithDetailsAndANullDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, store), nil
 }
 
-func theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectively(
+func evaluation_theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectively(
 	ctx context.Context, field1, field2, field3, value1, value2 string, value3 int,
 ) (context.Context, error) {
-	gotResDetail, err := interfaceEvaluationDetails(ctx)
+	gotResDetail, err := evaluation_interfaceEvaluationDetails(ctx)
 	if err != nil {
 		return ctx, err
 	}
@@ -415,11 +410,11 @@ func theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectiv
 		)
 	}
 
-	if err := compareValueToPotentialBool(got[field1], value1); err != nil {
+	if err := evaluation_compareValueToPotentialBool(got[field1], value1); err != nil {
 		return ctx, fmt.Errorf("field '%s': %w", field1, err)
 	}
 
-	if err := compareValueToPotentialBool(got[field2], value2); err != nil {
+	if err := evaluation_compareValueToPotentialBool(got[field2], value2); err != nil {
 		return ctx, fmt.Errorf("field '%s': %w", field2, err)
 	}
 
@@ -433,8 +428,8 @@ func theResolvedObjectDetailsValueShouldBeContainFieldsAndWithValuesAndRespectiv
 	return ctx, nil
 }
 
-func theVariantShouldBeAndTheReasonShouldBe(ctx context.Context, variant, reason string) error {
-	got, err := interfaceEvaluationDetails(ctx)
+func evaluation_theVariantShouldBeAndTheReasonShouldBe(ctx context.Context, variant, reason string) error {
+	got, err := evaluation_interfaceEvaluationDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -456,14 +451,14 @@ type contextAwareEvaluationData struct {
 	response          string
 }
 
-func contextContainsKeysWithValues(
+func evaluation_contextContainsKeysWithValues(
 	ctx context.Context, ctxKey1, ctxKey2, ctxKey3, ctxKey4, ctxValue1, ctxValue2 string, ctxValue3 int64, ctxValue4 string,
 ) (context.Context, error) {
 	evalCtx := openfeature.NewEvaluationContext("", map[string]interface{}{
-		ctxKey1: boolOrString(ctxValue1),
-		ctxKey2: boolOrString(ctxValue2),
+		ctxKey1: evaluation_boolOrString(ctxValue1),
+		ctxKey2: evaluation_boolOrString(ctxValue2),
 		ctxKey3: ctxValue3,
-		ctxKey4: boolOrString(ctxValue4),
+		ctxKey4: evaluation_boolOrString(ctxValue4),
 	})
 
 	data := contextAwareEvaluationData{
@@ -473,7 +468,7 @@ func contextContainsKeysWithValues(
 	return context.WithValue(ctx, ctxStorageKey{}, data), nil
 }
 
-func aFlagWithKeyIsEvaluatedWithDefaultValue(
+func evaluation_aFlagWithKeyIsEvaluatedWithDefaultValue(
 	ctx context.Context, flagKey, defaultValue string,
 ) (context.Context, error) {
 	ctxAwareEvalData, ok := ctx.Value(ctxStorageKey{}).(contextAwareEvaluationData)
@@ -492,7 +487,7 @@ func aFlagWithKeyIsEvaluatedWithDefaultValue(
 	return context.WithValue(ctx, ctxStorageKey{}, ctxAwareEvalData), nil
 }
 
-func theResolvedStringResponseShouldBe(ctx context.Context, expectedResponse string) (context.Context, error) {
+func evaluation_theResolvedStringResponseShouldBe(ctx context.Context, expectedResponse string) (context.Context, error) {
 	ctxAwareEvalData, ok := ctx.Value(ctxStorageKey{}).(contextAwareEvaluationData)
 	if !ok {
 		return ctx, errors.New("no contextAwareEvaluationData found")
@@ -505,7 +500,7 @@ func theResolvedStringResponseShouldBe(ctx context.Context, expectedResponse str
 	return ctx, nil
 }
 
-func theResolvedFlagValueIsWhenTheContextIsEmpty(ctx context.Context, expectedResponse string) error {
+func evaluation_theResolvedFlagValueIsWhenTheContextIsEmpty(ctx context.Context, expectedResponse string) error {
 	ctxAwareEvalData, ok := ctx.Value(ctxStorageKey{}).(contextAwareEvaluationData)
 	if !ok {
 		return errors.New("no contextAwareEvaluationData found")
@@ -532,7 +527,7 @@ type stringFlagNotFoundData struct {
 	err          error
 }
 
-func aNonexistentStringFlagWithKeyIsEvaluatedWithDetailsAndADefaultValue(
+func evaluation_aNonexistentStringFlagWithKeyIsEvaluatedWithDetailsAndADefaultValue(
 	ctx context.Context, flagKey, defaultValue string,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -545,7 +540,7 @@ func aNonexistentStringFlagWithKeyIsEvaluatedWithDetailsAndADefaultValue(
 	}), nil
 }
 
-func theDefaultStringValueShouldBeReturned(ctx context.Context) (context.Context, error) {
+func evaluation_theDefaultStringValueShouldBeReturned(ctx context.Context) (context.Context, error) {
 	strNotFoundData, ok := ctx.Value(ctxStorageKey{}).(stringFlagNotFoundData)
 	if !ok {
 		return ctx, errors.New("no stringFlagNotFoundData found")
@@ -561,7 +556,7 @@ func theDefaultStringValueShouldBeReturned(ctx context.Context) (context.Context
 	return ctx, nil
 }
 
-func theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateAMissingFlagWith(
+func evaluation_theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateAMissingFlagWith(
 	ctx context.Context, errorCode string,
 ) error {
 	strNotFoundData, ok := ctx.Value(ctxStorageKey{}).(stringFlagNotFoundData)
@@ -596,7 +591,7 @@ type typeErrorData struct {
 	err          error
 }
 
-func aStringFlagWithKeyIsEvaluatedAsAnIntegerWithDetailsAndADefaultValue(
+func evaluation_aStringFlagWithKeyIsEvaluatedAsAnIntegerWithDetailsAndADefaultValue(
 	ctx context.Context, flagKey string, defaultValue int64,
 ) (context.Context, error) {
 	client := ctx.Value(ctxClientKey{}).(*openfeature.Client)
@@ -609,7 +604,7 @@ func aStringFlagWithKeyIsEvaluatedAsAnIntegerWithDetailsAndADefaultValue(
 	}), nil
 }
 
-func booleanEvaluationDetails(ctx context.Context) (openfeature.BooleanEvaluationDetails, error) {
+func evaluation_booleanEvaluationDetails(ctx context.Context) (openfeature.BooleanEvaluationDetails, error) {
 	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.BooleanEvaluationDetails)
 	if !ok {
 		return openfeature.BooleanEvaluationDetails{}, errors.New("no flag resolution result")
@@ -624,7 +619,7 @@ func booleanEvaluationDetails(ctx context.Context) (openfeature.BooleanEvaluatio
 	return got, nil
 }
 
-func stringEvaluationDetails(ctx context.Context) (openfeature.StringEvaluationDetails, error) {
+func evaluation_stringEvaluationDetails(ctx context.Context) (openfeature.StringEvaluationDetails, error) {
 	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.StringEvaluationDetails)
 	if !ok {
 		return openfeature.StringEvaluationDetails{}, errors.New("no flag resolution result")
@@ -639,7 +634,7 @@ func stringEvaluationDetails(ctx context.Context) (openfeature.StringEvaluationD
 	return got, nil
 }
 
-func integerEvaluationDetails(ctx context.Context) (openfeature.IntEvaluationDetails, error) {
+func evaluation_integerEvaluationDetails(ctx context.Context) (openfeature.IntEvaluationDetails, error) {
 	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.IntEvaluationDetails)
 	if !ok {
 		return openfeature.IntEvaluationDetails{}, errors.New("no flag resolution result")
@@ -654,7 +649,7 @@ func integerEvaluationDetails(ctx context.Context) (openfeature.IntEvaluationDet
 	return got, nil
 }
 
-func floatEvaluationDetails(ctx context.Context) (openfeature.FloatEvaluationDetails, error) {
+func evaluation_floatEvaluationDetails(ctx context.Context) (openfeature.FloatEvaluationDetails, error) {
 	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.FloatEvaluationDetails)
 	if !ok {
 		return openfeature.FloatEvaluationDetails{}, errors.New("no flag resolution result")
@@ -669,7 +664,7 @@ func floatEvaluationDetails(ctx context.Context) (openfeature.FloatEvaluationDet
 	return got, nil
 }
 
-func interfaceEvaluationDetails(ctx context.Context) (openfeature.InterfaceEvaluationDetails, error) {
+func evaluation_interfaceEvaluationDetails(ctx context.Context) (openfeature.InterfaceEvaluationDetails, error) {
 	store, ok := ctx.Value(ctxStorageKey{}).(map[string]openfeature.InterfaceEvaluationDetails)
 	if !ok {
 		return openfeature.InterfaceEvaluationDetails{}, errors.New("no flag resolution result")
@@ -684,7 +679,7 @@ func interfaceEvaluationDetails(ctx context.Context) (openfeature.InterfaceEvalu
 	return got, nil
 }
 
-func theDefaultIntegerValueShouldBeReturned(ctx context.Context) (context.Context, error) {
+func evaluation_theDefaultIntegerValueShouldBeReturned(ctx context.Context) (context.Context, error) {
 	typeErrData, ok := ctx.Value(ctxStorageKey{}).(typeErrorData)
 	if !ok {
 		return ctx, errors.New("no typeErrorData found")
@@ -700,7 +695,7 @@ func theDefaultIntegerValueShouldBeReturned(ctx context.Context) (context.Contex
 	return ctx, nil
 }
 
-func theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWith(
+func evaluation_theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWith(
 	ctx context.Context, expectedErrorCode string,
 ) error {
 	typeErrData, ok := ctx.Value(ctxStorageKey{}).(typeErrorData)
@@ -725,7 +720,7 @@ func theReasonShouldIndicateAnErrorAndTheErrorCodeShouldIndicateATypeMismatchWit
 	return nil
 }
 
-func compareValueToPotentialBool(got interface{}, expected string) error {
+func evaluation_compareValueToPotentialBool(got interface{}, expected string) error {
 	expectedBool, err := strconv.ParseBool(expected)
 	if err != nil {
 		if got.(string) != expected {
@@ -740,7 +735,7 @@ func compareValueToPotentialBool(got interface{}, expected string) error {
 	return nil
 }
 
-func boolOrString(str string) interface{} {
+func evaluation_boolOrString(str string) interface{} {
 	boolean, err := strconv.ParseBool(str)
 	if err != nil {
 		return str
