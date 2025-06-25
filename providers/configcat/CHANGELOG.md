@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/configcat/v0.2.2...providers/configcat/v0.2.3) (2025-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+
 ## [0.2.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/configcat/v0.2.1...providers/configcat/v0.2.2) (2025-03-05)
 
 
