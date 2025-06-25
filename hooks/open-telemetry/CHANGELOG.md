@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.6](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.5...hooks/open-telemetry/v0.3.6) (2025-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+
+
+### ✨ New Features
+
+* update OpenTelemetry hook to use the latest semconv ([#713](https://github.com/open-feature/go-sdk-contrib/issues/713)) ([4d0a91c](https://github.com/open-feature/go-sdk-contrib/commit/4d0a91cf71db9c751240bfa476b4fab226b7e909))
+
+
+### 🧹 Chore
+
+* upgrade otel hook dependencies ([#710](https://github.com/open-feature/go-sdk-contrib/issues/710)) ([374cd5d](https://github.com/open-feature/go-sdk-contrib/commit/374cd5dcf065016eb4052dd3775e1c668866bb14))
+
 ## [0.3.5](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.4...hooks/open-telemetry/v0.3.5) (2025-06-16)
 
 
