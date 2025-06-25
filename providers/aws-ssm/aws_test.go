@@ -18,7 +18,7 @@ func TestNewAWSService(t *testing.T) {
 		t.Fatalf("Failed to load AWS config: %v", err)
 	}
 
-	aws, err := newAWSService(cfg)
+	aws := newAWSService(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create AWS service: %v", err)
 	}
