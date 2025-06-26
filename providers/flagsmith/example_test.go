@@ -31,7 +31,7 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	of := openfeature.NewClient("my-app")
+	of := openfeature.NewClient("")
 
 	evaluationCtx := openfeature.NewEvaluationContext(
 		// The context targeting key is used as the Flagsmith identity's identifier.
