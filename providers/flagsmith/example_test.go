@@ -9,7 +9,6 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-var ctx = context.Background()
 
 func Example() {
 	provider := flagsmith.NewProvider(
@@ -47,7 +46,7 @@ func Example() {
 	)
 
 	hasMyFeature := of.Boolean(
-		ctx,
+		context.TODO(),
 		"my_feature",
 		false,
 		evaluationCtx,
