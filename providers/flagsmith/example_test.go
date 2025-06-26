@@ -18,7 +18,7 @@ func Example() {
 			// Client-side applications should use remote evaluation.
 			// See https://docs.flagsmith.com/clients/
 			"ser.your-server-side-sdk-key",
-			flagsmithClient.WithLocalEvaluation(ctx),
+			flagsmithClient.WithLocalEvaluation(context.TODO()),
 
 			// Only needed if not using Flagsmith SaaS, i.e. https://app.flagsmith.com
 			// flagsmithClient.WithBaseURL("https://flagsmith-api.example.com/api/v1/"),
