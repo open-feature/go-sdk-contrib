@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v3"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"strconv"
+
+	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 type Provider struct {
@@ -317,7 +318,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-// WithBooleanConfigValue configures the provider to use the result of isFeatureEnabled as the boolean value of the flag
+// WithUsingBooleanConfigValue configures the provider to use the result of isFeatureEnabled as the boolean value of the flag
 // i.e: if the flag is enabled, the value will be true, otherwise it will be false
 func WithUsingBooleanConfigValue() ProviderOption {
 	return func(p *Provider) {
