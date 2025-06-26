@@ -20,7 +20,7 @@ func TestMetricsHook_BeforeStage(t *testing.T) {
 
 	ctx := context.Background()
 
-	hookHints := openfeature.NewHookHints(map[string]interface{}{})
+	hookHints := openfeature.NewHookHints(map[string]any{})
 
 	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
@@ -71,7 +71,7 @@ func TestMetricsHook_AfterStage(t *testing.T) {
 			ResolutionDetail: openfeature.ResolutionDetail{},
 		},
 	}
-	hookHints := openfeature.NewHookHints(map[string]interface{}{})
+	hookHints := openfeature.NewHookHints(map[string]any{})
 
 	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
@@ -119,7 +119,7 @@ func TestMetricsHook_ErrorStage(t *testing.T) {
 	ctx := context.Background()
 
 	evalError := errors.New("some eval error")
-	hookHints := openfeature.NewHookHints(map[string]interface{}{})
+	hookHints := openfeature.NewHookHints(map[string]any{})
 
 	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
@@ -181,7 +181,7 @@ func TestMetricsHook_FinallyStage(t *testing.T) {
 	}
 
 	hookContext := hookContext()
-	hookHints := openfeature.NewHookHints(map[string]interface{}{})
+	hookHints := openfeature.NewHookHints(map[string]any{})
 
 	metricsHook, err := NewMetricsHookForProvider(metric.NewMeterProvider(metric.WithReader(manualReader)))
 	if err != nil {
@@ -307,7 +307,7 @@ func TestMetricHook_MetadataExtractionOptions(t *testing.T) {
 			},
 		},
 	}
-	hookHints := openfeature.NewHookHints(map[string]interface{}{})
+	hookHints := openfeature.NewHookHints(map[string]any{})
 
 	t.Run("from dimensionDescriptions", func(t *testing.T) {
 		// when
