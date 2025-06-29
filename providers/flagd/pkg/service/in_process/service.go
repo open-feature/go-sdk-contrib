@@ -32,6 +32,7 @@ type InProcess struct {
 	serviceMetadata  model.Metadata
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
+	wg               parallel.WaitGroup
 }
 
 type Configuration struct {
@@ -93,7 +94,9 @@ func (i *InProcess) Init() error {
 	syncChan := make(chan sync.DataSync, 1)
 
 	// start data sync
+	i.wg.Add(1)
 	go func() {
+		defer i.wg.Done()
 		err := i.sync.Sync(ctx, syncChan)
 		if err != nil {
 			syncInitErr <- err
@@ -101,7 +104,9 @@ func (i *InProcess) Init() error {
 	}()
 
 	// start data sync listener and listen to listener shutdown hook
+	i.wg.Add(1)
 	go func() {
+		defer i.wg.Done()
 		for {
 			select {
 			case data := <-syncChan:
@@ -144,6 +149,7 @@ func (i *InProcess) Init() error {
 func (i *InProcess) Shutdown() {
 	i.syncEnd()
 	close(i.listenerShutdown)
+	i.wg.Wait()
 }
 
 func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue bool,
