@@ -8,7 +8,7 @@ require (
 	github.com/bluele/gcache v0.0.2
 	github.com/open-feature/go-sdk v1.15.1
 	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.6
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
