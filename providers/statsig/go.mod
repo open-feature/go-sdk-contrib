@@ -7,7 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/open-feature/go-sdk v1.15.1
 	github.com/statsig-io/go-sdk v1.32.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
