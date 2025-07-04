@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.4
 
 require (
-	github.com/configcat/go-sdk/v9 v9.0.6
+	github.com/configcat/go-sdk/v9 v9.0.7
 	github.com/open-feature/go-sdk v1.15.1
 	github.com/stretchr/testify v1.9.0
 )
