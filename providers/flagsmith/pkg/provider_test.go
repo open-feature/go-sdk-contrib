@@ -3,13 +3,14 @@ package flagsmith
 import (
 	"context"
 	"fmt"
-	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v3"
-	of "github.com/open-feature/go-sdk/openfeature"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
+	of "github.com/open-feature/go-sdk/openfeature"
+	"github.com/stretchr/testify/assert"
 )
 
 const FlagsJson = `
