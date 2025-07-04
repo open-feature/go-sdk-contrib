@@ -6,7 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/hooklift/assert v0.1.0
-	github.com/launchdarkly/go-sdk-common/v3 v3.1.0
+	github.com/launchdarkly/go-sdk-common/v3 v3.3.0
 	github.com/launchdarkly/go-server-sdk/v7 v7.11.0
 	github.com/open-feature/go-sdk v1.15.1
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b

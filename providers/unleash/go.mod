@@ -5,13 +5,13 @@ go 1.23.0
 toolchain go1.24.4
 
 require (
-	github.com/Unleash/unleash-client-go/v4 v4.1.4
+	github.com/Unleash/unleash-client-go/v4 v4.5.0
 	github.com/open-feature/go-sdk v1.15.1
 	github.com/stretchr/testify v1.10.0
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
