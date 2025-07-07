@@ -27,9 +27,14 @@ func NewProvider(providerConfig ProviderConfig) (*Provider, error) {
 	return provider, nil
 }
 
-func (p *Provider) Init(evaluationContext of.EvaluationContext) {
-	statsig.InitializeWithOptions(p.providerConfig.SdkKey, &p.providerConfig.Options)
+func (p *Provider) Init(_ of.EvaluationContext) error {
+	if details := statsig.InitializeWithOptions(p.providerConfig.SdkKey, &p.providerConfig.Options); details.Error != nil {
+		p.status = of.ErrorState
+		return details.Error
+	}
+
 	p.status = of.ReadyState
+	return nil
 }
 
 func (p *Provider) Status() of.State {
@@ -399,7 +404,10 @@ func ToStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 			statsigUser.Custom[key] = origVal
 		}
 	}
-	if statsigUser.UserID == "" {
+
+	// Statsig requires UserID or CustomIDs to be set
+	// https://github.com/statsig-io/go-sdk/blob/fb8d78a5d5a2c7100936c711a5fffc8ae4146e37/client.go#L348-L355
+	if statsigUser.UserID == "" && len(statsigUser.CustomIDs) == 0 {
 		return nil, of.NewTargetingKeyMissingResolutionError("UserID/targetingKey is missing")
 	}
 
