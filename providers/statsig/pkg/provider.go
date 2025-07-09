@@ -37,10 +37,6 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 	return nil
 }
 
-func (p *Provider) Status() of.State {
-	return p.status
-}
-
 func (p *Provider) Shutdown() {
 	statsig.Shutdown()
 	p.status = of.NotReadyState
