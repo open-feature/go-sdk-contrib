@@ -3,14 +3,14 @@ package otel
 import (
 	"context"
 	"errors"
-	"go.opentelemetry.io/otel/codes"
 	"testing"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
 )
 
 func TestHookMethods(t *testing.T) {
@@ -37,7 +37,7 @@ func TestHookMethods(t *testing.T) {
 				},
 				openfeature.NewEvaluationContext(
 					"test-targeting-key",
-					map[string]interface{}{
+					map[string]any{
 						"this": "that",
 					},
 				),
@@ -50,7 +50,7 @@ func TestHookMethods(t *testing.T) {
 				},
 			},
 			openfeature.NewHookHints(
-				map[string]interface{}{},
+				map[string]any{},
 			),
 		)
 		if err != nil {
@@ -69,15 +69,15 @@ func TestHookMethods(t *testing.T) {
 		}
 		for _, attr := range spans[0].Events[0].Attributes {
 			switch attr.Key {
-			case EventPropertyFlagKey:
+			case semconv.FeatureFlagKeyKey:
 				if attr.Value.AsString() != flagKey {
 					t.Errorf("unexpected feature_flag.key attribute value: %s", attr.Value.AsString())
 				}
-			case EventPropertyProviderName:
+			case semconv.FeatureFlagProviderNameKey:
 				if attr.Value.AsString() != providerName {
 					t.Errorf("unexpected feature_flag.provider_name attribute value: %s", attr.Value.AsString())
 				}
-			case EventPropertyVariant:
+			case semconv.FeatureFlagResultVariantKey:
 				if attr.Value.AsString() != variant {
 					t.Errorf("unexpected feature_flag.variant attribute value: %s", attr.Value.AsString())
 				}
@@ -164,7 +164,7 @@ func TestHookMethods(t *testing.T) {
 				},
 				openfeature.NewEvaluationContext(
 					"test-targeting-key",
-					map[string]interface{}{
+					map[string]any{
 						"this": "that",
 					},
 				),
@@ -177,7 +177,7 @@ func TestHookMethods(t *testing.T) {
 				},
 			},
 			openfeature.NewHookHints(
-				map[string]interface{}{},
+				map[string]any{},
 			),
 		)
 		if err != nil {
