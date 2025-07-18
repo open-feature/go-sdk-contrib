@@ -32,6 +32,13 @@ func (p *Provider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
 }
 
+
+func WithDecryption() ProviderOption {
+	return func(p *Provider) {
+		p.svc.decryption = true
+	}
+}
+
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, flatCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
 	return p.svc.ResolveBoolean(ctx, flag, defaultValue, flatCtx)
 }
