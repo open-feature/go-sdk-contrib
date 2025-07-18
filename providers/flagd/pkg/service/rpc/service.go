@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v1/evaluationv1connect"
@@ -51,6 +52,7 @@ type Service struct {
 
 	client     schemaConnectV1.ServiceClient
 	cancelHook context.CancelFunc
+	wg         sync.WaitGroup
 }
 
 func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, retries int) *Service {
@@ -86,7 +88,9 @@ func (s *Service) Init() error {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	s.cancelHook = cancelFunc
 
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		s.startEventStream(ctx)
 	}()
 
@@ -97,6 +101,7 @@ func (s *Service) Shutdown() {
 	if s.cancelHook != nil {
 		s.cancelHook()
 	}
+	s.wg.Wait()
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
@@ -450,24 +455,28 @@ func (s *Service) startEventStream(ctx context.Context) {
 			}
 
 			// error in stream handler, purge cache if available and retry
-			s.logger.V(logger.Warn).Info("connection to event stream failed, attempting again")
+			s.logger.V(logger.Warn).Info(fmt.Sprintf("connection to event stream failed (%q), attempting again", err))
 			if s.cache.IsEnabled() {
 				s.cache.GetCache().Purge()
 			}
 		}
 
-		time.Sleep(s.retryCounter.sleep())
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(s.retryCounter.sleep()):
+		}
 	}
 
 	// retry attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
-	s.events <- of.Event{
+	s.sendEvent(ctx, of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderError,
 		ProviderEventDetails: of.ProviderEventDetails{
 			Message: "grpc connection establishment failed",
 		},
-	}
+	})
 }
 
 // streamClient opens the event stream and distribute streams to appropriate handlers.
@@ -485,9 +494,9 @@ func (s *Service) streamClient(ctx context.Context) error {
 
 		switch stream.Msg().Type {
 		case string(flagdService.ConfigurationChange):
-			s.handleConfigurationChangeEvent(stream.Msg())
+			s.handleConfigurationChangeEvent(ctx, stream.Msg())
 		case string(flagdService.ProviderReady):
-			s.handleReadyEvent()
+			s.handleReadyEvent(ctx)
 		case string(flagdService.Shutdown):
 			// this is considered as a non-error
 			return nil
@@ -504,7 +513,7 @@ func (s *Service) streamClient(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) handleConfigurationChangeEvent(event *schemaV1.EventStreamResponse) {
+func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *schemaV1.EventStreamResponse) {
 	if !s.cache.IsEnabled() {
 		return
 	}
@@ -536,20 +545,28 @@ func (s *Service) handleConfigurationChangeEvent(event *schemaV1.EventStreamResp
 		keys = append(keys, flagKey)
 	}
 
-	s.events <- of.Event{
+	s.sendEvent(ctx, of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderConfigChange,
 		ProviderEventDetails: of.ProviderEventDetails{
 			Message:     "flags changed",
 			FlagChanges: keys,
 		},
-	}
+	})
 }
 
-func (s *Service) handleReadyEvent() {
-	s.events <- of.Event{
+func (s *Service) handleReadyEvent(ctx context.Context) {
+	s.sendEvent(ctx, of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderReady,
+	})
+}
+
+func (s *Service) sendEvent(ctx context.Context, event of.Event) {
+	select {
+	case <-ctx.Done():
+		return
+	case s.events <- event:
 	}
 }
 
