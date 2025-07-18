@@ -190,11 +190,6 @@ func (svc *awsService) ResolveObject(ctx context.Context, flag string, defaultVa
 	}
 }
 
-func (svc *awsService) WithDecryption(decryption bool) *awsService {
-	svc.decryption = decryption
-	return svc
-}
-
 func (svc *awsService) getValueFromSSM(ctx context.Context, flag string) (*ssm.GetParameterOutput, error) {
 
 	param := &ssm.GetParameterInput{
