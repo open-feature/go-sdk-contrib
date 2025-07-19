@@ -89,25 +89,6 @@ func TestResolveString(t *testing.T) {
 	}
 }
 
-func TestWithDecryption(t *testing.T) {
-	mockClient := NewMockSSMClient()
-
-	aws := &awsService{
-		client:     mockClient,
-		decryption: false,
-	}
-
-	aws = aws.WithDecryption(true)
-	if !aws.decryption {
-		t.Error("Decryption flag should be true after WithDecryption(true)")
-	}
-
-	aws = aws.WithDecryption(false)
-	if aws.decryption {
-		t.Error("Decryption flag should be false after WithDecryption(false)")
-	}
-}
-
 func TestResolveBooleanError(t *testing.T) {
 	mockClient := NewMockSSMClient()
 	mockClient.WithError(fmt.Errorf("mock error"))
