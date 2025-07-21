@@ -41,22 +41,17 @@ func (p *Provider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
 }
 
-func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
+func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, flatCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
 	rocketflagUserContext := rocketflag.UserContext{}
 
-	// Validate "targetingKey" exists and is not nil
-	// Safely assert the underlying type is a string
-	// If it is a non-empty string, assign it to "cohort", which can then be passed to the rocketflag service
-	if targetingKey, ok := evalCtx["targetingKey"]; ok && targetingKey != nil {
-		if keyAsString, isString := targetingKey.(string); isString && keyAsString != "" {
-			rocketflagUserContext["cohort"] = keyAsString
-		}
+	if targetingKey, ok := flatCtx[openfeature.TargetingKey].(string); ok {
+		rocketflagUserContext["cohort"] = targetingKey
 	}
 
 	value, err := p.client.GetFlag(flag, rocketflagUserContext)
 	if err != nil {
 		return openfeature.BoolResolutionDetail{
-			Value: false,
+			Value: defaultValue,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.NewGeneralResolutionError(err.Error()),
 				Reason:          openfeature.ErrorReason,
@@ -64,11 +59,9 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		}
 	}
 
-	var reason openfeature.Reason
+	reason := openfeature.DefaultReason
 	if cohort, ok := rocketflagUserContext["cohort"]; ok && cohort != nil {
 		reason = openfeature.TargetingMatchReason
-	} else {
-		reason = openfeature.DefaultReason
 	}
 
 	return openfeature.BoolResolutionDetail{

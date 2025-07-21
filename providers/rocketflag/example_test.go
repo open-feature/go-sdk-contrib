@@ -1,16 +1,16 @@
-package rocketflag_sample
+package rocketflag_test
 
 import (
 	"context"
 	"fmt"
 
-	rocketflag "github.com/open-feature/go-sdk-contrib/providers/rocketflag/pkg"
+	rocketflag "github.com/open-feature/go-sdk-contrib/providers/rocketflag"
 	"github.com/open-feature/go-sdk/openfeature"
-	rocketflag_client "github.com/rocketflag/go-sdk"
+	client "github.com/rocketflag/go-sdk"
 )
 
 func Sample() {
-	provider := rocketflag.NewProvider(rocketflag_client.NewClient())
+	provider := rocketflag.NewProvider(client.NewClient())
 	err := openfeature.SetProviderAndWait(provider)
 	if err != nil {
 		panic(err)
