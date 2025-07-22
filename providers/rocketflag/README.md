@@ -15,4 +15,4 @@ go get github.com/open-feature/go-sdk-contrib/providers/rocketflag
 
 ## Usage
 
-Refer to the [sample.go](/providers/rocketflag/example_test.go) file for how to use.
+Refer to the [example_test.go](/providers/rocketflag/example_test.go) file for how to use.

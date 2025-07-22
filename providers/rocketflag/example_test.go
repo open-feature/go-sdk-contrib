@@ -6,11 +6,11 @@ import (
 
 	rocketflag "github.com/open-feature/go-sdk-contrib/providers/rocketflag"
 	"github.com/open-feature/go-sdk/openfeature"
-	client "github.com/rocketflag/go-sdk"
+	rocketflagsdk "github.com/rocketflag/go-sdk"
 )
 
-func Sample() {
-	provider := rocketflag.NewProvider(client.NewClient())
+func Example() {
+	provider := rocketflag.NewProvider(rocketflagsdk.NewClient())
 	err := openfeature.SetProviderAndWait(provider)
 	if err != nil {
 		panic(err)
