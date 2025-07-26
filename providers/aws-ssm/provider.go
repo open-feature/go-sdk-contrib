@@ -13,8 +13,8 @@ type Provider struct {
 
 type ProviderOption func(*Provider)
 
-
-func NewProvider(cfg aws.Config, opts ...ProviderOption) (*Provider, error) {svc := newAWSService(cfg)
+func NewProvider(cfg aws.Config, opts ...ProviderOption) (*Provider, error) {
+	svc := newAWSService(cfg)
 
 	return &Provider{
 		svc: svc,
@@ -30,7 +30,6 @@ func (p *Provider) Metadata() openfeature.Metadata {
 func (p *Provider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
 }
-
 
 func WithDecryption() ProviderOption {
 	return func(p *Provider) {
