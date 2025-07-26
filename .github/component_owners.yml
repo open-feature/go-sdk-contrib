@@ -28,6 +28,8 @@ components:
   providers/launchdarkly:
     - c4milo
     - kinyoklion
+  providers/rocketflag:
+    - jgunnink
   providers/unleash:
     - liran2000
     - sighphyre
