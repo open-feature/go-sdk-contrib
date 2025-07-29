@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/structpb"
 	"log"
 	"net"
 	"testing"
@@ -38,11 +39,20 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	m := make(map[string]any)
+
+	m["context"] = "set"
+	syncContext, err := structpb.NewStruct(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	bufServ := &bufferedServer{
 		listener: listen,
 		mockResponses: []*v1.SyncFlagsResponse{
 			{
 				FlagConfiguration: flagRsp,
+				SyncContext:       syncContext,
 			},
 		},
 		fetchAllFlagsResponse: nil,
@@ -112,6 +122,10 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 	if scope != detail.FlagMetadata["scope"] {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
+
+	if len(inProcessService.ContextValues) == 0 {
+		t.Fatal("Expected context_values to be present, but got none")
+	}
 }
 
 // custom name resolver
@@ -138,7 +152,7 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 	}
 
 	inProcessService := NewInProcessService(Configuration{
-		TargetUri: "envoy://localhost:9211/foo.service",
+		TargetUri:  "envoy://localhost:9211/foo.service",
 		Selector:   scope,
 		TLSEnabled: false,
 	})
@@ -200,7 +214,6 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
 }
-
 
 // bufferedServer - a mock grpc service backed by buffered connection
 type bufferedServer struct {

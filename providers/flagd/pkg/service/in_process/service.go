@@ -3,7 +3,6 @@ package process
 import (
 	"context"
 	"fmt"
-
 	"regexp"
 	parallel "sync"
 
@@ -33,6 +32,7 @@ type InProcess struct {
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
 	wg               parallel.WaitGroup
+	ContextValues    map[string]any
 }
 
 type Configuration struct {
@@ -112,6 +112,10 @@ func (i *InProcess) Init() error {
 			case data := <-syncChan:
 				// re-syncs are ignored as we only support single flag sync source
 				changes, _, err := i.evaluator.SetState(data)
+				if data.SyncContext != nil {
+					i.ContextValues = data.SyncContext.AsMap()
+				}
+
 				if err != nil {
 					i.events <- of.Event{
 						ProviderName: "flagd", EventType: of.ProviderError,
@@ -334,15 +338,15 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 func mapError(flagKey string, err error) of.ResolutionError {
 	switch err.Error() {
 	case model.FlagNotFoundErrorCode:
-		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: " + flagKey + " not found"))
+		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: %s not found", flagKey))
 	case model.FlagDisabledErrorCode:
-		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: " + flagKey + " is disabled"))
+		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: %s is disabled", flagKey))
 	case model.TypeMismatchErrorCode:
-		return of.NewTypeMismatchResolutionError(fmt.Sprintf("flag: " + flagKey + " evaluated type not valid"))
+		return of.NewTypeMismatchResolutionError(fmt.Sprintf("flag: %s evaluated type not valid", flagKey))
 	case model.ParseErrorCode:
-		return of.NewParseErrorResolutionError(fmt.Sprintf("flag: " + flagKey + " parsing error"))
+		return of.NewParseErrorResolutionError(fmt.Sprintf("flag: %s parsing error", flagKey))
 	default:
-		return of.NewGeneralResolutionError(fmt.Sprintf("flag: " + flagKey + " unable to evaluate"))
+		return of.NewGeneralResolutionError(fmt.Sprintf("flag: %s unable to evaluate", flagKey))
 	}
 }
 
