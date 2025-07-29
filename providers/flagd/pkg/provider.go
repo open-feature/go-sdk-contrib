@@ -22,8 +22,8 @@ type Provider struct {
 	service               IService
 	status                of.State
 	mtx                   parallel.RWMutex
-
-	eventStream chan of.Event
+	hooks                 []of.Hook
+	eventStream           chan of.Event
 }
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
@@ -38,6 +38,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		eventStream:           make(chan of.Event),
 		providerConfiguration: providerConfiguration,
 		status:                of.NotReadyState,
+		hooks:                 []of.Hook{},
 	}
 
 	cacheService := cache.NewCacheService(
@@ -60,7 +61,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			provider.providerConfiguration.log,
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
 	} else if provider.providerConfiguration.Resolver == inProcess {
-		service = process.NewInProcessService(process.Configuration{
+		inprocess_service := process.NewInProcessService(process.Configuration{
 			Host:                    provider.providerConfiguration.Host,
 			Port:                    provider.providerConfiguration.Port,
 			ProviderID:              provider.providerConfiguration.ProviderId,
@@ -73,6 +74,13 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
 		})
+		provider.hooks = append(provider.hooks, NewSyncContextHook(
+			func() *of.EvaluationContext {
+				evaluationContext := of.NewTargetlessEvaluationContext(inprocess_service.ContextValues)
+				return &evaluationContext
+			}))
+		service = inprocess_service
+
 	} else {
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
@@ -145,7 +153,7 @@ func (p *Provider) EventChannel() <-chan of.Event {
 
 // Hooks flagd provider does not have any hooks, returns empty slice
 func (p *Provider) Hooks() []of.Hook {
-	return []of.Hook{}
+	return p.hooks
 }
 
 // Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)

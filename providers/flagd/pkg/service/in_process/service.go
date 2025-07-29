@@ -3,7 +3,6 @@ package process
 import (
 	"context"
 	"fmt"
-
 	"regexp"
 	parallel "sync"
 
@@ -33,6 +32,7 @@ type InProcess struct {
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
 	wg               parallel.WaitGroup
+	ContextValues    map[string]any
 }
 
 type Configuration struct {
@@ -113,6 +113,10 @@ func (i *InProcess) Init() error {
 			case data := <-syncChan:
 				// re-syncs are ignored as we only support single flag sync source
 				changes, _, err := i.evaluator.SetState(data)
+				if data.SyncContext != nil {
+					i.ContextValues = data.SyncContext.AsMap()
+				}
+
 				if err != nil {
 					i.events <- of.Event{
 						ProviderName: "flagd", EventType: of.ProviderError,
