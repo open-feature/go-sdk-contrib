@@ -248,7 +248,6 @@ func (h *HttpConnector) sendDataSync(dataSync chan<- flagdsync.DataSync, payload
 		FlagData: payload,
 		Source:   h.options.URL,
 		Selector: "",
-		Type:     flagdsync.ALL,
 	}
 	h.options.Log.Logger.Debug("Data sync sent successfully")
 	return true
