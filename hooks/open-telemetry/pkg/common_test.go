@@ -7,35 +7,43 @@ import (
 
 // test commons
 
-var scopeKey = "scope"
-var scopeValue = "7c34165e-fbef-11ed-be56-0242ac120002"
-var scopeDescription = DimensionDescription{
-	Key:  scopeKey,
-	Type: String,
-}
+var (
+	scopeKey         = "scope"
+	scopeValue       = "7c34165e-fbef-11ed-be56-0242ac120002"
+	scopeDescription = DimensionDescription{
+		Key:  scopeKey,
+		Type: String,
+	}
+)
 
-var stageKey = "stage"
-var stageValue = 1
-var stageDescription = DimensionDescription{
-	Key:  stageKey,
-	Type: Int,
-}
+var (
+	stageKey         = "stage"
+	stageValue       = 1
+	stageDescription = DimensionDescription{
+		Key:  stageKey,
+		Type: Int,
+	}
+)
 
-var scoreKey = "score"
-var scoreValue = 4.5
-var scoreDescription = DimensionDescription{
-	Key:  scoreKey,
-	Type: Float,
-}
+var (
+	scoreKey         = "score"
+	scoreValue       = 4.5
+	scoreDescription = DimensionDescription{
+		Key:  scoreKey,
+		Type: Float,
+	}
+)
 
-var cachedKey = "cached"
-var cacheValue = false
-var cachedDescription = DimensionDescription{
-	Key:  cachedKey,
-	Type: Bool,
-}
+var (
+	cachedKey         = "cached"
+	cacheValue        = false
+	cachedDescription = DimensionDescription{
+		Key:  cachedKey,
+		Type: Bool,
+	}
+)
 
-var evalMetadata = map[string]interface{}{
+var evalMetadata = map[string]any{
 	scopeKey:  scopeValue,
 	stageKey:  stageValue,
 	scoreKey:  scoreValue,

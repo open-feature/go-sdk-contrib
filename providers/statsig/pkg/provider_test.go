@@ -10,9 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	statsigProvider "github.com/open-feature/go-sdk-contrib/providers/statsig/pkg"
 	of "github.com/open-feature/go-sdk/openfeature"
 	statsig "github.com/statsig-io/go-sdk"
+
+	statsigProvider "github.com/open-feature/go-sdk-contrib/providers/statsig/pkg"
 )
 
 var provider *statsigProvider.Provider
@@ -159,15 +160,50 @@ func TestConvertsValidEvaluationContextToStatsigUser(t *testing.T) {
 	}
 }
 
-// Handles missing TargetingKey by checking for "key" in EvaluationContext
-func TestHandlesMissingTargetingKey(t *testing.T) {
-	evalCtx := of.FlattenedContext{
-		"dummy-key": "test-key",
+// Handles missing TargetingKey, UserID, and/or CustomID using a table-driven test
+func TestHandlesMissingTargetingKeyOrUserIDOrCustomID(t *testing.T) {
+	tests := []struct {
+		name    string
+		evalCtx of.FlattenedContext
+		wantErr require.ErrorAssertionFunc
+	}{
+		{
+			name:    "only unrelated key",
+			evalCtx: of.FlattenedContext{"dummy-key": "test-key"},
+			wantErr: require.Error,
+		},
+		{
+			name:    "has UserID",
+			evalCtx: of.FlattenedContext{"UserID": "test_user"},
+			wantErr: require.NoError,
+		},
+		{
+			name:    "has targetingKey",
+			evalCtx: of.FlattenedContext{of.TargetingKey: "targeting-key"},
+			wantErr: require.NoError,
+		},
+		{
+			name:    "has CustomIDs",
+			evalCtx: of.FlattenedContext{"CustomIDs": map[string]string{"custom": "id"}},
+			wantErr: require.NoError,
+		},
+		{
+			name:    "has UserID and CustomIDs",
+			evalCtx: of.FlattenedContext{"UserID": "test_user", "CustomIDs": map[string]string{"custom": "id"}},
+			wantErr: require.NoError,
+		},
+		{
+			name:    "has targetingKey and CustomIDs",
+			evalCtx: of.FlattenedContext{of.TargetingKey: "targeting-key", "CustomIDs": map[string]string{"custom": "id"}},
+			wantErr: require.NoError,
+		},
 	}
 
-	_, err := statsigProvider.ToStatsigUser(evalCtx)
-	if err == nil {
-		t.Fatalf("expected error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := statsigProvider.ToStatsigUser(tt.evalCtx)
+			tt.wantErr(t, err)
+		})
 	}
 }
 
@@ -255,10 +291,8 @@ func TestMain(m *testing.M) {
 	}
 
 	providerOptions := statsigProvider.ProviderConfig{
-		Options: statsig.Options{
-			BootstrapValues: string(bytes[:]),
-		},
-		SdkKey: "secret-key",
+		Options: statsig.Options{BootstrapValues: string(bytes[:])},
+		SdkKey:  "secret-key",
 	}
 
 	provider, err = statsigProvider.NewProvider(providerOptions)
@@ -266,7 +300,11 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error during new provider: %v\n", err)
 		os.Exit(1)
 	}
-	provider.Init(of.EvaluationContext{})
+
+	if err := provider.Init(of.EvaluationContext{}); err != nil {
+		fmt.Printf("Error during provider initialization: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Run the tests
 	exitCode := m.Run()

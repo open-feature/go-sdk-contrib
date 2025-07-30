@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.3.6](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.5...hooks/open-telemetry/v0.3.6) (2025-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+
+
+### ✨ New Features
+
+* update OpenTelemetry hook to use the latest semconv ([#713](https://github.com/open-feature/go-sdk-contrib/issues/713)) ([4d0a91c](https://github.com/open-feature/go-sdk-contrib/commit/4d0a91cf71db9c751240bfa476b4fab226b7e909))
+
+
+### 🧹 Chore
+
+* upgrade otel hook dependencies ([#710](https://github.com/open-feature/go-sdk-contrib/issues/710)) ([374cd5d](https://github.com/open-feature/go-sdk-contrib/commit/374cd5dcf065016eb4052dd3775e1c668866bb14))
+
+## [0.3.5](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.4...hooks/open-telemetry/v0.3.5) (2025-06-16)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+
+
+### ✨ New Features
+
+* OTel hook changes for hook interface updates ([#644](https://github.com/open-feature/go-sdk-contrib/issues/644)) ([38b3b6f](https://github.com/open-feature/go-sdk-contrib/commit/38b3b6f80bc31b815840903d26c4b4b3cf8ced41))
+
+
+### 🧹 Chore
+
+* add license to module ([#554](https://github.com/open-feature/go-sdk-contrib/issues/554)) ([abb7657](https://github.com/open-feature/go-sdk-contrib/commit/abb76571c373582f36837587400104eb754c01b9))
+
+
+### 📚 Documentation
+
+* **main:** correct function name and fix formatting in OpenTelemetry Hook documentation ([#583](https://github.com/open-feature/go-sdk-contrib/issues/583)) ([fd3c4d7](https://github.com/open-feature/go-sdk-contrib/commit/fd3c4d763fcdc80c0b4b7ab077316c01de699fc9))
+
 ## [0.3.4](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.3...hooks/open-telemetry/v0.3.4) (2024-08-14)
 
 

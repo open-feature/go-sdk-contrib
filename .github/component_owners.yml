@@ -28,6 +28,8 @@ components:
   providers/launchdarkly:
     - c4milo
     - kinyoklion
+  providers/rocketflag:
+    - jgunnink
   providers/unleash:
     - liran2000
     - sighphyre
@@ -39,6 +41,8 @@ components:
   providers/prefab:
     - liran2000
     - semanticart
+  tools/flagd-http-connector:
+    - liran2000
 
 ignored-authors:
   - renovate-bot

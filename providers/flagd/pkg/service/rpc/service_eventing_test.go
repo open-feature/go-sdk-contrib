@@ -1,14 +1,15 @@
 package rpc
 
 import (
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
 	"context"
 	"errors"
+	"testing"
+	"time"
+
+	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
-	"testing"
-	"time"
 )
 
 func TestRetries(t *testing.T) {
@@ -69,7 +70,8 @@ func TestConfigChange(t *testing.T) {
 
 		// when
 		go func() {
-			service.handleConfigurationChangeEvent(&schemaV1.EventStreamResponse{
+			ctx := context.Background()
+			service.handleConfigurationChangeEvent(ctx, &schemaV1.EventStreamResponse{
 				Data: stData,
 			})
 		}()
@@ -93,7 +95,8 @@ func TestConfigChange(t *testing.T) {
 
 		// when
 		go func() {
-			service.handleConfigurationChangeEvent(&schemaV1.EventStreamResponse{
+			ctx := context.Background()
+			service.handleConfigurationChangeEvent(ctx, &schemaV1.EventStreamResponse{
 				Data: stData,
 			})
 		}()

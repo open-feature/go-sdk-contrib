@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.3...providers/flipt/v0.1.4) (2025-06-19)
+
+
+### 🐛 Bug Fixes
+
+* **flipt:** use default value from Flipt variant flag when available ([#690](https://github.com/open-feature/go-sdk-contrib/issues/690)) ([4ee0a36](https://github.com/open-feature/go-sdk-contrib/commit/4ee0a36e90d5511a704a5f44f1fe69af70724960))
+
 ## [0.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.2...providers/flipt/v0.1.3) (2024-11-04)
 
 
