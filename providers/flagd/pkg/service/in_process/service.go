@@ -32,7 +32,7 @@ type InProcess struct {
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
 	wg               parallel.WaitGroup
-	ContextValues    map[string]any
+	contextValues    map[string]any
 }
 
 type Configuration struct {
@@ -114,7 +114,7 @@ func (i *InProcess) Init() error {
 				// re-syncs are ignored as we only support single flag sync source
 				changes, _, err := i.evaluator.SetState(data)
 				if data.SyncContext != nil {
-					i.ContextValues = data.SyncContext.AsMap()
+					i.contextValues = data.SyncContext.AsMap()
 				}
 
 				if err != nil {
@@ -296,6 +296,10 @@ func (i *InProcess) appendMetadata(evalMetadata model.Metadata) {
 	for k, v := range i.serviceMetadata {
 		evalMetadata[k] = v
 	}
+}
+
+func (i *InProcess) ContextValues() map[string]any {
+	return i.contextValues
 }
 
 // makeSyncProvider is a helper to create sync.ISync and return the underlying uri used by it to the caller

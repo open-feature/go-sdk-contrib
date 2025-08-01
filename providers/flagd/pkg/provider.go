@@ -61,7 +61,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			provider.providerConfiguration.log,
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
 	} else if provider.providerConfiguration.Resolver == inProcess {
-		inprocess_service := process.NewInProcessService(process.Configuration{
+		service = process.NewInProcessService(process.Configuration{
 			Host:                    provider.providerConfiguration.Host,
 			Port:                    provider.providerConfiguration.Port,
 			ProviderID:              provider.providerConfiguration.ProviderId,
@@ -74,12 +74,6 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
 		})
-		provider.hooks = append(provider.hooks, NewSyncContextHook(
-			func() *of.EvaluationContext {
-				evaluationContext := of.NewTargetlessEvaluationContext(inprocess_service.ContextValues)
-				return &evaluationContext
-			}))
-		service = inprocess_service
 
 	} else {
 		service = process.NewInProcessService(process.Configuration{
@@ -87,6 +81,9 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		})
 	}
 
+	provider.hooks = append(provider.hooks, NewSyncContextHook(func() *of.EvaluationContext {
+		return provider.providerConfiguration.ContextEnricher(service.ContextValues())
+	}))
 	provider.service = service
 
 	return provider, nil
