@@ -123,7 +123,7 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
 
-	if len(inProcessService.ContextValues) == 0 {
+	if len(inProcessService.contextValues) == 0 {
 		t.Fatal("Expected context_values to be present, but got none")
 	}
 }
