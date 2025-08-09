@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -101,8 +102,8 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 		EventHandlers: make(map[string]func(openfeature.EventDetails)),
 	}
 	
-	// Configuration steps (enhanced to work with our TestState)
-	initializeConfigStepsWithState(ctx, state)
+	// Configuration steps (existing config.go steps work fine with TestState via context)
+	InitializeConfigScenario(ctx)
 	
 	// Provider lifecycle steps
 	initializeProviderSteps(ctx, state)
@@ -292,4 +293,16 @@ func (s *TestState) applyDefaults() {
 	if s.ProviderType == 0 {
 		s.ProviderType = RPC // Default to RPC
 	}
+}
+
+// cleanupEnvironmentVariables restores original environment variables
+func (s *TestState) cleanupEnvironmentVariables() {
+	for envVar, originalValue := range s.EnvVars {
+		if originalValue == "" {
+			os.Unsetenv(envVar)
+		} else {
+			os.Setenv(envVar, originalValue)
+		}
+	}
+	s.EnvVars = make(map[string]string)
 }
