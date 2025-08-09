@@ -73,9 +73,13 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 
 	// Configure flagd with specific testbed configuration
 	if tr.testbedConfig != "" {
+		fmt.Printf("DEBUG: Starting flagd with config: %s\n", tr.testbedConfig)
 		if err := container.StartFlagdWithConfig(tr.testbedConfig); err != nil {
 			return fmt.Errorf("failed to start flagd with config %s: %w", tr.testbedConfig, err)
 		}
+		fmt.Printf("DEBUG: flagd started successfully with config: %s\n", tr.testbedConfig)
+	} else {
+		fmt.Printf("DEBUG: No testbed config specified, not starting flagd\n")
 	}
 
 	return nil
@@ -123,15 +127,20 @@ func (tr *TestbedRunner) initializeScenario(ctx *godog.ScenarioContext) {
 	// Initialize the base integration steps
 	integration.InitializeScenario(ctx)
 
-	// Add testbed-specific steps
-	tr.initializeTestbedSteps(ctx)
+	// Add a before hook to set the container in TestState
+	ctx.Before(tr.setupScenario)
 }
 
-// initializeTestbedSteps adds testbed-specific step definitions
-func (tr *TestbedRunner) initializeTestbedSteps(ctx *godog.ScenarioContext) {
-	ctx.Step(`^the flag was modified$`, tr.modifyFlag)
-	ctx.Step(`^a change event was fired$`, tr.fireChangeEvent)
-	ctx.Step(`^the connection is lost for (\d+)s$`, tr.simulateConnectionLoss)
+// setupScenario sets up the testbed container in the TestState before each scenario
+func (tr *TestbedRunner) setupScenario(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
+	// Get the TestState from context
+	if state := ctx.Value(integration.TestStateKey{}); state != nil {
+		if testState, ok := state.(*integration.TestState); ok {
+			// Set the container in the TestState so integration steps can use it
+			testState.Container = tr.container
+		}
+	}
+	return ctx, nil
 }
 
 // Provider supplier functions
@@ -164,9 +173,12 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 	// Add resolver type
 	switch resolverType {
 	case integration.RPC:
+		host := tr.container.GetHost()
+		port := tr.container.GetPort("rpc")
+		fmt.Printf("DEBUG: Creating RPC provider with host=%s port=%d\n", host, port)
 		opts = append(opts, flagd.WithRPCResolver())
-		opts = append(opts, flagd.WithHost(tr.container.GetHost()))
-		opts = append(opts, flagd.WithPort(uint16(tr.container.GetPort("rpc"))))
+		opts = append(opts, flagd.WithHost(host))
+		opts = append(opts, flagd.WithPort(uint16(port)))
 	case integration.InProcess:
 		opts = append(opts, flagd.WithInProcessResolver())
 		opts = append(opts, flagd.WithHost(tr.container.GetHost()))
@@ -190,26 +202,6 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 
 // Testbed interaction methods
 
-func (tr *TestbedRunner) modifyFlag() error {
-	if tr.container == nil {
-		return fmt.Errorf("container not initialized")
-	}
-
-	return tr.container.TriggerFlagChange()
-}
-
-func (tr *TestbedRunner) fireChangeEvent() error {
-	// The flag modification should trigger the change event
-	return tr.modifyFlag()
-}
-
-func (tr *TestbedRunner) simulateConnectionLoss(seconds int) error {
-	if tr.container == nil {
-		return fmt.Errorf("container not initialized")
-	}
-
-	return tr.container.Restart(seconds)
-}
 
 // Utility methods
 

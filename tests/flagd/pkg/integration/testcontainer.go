@@ -60,12 +60,8 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 			fmt.Sprintf("%d/tcp", healthPort),
 		},
 		WaitingFor: wait.ForAll(
-			// Wait for the container to start
+			// Wait for the container to start and launchpad to be ready
 			wait.ForListeningPort("8080/tcp"),
-			// Wait for flagd to be ready (via health check)
-			wait.ForHTTP("/readyz").WithPort("8014/tcp").WithStatusCodeMatcher(func(status int) bool {
-				return status == http.StatusOK
-			}),
 		).WithDeadline(60 * time.Second),
 		Networks: config.Networks,
 	}
@@ -130,10 +126,7 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 		time.Sleep(config.ExtraWaitTime)
 	}
 	
-	// Verify the container is healthy
-	if !flagdContainer.IsHealthy() {
-		return nil, fmt.Errorf("flagd container failed health check after startup")
-	}
+	// Note: We don't check health here because flagd needs to be started via launchpad API first
 	
 	return flagdContainer, nil
 }
@@ -208,28 +201,37 @@ func (f *FlagdTestContainer) IsHealthy() bool {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(healthURL)
 	if err != nil {
+		fmt.Printf("DEBUG: Health check failed: %v (URL: %s)\n", err, healthURL)
 		return false
 	}
 	defer resp.Body.Close()
 	
-	return resp.StatusCode == http.StatusOK
+	healthy := resp.StatusCode == http.StatusOK
+	if !healthy {
+		fmt.Printf("DEBUG: Health check returned status: %d (URL: %s)\n", resp.StatusCode, healthURL)
+	}
+	return healthy
 }
 
 // StartFlagdWithConfig starts flagd with a specific configuration using launchpad
 func (f *FlagdTestContainer) StartFlagdWithConfig(config string) error {
 	url := fmt.Sprintf("%s/start?config=%s", f.launchpadURL, config)
+	fmt.Printf("DEBUG: Calling launchpad API: %s\n", url)
 	
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Post(url, "", nil)
 	if err != nil {
+		fmt.Printf("DEBUG: Launchpad API call failed: %v\n", err)
 		return fmt.Errorf("failed to start flagd with config %s: %w", config, err)
 	}
 	defer resp.Body.Close()
 	
 	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("DEBUG: Launchpad API returned status: %d\n", resp.StatusCode)
 		return fmt.Errorf("start request failed with status: %d", resp.StatusCode)
 	}
 	
+	fmt.Printf("DEBUG: Launchpad API call successful, waiting for flagd to be healthy\n")
 	// Wait for flagd to be ready
 	return f.waitForHealthy(10 * time.Second)
 }
@@ -252,6 +254,7 @@ func (f *FlagdTestContainer) StopFlagd() error {
 	return nil
 }
 
+
 // TriggerFlagChange triggers a flag configuration change using launchpad
 func (f *FlagdTestContainer) TriggerFlagChange() error {
 	url := fmt.Sprintf("%s/change", f.launchpadURL)
@@ -273,16 +276,21 @@ func (f *FlagdTestContainer) TriggerFlagChange() error {
 // waitForHealthy waits for the flagd service to become healthy
 func (f *FlagdTestContainer) waitForHealthy(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
+	attempts := 0
 	
 	for time.Now().Before(deadline) {
+		attempts++
 		if f.IsHealthy() {
+			fmt.Printf("DEBUG: waitForHealthy succeeded after %d attempts\n", attempts)
 			return nil
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
 	
+	fmt.Printf("DEBUG: waitForHealthy failed after %d attempts\n", attempts)
 	return fmt.Errorf("flagd did not become healthy within %v", timeout)
 }
+
 
 // Terminate terminates and removes the container
 func (f *FlagdTestContainer) Terminate() error {

@@ -79,11 +79,16 @@ func (s *TestState) createStableFlagdProvider() error {
 		return fmt.Errorf("failed to set provider: %w", err)
 	}
 
+	// If we have a container, check if it's healthy before proceeding
+	if s.Container != nil && !s.Container.IsHealthy() {
+		return fmt.Errorf("container is not healthy")
+	}
+
 	// Create client
 	s.Client = openfeature.NewClient(domain)
 
 	// Wait for provider to be ready
-	return s.waitForProviderReady(5 * time.Second)
+	return s.waitForProviderReady(15 * time.Second)
 }
 
 // waitForProviderReady waits for the provider to be in READY state

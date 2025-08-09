@@ -13,6 +13,11 @@ func initializeEventSteps(ctx *godog.ScenarioContext, state *TestState) {
 	ctx.Step(`^a change event handler$`, state.addChangeEventHandler)
 	ctx.Step(`^a change event was fired$`, state.waitForChangeEvent)
 	ctx.Step(`^the flag should be part of the event payload$`, state.assertFlagInChangeEvent)
+	
+	// Additional event step definitions for different event types
+	ctx.Step(`^a stale event was fired$`, state.waitForStaleEvent)
+	ctx.Step(`^a ready event was fired$`, state.waitForReadyEvent)
+	ctx.Step(`^a error event was fired$`, state.waitForErrorEvent)
 }
 
 // addChangeEventHandler adds a handler for flag configuration change events
@@ -34,6 +39,21 @@ func (s *TestState) addChangeEventHandler() error {
 func (s *TestState) waitForChangeEvent() error {
 	// Wait for the change event with a reasonable timeout
 	return s.waitForEvents("CONFIGURATION_CHANGE", 5*time.Second)
+}
+
+// waitForStaleEvent waits for a provider stale event
+func (s *TestState) waitForStaleEvent() error {
+	return s.waitForEvents("PROVIDER_STALE", 5*time.Second)
+}
+
+// waitForReadyEvent waits for a provider ready event
+func (s *TestState) waitForReadyEvent() error {
+	return s.waitForEvents("PROVIDER_READY", 5*time.Second)
+}
+
+// waitForErrorEvent waits for a provider error event
+func (s *TestState) waitForErrorEvent() error {
+	return s.waitForEvents("PROVIDER_ERROR", 5*time.Second)
 }
 
 // assertFlagInChangeEvent verifies that the current flag is in the change event payload

@@ -13,8 +13,8 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// testStateKey is the key used to pass TestState across context.Context
-type testStateKey struct{}
+// TestStateKey is the key used to pass TestState across context.Context
+type TestStateKey struct{}
 
 // EvaluationResult holds the result of flag evaluation in a generic way
 type EvaluationResult struct {
@@ -124,7 +124,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 		// Reset state for each scenario
 		state.resetState()
 		// Store state in context for steps that need it
-		return context.WithValue(ctx, testStateKey{}, state), nil
+		return context.WithValue(ctx, TestStateKey{}, state), nil
 	})
 
 	ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
