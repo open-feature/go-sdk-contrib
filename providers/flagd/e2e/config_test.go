@@ -1,59 +1,117 @@
-//go:build e2e
-
 package e2e
 
 import (
-	"flag"
-	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
 	"os"
 	"testing"
 
 	"github.com/cucumber/godog"
+	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
 )
 
-// usedEnvVars list of env vars that have been set
-var usedEnvVars []string
-
-func TestConfig(t *testing.T) {
-	if testing.Short() {
-		// skip e2e if testing -short
-		t.Skip()
+// TestConfigurationGherkin runs the config.feature gherkin scenarios as unit tests
+// This does NOT use testcontainers and runs as fast unit tests
+func TestConfigurationGherkin(t *testing.T) {
+	// Prepare the integration package
+	integration.PrepareConfigTestSuite(setEnvironmentVariable)
+	
+	// Create test suite for config scenarios
+	suite := godog.TestSuite{
+		Name:                "flagd-config",
+		ScenarioInitializer: integration.InitializeConfigScenario,
+		Options: &godog.Options{
+			Format: "pretty",
+			Paths:  []string{"../flagd-testbed/gherkin/config.feature"},
+			TestingT: t,
+		},
 	}
+	
+	// Run the tests
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("Configuration gherkin tests failed with status: %d", status)
+	}
+}
 
-	flag.Parse()
-
-	name := "config.feature"
-
-	testSuite := godog.TestSuite{
-		Name: name,
-		TestSuiteInitializer: func(testSuiteContext *godog.TestSuiteContext) {
-			integration.PrepareConfigTestSuite(
-				func(envVar, envVarValue string) {
-					t.Setenv(envVar, envVarValue)
-					usedEnvVars = append(usedEnvVars, envVar)
-				},
-			)
+// TestRPCConfiguration tests RPC-specific configuration scenarios
+func TestRPCConfiguration(t *testing.T) {
+	integration.PrepareConfigTestSuite(setEnvironmentVariable)
+	
+	suite := godog.TestSuite{
+		Name:                "flagd-config-rpc",
+		ScenarioInitializer: integration.InitializeConfigScenario,
+		Options: &godog.Options{
+			Format:   "pretty", 
+			Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
+			Tags:     "@rpc",
+			TestingT: t,
 		},
-		ScenarioInitializer: func(ctx *godog.ScenarioContext) {
-			for _, envVar := range usedEnvVars {
-				err := os.Unsetenv(envVar)
+	}
+	
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("RPC configuration tests failed with status: %d", status)
+	}
+}
 
-				if err != nil {
-					t.Fatal("unsetting environment variable: non-zero status returned")
-				}
-			}
-			usedEnvVars = nil
-			integration.InitializeConfigScenario(ctx)
+// TestInProcessConfiguration tests in-process-specific configuration scenarios  
+func TestInProcessConfiguration(t *testing.T) {
+	integration.PrepareConfigTestSuite(setEnvironmentVariable)
+	
+	suite := godog.TestSuite{
+		Name:                "flagd-config-inprocess",
+		ScenarioInitializer: integration.InitializeConfigScenario,
+		Options: &godog.Options{
+			Format:   "pretty",
+			Paths:    []string{"../flagd-testbed/gherkin/config.feature"}, 
+			Tags:     "@in-process",
+			TestingT: t,
 		},
+	}
+	
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("In-process configuration tests failed with status: %d", status)
+	}
+}
+
+// TestFileConfiguration tests file-specific configuration scenarios
+func TestFileConfiguration(t *testing.T) {
+	integration.PrepareConfigTestSuite(setEnvironmentVariable)
+	
+	suite := godog.TestSuite{
+		Name:                "flagd-config-file",
+		ScenarioInitializer: integration.InitializeConfigScenario,
 		Options: &godog.Options{
 			Format:   "pretty",
 			Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
-			TestingT: t, // Testing instance that will run subtests.
-			Strict:   true,
+			Tags:     "@file", 
+			TestingT: t,
 		},
 	}
-
-	if testSuite.Run() != 0 {
-		t.Fatal("non-zero status returned, failed to run evaluation tests")
+	
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("File configuration tests failed with status: %d", status)
 	}
+}
+
+// TestBasicConfiguration tests basic scenarios that work across all resolver types
+func TestBasicConfiguration(t *testing.T) {
+	integration.PrepareConfigTestSuite(setEnvironmentVariable)
+	
+	suite := godog.TestSuite{
+		Name:                "flagd-config-basic",
+		ScenarioInitializer: integration.InitializeConfigScenario,
+		Options: &godog.Options{
+			Format:   "pretty",
+			Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
+			Tags:     "~@rpc && ~@in-process && ~@file", // Basic scenarios without resolver-specific tags
+			TestingT: t,
+		},
+	}
+	
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("Basic configuration tests failed with status: %d", status)
+	}
+}
+
+// setEnvironmentVariable is used by the integration package to set environment variables
+func setEnvironmentVariable(key, value string) {
+	os.Setenv(key, value)
 }
