@@ -29,27 +29,30 @@ type EvaluationResult struct {
 // TestState holds all test state shared across step definitions
 type TestState struct {
 	// Provider configuration
-	Options        map[string]interface{}
-	EnvVars        map[string]string
-	ProviderType   ProviderType
-	Provider       openfeature.FeatureProvider
-	Client         *openfeature.Client
-	ConfigError    error
-	
-	// Evaluation state  
+	EnvVars      map[string]string
+	ProviderType ProviderType
+	Provider     openfeature.FeatureProvider
+	Client       *openfeature.Client
+	ConfigError  error
+
+	// Configuration testing state
+	ProviderOptions []providerOption
+	ProviderConfig  errorAwareProviderConfiguration
+
+	// Evaluation state
 	LastEvaluation EvaluationResult
 	EvalContext    map[string]interface{}
 	FlagKey        string
 	FlagType       string
 	DefaultValue   interface{}
-	
+
 	// Event tracking
-	Events         []EventRecord
-	EventHandlers  map[string]func(openfeature.EventDetails)
-	
+	Events        []EventRecord
+	EventHandlers map[string]func(openfeature.EventDetails)
+
 	// Container/testbed state
-	Container      TestContainer
-	LaunchpadURL   string
+	Container    TestContainer
+	LaunchpadURL string
 }
 
 // EventRecord tracks events for verification
@@ -95,28 +98,27 @@ type TestContainer interface {
 // InitializeScenario registers all step definitions for gherkin scenarios
 func InitializeScenario(ctx *godog.ScenarioContext) {
 	state := &TestState{
-		Options:       make(map[string]interface{}),
 		EnvVars:       make(map[string]string),
 		EvalContext:   make(map[string]interface{}),
 		Events:        []EventRecord{},
 		EventHandlers: make(map[string]func(openfeature.EventDetails)),
 	}
-	
-	// Configuration steps (existing config.go steps work fine with TestState via context)
-	InitializeConfigScenario(ctx)
-	
+
+	// Configuration steps (existing config_steps.go steps work fine with TestState via context)
+	InitializeConfigScenario(ctx, state)
+
 	// Provider lifecycle steps
 	initializeProviderSteps(ctx, state)
-	
+
 	// Flag evaluation steps
 	initializeFlagSteps(ctx, state)
-	
+
 	// Context management steps
 	initializeContextSteps(ctx, state)
-	
+
 	// Event handling steps
 	initializeEventSteps(ctx, state)
-	
+
 	// Setup scenario hooks
 	ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 		// Reset state for each scenario
@@ -124,10 +126,10 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 		// Store state in context for steps that need it
 		return context.WithValue(ctx, testStateKey{}, state), nil
 	})
-	
+
 	ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
 		// Note: OpenFeature providers don't have a Shutdown method
-		state.cleanupEnvironmentVariables()
+		state.CleanupEnvironmentVariables()
 		state.cleanupEventHandlers()
 		if state.Container != nil {
 			state.Container.Stop()
@@ -138,7 +140,6 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 
 // resetState clears test state between scenarios
 func (s *TestState) resetState() {
-	s.Options = make(map[string]interface{})
 	s.EnvVars = make(map[string]string)
 	s.LastEvaluation = EvaluationResult{}
 	s.EvalContext = make(map[string]interface{})
@@ -148,7 +149,11 @@ func (s *TestState) resetState() {
 	s.FlagKey = ""
 	s.FlagType = ""
 	s.DefaultValue = nil
-	
+
+	// Reset config state
+	s.ProviderOptions = []providerOption{}
+	s.ProviderConfig = errorAwareProviderConfiguration{}
+
 	if s.Provider != nil {
 		s.Provider = nil
 	}
@@ -234,7 +239,7 @@ func (s *TestState) waitForEvents(eventType string, maxWait time.Duration) error
 	timeout := time.After(maxWait)
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-timeout:
@@ -275,9 +280,6 @@ func (s *TestState) assertEventCount(eventType string, expectedCount int) error 
 
 // applyDefaults sets default values for TestState fields
 func (s *TestState) applyDefaults() {
-	if s.Options == nil {
-		s.Options = make(map[string]interface{})
-	}
 	if s.EnvVars == nil {
 		s.EnvVars = make(map[string]string)
 	}
@@ -296,7 +298,7 @@ func (s *TestState) applyDefaults() {
 }
 
 // cleanupEnvironmentVariables restores original environment variables
-func (s *TestState) cleanupEnvironmentVariables() {
+func (s *TestState) CleanupEnvironmentVariables() {
 	for envVar, originalValue := range s.EnvVars {
 		if originalValue == "" {
 			os.Unsetenv(envVar)

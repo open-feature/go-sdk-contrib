@@ -63,7 +63,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		service = process.NewInProcessService(process.Configuration{
 			Host:                    provider.providerConfiguration.Host,
 			Port:                    provider.providerConfiguration.Port,
-			ProviderID:              provider.providerConfiguration.ProviderID,
+			ProviderID:              provider.providerConfiguration.ProviderId,
 			Selector:                provider.providerConfiguration.Selector,
 			TargetUri:               provider.providerConfiguration.TargetUri,
 			TLSEnabled:              provider.providerConfiguration.Tls,
