@@ -181,7 +181,7 @@ func (f *FlagdTestContainer) Restart(delaySeconds int) error {
 	url := fmt.Sprintf("%s/restart?seconds=%d", f.launchpadURL, delaySeconds)
 	
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Post(url, "", nil)
+	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to trigger restart: %w", err)
 	}
@@ -218,7 +218,7 @@ func (f *FlagdTestContainer) StartFlagdWithConfig(config string) error {
 	url := fmt.Sprintf("%s/start?config=%s", f.launchpadURL, config)
 	
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Post(url, "", nil)
+	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to start flagd with config %s: %w", config, err)
 	}
@@ -237,7 +237,7 @@ func (f *FlagdTestContainer) StopFlagd() error {
 	url := fmt.Sprintf("%s/stop", f.launchpadURL)
 	
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Post(url, "", nil)
+	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to stop flagd: %w", err)
 	}
@@ -256,7 +256,7 @@ func (f *FlagdTestContainer) TriggerFlagChange() error {
 	url := fmt.Sprintf("%s/change", f.launchpadURL)
 	
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Post(url, "", nil)
+	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to trigger flag change: %w", err)
 	}

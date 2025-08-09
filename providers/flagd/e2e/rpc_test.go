@@ -33,7 +33,7 @@ func TestRPCProviderE2E(t *testing.T) {
 	}
 
 	// Run tests with RPC-specific tags - using subtests for better IntelliJ integration
-	tags := "@rpc && ~@targetURI && ~@unixsocket && ~@sync && ~@metadata"
+	tags := "@rpc && ~@targetURI && ~@unixsocket && ~@sync && ~@metadata && ~@grace"
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)

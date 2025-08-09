@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -246,10 +247,11 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 // Utility methods
 
 func (tr *TestbedRunner) getTestbedVersion() string {
-	// Read version from test-harness/version.txt or use default
-	versionFile := "../../flagd-testbed/version.txt"
+	// Read version from flagd-testbed/version.txt to match submodule version
+	versionFile := "./flagd-testbed/version.txt"
 	if data, err := os.ReadFile(versionFile); err == nil {
-		return string(data)
+		// Trim whitespace from version string
+		return strings.TrimSpace(string(data))
 	}
 	return "latest"
 }
