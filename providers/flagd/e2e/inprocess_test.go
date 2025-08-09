@@ -35,7 +35,7 @@ func TestInProcessProviderE2E(t *testing.T) {
 	// Run tests with in-process specific tags
 	tags := "@in-process && ~@rpc && ~@file"
 
-	if err := runner.RunGherkinTests(featurePaths, tags); err != nil {
+	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)
 	}
 }

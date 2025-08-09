@@ -164,7 +164,8 @@ func convertValueForSteps(value string, valueType string) (interface{}, error) {
 	case "Boolean":
 		return strconv.ParseBool(strings.ToLower(value))
 	case "Integer":
-		return strconv.Atoi(value)
+		// Return int64 to match OpenFeature IntValueDetails return type
+		return strconv.ParseInt(value, 10, 64)
 	case "Long":
 		return strconv.ParseInt(value, 10, 64)
 	case "Float":

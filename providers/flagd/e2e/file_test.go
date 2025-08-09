@@ -36,7 +36,7 @@ func TestFileProviderE2E(t *testing.T) {
 	// Run tests with file-specific tags
 	tags := "@file && ~@rpc && ~@in-process && ~@events && ~@reconnect"
 
-	if err := runner.RunGherkinTests(featurePaths, tags); err != nil {
+	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"testing"
 	"time"
 
 	"github.com/cucumber/godog"
@@ -118,6 +119,44 @@ func (tr *TestbedRunner) RunGherkinTests(featurePaths []string, tags string) err
 	// Run tests
 	status := suite.Run()
 	if status != 0 {
+		return fmt.Errorf("tests failed with status: %d", status)
+	}
+
+	return nil
+}
+
+// RunGherkinTestsWithSubtests executes gherkin tests with individual Go subtests for each scenario
+// This makes each Gherkin scenario appear as a separate test in IntelliJ
+func (tr *TestbedRunner) RunGherkinTestsWithSubtests(t *testing.T, featurePaths []string, tags string) error {
+	if tr.container == nil {
+		return fmt.Errorf("container not initialized")
+	}
+
+	// Setup provider suppliers for the integration package
+	integration.SetProviderSuppliers(
+		tr.createRPCProviderSupplier(),
+		tr.createInProcessProviderSupplier(),
+		tr.createFileProviderSupplier(),
+	)
+
+	// Configure godog with TestingT to create individual subtests
+	opts := godog.Options{
+		Format:      "pretty",
+		Paths:       featurePaths,
+		Tags:        tags,
+		TestingT:    t, // This is the key! Creates individual Go subtests for each scenario
+		Concurrency: 1,
+	}
+
+	// Create test suite
+	suite := godog.TestSuite{
+		Name:                "flagd-e2e",
+		ScenarioInitializer: tr.initializeScenario,
+		Options:             &opts,
+	}
+
+	// Run tests - each scenario will appear as a separate subtest in IntelliJ
+	if status := suite.Run(); status != 0 {
 		return fmt.Errorf("tests failed with status: %d", status)
 	}
 
