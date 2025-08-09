@@ -141,6 +141,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -199,6 +200,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -257,6 +259,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -315,6 +318,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -372,6 +376,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}

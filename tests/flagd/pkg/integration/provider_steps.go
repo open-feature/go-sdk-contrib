@@ -88,35 +88,20 @@ func (s *TestState) createStableFlagdProvider() error {
 
 // waitForProviderReady waits for the provider to be in READY state
 func (s *TestState) waitForProviderReady(timeout time.Duration) error {
-	readyChan := make(chan struct{})
-	
-	// Set up handler to capture ready event
-	handler := func(details openfeature.EventDetails) {
-		s.addEvent("READY", details)
-		select {
-		case readyChan <- struct{}{}:
-		default:
-			// Channel already closed or full, ignore
+	// Check if we already have a READY event
+	for _, event := range s.Events {
+		if event.Type == "READY" {
+			return nil
 		}
 	}
-
-	s.Client.AddHandler(openfeature.ProviderReady, &handler)
-	defer s.Client.RemoveHandler(openfeature.ProviderReady, &handler)
-
-	// Give a small delay to let any immediate ready events fire
-	select {
-	case <-readyChan:
-		return nil
-	case <-time.After(100 * time.Millisecond):
-		// Continue to full timeout
+	
+	// Use existing event handler infrastructure
+	if err := s.addReadyEventHandler(); err != nil {
+		return fmt.Errorf("failed to add ready event handler: %w", err)
 	}
-
-	select {
-	case <-readyChan:
-		return nil
-	case <-time.After(timeout):
-		return fmt.Errorf("provider not ready after %v", timeout)
-	}
+	
+	// Wait for READY event to be recorded
+	return s.waitForEvents("READY", timeout)
 }
 
 // addReadyEventHandler adds a handler for provider ready events
