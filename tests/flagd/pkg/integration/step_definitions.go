@@ -123,6 +123,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 		// Reset state for each scenario
 		state.resetState()
+		state.ProviderType = ctx.Value("resolver").(ProviderType)
 		// Store state in context for steps that need it
 		return context.WithValue(ctx, TestStateKey{}, state), nil
 	})
@@ -171,7 +172,7 @@ func convertValueForSteps(value string, valueType string) (interface{}, error) {
 		case "Boolean":
 			return false, nil // Default false for empty boolean
 		case "Integer", "Long":
-			return int64(0), nil // Default 0 for empty integer  
+			return int64(0), nil // Default 0 for empty integer
 		case "Float":
 			return 0.0, nil // Default 0.0 for empty float
 		case "String":

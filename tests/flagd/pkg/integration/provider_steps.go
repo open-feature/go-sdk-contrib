@@ -52,16 +52,19 @@ func (s *TestState) createStableFlagdProvider() error {
 			return fmt.Errorf("RPC provider supplier not set")
 		}
 		provider, err = RPCProviderSupplier(*s)
+		break
 	case InProcess:
 		if InProcessProviderSupplier == nil {
 			return fmt.Errorf("In-process provider supplier not set")
 		}
 		provider, err = InProcessProviderSupplier(*s)
+		break
 	case File:
 		if FileProviderSupplier == nil {
 			return fmt.Errorf("File provider supplier not set")
 		}
 		provider, err = FileProviderSupplier(*s)
+		break
 	default:
 		return fmt.Errorf("unknown provider type: %v", s.ProviderType)
 	}
@@ -94,12 +97,12 @@ func (s *TestState) waitForProviderReady(timeout time.Duration) error {
 			return nil
 		}
 	}
-	
+
 	// Use existing event handler infrastructure
 	if err := s.addReadyEventHandler(); err != nil {
 		return fmt.Errorf("failed to add ready event handler: %w", err)
 	}
-	
+
 	// Wait for READY event to be recorded
 	return s.waitForEvents("READY", timeout)
 }

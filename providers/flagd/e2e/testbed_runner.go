@@ -73,7 +73,6 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 
 	tr.container = container
 
-
 	// Configure flagd with specific testbed configuration
 	if tr.testbedConfig != "" {
 		// If flagd is already running and we want the default config, skip the API call
@@ -132,6 +131,8 @@ func (tr *TestbedRunner) RunGherkinTestsWithSubtests(t *testing.T, featurePaths 
 	if tr.container == nil {
 		return fmt.Errorf("container not initialized")
 	}
+	ctx := context.TODO()
+	ctx = context.WithValue(ctx, "resolver", tr.resolverType)
 
 	// Setup provider suppliers for the integration package
 	integration.SetProviderSuppliers(
@@ -142,11 +143,12 @@ func (tr *TestbedRunner) RunGherkinTestsWithSubtests(t *testing.T, featurePaths 
 
 	// Configure godog with TestingT to create individual subtests
 	opts := godog.Options{
-		Format:      "pretty",
-		Paths:       featurePaths,
-		Tags:        tags,
-		TestingT:    t, // This is the key! Creates individual Go subtests for each scenario
-		Concurrency: 1,
+		Format:         "pretty",
+		Paths:          featurePaths,
+		Tags:           tags,
+		TestingT:       t, // This is the key! Creates individual Go subtests for each scenario
+		Concurrency:    1,
+		DefaultContext: ctx,
 	}
 
 	// Create test suite
@@ -242,7 +244,6 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 }
 
 // Testbed interaction methods
-
 
 // Utility methods
 
