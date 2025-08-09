@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/cucumber/godog v0.13.0
 	github.com/open-feature/go-sdk v1.9.0
+	github.com/testcontainers/testcontainers-go v0.26.0
 )
 
 require (

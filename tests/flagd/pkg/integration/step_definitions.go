@@ -1,0 +1,268 @@
+package integration
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/cucumber/godog"
+	"github.com/open-feature/go-sdk/openfeature"
+)
+
+// testStateKey is the key used to pass TestState across context.Context
+type testStateKey struct{}
+
+// TestState holds all test state shared across step definitions
+type TestState struct {
+	// Provider configuration
+	Options        map[string]interface{}
+	EnvVars        map[string]string
+	ProviderType   ProviderType
+	Provider       openfeature.FeatureProvider
+	Client         *openfeature.Client
+	ConfigError    error
+	
+	// Evaluation state
+	LastEvaluation openfeature.EvaluationDetails
+	EvalContext    map[string]interface{}
+	FlagKey        string
+	FlagType       string
+	DefaultValue   interface{}
+	
+	// Event tracking
+	Events         []EventRecord
+	EventHandlers  map[string]func(openfeature.EventDetails)
+	
+	// Container/testbed state
+	Container      TestContainer
+	LaunchpadURL   string
+}
+
+// EventRecord tracks events for verification
+type EventRecord struct {
+	Type      string
+	Timestamp time.Time
+	Details   openfeature.EventDetails
+}
+
+// ProviderType represents the type of provider being tested
+type ProviderType int
+
+const (
+	RPC ProviderType = iota
+	InProcess
+	File
+)
+
+func (p ProviderType) String() string {
+	switch p {
+	case RPC:
+		return "rpc"
+	case InProcess:
+		return "in-process"
+	case File:
+		return "file"
+	default:
+		return "unknown"
+	}
+}
+
+// TestContainer interface abstracts container operations
+type TestContainer interface {
+	GetHost() string
+	GetPort(service string) int
+	GetLaunchpadURL() string
+	Start() error
+	Stop() error
+	Restart(delaySeconds int) error
+	IsHealthy() bool
+}
+
+// InitializeScenario registers all step definitions for gherkin scenarios
+func InitializeScenario(ctx *godog.ScenarioContext) {
+	state := &TestState{
+		Options:       make(map[string]interface{}),
+		EnvVars:       make(map[string]string),
+		EvalContext:   make(map[string]interface{}),
+		Events:        []EventRecord{},
+		EventHandlers: make(map[string]func(openfeature.EventDetails)),
+	}
+	
+	// Configuration steps (enhanced to work with our TestState)
+	initializeConfigStepsWithState(ctx, state)
+	
+	// Provider lifecycle steps
+	initializeProviderSteps(ctx, state)
+	
+	// Flag evaluation steps
+	initializeFlagSteps(ctx, state)
+	
+	// Context management steps
+	initializeContextSteps(ctx, state)
+	
+	// Event handling steps
+	initializeEventSteps(ctx, state)
+	
+	// Setup scenario hooks
+	ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
+		// Reset state for each scenario
+		state.resetState()
+		// Store state in context for steps that need it
+		return context.WithValue(ctx, testStateKey{}, state), nil
+	})
+	
+	ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
+		// Cleanup after scenario
+		if state.Provider != nil {
+			state.Provider.Shutdown()
+		}
+		state.cleanupEnvironmentVariables()
+		state.cleanupEventHandlers()
+		if state.Container != nil {
+			state.Container.Stop()
+		}
+		return ctx, nil
+	})
+}
+
+// resetState clears test state between scenarios
+func (s *TestState) resetState() {
+	s.Options = make(map[string]interface{})
+	s.EnvVars = make(map[string]string)
+	s.LastEvaluation = openfeature.EvaluationDetails{}
+	s.EvalContext = make(map[string]interface{})
+	s.Events = []EventRecord{}
+	s.EventHandlers = make(map[string]func(openfeature.EventDetails))
+	s.ConfigError = nil
+	s.FlagKey = ""
+	s.FlagType = ""
+	s.DefaultValue = nil
+	
+	if s.Provider != nil {
+		s.Provider.Shutdown()
+		s.Provider = nil
+	}
+	s.Client = nil
+}
+
+// Type conversion utilities (similar to Python implementation)
+func convertValueForSteps(value string, valueType string) (interface{}, error) {
+	switch valueType {
+	case "Boolean":
+		return strconv.ParseBool(strings.ToLower(value))
+	case "Integer":
+		return strconv.Atoi(value)
+	case "Long":
+		return strconv.ParseInt(value, 10, 64)
+	case "Float":
+		return strconv.ParseFloat(value, 64)
+	case "String":
+		if value == "null" {
+			return nil, nil
+		}
+		return value, nil
+	case "Object":
+		var obj interface{}
+		err := json.Unmarshal([]byte(value), &obj)
+		return obj, err
+	case "ResolverType":
+		return parseResolverType(value)
+	case "CacheType":
+		return parseCacheType(value)
+	default:
+		return value, nil
+	}
+}
+
+// parseResolverType converts string to ProviderType
+func parseResolverType(value string) (ProviderType, error) {
+	switch strings.ToLower(value) {
+	case "rpc":
+		return RPC, nil
+	case "in-process":
+		return InProcess, nil
+	case "file":
+		return File, nil
+	default:
+		return RPC, fmt.Errorf("unknown resolver type: %s", value)
+	}
+}
+
+// parseCacheType handles cache type conversion
+func parseCacheType(value string) (string, error) {
+	switch strings.ToLower(value) {
+	case "lru", "disabled":
+		return strings.ToLower(value), nil
+	default:
+		return "", fmt.Errorf("unknown cache type: %s", value)
+	}
+}
+
+// camelToSnake converts CamelCase to snake_case
+func camelToSnake(input string) string {
+	var result strings.Builder
+	for i, r := range input {
+		if i > 0 && 'A' <= r && r <= 'Z' {
+			result.WriteRune('_')
+		}
+		result.WriteRune(r)
+	}
+	return strings.ToLower(result.String())
+}
+
+// Utility functions for event handling
+func (s *TestState) addEvent(eventType string, details openfeature.EventDetails) {
+	s.Events = append(s.Events, EventRecord{
+		Type:      eventType,
+		Timestamp: time.Now(),
+		Details:   details,
+	})
+}
+
+// waitForEvents waits for specific events to occur
+func (s *TestState) waitForEvents(eventType string, maxWait time.Duration) error {
+	timeout := time.After(maxWait)
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for %s event", eventType)
+		case <-ticker.C:
+			for _, event := range s.Events {
+				if event.Type == eventType {
+					return nil
+				}
+			}
+		}
+	}
+}
+
+// assertEventOccurred checks if a specific event occurred
+func (s *TestState) assertEventOccurred(eventType string) error {
+	for _, event := range s.Events {
+		if event.Type == eventType {
+			return nil
+		}
+	}
+	return fmt.Errorf("event %s did not occur", eventType)
+}
+
+// assertEventCount verifies the count of specific events
+func (s *TestState) assertEventCount(eventType string, expectedCount int) error {
+	count := 0
+	for _, event := range s.Events {
+		if event.Type == eventType {
+			count++
+		}
+	}
+	if count != expectedCount {
+		return fmt.Errorf("expected %d %s events, got %d", expectedCount, eventType, count)
+	}
+	return nil
+}

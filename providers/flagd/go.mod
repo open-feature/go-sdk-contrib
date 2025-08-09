@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/open-feature/flagd/core v0.12.1
 	github.com/open-feature/go-sdk v1.15.1
-	github.com/open-feature/go-sdk-contrib/tests/flagd v1.4.1
+	github.com/open-feature/go-sdk-contrib/tests/flagd v0.0.0
 	github.com/testcontainers/testcontainers-go v0.32.0
 	go.uber.org/mock v0.5.2
 	go.uber.org/zap v1.27.0
@@ -93,3 +93,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/open-feature/go-sdk-contrib/tests/flagd => ../../tests/flagd
