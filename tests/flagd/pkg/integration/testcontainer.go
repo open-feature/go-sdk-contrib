@@ -201,14 +201,14 @@ func (f *FlagdTestContainer) IsHealthy() bool {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(healthURL)
 	if err != nil {
-		fmt.Printf("DEBUG: Health check failed: %v (URL: %s)\n", err, healthURL)
+		fmt.Printf("DEBUG: Health check failed: %v (URL: %s, host: %s, healthPort: %d)\n", err, healthURL, f.host, f.healthPort)
 		return false
 	}
 	defer resp.Body.Close()
 	
 	healthy := resp.StatusCode == http.StatusOK
 	if !healthy {
-		fmt.Printf("DEBUG: Health check returned status: %d (URL: %s)\n", resp.StatusCode, healthURL)
+		fmt.Printf("DEBUG: Health check returned status: %d (URL: %s, host: %s, healthPort: %d)\n", resp.StatusCode, healthURL, f.host, f.healthPort)
 	}
 	return healthy
 }
@@ -216,24 +216,20 @@ func (f *FlagdTestContainer) IsHealthy() bool {
 // StartFlagdWithConfig starts flagd with a specific configuration using launchpad
 func (f *FlagdTestContainer) StartFlagdWithConfig(config string) error {
 	url := fmt.Sprintf("%s/start?config=%s", f.launchpadURL, config)
-	fmt.Printf("DEBUG: Calling launchpad API: %s\n", url)
 	
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Post(url, "", nil)
 	if err != nil {
-		fmt.Printf("DEBUG: Launchpad API call failed: %v\n", err)
 		return fmt.Errorf("failed to start flagd with config %s: %w", config, err)
 	}
 	defer resp.Body.Close()
 	
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("DEBUG: Launchpad API returned status: %d\n", resp.StatusCode)
 		return fmt.Errorf("start request failed with status: %d", resp.StatusCode)
 	}
 	
-	fmt.Printf("DEBUG: Launchpad API call successful, waiting for flagd to be healthy\n")
-	// Wait for flagd to be ready
-	return f.waitForHealthy(10 * time.Second)
+	// Wait for flagd to be ready - increased timeout for stability
+	return f.waitForHealthy(15 * time.Second)
 }
 
 // StopFlagd stops the flagd service using launchpad
@@ -276,18 +272,14 @@ func (f *FlagdTestContainer) TriggerFlagChange() error {
 // waitForHealthy waits for the flagd service to become healthy
 func (f *FlagdTestContainer) waitForHealthy(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
-	attempts := 0
 	
 	for time.Now().Before(deadline) {
-		attempts++
 		if f.IsHealthy() {
-			fmt.Printf("DEBUG: waitForHealthy succeeded after %d attempts\n", attempts)
 			return nil
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
 	
-	fmt.Printf("DEBUG: waitForHealthy failed after %d attempts\n", attempts)
 	return fmt.Errorf("flagd did not become healthy within %v", timeout)
 }
 

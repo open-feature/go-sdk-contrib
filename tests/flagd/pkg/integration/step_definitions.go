@@ -128,12 +128,10 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	})
 
 	ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
-		// Note: OpenFeature providers don't have a Shutdown method
+		// Clean up per-scenario state, but keep the container running
 		state.CleanupEnvironmentVariables()
 		state.cleanupEventHandlers()
-		if state.Container != nil {
-			state.Container.Stop()
-		}
+		// NOTE: We do NOT stop the container here - it should run for the entire test suite
 		return ctx, nil
 	})
 }

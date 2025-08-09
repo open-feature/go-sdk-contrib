@@ -71,15 +71,17 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 
 	tr.container = container
 
+
 	// Configure flagd with specific testbed configuration
 	if tr.testbedConfig != "" {
-		fmt.Printf("DEBUG: Starting flagd with config: %s\n", tr.testbedConfig)
-		if err := container.StartFlagdWithConfig(tr.testbedConfig); err != nil {
-			return fmt.Errorf("failed to start flagd with config %s: %w", tr.testbedConfig, err)
+		// If flagd is already running and we want the default config, skip the API call
+		if tr.testbedConfig == "default" && container.IsHealthy() {
+			// flagd is already running with the default config, no need to restart it
+		} else {
+			if err := container.StartFlagdWithConfig(tr.testbedConfig); err != nil {
+				return fmt.Errorf("failed to start flagd with config %s: %w", tr.testbedConfig, err)
+			}
 		}
-		fmt.Printf("DEBUG: flagd started successfully with config: %s\n", tr.testbedConfig)
-	} else {
-		fmt.Printf("DEBUG: No testbed config specified, not starting flagd\n")
 	}
 
 	return nil
@@ -175,7 +177,6 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 	case integration.RPC:
 		host := tr.container.GetHost()
 		port := tr.container.GetPort("rpc")
-		fmt.Printf("DEBUG: Creating RPC provider with host=%s port=%d\n", host, port)
 		opts = append(opts, flagd.WithRPCResolver())
 		opts = append(opts, flagd.WithHost(host))
 		opts = append(opts, flagd.WithPort(uint16(port)))
