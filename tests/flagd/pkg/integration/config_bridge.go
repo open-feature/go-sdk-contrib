@@ -118,14 +118,12 @@ func createProviderFromState(state *TestState) (openfeature.FeatureProvider, err
 		opts = append(opts, createGenericOption(camelKey, value))
 	}
 	
-	// Create provider configuration
-	config, err := flagd.NewProviderConfiguration(opts)
+	// Create provider with options
+	provider, err := flagd.NewProvider(opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create provider configuration: %w", err)
+		return nil, fmt.Errorf("failed to create provider: %w", err)
 	}
-	
-	// Create provider based on resolver type
-	return flagd.NewProvider(config), nil
+	return provider, nil
 }
 
 // createGenericOption creates a flagd.ProviderOption from key-value pair

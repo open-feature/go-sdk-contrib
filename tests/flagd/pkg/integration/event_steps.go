@@ -47,8 +47,8 @@ func (s *TestState) assertFlagInChangeEvent() error {
 		event := s.Events[i]
 		if event.Type == "CONFIGURATION_CHANGE" {
 			// Check if the flag key is in the event details
-			if event.Details.FlagNames != nil {
-				for _, flagName := range event.Details.FlagNames {
+			if event.Details.FlagChanges != nil {
+				for _, flagName := range event.Details.FlagChanges {
 					if flagName == s.FlagKey {
 						return nil
 					}
@@ -56,7 +56,7 @@ func (s *TestState) assertFlagInChangeEvent() error {
 			}
 			
 			// If no specific flags are listed, assume all flags are affected
-			if event.Details.FlagNames == nil || len(event.Details.FlagNames) == 0 {
+			if event.Details.FlagChanges == nil || len(event.Details.FlagChanges) == 0 {
 				return nil
 			}
 			

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -64,7 +63,9 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 			// Wait for the container to start
 			wait.ForListeningPort("8080/tcp"),
 			// Wait for flagd to be ready (via health check)
-			wait.ForHTTPStatusCode("8014/tcp", http.StatusOK, "/readyz"),
+			wait.ForHTTP("/readyz").WithPort("8014/tcp").WithStatusCodeMatcher(func(status int) bool {
+				return status == http.StatusOK
+			}),
 		).WithDeadline(60 * time.Second),
 		Networks: config.Networks,
 	}

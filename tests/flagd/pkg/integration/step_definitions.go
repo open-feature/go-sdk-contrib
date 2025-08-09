@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -16,6 +15,16 @@ import (
 // testStateKey is the key used to pass TestState across context.Context
 type testStateKey struct{}
 
+// EvaluationResult holds the result of flag evaluation in a generic way
+type EvaluationResult struct {
+	FlagKey      string
+	Value        interface{}
+	Reason       openfeature.Reason
+	Variant      string
+	ErrorCode    openfeature.ErrorCode
+	ErrorMessage string
+}
+
 // TestState holds all test state shared across step definitions
 type TestState struct {
 	// Provider configuration
@@ -26,8 +35,8 @@ type TestState struct {
 	Client         *openfeature.Client
 	ConfigError    error
 	
-	// Evaluation state
-	LastEvaluation openfeature.EvaluationDetails
+	// Evaluation state  
+	LastEvaluation EvaluationResult
 	EvalContext    map[string]interface{}
 	FlagKey        string
 	FlagType       string
@@ -116,10 +125,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	})
 	
 	ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
-		// Cleanup after scenario
-		if state.Provider != nil {
-			state.Provider.Shutdown()
-		}
+		// Note: OpenFeature providers don't have a Shutdown method
 		state.cleanupEnvironmentVariables()
 		state.cleanupEventHandlers()
 		if state.Container != nil {
@@ -133,7 +139,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 func (s *TestState) resetState() {
 	s.Options = make(map[string]interface{})
 	s.EnvVars = make(map[string]string)
-	s.LastEvaluation = openfeature.EvaluationDetails{}
+	s.LastEvaluation = EvaluationResult{}
 	s.EvalContext = make(map[string]interface{})
 	s.Events = []EventRecord{}
 	s.EventHandlers = make(map[string]func(openfeature.EventDetails))
@@ -143,7 +149,6 @@ func (s *TestState) resetState() {
 	s.DefaultValue = nil
 	
 	if s.Provider != nil {
-		s.Provider.Shutdown()
 		s.Provider = nil
 	}
 	s.Client = nil
@@ -265,4 +270,26 @@ func (s *TestState) assertEventCount(eventType string, expectedCount int) error 
 		return fmt.Errorf("expected %d %s events, got %d", expectedCount, eventType, count)
 	}
 	return nil
+}
+
+// applyDefaults sets default values for TestState fields
+func (s *TestState) applyDefaults() {
+	if s.Options == nil {
+		s.Options = make(map[string]interface{})
+	}
+	if s.EnvVars == nil {
+		s.EnvVars = make(map[string]string)
+	}
+	if s.EvalContext == nil {
+		s.EvalContext = make(map[string]interface{})
+	}
+	if s.Events == nil {
+		s.Events = []EventRecord{}
+	}
+	if s.EventHandlers == nil {
+		s.EventHandlers = make(map[string]func(openfeature.EventDetails))
+	}
+	if s.ProviderType == 0 {
+		s.ProviderType = RPC // Default to RPC
+	}
 }

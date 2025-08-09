@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"time"
 	
@@ -26,7 +27,7 @@ func (s *TestState) setFlagForEvaluation(flagType, flagKey, defaultValue string)
 	s.FlagKey = flagKey
 	
 	// Convert the default value based on flag type
-	converted, err := s.convertDefaultValue(flagType, defaultValue)
+	converted, err := convertValueForSteps(defaultValue, flagType)
 	if err != nil {
 		return fmt.Errorf("failed to convert default value: %w", err)
 	}
@@ -37,20 +38,7 @@ func (s *TestState) setFlagForEvaluation(flagType, flagKey, defaultValue string)
 
 // convertDefaultValue converts string default value to appropriate type
 func (s *TestState) convertDefaultValue(flagType, value string) (interface{}, error) {
-	switch flagType {
-	case "Boolean":
-		return convertValue(value, "Boolean")
-	case "String":
-		return value, nil
-	case "Integer":
-		return convertValue(value, "Integer")
-	case "Float":
-		return convertValue(value, "Float")
-	case "Object":
-		return convertValue(value, "Object")
-	default:
-		return nil, fmt.Errorf("unknown flag type: %s", flagType)
-	}
+	return convertValueForSteps(value, flagType)
 }
 
 // evaluateFlagWithDetails evaluates the current flag with details
@@ -63,44 +51,87 @@ func (s *TestState) evaluateFlagWithDetails() error {
 		return fmt.Errorf("no flag key set for evaluation")
 	}
 	
-	// Create evaluation context from current context map
-	evalCtx := openfeature.NewEvaluationContext()
-	for key, value := range s.EvalContext {
-		evalCtx = evalCtx.WithValue(key, value)
-	}
+	// Create evaluation context from current context map  
+	evalCtx := openfeature.NewEvaluationContext("", s.EvalContext)
 	
 	// Evaluate based on flag type
-	var details openfeature.EvaluationDetails
 	var err error
+	ctx := context.Background()
 	
 	switch s.FlagType {
 	case "Boolean":
 		if defaultVal, ok := s.DefaultValue.(bool); ok {
-			details = s.Client.BooleanValueDetails(s.FlagKey, defaultVal, evalCtx)
+			boolDetails, evalErr := s.Client.BooleanValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			s.LastEvaluation = EvaluationResult{
+				FlagKey:      boolDetails.FlagKey,
+				Value:        boolDetails.Value,
+				Reason:       boolDetails.Reason,
+				Variant:      boolDetails.Variant,
+				ErrorCode:    boolDetails.ErrorCode,
+				ErrorMessage: boolDetails.ErrorMessage,
+			}
+			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not a boolean")
 		}
 	case "String":
 		if defaultVal, ok := s.DefaultValue.(string); ok {
-			details = s.Client.StringValueDetails(s.FlagKey, defaultVal, evalCtx)
+			strDetails, evalErr := s.Client.StringValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			s.LastEvaluation = EvaluationResult{
+				FlagKey:      strDetails.FlagKey,
+				Value:        strDetails.Value,
+				Reason:       strDetails.Reason,
+				Variant:      strDetails.Variant,
+				ErrorCode:    strDetails.ErrorCode,
+				ErrorMessage: strDetails.ErrorMessage,
+			}
+			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not a string")
 		}
 	case "Integer":
 		if defaultVal, ok := s.DefaultValue.(int); ok {
-			details = s.Client.IntValueDetails(s.FlagKey, defaultVal, evalCtx)
+			// OpenFeature uses int64 for integers
+			intDetails, evalErr := s.Client.IntValueDetails(ctx, s.FlagKey, int64(defaultVal), evalCtx)
+			s.LastEvaluation = EvaluationResult{
+				FlagKey:      intDetails.FlagKey,
+				Value:        intDetails.Value,
+				Reason:       intDetails.Reason,
+				Variant:      intDetails.Variant,
+				ErrorCode:    intDetails.ErrorCode,
+				ErrorMessage: intDetails.ErrorMessage,
+			}
+			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not an integer")
 		}
 	case "Float":
 		if defaultVal, ok := s.DefaultValue.(float64); ok {
-			details = s.Client.FloatValueDetails(s.FlagKey, defaultVal, evalCtx)
+			floatDetails, evalErr := s.Client.FloatValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			s.LastEvaluation = EvaluationResult{
+				FlagKey:      floatDetails.FlagKey,
+				Value:        floatDetails.Value,
+				Reason:       floatDetails.Reason,
+				Variant:      floatDetails.Variant,
+				ErrorCode:    floatDetails.ErrorCode,
+				ErrorMessage: floatDetails.ErrorMessage,
+			}
+			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not a float")
 		}
 	case "Object":
 		if defaultVal := s.DefaultValue; defaultVal != nil {
-			details = s.Client.ObjectValueDetails(s.FlagKey, defaultVal, evalCtx)
+			objDetails, evalErr := s.Client.ObjectValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			s.LastEvaluation = EvaluationResult{
+				FlagKey:      objDetails.FlagKey,
+				Value:        objDetails.Value,
+				Reason:       objDetails.Reason,
+				Variant:      objDetails.Variant,
+				ErrorCode:    objDetails.ErrorCode,
+				ErrorMessage: objDetails.ErrorMessage,
+			}
+			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not an object")
 		}
@@ -108,7 +139,6 @@ func (s *TestState) evaluateFlagWithDetails() error {
 		return fmt.Errorf("unknown flag type: %s", s.FlagType)
 	}
 	
-	s.LastEvaluation = details
 	return err
 }
 
@@ -183,8 +213,8 @@ func (s *TestState) assertFlagInEventPayload() error {
 		event := s.Events[i]
 		if event.Type == "CONFIGURATION_CHANGE" {
 			// Check if the flag key is in the event details
-			if event.Details.FlagNames != nil {
-				for _, flagName := range event.Details.FlagNames {
+			if event.Details.FlagChanges != nil {
+				for _, flagName := range event.Details.FlagChanges {
 					if flagName == s.FlagKey {
 						return nil
 					}
@@ -225,62 +255,94 @@ func (s *TestState) triggerChangeEvent() error {
 }
 
 // Helper methods for flag evaluation
-func (s *TestState) evaluateBooleanFlag(flagKey string, defaultValue bool, context openfeature.EvaluationContext) (bool, error) {
-	details := s.Client.BooleanValueDetails(flagKey, defaultValue, context)
-	s.LastEvaluation = details
+func (s *TestState) evaluateBooleanFlag(flagKey string, defaultValue bool, evalCtx openfeature.EvaluationContext) (bool, error) {
+	ctx := context.Background()
+	details, err := s.Client.BooleanValueDetails(ctx, flagKey, defaultValue, evalCtx)
+	s.LastEvaluation = EvaluationResult{
+		FlagKey:      details.FlagKey,
+		Value:        details.Value,
+		Reason:       details.Reason,
+		Variant:      details.Variant,
+		ErrorCode:    details.ErrorCode,
+		ErrorMessage: details.ErrorMessage,
+	}
+	
+	if err != nil {
+		return defaultValue, fmt.Errorf("evaluation error: %w", err)
+	}
 	
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
 	
-	if value, ok := details.Value.(bool); ok {
-		return value, nil
-	}
-	
-	return defaultValue, fmt.Errorf("evaluation did not return boolean value")
+	return details.Value, nil
 }
 
-func (s *TestState) evaluateStringFlag(flagKey string, defaultValue string, context openfeature.EvaluationContext) (string, error) {
-	details := s.Client.StringValueDetails(flagKey, defaultValue, context)
-	s.LastEvaluation = details
+func (s *TestState) evaluateStringFlag(flagKey string, defaultValue string, evalCtx openfeature.EvaluationContext) (string, error) {
+	ctx := context.Background()
+	details, err := s.Client.StringValueDetails(ctx, flagKey, defaultValue, evalCtx)
+	s.LastEvaluation = EvaluationResult{
+		FlagKey:      details.FlagKey,
+		Value:        details.Value,
+		Reason:       details.Reason,
+		Variant:      details.Variant,
+		ErrorCode:    details.ErrorCode,
+		ErrorMessage: details.ErrorMessage,
+	}
+	
+	if err != nil {
+		return defaultValue, fmt.Errorf("evaluation error: %w", err)
+	}
 	
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
 	
-	if value, ok := details.Value.(string); ok {
-		return value, nil
-	}
-	
-	return defaultValue, fmt.Errorf("evaluation did not return string value")
+	return details.Value, nil
 }
 
-func (s *TestState) evaluateIntegerFlag(flagKey string, defaultValue int, context openfeature.EvaluationContext) (int, error) {
-	details := s.Client.IntValueDetails(flagKey, defaultValue, context)
-	s.LastEvaluation = details
+func (s *TestState) evaluateIntegerFlag(flagKey string, defaultValue int, evalCtx openfeature.EvaluationContext) (int, error) {
+	ctx := context.Background()
+	details, err := s.Client.IntValueDetails(ctx, flagKey, int64(defaultValue), evalCtx)
+	s.LastEvaluation = EvaluationResult{
+		FlagKey:      details.FlagKey,
+		Value:        details.Value,
+		Reason:       details.Reason,
+		Variant:      details.Variant,
+		ErrorCode:    details.ErrorCode,
+		ErrorMessage: details.ErrorMessage,
+	}
+	
+	if err != nil {
+		return defaultValue, fmt.Errorf("evaluation error: %w", err)
+	}
 	
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
 	
-	if value, ok := details.Value.(int); ok {
-		return value, nil
-	}
-	
-	return defaultValue, fmt.Errorf("evaluation did not return integer value")
+	return int(details.Value), nil
 }
 
-func (s *TestState) evaluateFloatFlag(flagKey string, defaultValue float64, context openfeature.EvaluationContext) (float64, error) {
-	details := s.Client.FloatValueDetails(flagKey, defaultValue, context)
-	s.LastEvaluation = details
+func (s *TestState) evaluateFloatFlag(flagKey string, defaultValue float64, evalCtx openfeature.EvaluationContext) (float64, error) {
+	ctx := context.Background()
+	details, err := s.Client.FloatValueDetails(ctx, flagKey, defaultValue, evalCtx)
+	s.LastEvaluation = EvaluationResult{
+		FlagKey:      details.FlagKey,
+		Value:        details.Value,
+		Reason:       details.Reason,
+		Variant:      details.Variant,
+		ErrorCode:    details.ErrorCode,
+		ErrorMessage: details.ErrorMessage,
+	}
+	
+	if err != nil {
+		return defaultValue, fmt.Errorf("evaluation error: %w", err)
+	}
 	
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
 	
-	if value, ok := details.Value.(float64); ok {
-		return value, nil
-	}
-	
-	return defaultValue, fmt.Errorf("evaluation did not return float value")
+	return details.Value, nil
 }

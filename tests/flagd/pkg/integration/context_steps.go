@@ -16,7 +16,7 @@ func initializeContextSteps(ctx *godog.ScenarioContext, state *TestState) {
 
 // addContextValue adds a typed value to the evaluation context
 func (s *TestState) addContextValue(key, valueType, value string) error {
-	convertedValue, err := convertValue(value, valueType)
+	convertedValue, err := convertValueForSteps(value, valueType)
 	if err != nil {
 		return fmt.Errorf("failed to convert context value for key %s: %w", key, err)
 	}
@@ -176,7 +176,7 @@ func (s *TestState) contextShouldHaveKeysStep(expectedCount int) error {
 
 // contextValueShouldBeStep checks a specific context value
 func (s *TestState) contextValueShouldBeStep(key, expectedValue, valueType string) error {
-	convertedExpected, err := convertValue(expectedValue, valueType)
+	convertedExpected, err := convertValueForSteps(expectedValue, valueType)
 	if err != nil {
 		return fmt.Errorf("failed to convert expected value: %w", err)
 	}
