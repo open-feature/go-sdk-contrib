@@ -88,6 +88,12 @@ func (s *TestState) createStableFlagdProvider() error {
 
 // waitForProviderReady waits for the provider to be in READY state
 func (s *TestState) waitForProviderReady(timeout time.Duration) error {
+	// Check if provider is already ready
+	if s.Client.GetProviderStatus() == openfeature.ReadyState {
+		s.addEvent("READY", openfeature.EventDetails{})
+		return nil
+	}
+
 	readyChan := make(chan struct{})
 
 	handler := func(details openfeature.EventDetails) {
@@ -102,7 +108,7 @@ func (s *TestState) waitForProviderReady(timeout time.Duration) error {
 	case <-readyChan:
 		return nil
 	case <-time.After(timeout):
-		return fmt.Errorf("provider not ready after %v", timeout)
+		return fmt.Errorf("provider not ready after %v, current status: %v", timeout, s.Client.GetProviderStatus())
 	}
 }
 

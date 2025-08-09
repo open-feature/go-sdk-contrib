@@ -152,14 +152,37 @@ func (s *TestState) resetState() {
 	s.ProviderOptions = []providerOption{}
 	s.ProviderConfig = errorAwareProviderConfiguration{}
 
+	// Properly cleanup provider and client
+	if s.Client != nil {
+		s.Client = nil
+	}
 	if s.Provider != nil {
+		// Note: We don't shutdown the provider here since it might be shared
+		// The OpenFeature SDK will handle cleanup when new providers are set
 		s.Provider = nil
 	}
-	s.Client = nil
 }
 
 // Type conversion utilities (similar to Python implementation)
 func convertValueForSteps(value string, valueType string) (interface{}, error) {
+	// Handle empty values (no default value specified)
+	if value == "" {
+		switch valueType {
+		case "Boolean":
+			return false, nil // Default false for empty boolean
+		case "Integer", "Long":
+			return int64(0), nil // Default 0 for empty integer  
+		case "Float":
+			return 0.0, nil // Default 0.0 for empty float
+		case "String":
+			return "", nil // Default empty string
+		case "Object":
+			return nil, nil // Default null for empty object
+		default:
+			return nil, nil
+		}
+	}
+
 	switch valueType {
 	case "Boolean":
 		return strconv.ParseBool(strings.ToLower(value))

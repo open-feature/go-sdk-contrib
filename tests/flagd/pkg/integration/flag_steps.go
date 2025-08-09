@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
-	
+
 	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk/openfeature"
 )
@@ -27,13 +27,13 @@ func initializeFlagSteps(ctx *godog.ScenarioContext, state *TestState) {
 func (s *TestState) setFlagForEvaluation(flagType, flagKey, defaultValue string) error {
 	s.FlagType = flagType
 	s.FlagKey = flagKey
-	
+
 	// Convert the default value based on flag type
 	converted, err := convertValueForSteps(defaultValue, flagType)
 	if err != nil {
 		return fmt.Errorf("failed to convert default value: %w", err)
 	}
-	
+
 	s.DefaultValue = converted
 	return nil
 }
@@ -48,22 +48,21 @@ func (s *TestState) evaluateFlagWithDetails() error {
 	if s.Client == nil {
 		return fmt.Errorf("no client available for evaluation")
 	}
-	
+
 	if s.FlagKey == "" {
 		return fmt.Errorf("no flag key set for evaluation")
 	}
-	
-	// Create evaluation context from current context map  
+
+	// Create evaluation context from current context map
 	evalCtx := openfeature.NewEvaluationContext("", s.EvalContext)
-	
+
 	// Evaluate based on flag type
-	var err error
 	ctx := context.Background()
-	
+
 	switch s.FlagType {
 	case "Boolean":
 		if defaultVal, ok := s.DefaultValue.(bool); ok {
-			boolDetails, evalErr := s.Client.BooleanValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			boolDetails, _ := s.Client.BooleanValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
 			s.LastEvaluation = EvaluationResult{
 				FlagKey:      boolDetails.FlagKey,
 				Value:        boolDetails.Value,
@@ -72,13 +71,12 @@ func (s *TestState) evaluateFlagWithDetails() error {
 				ErrorCode:    boolDetails.ErrorCode,
 				ErrorMessage: boolDetails.ErrorMessage,
 			}
-			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not a boolean")
 		}
 	case "String":
 		if defaultVal, ok := s.DefaultValue.(string); ok {
-			strDetails, evalErr := s.Client.StringValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			strDetails, _ := s.Client.StringValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
 			s.LastEvaluation = EvaluationResult{
 				FlagKey:      strDetails.FlagKey,
 				Value:        strDetails.Value,
@@ -87,14 +85,13 @@ func (s *TestState) evaluateFlagWithDetails() error {
 				ErrorCode:    strDetails.ErrorCode,
 				ErrorMessage: strDetails.ErrorMessage,
 			}
-			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not a string")
 		}
 	case "Integer":
-		if defaultVal, ok := s.DefaultValue.(int); ok {
+		if defaultVal, ok := s.DefaultValue.(int64); ok {
 			// OpenFeature uses int64 for integers
-			intDetails, evalErr := s.Client.IntValueDetails(ctx, s.FlagKey, int64(defaultVal), evalCtx)
+			intDetails, _ := s.Client.IntValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
 			s.LastEvaluation = EvaluationResult{
 				FlagKey:      intDetails.FlagKey,
 				Value:        intDetails.Value,
@@ -103,13 +100,12 @@ func (s *TestState) evaluateFlagWithDetails() error {
 				ErrorCode:    intDetails.ErrorCode,
 				ErrorMessage: intDetails.ErrorMessage,
 			}
-			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not an integer")
 		}
 	case "Float":
 		if defaultVal, ok := s.DefaultValue.(float64); ok {
-			floatDetails, evalErr := s.Client.FloatValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			floatDetails, _ := s.Client.FloatValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
 			s.LastEvaluation = EvaluationResult{
 				FlagKey:      floatDetails.FlagKey,
 				Value:        floatDetails.Value,
@@ -118,13 +114,12 @@ func (s *TestState) evaluateFlagWithDetails() error {
 				ErrorCode:    floatDetails.ErrorCode,
 				ErrorMessage: floatDetails.ErrorMessage,
 			}
-			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not a float")
 		}
 	case "Object":
 		if defaultVal := s.DefaultValue; defaultVal != nil {
-			objDetails, evalErr := s.Client.ObjectValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
+			objDetails, _ := s.Client.ObjectValueDetails(ctx, s.FlagKey, defaultVal, evalCtx)
 			s.LastEvaluation = EvaluationResult{
 				FlagKey:      objDetails.FlagKey,
 				Value:        objDetails.Value,
@@ -133,15 +128,14 @@ func (s *TestState) evaluateFlagWithDetails() error {
 				ErrorCode:    objDetails.ErrorCode,
 				ErrorMessage: objDetails.ErrorMessage,
 			}
-			err = evalErr
 		} else {
 			return fmt.Errorf("default value is not an object")
 		}
 	default:
 		return fmt.Errorf("unknown flag type: %s", s.FlagType)
 	}
-	
-	return err
+
+	return nil
 }
 
 // assertResolvedValue checks that the resolved value matches expected
@@ -149,15 +143,15 @@ func (s *TestState) assertResolvedValue(expectedValue string) error {
 	if s.LastEvaluation.FlagKey == "" {
 		return fmt.Errorf("no evaluation details available")
 	}
-	
+
 	// Convert expected value to appropriate type for comparison
 	expected, err := s.convertDefaultValue(s.FlagType, expectedValue)
 	if err != nil {
 		return fmt.Errorf("failed to convert expected value: %w", err)
 	}
-	
+
 	actualValue := s.LastEvaluation.Value
-	
+
 	// Handle special cases for zero values and empty strings
 	if s.FlagType == "String" && expectedValue == "" {
 		if actualValue != "" {
@@ -165,11 +159,11 @@ func (s *TestState) assertResolvedValue(expectedValue string) error {
 		}
 		return nil
 	}
-	
+
 	if actualValue != expected {
 		return fmt.Errorf("expected value %v, got %v", expected, actualValue)
 	}
-	
+
 	return nil
 }
 
@@ -178,12 +172,12 @@ func (s *TestState) assertReason(expectedReason string) error {
 	if s.LastEvaluation.FlagKey == "" {
 		return fmt.Errorf("no evaluation details available")
 	}
-	
+
 	actualReason := string(s.LastEvaluation.Reason)
 	if actualReason != expectedReason {
 		return fmt.Errorf("expected reason %s, got %s", expectedReason, actualReason)
 	}
-	
+
 	return nil
 }
 
@@ -192,7 +186,7 @@ func (s *TestState) assertErrorCode(expectedCode string) error {
 	if s.LastEvaluation.FlagKey == "" {
 		return fmt.Errorf("no evaluation details available")
 	}
-	
+
 	// If no error code is expected, ensure no error occurred
 	if expectedCode == "" {
 		if s.LastEvaluation.ErrorCode != "" {
@@ -200,11 +194,11 @@ func (s *TestState) assertErrorCode(expectedCode string) error {
 		}
 		return nil
 	}
-	
+
 	if string(s.LastEvaluation.ErrorCode) != expectedCode {
 		return fmt.Errorf("expected error code %s, got %s", expectedCode, s.LastEvaluation.ErrorCode)
 	}
-	
+
 	return nil
 }
 
@@ -225,7 +219,7 @@ func (s *TestState) assertFlagInEventPayload() error {
 			return fmt.Errorf("flag %s not found in change event payload", s.FlagKey)
 		}
 	}
-	
+
 	return fmt.Errorf("no configuration change event found")
 }
 
@@ -234,12 +228,12 @@ func (s *TestState) modifyFlag() error {
 	if s.Container == nil {
 		return fmt.Errorf("no container available to modify flags")
 	}
-	
+
 	// Call the testbed launchpad API to trigger flag changes
 	if container, ok := s.Container.(*FlagdTestContainer); ok {
 		return container.TriggerFlagChange()
 	}
-	
+
 	return fmt.Errorf("container does not support flag modification")
 }
 
@@ -250,11 +244,11 @@ func (s *TestState) triggerChangeEvent() error {
 		handler := func(details openfeature.EventDetails) {
 			s.addEvent("CONFIGURATION_CHANGE", details)
 		}
-		
+
 		s.EventHandlers["CONFIGURATION_CHANGE"] = handler
 		s.Client.AddHandler(openfeature.ProviderConfigChange, &handler)
 	}
-	
+
 	// Wait a moment for the change to propagate
 	return s.waitForEvents("CONFIGURATION_CHANGE", 2*time.Second)
 }
@@ -271,15 +265,15 @@ func (s *TestState) evaluateBooleanFlag(flagKey string, defaultValue bool, evalC
 		ErrorCode:    details.ErrorCode,
 		ErrorMessage: details.ErrorMessage,
 	}
-	
+
 	if err != nil {
 		return defaultValue, fmt.Errorf("evaluation error: %w", err)
 	}
-	
+
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
-	
+
 	return details.Value, nil
 }
 
@@ -294,15 +288,15 @@ func (s *TestState) evaluateStringFlag(flagKey string, defaultValue string, eval
 		ErrorCode:    details.ErrorCode,
 		ErrorMessage: details.ErrorMessage,
 	}
-	
+
 	if err != nil {
 		return defaultValue, fmt.Errorf("evaluation error: %w", err)
 	}
-	
+
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
-	
+
 	return details.Value, nil
 }
 
@@ -317,15 +311,15 @@ func (s *TestState) evaluateIntegerFlag(flagKey string, defaultValue int, evalCt
 		ErrorCode:    details.ErrorCode,
 		ErrorMessage: details.ErrorMessage,
 	}
-	
+
 	if err != nil {
 		return defaultValue, fmt.Errorf("evaluation error: %w", err)
 	}
-	
+
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
-	
+
 	return int(details.Value), nil
 }
 
@@ -340,15 +334,15 @@ func (s *TestState) evaluateFloatFlag(flagKey string, defaultValue float64, eval
 		ErrorCode:    details.ErrorCode,
 		ErrorMessage: details.ErrorMessage,
 	}
-	
+
 	if err != nil {
 		return defaultValue, fmt.Errorf("evaluation error: %w", err)
 	}
-	
+
 	if details.ErrorCode != "" {
 		return defaultValue, fmt.Errorf("evaluation error: %s", details.ErrorMessage)
 	}
-	
+
 	return details.Value, nil
 }
 
