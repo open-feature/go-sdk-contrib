@@ -40,7 +40,7 @@ const (
 	flagdMaxCacheSizeEnvironmentVariableName          = "FLAGD_MAX_CACHE_SIZE"
 	flagdMaxEventStreamRetriesEnvironmentVariableName = "FLAGD_MAX_EVENT_STREAM_RETRIES"
 	flagdResolverEnvironmentVariableName              = "FLAGD_RESOLVER"
-	flagdSourceProviderIDEnvironmentVariableName      = "FLAGD_SOURCE_PROVIDER_ID"
+	flagdSourceProviderIDEnvironmentVariableName      = "FLAGD_PROVIDER_ID"
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
 	flagdTargetUriEnvironmentVariableName             = "FLAGD_TARGET_URI"
@@ -57,7 +57,7 @@ type ProviderConfiguration struct {
 	Port                             uint16
 	TargetUri                        string
 	Resolver                         ResolverType
-	ProviderID                       string
+	ProviderId                       string
 	Selector                         string
 	SocketPath                       string
 	Tls                              bool
@@ -213,8 +213,8 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 		cfg.OfflineFlagSourcePath = offlinePath
 	}
 
-	if providerID := os.Getenv(flagdSourceProviderIDEnvironmentVariableName); providerID != "" {
-		cfg.ProviderID = providerID
+	if providerId := os.Getenv(flagdSourceProviderIDEnvironmentVariableName); providerId != "" {
+		cfg.ProviderId = providerId
 	}
 
 	if selector := os.Getenv(flagdSourceSelectorEnvironmentVariableName); selector != "" {
@@ -362,7 +362,7 @@ func WithSelector(selector string) ProviderOption {
 // WithProviderID sets the providerID to be used for InProcess flag sync calls
 func WithProviderID(providerID string) ProviderOption {
 	return func(p *ProviderConfiguration) {
-		p.ProviderID = providerID
+		p.ProviderId = providerID
 	}
 }
 
