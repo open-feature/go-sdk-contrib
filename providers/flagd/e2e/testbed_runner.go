@@ -42,14 +42,14 @@ func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
 		testbedConfig: config.TestbedConfig,
 		options:       config.ExtraOptions,
 	}
-	
+
 	// Initialize container immediately
 	ctx := context.Background()
 	if err := runner.SetupContainer(ctx); err != nil {
 		// Log error but don't fail construction - let tests handle the error
 		fmt.Printf("Warning: Failed to setup container during runner creation: %v\n", err)
 	}
-	
+
 	return runner
 }
 
@@ -101,7 +101,7 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 	if tr.resolverType == integration.File && tr.flagsDir != "" {
 		// Give launchpad some time to generate allFlags.json
 		time.Sleep(2 * time.Second)
-		
+
 		flagFile := filepath.Join(tr.flagsDir, "allFlags.json")
 		if _, err := os.Stat(flagFile); os.IsNotExist(err) {
 			// File might still be generating, this is for debugging purposes
@@ -259,7 +259,7 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 			flagFile := filepath.Join(tr.flagsDir, "allFlags.json")
 			opts = append(opts, flagd.WithOfflineFilePath(flagFile))
 		} else {
-			return nil, fmt.Errorf("flagsDir must be specified for file provider testing")
+			panic(fmt.Errorf("flagsDir must be specified for file provider testing"))
 		}
 	}
 
