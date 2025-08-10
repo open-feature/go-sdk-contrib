@@ -7,33 +7,14 @@ import (
 	"os"
 	"reflect"
 	"slices"
-	"strconv"
-	"strings"
-	"unicode"
 
 	"github.com/cucumber/godog"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 )
 
-// providerOption is a struct to store the defined options between steps
-type providerOption struct {
-	option    string
-	valueType string
-	value     string
-}
+// Type definitions moved to types.go
 
-// errorAwareProviderConfiguration is a struct that contains a ProviderConfiguration and an error in case the
-// configuration is invalid
-type errorAwareProviderConfiguration struct {
-	configuration *flagd.ProviderConfiguration
-	error         error
-}
-
-// ctxProviderOptionsKey is the key used to pass the provider options across tests
-type ctxProviderOptionsKey struct{}
-
-// ctxErrorAwareProviderConfigurationKey is the key used to pass the errorAwareProviderConfiguration across tests
-type ctxErrorAwareProviderConfigurationKey struct{}
+// Context keys moved to types.go
 
 // ignoredOptions a list of options that are currently not supported
 var ignoredOptions = []string{
@@ -63,9 +44,9 @@ func (s *TestState) aConfigWasInitialized(ctx context.Context) {
 
 	providerConfiguration, err := flagd.NewProviderConfiguration(opts)
 
-	s.ProviderConfig = errorAwareProviderConfiguration{
-		configuration: providerConfiguration,
-		error:         err,
+	s.ProviderConfig = ErrorAwareProviderConfiguration{
+		Configuration: providerConfiguration,
+		Error:         err,
 	}
 }
 
@@ -75,10 +56,10 @@ func (s *TestState) GenerateOpts() []flagd.ProviderOption {
 	var opts []flagd.ProviderOption
 
 	for _, providerOption := range providerOptions {
-		if !slices.Contains(ignoredOptions, providerOption.option) {
+		if !slices.Contains(ignoredOptions, providerOption.Option) {
 			opts = append(
 				opts,
-				genericProviderOption(providerOption.option, providerOption.valueType, providerOption.value),
+				genericProviderOption(providerOption.Option, providerOption.ValueType, providerOption.Value),
 			)
 		}
 	}
@@ -97,10 +78,10 @@ func (s *TestState) anEnvironmentVariableWithValue(key, value string) {
 func (s *TestState) anOptionOfTypeWithValue(ctx context.Context, option, valueType, value string) {
 	providerOptions := s.ProviderOptions
 
-	data := providerOption{
-		option:    option,
-		valueType: valueType,
-		value:     value,
+	data := ProviderOption{
+		Option:    option,
+		ValueType: valueType,
+		Value:     value,
 	}
 
 	s.ProviderOptions = append(providerOptions, data)
@@ -120,12 +101,13 @@ func (s *TestState) theOptionOfTypeShouldHaveTheValue(
 		expectedValueS = ""
 	}
 
-	config := errorAwareConfiguration.configuration
-	currentValue := reflect.ValueOf(config).Elem().FieldByName(toFieldName(option))
+	config := errorAwareConfiguration.Configuration
+	currentValue := reflect.ValueOf(config).Elem().FieldByName(ToFieldName(option))
 
-	var expectedValue = convertValue(valueType, expectedValueS, currentValue.Type())
+	converter := NewValueConverter()
+	var expectedValue = converter.ConvertToReflectValue(valueType, expectedValueS, currentValue.Type())
 
-	if valueToString(currentValue) != valueToString(expectedValue) {
+	if ValueToString(currentValue) != ValueToString(expectedValue) {
 		return ctx, fmt.Errorf(
 			"expected config of type '%s' with value '%s', got '%s'",
 			valueType,
@@ -140,54 +122,17 @@ func (s *TestState) theOptionOfTypeShouldHaveTheValue(
 func (s *TestState) weShouldHaveAnError(ctx context.Context) (context.Context, error) {
 	errorAwareConfiguration := s.ProviderConfig
 
-	if errorAwareConfiguration.error == nil {
+	if errorAwareConfiguration.Error == nil {
 		return ctx, errors.New("configuration check succeeded, but should not")
 	} else {
 		return ctx, nil
 	}
 }
 
-func stringToInt(str string) int {
-	i, err := strconv.Atoi(str)
-	if err != nil {
-		panic(err)
-	}
-	return i
-}
-
-func stringToBoolean(str string) bool {
-	b, err := strconv.ParseBool(str)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func valueToString(value interface{}) string {
-	return fmt.Sprintf("%v", value)
-}
-
-func toFieldName(option string) string {
-	r := []rune(option)
-	return string(append([]rune{unicode.ToUpper(r[0])}, r[1:]...))
-}
-
 func genericProviderOption(option, valueType, value string) flagd.ProviderOption {
+	converter := NewValueConverter()
 	return func(p *flagd.ProviderConfiguration) {
-		field := reflect.ValueOf(p).Elem().FieldByName(toFieldName(option))
-
-		field.Set(convertValue(valueType, value, field.Type()))
-	}
-}
-
-func convertValue(valueType, value string, fieldType reflect.Type) reflect.Value {
-	if valueType == "Integer" {
-		return reflect.ValueOf(stringToInt(value)).Convert(fieldType)
-	} else if valueType == "Boolean" {
-		return reflect.ValueOf(stringToBoolean(value)).Convert(fieldType)
-	} else if valueType == "ResolverType" {
-		return reflect.ValueOf(flagd.ResolverType(strings.ToLower(value))).Convert(fieldType)
-	} else {
-		return reflect.ValueOf(value).Convert(fieldType)
+		field := reflect.ValueOf(p).Elem().FieldByName(ToFieldName(option))
+		field.Set(converter.ConvertToReflectValue(valueType, value, field.Type()))
 	}
 }

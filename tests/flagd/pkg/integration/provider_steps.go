@@ -8,15 +8,7 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// ProviderSupplier is a function type that creates providers
-type ProviderSupplier func(state TestState) (openfeature.FeatureProvider, error)
-
-// Global provider suppliers for different resolver types
-var (
-	RPCProviderSupplier       ProviderSupplier
-	InProcessProviderSupplier ProviderSupplier
-	FileProviderSupplier      ProviderSupplier
-)
+// Provider supplier types moved to types.go
 
 // SetProviderSuppliers sets the provider creation functions
 func SetProviderSuppliers(rpc, inProcess, file ProviderSupplier) {

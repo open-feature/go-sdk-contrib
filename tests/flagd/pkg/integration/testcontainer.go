@@ -22,15 +22,7 @@ type FlagdTestContainer struct {
 	healthPort    int
 }
 
-// FlagdContainerConfig holds configuration for the flagd testbed container
-type FlagdContainerConfig struct {
-	Image         string
-	Tag           string
-	Feature       string
-	FlagsDir      string
-	Networks      []string
-	ExtraWaitTime time.Duration
-}
+// Container config type moved to types.go
 
 // NewFlagdContainer creates a new flagd testbed container
 func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*FlagdTestContainer, error) {
@@ -324,19 +316,7 @@ func (f *FlagdTestContainer) GetHealthAddress() string {
 	return fmt.Sprintf("%s:%d", f.host, f.healthPort)
 }
 
-// ContainerInfo provides information about the running container
-type ContainerInfo struct {
-	ID            string
-	Image         string
-	Host          string
-	RPCPort       int
-	InProcessPort int
-	LaunchpadPort int
-	HealthPort    int
-	LaunchpadURL  string
-	IsRunning     bool
-	IsHealthy     bool
-}
+// Container info type moved to types.go
 
 // GetInfo returns detailed information about the container
 func (f *FlagdTestContainer) GetInfo(ctx context.Context) (*ContainerInfo, error) {

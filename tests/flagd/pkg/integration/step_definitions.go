@@ -2,98 +2,15 @@ package integration
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// TestStateKey is the key used to pass TestState across context.Context
-type TestStateKey struct{}
-
-// EvaluationResult holds the result of flag evaluation in a generic way
-type EvaluationResult struct {
-	FlagKey      string
-	Value        interface{}
-	Reason       openfeature.Reason
-	Variant      string
-	ErrorCode    openfeature.ErrorCode
-	ErrorMessage string
-}
-
-// TestState holds all test state shared across step definitions
-type TestState struct {
-	// Provider configuration
-	EnvVars      map[string]string
-	ProviderType ProviderType
-	Provider     openfeature.FeatureProvider
-	Client       *openfeature.Client
-	ConfigError  error
-
-	// Configuration testing state
-	ProviderOptions []providerOption
-	ProviderConfig  errorAwareProviderConfiguration
-
-	// Evaluation state
-	LastEvaluation EvaluationResult
-	EvalContext    map[string]interface{}
-	FlagKey        string
-	FlagType       string
-	DefaultValue   interface{}
-
-	// Event tracking
-	Events        []EventRecord
-	EventHandlers map[string]func(openfeature.EventDetails)
-
-	// Container/testbed state
-	Container    TestContainer
-	LaunchpadURL string
-}
-
-// EventRecord tracks events for verification
-type EventRecord struct {
-	Type      string
-	Timestamp time.Time
-	Details   openfeature.EventDetails
-}
-
-// ProviderType represents the type of provider being tested
-type ProviderType int
-
-const (
-	RPC ProviderType = iota
-	InProcess
-	File
-)
-
-func (p ProviderType) String() string {
-	switch p {
-	case RPC:
-		return "rpc"
-	case InProcess:
-		return "in-process"
-	case File:
-		return "file"
-	default:
-		return "unknown"
-	}
-}
-
-// TestContainer interface abstracts container operations
-type TestContainer interface {
-	GetHost() string
-	GetPort(service string) int
-	GetLaunchpadURL() string
-	Start() error
-	Stop() error
-	Restart(delaySeconds int) error
-	IsHealthy() bool
-}
+// All type definitions have been moved to types.go for better organization
 
 // InitializeScenario registers all step definitions for gherkin scenarios
 func InitializeScenario(ctx *godog.ScenarioContext) {
@@ -150,8 +67,8 @@ func (s *TestState) resetState() {
 	s.DefaultValue = nil
 
 	// Reset config state
-	s.ProviderOptions = []providerOption{}
-	s.ProviderConfig = errorAwareProviderConfiguration{}
+	s.ProviderOptions = []ProviderOption{}
+	s.ProviderConfig = ErrorAwareProviderConfiguration{}
 
 	// Properly cleanup provider and client
 	if s.Client != nil {
@@ -164,88 +81,10 @@ func (s *TestState) resetState() {
 	}
 }
 
-// Type conversion utilities (similar to Python implementation)
+// Type conversion utilities are now centralized in utils.go
+// Legacy compatibility wrappers
 func convertValueForSteps(value string, valueType string) (interface{}, error) {
-	// Handle empty values (no default value specified)
-	if value == "" {
-		switch valueType {
-		case "Boolean":
-			return false, nil // Default false for empty boolean
-		case "Integer", "Long":
-			return int64(0), nil // Default 0 for empty integer
-		case "Float":
-			return 0.0, nil // Default 0.0 for empty float
-		case "String":
-			return "", nil // Default empty string
-		case "Object":
-			return nil, nil // Default null for empty object
-		default:
-			return nil, nil
-		}
-	}
-
-	switch valueType {
-	case "Boolean":
-		return strconv.ParseBool(strings.ToLower(value))
-	case "Integer":
-		// Return int64 to match OpenFeature IntValueDetails return type
-		return strconv.ParseInt(value, 10, 64)
-	case "Long":
-		return strconv.ParseInt(value, 10, 64)
-	case "Float":
-		return strconv.ParseFloat(value, 64)
-	case "String":
-		if value == "null" {
-			return nil, nil
-		}
-		return value, nil
-	case "Object":
-		var obj interface{}
-		err := json.Unmarshal([]byte(value), &obj)
-		return obj, err
-	case "ResolverType":
-		return parseResolverType(value)
-	case "CacheType":
-		return parseCacheType(value)
-	default:
-		return value, nil
-	}
-}
-
-// parseResolverType converts string to ProviderType
-func parseResolverType(value string) (ProviderType, error) {
-	switch strings.ToLower(value) {
-	case "rpc":
-		return RPC, nil
-	case "in-process":
-		return InProcess, nil
-	case "file":
-		return File, nil
-	default:
-		return RPC, fmt.Errorf("unknown resolver type: %s", value)
-	}
-}
-
-// parseCacheType handles cache type conversion
-func parseCacheType(value string) (string, error) {
-	switch strings.ToLower(value) {
-	case "lru", "disabled":
-		return strings.ToLower(value), nil
-	default:
-		return "", fmt.Errorf("unknown cache type: %s", value)
-	}
-}
-
-// camelToSnake converts CamelCase to snake_case
-func camelToSnake(input string) string {
-	var result strings.Builder
-	for i, r := range input {
-		if i > 0 && 'A' <= r && r <= 'Z' {
-			result.WriteRune('_')
-		}
-		result.WriteRune(r)
-	}
-	return strings.ToLower(result.String())
+	return DefaultConverter.ConvertForSteps(value, valueType)
 }
 
 // Utility functions for event handling
