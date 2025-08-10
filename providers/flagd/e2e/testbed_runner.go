@@ -97,6 +97,18 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 	// Note: The launchpad automatically generates flag files like allFlags.json
 	// when the testbed starts, so no additional API calls are needed
 
+	// For file provider, wait a moment for launchpad to generate the files
+	if tr.resolverType == integration.File && tr.flagsDir != "" {
+		// Give launchpad some time to generate allFlags.json
+		time.Sleep(2 * time.Second)
+		
+		flagFile := filepath.Join(tr.flagsDir, "allFlags.json")
+		if _, err := os.Stat(flagFile); os.IsNotExist(err) {
+			// File might still be generating, this is for debugging purposes
+			fmt.Printf("Warning: allFlags.json not yet available at %s\n", flagFile)
+		}
+	}
+
 	return nil
 }
 
@@ -241,13 +253,13 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 	case integration.File:
 		opts = append(opts, flagd.WithInProcessResolver())
 		if tr.flagsDir != "" {
-			// Use the launchpad-generated allFlags.json file
+			// Use the local path to the launchpad-generated allFlags.json file
+			// The container mounts tr.flagsDir to /flags, so launchpad will generate
+			// allFlags.json in the local tr.flagsDir, which we can access directly
 			flagFile := filepath.Join(tr.flagsDir, "allFlags.json")
 			opts = append(opts, flagd.WithOfflineFilePath(flagFile))
 		} else {
-			// If no flags directory specified, use the container's mounted flags directory
-			// The testbed will mount flags and launchpad will generate allFlags.json
-			opts = append(opts, flagd.WithOfflineFilePath("/flags/allFlags.json"))
+			return nil, fmt.Errorf("flagsDir must be specified for file provider testing")
 		}
 	}
 

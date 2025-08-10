@@ -14,7 +14,8 @@ func TestFileProviderE2E(t *testing.T) {
 		t.Skip("skipping e2e tests in short mode")
 	}
 
-	// Create temporary directory for flag files that will be mounted in container
+	// Create temporary directory for flag files 
+	// This directory will be mounted as /flags inside the testbed container
 	tempDir, err := os.MkdirTemp("", "flagd-file-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
@@ -22,7 +23,10 @@ func TestFileProviderE2E(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Setup testbed runner for file provider
-	// The testbed will mount the flagsDir and launchpad will generate allFlags.json in it
+	// The testbed will mount tempDir to /flags in the container
+	// Launchpad will generate allFlags.json inside the container at /flags/allFlags.json
+	// Which corresponds to tempDir/allFlags.json on the host
+	// The file provider will read from the local path tempDir/allFlags.json
 	runner := NewTestbedRunner(TestbedConfig{
 		ResolverType:  integration.File,
 		FlagsDir:      tempDir,
