@@ -3,7 +3,6 @@
 package e2e
 
 import (
-	"context"
 	"testing"
 
 	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
@@ -20,12 +19,6 @@ func TestRPCProviderE2E(t *testing.T) {
 		TestbedConfig: "default", // Use default testbed configuration
 	})
 	defer runner.Cleanup()
-
-	// Setup container
-	ctx := context.Background()
-	if err := runner.SetupContainer(ctx); err != nil {
-		t.Fatalf("Failed to setup container: %v", err)
-	}
 
 	// Define feature paths - using flagd-testbed gherkin files
 	featurePaths := []string{

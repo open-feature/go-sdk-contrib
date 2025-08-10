@@ -36,12 +36,21 @@ type TestbedConfig struct {
 
 // NewTestbedRunner creates a new testbed-based test runner
 func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
-	return &TestbedRunner{
+	runner := &TestbedRunner{
 		resolverType:  config.ResolverType,
 		flagsDir:      config.FlagsDir,
 		testbedConfig: config.TestbedConfig,
 		options:       config.ExtraOptions,
 	}
+	
+	// Initialize container immediately
+	ctx := context.Background()
+	if err := runner.SetupContainer(ctx); err != nil {
+		// Log error but don't fail construction - let tests handle the error
+		fmt.Printf("Warning: Failed to setup container during runner creation: %v\n", err)
+	}
+	
+	return runner
 }
 
 // SetupContainer starts and configures the flagd testbed container

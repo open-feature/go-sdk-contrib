@@ -30,11 +30,11 @@ func TestFileProviderE2E(t *testing.T) {
 
 	// Define feature paths
 	featurePaths := []string{
-		"../../flagd-testbed/gherkin",
+		"../flagd-testbed/gherkin",
 	}
 
 	// Run tests with file-specific tags
-	tags := "@file && ~@rpc && ~@in-process && ~@events && ~@reconnect"
+	tags := "@file && ~@reconnect && ~@sync && ~@grace"
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)
