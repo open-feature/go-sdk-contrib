@@ -94,6 +94,9 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 		}
 	}
 
+	// Note: The launchpad automatically generates flag files like allFlags.json
+	// when the testbed starts, so no additional API calls are needed
+
 	return nil
 }
 
@@ -238,9 +241,13 @@ func (tr *TestbedRunner) buildProviderOptions(state integration.TestState, resol
 	case integration.File:
 		opts = append(opts, flagd.WithInProcessResolver())
 		if tr.flagsDir != "" {
-			// Use the flags directory directly
-			flagFile := filepath.Join(tr.flagsDir, "testing-flags.json")
+			// Use the launchpad-generated allFlags.json file
+			flagFile := filepath.Join(tr.flagsDir, "allFlags.json")
 			opts = append(opts, flagd.WithOfflineFilePath(flagFile))
+		} else {
+			// If no flags directory specified, use the container's mounted flags directory
+			// The testbed will mount flags and launchpad will generate allFlags.json
+			opts = append(opts, flagd.WithOfflineFilePath("/flags/allFlags.json"))
 		}
 	}
 
