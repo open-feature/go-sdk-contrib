@@ -1,59 +1,137 @@
-//go:build e2e
-
 package e2e
 
 import (
-	"flag"
-	"github.com/open-feature/go-sdk-contrib/tests/flagd/pkg/integration"
-	"os"
+	context2 "context"
 	"testing"
 
 	"github.com/cucumber/godog"
+	"github.com/open-feature/go-sdk-contrib/tests/flagd/testframework"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// usedEnvVars list of env vars that have been set
-var usedEnvVars []string
-
-func TestConfig(t *testing.T) {
-	if testing.Short() {
-		// skip e2e if testing -short
-		t.Skip()
+// TestConfigurationGherkin runs the config.feature gherkin scenarios as unit tests
+// This does NOT use testcontainers and runs as fast unit tests
+func TestConfigurationGherkin(t *testing.T) {
+	// Create test suite for config scenarios
+	suite := godog.TestSuite{
+		Name: "flagd-config",
+		ScenarioInitializer: func(context *godog.ScenarioContext) {
+			state := testframework.TestState{
+				EnvVars:       make(map[string]string),
+				EvalContext:   make(map[string]interface{}),
+				Events:        []testframework.EventRecord{},
+				EventHandlers: make(map[string]func(openfeature.EventDetails)),
+			}
+			testframework.InitializeConfigScenario(context, &state)
+			context.After(func(ctx context2.Context, sc *godog.Scenario, err error) (context2.Context, error) {
+				// Note: OpenFeature providers don't have a Shutdown method
+				state.CleanupEnvironmentVariables()
+				return ctx, nil
+			})
+		},
+		Options: &godog.Options{
+			Format:      "pretty",
+			Paths:       []string{"../flagd-testbed/gherkin/config.feature"},
+			TestingT:    t,
+			Concurrency: 1,
+		},
 	}
 
-	flag.Parse()
+	// Run the tests
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("Configuration gherkin tests failed with status: %d", status)
+	}
+}
 
-	name := "config.feature"
-
-	testSuite := godog.TestSuite{
-		Name: name,
-		TestSuiteInitializer: func(testSuiteContext *godog.TestSuiteContext) {
-			integration.PrepareConfigTestSuite(
-				func(envVar, envVarValue string) {
-					t.Setenv(envVar, envVarValue)
-					usedEnvVars = append(usedEnvVars, envVar)
-				},
-			)
-		},
-		ScenarioInitializer: func(ctx *godog.ScenarioContext) {
-			for _, envVar := range usedEnvVars {
-				err := os.Unsetenv(envVar)
-
-				if err != nil {
-					t.Fatal("unsetting environment variable: non-zero status returned")
-				}
+// TestRPCConfiguration tests RPC-specific configuration scenarios
+func TestRPCConfiguration(t *testing.T) {
+	suite := godog.TestSuite{
+		Name: "flagd-config-rpc",
+		ScenarioInitializer: func(context *godog.ScenarioContext) {
+			state := testframework.TestState{
+				EnvVars:       make(map[string]string),
+				EvalContext:   make(map[string]interface{}),
+				Events:        []testframework.EventRecord{},
+				EventHandlers: make(map[string]func(openfeature.EventDetails)),
 			}
-			usedEnvVars = nil
-			integration.InitializeConfigScenario(ctx)
+			testframework.InitializeConfigScenario(context, &state)
+			context.After(func(ctx context2.Context, sc *godog.Scenario, err error) (context2.Context, error) {
+				// Note: OpenFeature providers don't have a Shutdown method
+				state.CleanupEnvironmentVariables()
+				return ctx, nil
+			})
 		},
 		Options: &godog.Options{
 			Format:   "pretty",
 			Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
-			TestingT: t, // Testing instance that will run subtests.
-			Strict:   true,
+			Tags:     "@rpc",
+			TestingT: t,
 		},
 	}
 
-	if testSuite.Run() != 0 {
-		t.Fatal("non-zero status returned, failed to run evaluation tests")
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("RPC configuration tests failed with status: %d", status)
+	}
+}
+
+// TestInProcessConfiguration tests in-process-specific configuration scenarios
+func TestInProcessConfiguration(t *testing.T) {
+	suite := godog.TestSuite{
+		Name: "flagd-config-inprocess",
+		ScenarioInitializer: func(context *godog.ScenarioContext) {
+			state := testframework.TestState{
+				EnvVars:       make(map[string]string),
+				EvalContext:   make(map[string]interface{}),
+				Events:        []testframework.EventRecord{},
+				EventHandlers: make(map[string]func(openfeature.EventDetails)),
+			}
+			testframework.InitializeConfigScenario(context, &state)
+			context.After(func(ctx context2.Context, sc *godog.Scenario, err error) (context2.Context, error) {
+				// Note: OpenFeature providers don't have a Shutdown method
+				state.CleanupEnvironmentVariables()
+				return ctx, nil
+			})
+		},
+		Options: &godog.Options{
+			Format:   "pretty",
+			Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
+			Tags:     "@in-process",
+			TestingT: t,
+		},
+	}
+
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("In-process configuration tests failed with status: %d", status)
+	}
+}
+
+// TestFileConfiguration tests file-specific configuration scenarios
+func TestFileConfiguration(t *testing.T) {
+	suite := godog.TestSuite{
+		Name: "flagd-config-file",
+		ScenarioInitializer: func(context *godog.ScenarioContext) {
+			state := testframework.TestState{
+				EnvVars:       make(map[string]string),
+				EvalContext:   make(map[string]interface{}),
+				Events:        []testframework.EventRecord{},
+				EventHandlers: make(map[string]func(openfeature.EventDetails)),
+			}
+			testframework.InitializeConfigScenario(context, &state)
+			context.After(func(ctx context2.Context, sc *godog.Scenario, err error) (context2.Context, error) {
+				// Note: OpenFeature providers don't have a Shutdown method
+				state.CleanupEnvironmentVariables()
+				return ctx, nil
+			})
+		},
+		Options: &godog.Options{
+			Format:   "pretty",
+			Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
+			Tags:     "@file",
+			TestingT: t,
+		},
+	}
+
+	if status := suite.Run(); status != 0 {
+		t.Fatalf("File configuration tests failed with status: %d", status)
 	}
 }
