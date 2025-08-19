@@ -46,6 +46,7 @@ type Configuration struct {
 	CustomSyncProvider      sync.ISync
 	CustomSyncProviderUri   string
 	GrpcDialOptionsOverride []googlegrpc.DialOption
+	CertificatePath         string
 }
 
 type Shutdowner interface {
@@ -324,6 +325,7 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 		GrpcDialOptionsOverride: cfg.GrpcDialOptionsOverride,
 		Logger:                  log,
 		Secure:                  cfg.TLSEnabled,
+		CertPath:                cfg.CertificatePath,
 		ProviderID:              cfg.ProviderID,
 		Selector:                cfg.Selector,
 		URI:                     uri,

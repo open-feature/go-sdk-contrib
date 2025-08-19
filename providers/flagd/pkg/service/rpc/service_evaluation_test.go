@@ -147,6 +147,7 @@ func TestBooleanEvaluation(t *testing.T) {
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+					Reason:          of.ErrorReason,
 				},
 			},
 			isCached:  false,
@@ -282,6 +283,7 @@ func TestStringEvaluation(t *testing.T) {
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+					Reason:          of.ErrorReason,
 				},
 			},
 			isCached:  false,
@@ -417,6 +419,7 @@ func TestFloatEvaluation(t *testing.T) {
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+					Reason:          of.ErrorReason,
 				},
 			},
 			isCached:  false,
@@ -552,6 +555,7 @@ func TestIntEvaluation(t *testing.T) {
 				Value: int64(defaultValue),
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+					Reason:          of.ErrorReason,
 				},
 			},
 			isCached:  false,
@@ -700,6 +704,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
+					Reason:          of.ErrorReason,
 				},
 			},
 			isCached:  false,

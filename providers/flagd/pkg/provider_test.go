@@ -337,9 +337,9 @@ func TestNewProvider(t *testing.T) {
 					test.expectSelector, config.Selector)
 			}
 
-			if config.ProviderID != test.expectProviderID {
-				t.Errorf("incorrect configuration ProviderID, expected %v, got %v",
-					test.expectProviderID, config.ProviderID)
+			if config.ProviderId != test.expectProviderID {
+				t.Errorf("incorrect configuration ProviderId, expected %v, got %v",
+					test.expectProviderID, config.ProviderId)
 			}
 
 			if config.CustomSyncProvider != test.expectCustomSyncProvider {
