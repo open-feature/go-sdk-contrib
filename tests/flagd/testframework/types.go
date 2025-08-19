@@ -71,8 +71,8 @@ type TestState struct {
 	DefaultValue   interface{}
 
 	// Event tracking
-	Events        []EventRecord
-	EventHandlers map[string]func(openfeature.EventDetails)
+	EventChannel  chan EventRecord // Single channel for all events
+	LastEvent     *EventRecord     // Store the last received event for multiple step access
 
 	// Container/testbed state
 	Container    TestContainer

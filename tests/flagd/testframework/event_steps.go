@@ -31,104 +31,48 @@ func (s *TestState) assertFlagInChangeEvent() error {
 		return fmt.Errorf("no flag key set for verification")
 	}
 
-	// Find the most recent CONFIGURATION_CHANGE event
-	for i := len(s.Events) - 1; i >= 0; i-- {
-		event := s.Events[i]
-		if event.Type == "CONFIGURATION_CHANGE" {
-			// Check if the flag key is in the event details
-			if event.Details.FlagChanges != nil {
-				for _, flagName := range event.Details.FlagChanges {
-					if flagName == s.FlagKey {
-						return nil
-					}
-				}
-			}
-
-			// If no specific flags are listed, assume all flags are affected
-			if event.Details.FlagChanges == nil || len(event.Details.FlagChanges) == 0 {
-				return nil
-			}
-
-			return fmt.Errorf("flag %s not found in change event payload", s.FlagKey)
-		}
+	// Check the last event instead of waiting for a new one
+	if s.LastEvent == nil {
+		return fmt.Errorf("no event available to check")
 	}
 
-	return fmt.Errorf("no configuration change event found")
+	if s.LastEvent.Type != "CONFIGURATION_CHANGE" {
+		return fmt.Errorf("last event was %s, not CONFIGURATION_CHANGE", s.LastEvent.Type)
+	}
+
+	// Check if the flag key is in the event details
+	if s.LastEvent.Details.FlagChanges != nil {
+		for _, flagName := range s.LastEvent.Details.FlagChanges {
+			if flagName == s.FlagKey {
+				return nil
+			}
+		}
+		return fmt.Errorf("flag %s not found in change event payload", s.FlagKey)
+	}
+
+	// If no specific flags are listed, assume all flags are affected
+	return nil
 }
 
 // Event verification helpers
 
-// getEventsOfType returns all events of a specific type
-func (s *TestState) getEventsOfType(eventType string) []EventRecord {
-	var events []EventRecord
-	for _, event := range s.Events {
-		if event.Type == eventType {
-			events = append(events, event)
-		}
-	}
-	return events
-}
-
-// getLastEventOfType returns the most recent event of a specific type
-func (s *TestState) getLastEventOfType(eventType string) (*EventRecord, error) {
-	for i := len(s.Events) - 1; i >= 0; i-- {
-		event := s.Events[i]
-		if event.Type == eventType {
-			return &event, nil
-		}
-	}
-	return nil, fmt.Errorf("no event of type %s found", eventType)
-}
-
 // clearEvents removes all recorded events (useful for test isolation)
 func (s *TestState) clearEvents() {
-	s.Events = []EventRecord{}
-}
-
-// assertEventSequence verifies that events occurred in a specific order
-func (s *TestState) assertEventSequence(expectedSequence []string) error {
-	if len(s.Events) < len(expectedSequence) {
-		return fmt.Errorf("expected at least %d events, got %d", len(expectedSequence), len(s.Events))
-	}
-
-	// Check if the events match the expected sequence (allowing for additional events)
-	sequenceIndex := 0
-	for _, event := range s.Events {
-		if sequenceIndex < len(expectedSequence) && event.Type == expectedSequence[sequenceIndex] {
-			sequenceIndex++
+	// Clear the last event
+	s.LastEvent = nil
+	
+	// Drain the channel
+	for {
+		select {
+		case <-s.EventChannel:
+			// Continue draining
+		default:
+			// Channel is empty
+			return
 		}
 	}
-
-	if sequenceIndex != len(expectedSequence) {
-		return fmt.Errorf("event sequence incomplete: expected %v, found %d matching events", expectedSequence, sequenceIndex)
-	}
-
-	return nil
 }
 
-// assertEventWithinTimeframe verifies that an event occurred within a specific timeframe
-func (s *TestState) assertEventWithinTimeframe(eventType string, maxAge time.Duration) error {
-	event, err := s.getLastEventOfType(eventType)
-	if err != nil {
-		return err
-	}
-
-	age := time.Since(event.Timestamp)
-	if age > maxAge {
-		return fmt.Errorf("event %s occurred %v ago, which exceeds maximum age of %v", eventType, age, maxAge)
-	}
-
-	return nil
-}
-
-// Helper method for debugging events
-func (s *TestState) debugEventHistory() string {
-	result := "Event History:\n"
-	for i, event := range s.Events {
-		result += fmt.Sprintf("[%d] %s at %s\n", i, event.Type, event.Timestamp.Format("15:04:05.000"))
-	}
-	return result
-}
 
 // Generic event handler functions - consolidated and future-proof
 
@@ -143,7 +87,6 @@ func (s *TestState) addGenericEventHandler(eventType string) error {
 	}
 
 	eventTypeUpper := strings.ToUpper(eventType)
-	s.EventHandlers[eventTypeUpper] = handler
 
 	// Map event types to OpenFeature event constants
 	switch eventTypeUpper {
@@ -180,25 +123,6 @@ func (s *TestState) handleProviderStateChange(eventType string) func(openfeature
 	}
 }
 
-// Cleanup removes all event handlers
-func (s *TestState) cleanupEventHandlers() {
-	if s.Client == nil {
-		return
-	}
-
-	for eventType, handler := range s.EventHandlers {
-		switch eventType {
-		case "READY":
-			s.Client.RemoveHandler(openfeature.ProviderReady, &handler)
-		case "ERROR":
-			s.Client.RemoveHandler(openfeature.ProviderError, &handler)
-		case "STALE":
-			s.Client.RemoveHandler(openfeature.ProviderStale, &handler)
-		case "CONFIGURATION_CHANGE":
-			s.Client.RemoveHandler(openfeature.ProviderConfigChange, &handler)
-		}
-	}
-}
 
 // Missing step definition implementation - added as stub that throws error
 
@@ -206,4 +130,65 @@ func (s *TestState) cleanupEventHandlers() {
 func (s *TestState) assertGenericEventExecutedWithin(eventType string, timeoutMs int) error {
 	timeout := time.Duration(timeoutMs) * time.Millisecond
 	return s.waitForEvents(strings.ToUpper(eventType), timeout)
+}
+
+// Event utility functions moved from step_definitions.go
+
+// addEvent adds an event to the event channel with proper handling
+func (s *TestState) addEvent(eventType string, details openfeature.EventDetails) {
+	event := EventRecord{
+		Type:      eventType,
+		Timestamp: time.Now(),
+		Details:   details,
+	}
+	
+	// Send to channel for immediate notification (non-blocking)
+	select {
+	case s.EventChannel <- event:
+		// Event sent successfully
+	default:
+		// Channel is full, skip to prevent blocking
+		// This shouldn't happen with a buffered channel, but safety first
+	}
+}
+
+// waitForEvents waits for specific events to occur using channels
+func (s *TestState) waitForEvents(eventType string, maxWait time.Duration) error {
+	timeout := time.After(maxWait)
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for %s event", eventType)
+		case event := <-s.EventChannel:
+			// Store the last event regardless of type
+			s.LastEvent = &event
+			if event.Type == eventType {
+				return nil
+			}
+			// Event was not the type we're looking for, continue waiting
+		}
+	}
+}
+
+// assertEventOccurred checks if a specific event occurred (with immediate timeout)
+func (s *TestState) assertEventOccurred(eventType string) error {
+	return s.waitForEvents(eventType, 100*time.Millisecond)
+}
+
+// waitForEventWithPayload waits for a specific event type and validates its payload
+func (s *TestState) waitForEventWithPayload(eventType string, maxWait time.Duration, validator func(openfeature.EventDetails) bool) (*EventRecord, error) {
+	timeout := time.After(maxWait)
+	for {
+		select {
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for %s event with valid payload", eventType)
+		case event := <-s.EventChannel:
+			// Store the last event regardless of type or validation
+			s.LastEvent = &event
+			if event.Type == eventType && validator(event.Details) {
+				return &event, nil
+			}
+			// Event was not the type we're looking for or payload didn't match, continue waiting
+		}
+	}
 }

@@ -208,23 +208,8 @@ func (s *TestState) assertErrorCode(expectedCode string) error {
 
 // assertFlagInEventPayload checks that the current flag is in the latest change event
 func (s *TestState) assertFlagInEventPayload() error {
-	// Find the most recent CONFIGURATION_CHANGE event
-	for i := len(s.Events) - 1; i >= 0; i-- {
-		event := s.Events[i]
-		if event.Type == "CONFIGURATION_CHANGE" {
-			// Check if the flag key is in the event details
-			if event.Details.FlagChanges != nil {
-				for _, flagName := range event.Details.FlagChanges {
-					if flagName == s.FlagKey {
-						return nil
-					}
-				}
-			}
-			return fmt.Errorf("flag %s not found in change event payload", s.FlagKey)
-		}
-	}
-
-	return fmt.Errorf("no configuration change event found")
+	// Use the improved channel-based implementation from event_steps.go
+	return s.assertFlagInChangeEvent()
 }
 
 // modifyFlag modifies the current flag (typically by calling testbed API)
@@ -243,15 +228,11 @@ func (s *TestState) modifyFlag() error {
 
 // triggerChangeEvent triggers a flag change event
 func (s *TestState) triggerChangeEvent() error {
-	// Add change event handler if not already present
-	if _, exists := s.EventHandlers["CONFIGURATION_CHANGE"]; !exists {
-		handler := func(details openfeature.EventDetails) {
-			s.addEvent("CONFIGURATION_CHANGE", details)
-		}
-
-		s.EventHandlers["CONFIGURATION_CHANGE"] = handler
-		s.Client.AddHandler(openfeature.ProviderConfigChange, &handler)
+	// Add change event handler
+	handler := func(details openfeature.EventDetails) {
+		s.addEvent("CONFIGURATION_CHANGE", details)
 	}
+	s.Client.AddHandler(openfeature.ProviderConfigChange, &handler)
 
 	// Wait a moment for the change to propagate
 	return s.waitForEvents("CONFIGURATION_CHANGE", 2*time.Second)

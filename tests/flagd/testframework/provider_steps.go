@@ -78,11 +78,8 @@ func (s *TestState) createProviderInstance() error {
 
 // waitForProviderReady waits for the provider to be in READY state
 func (s *TestState) waitForProviderReady(timeout time.Duration) error {
-	// Check if we already have a READY event
-	for _, event := range s.Events {
-		if event.Type == "READY" {
-			return nil
-		}
+	if s.Client == nil {
+		return fmt.Errorf("no client available to wait for provider ready")
 	}
 
 	// Use generic event handler infrastructure
@@ -126,6 +123,11 @@ func (s *TestState) createSpecializedFlagdProvider(providerType string) error {
 	}
 
 	if providerType != "unavailable" {
+		if s.ProviderType == RPC {
+			// Small delay to allow flagd server to fully load flags after connection
+			time.Sleep(50 * time.Millisecond)
+		}
+
 		// Wait for provider to be ready
 		return s.waitForProviderReady(15 * time.Second)
 	}
