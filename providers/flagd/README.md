@@ -208,6 +208,36 @@ provider, err := flagd.NewProvider(flagd.WithLogger(l)) // set the provider's lo
 [logr](https://github.com/go-logr/logr) uses incremental verbosity levels (akin to named levels but in integer form).
 The provider logs `warning` at level `0`, `info` at level `1` and `debug` at level `2`. Errors are always logged.
 
+## Flagd End-to-End Testing
+
+To run the end-to-end (e2e) tests for the flagd provider, follow these steps:
+
+1. Initialize the `go.work` file in the root directory by running the following command:
+
+```sh
+go work init
+```
+
+2. Add the necessary modules to the workspace:
+
+```sh
+go work use
+```
+
+3. Navigate to the `providers/flagd/e2e` directory.
+
+4. Build the tests:
+
+```sh
+go build -tags=e2e
+```
+
+5. Run the tests:
+
+```sh
+go test -tags=e2e
+```
+
 ## License
 
 Apache 2.0 - See [LICENSE](./../../LICENSE) for more information.
