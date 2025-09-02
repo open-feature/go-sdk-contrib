@@ -172,7 +172,7 @@ func (tr *TestbedRunner) RunGherkinTestsWithSubtests(t *testing.T, featurePaths 
 	if tr.container == nil {
 		return fmt.Errorf("container not initialized")
 	}
-	ctx := context.TODO()
+ctx := context.Background()
 	ctx = context.WithValue(ctx, "resolver", tr.resolverType)
 	ctx = context.WithValue(ctx, "flagDir", tr.flagsDir)
 
