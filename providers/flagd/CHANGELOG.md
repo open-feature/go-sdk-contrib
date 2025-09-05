@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.0...providers/flagd/v0.3.1) (2025-09-05)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+* **deps:** update golang.org/x/exp digest to b7579e2 ([#679](https://github.com/open-feature/go-sdk-contrib/issues/679)) ([a6372f9](https://github.com/open-feature/go-sdk-contrib/commit/a6372f91b262d2f81b90bfa9e76d722ad480378b))
+* **deps:** update jsonlogic module to fix race detection ([#691](https://github.com/open-feature/go-sdk-contrib/issues/691)) ([21f3de0](https://github.com/open-feature/go-sdk-contrib/commit/21f3de0d39a6d23000957bd6f278df466af385e4))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/connectrpc/go to v1.18.1-20250529171031-ebdc14163473.1 ([#699](https://github.com/open-feature/go-sdk-contrib/issues/699)) ([6c7044d](https://github.com/open-feature/go-sdk-contrib/commit/6c7044de8bf10d12ed07f4c66335e297c444a6fe))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/grpc/go to v1.5.1-20250529171031-ebdc14163473.2 ([#700](https://github.com/open-feature/go-sdk-contrib/issues/700)) ([4747395](https://github.com/open-feature/go-sdk-contrib/commit/474739580f3c7f72e031929b99ab0b86ba4812bb))
+* **deps:** update module buf.build/gen/go/open-feature/flagd/protocolbuffers/go to v1.36.6-20250529171031-ebdc14163473.1 ([#706](https://github.com/open-feature/go-sdk-contrib/issues/706)) ([902021b](https://github.com/open-feature/go-sdk-contrib/commit/902021be1083336d9a53c1fd8388cbaaa8dc7959))
+* **deps:** update module github.com/open-feature/flagd/core to v0.11.5 ([#666](https://github.com/open-feature/go-sdk-contrib/issues/666)) ([94b44c4](https://github.com/open-feature/go-sdk-contrib/commit/94b44c4aed982ac54b91bd82a2cf8400c1b622c0))
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+* fix goroutine leaks around shutdown ([#716](https://github.com/open-feature/go-sdk-contrib/issues/716)) ([c3ea532](https://github.com/open-feature/go-sdk-contrib/commit/c3ea53271ed91d20c9a9afd762ea5e2c4c3c488a))
+* **security:** update vulnerability-updates [security] ([#724](https://github.com/open-feature/go-sdk-contrib/issues/724)) ([629a535](https://github.com/open-feature/go-sdk-contrib/commit/629a5351c2c4b8fed00522f7453d5545920ceaaf))
+
+
+### ✨ New Features
+
+* comprehensive flagd e2e testing framework with testcontainers integration ([#732](https://github.com/open-feature/go-sdk-contrib/issues/732)) ([e3ec17b](https://github.com/open-feature/go-sdk-contrib/commit/e3ec17bdc7140582582a5df1154b6044cbf5b640))
+* upgrade flagd dependencies to 0.12.1 ([#731](https://github.com/open-feature/go-sdk-contrib/issues/731)) ([8e8d888](https://github.com/open-feature/go-sdk-contrib/commit/8e8d888dea080a03ea2a709b79598c7de6a9eed8))
+
 ## [0.3.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.2.6...providers/flagd/v0.3.0) (2025-06-07)
 
 
