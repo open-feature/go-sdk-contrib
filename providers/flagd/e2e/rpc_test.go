@@ -14,7 +14,7 @@ func TestRPCProviderE2E(t *testing.T) {
 	}
 
 	// Setup testbed runner for RPC provider
-	runner := NewTestbedRunner(TestbedConfig{
+	runner := testframework.NewTestbedRunner(testframework.TestbedConfig{
 		ResolverType:  testframework.RPC,
 		TestbedConfig: "default", // Use default testbed configuration
 	})
@@ -22,7 +22,7 @@ func TestRPCProviderE2E(t *testing.T) {
 
 	// Define feature paths - using flagd-testbed gherkin files
 	featurePaths := []string{
-		"../flagd-testbed/gherkin",
+		"./",
 	}
 
 	// Run tests with RPC-specific tags - exclude connection/event issues we won't tackle

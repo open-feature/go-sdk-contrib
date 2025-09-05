@@ -14,7 +14,7 @@ func TestInProcessProviderE2E(t *testing.T) {
 	}
 
 	// Setup testbed runner for in-process provider
-	runner := NewTestbedRunner(TestbedConfig{
+	runner := testframework.NewTestbedRunner(testframework.TestbedConfig{
 		ResolverType:  testframework.InProcess,
 		TestbedConfig: "default",
 	})
@@ -22,7 +22,7 @@ func TestInProcessProviderE2E(t *testing.T) {
 
 	// Define feature paths
 	featurePaths := []string{
-		"../flagd-testbed/gherkin",
+		"./",
 	}
 
 	// Run tests with in-process specific tags - exclude connection/event issues we won't tackle

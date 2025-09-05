@@ -1,35 +1,35 @@
 //go:build e2e
 
-package e2e
+package testframework
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/cucumber/godog"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	"github.com/open-feature/go-sdk-contrib/tests/flagd/testframework"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
 // TestbedRunner manages testbed-based e2e testing
 type TestbedRunner struct {
-	container     *testframework.FlagdTestContainer
+	container     *FlagdTestContainer
 	flagsDir      string
+	testbedDir    string
 	testbedConfig string
-	resolverType  testframework.ProviderType
+	resolverType  ProviderType
 	options       []flagd.ProviderOption
-	debugHelper   *testframework.DebugHelper
+	debugHelper   *DebugHelper
 }
 
 // TestbedConfig holds configuration for testbed runner
 type TestbedConfig struct {
-	ResolverType  testframework.ProviderType
+	ResolverType  ProviderType
+	TestbedDir    string
 	FlagsDir      string
 	TestbedConfig string
 	ExtraOptions  []flagd.ProviderOption
@@ -37,11 +37,18 @@ type TestbedConfig struct {
 
 // NewTestbedRunner creates a new testbed-based test runner
 func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
+
+	testbedDir := config.TestbedDir
+	if testbedDir == "" {
+		testbedDir = "../flagd-testbed"
+	}
+
 	runner := &TestbedRunner{
 		resolverType:  config.ResolverType,
 		flagsDir:      config.FlagsDir,
 		testbedConfig: config.TestbedConfig,
 		options:       config.ExtraOptions,
+		testbedDir:    testbedDir,
 	}
 
 	// Initialize debugging helper (will be set after container setup)
@@ -52,12 +59,12 @@ func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
 	if err := runner.SetupContainer(ctx); err != nil {
 		// Enhanced error reporting with debugging info
 		fmt.Printf("❌ Failed to setup container during runner creation: %v\n", err)
-		if testframework.DebugMode {
+		if DebugMode {
 			if runner.debugHelper != nil {
 				runner.debugHelper.FullDiagnostics()
 			}
 		}
-	} else if testframework.DebugMode {
+	} else if DebugMode {
 		fmt.Printf("✅ Container setup successful\n")
 		if runner.debugHelper != nil {
 			runner.debugHelper.FullDiagnostics()
@@ -81,15 +88,14 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 	}
 
 	// Create container configuration
-	containerConfig := testframework.FlagdContainerConfig{
-		Image:         "ghcr.io/open-feature/flagd-testbed",
-		Tag:           tr.getTestbedVersion(),
+	containerConfig := FlagdContainerConfig{
 		FlagsDir:      flagsDir,
+		TestbedDir:    tr.testbedDir,
 		ExtraWaitTime: 2 * time.Second,
 	}
 
 	// Create and start container
-	container, err := testframework.NewFlagdContainer(ctx, containerConfig)
+	container, err := NewFlagdContainer(ctx, containerConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create flagd container: %w", err)
 	}
@@ -97,7 +103,7 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 	tr.container = container
 
 	// Initialize debug helper now that we have a container
-	tr.debugHelper = testframework.NewDebugHelper(container, flagsDir)
+	tr.debugHelper = NewDebugHelper(container, flagsDir)
 
 	// Configure flagd with specific testbed configuration
 	if tr.testbedConfig != "" {
@@ -115,7 +121,7 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 	// when the testbed starts, so no additional API calls are needed
 
 	// For file provider, wait a moment for launchpad to generate the files
-	if tr.resolverType == testframework.File && tr.flagsDir != "" {
+	if tr.resolverType == File && tr.flagsDir != "" {
 		// Give launchpad some time to generate allFlags.json
 		time.Sleep(2 * time.Second)
 
@@ -136,12 +142,15 @@ func (tr *TestbedRunner) RunGherkinTests(featurePaths []string, tags string) err
 	}
 
 	// Setup provider suppliers for the integration package
-	testframework.SetProviderSuppliers(
+	SetProviderSuppliers(
 		tr.createRPCProviderSupplier(),
 		tr.createInProcessProviderSupplier(),
 		tr.createFileProviderSupplier(),
 	)
 
+	for i, path := range featurePaths {
+		featurePaths[i] = filepath.Join(tr.testbedDir, path)
+	}
 	// Configure godog
 	opts := godog.Options{
 		Format:      "pretty",
@@ -172,17 +181,21 @@ func (tr *TestbedRunner) RunGherkinTestsWithSubtests(t *testing.T, featurePaths 
 	if tr.container == nil {
 		return fmt.Errorf("container not initialized")
 	}
-ctx := context.Background()
+	ctx := context.Background()
 	ctx = context.WithValue(ctx, "resolver", tr.resolverType)
 	ctx = context.WithValue(ctx, "flagDir", tr.flagsDir)
 
 	// Setup provider suppliers for the integration package
-	testframework.SetProviderSuppliers(
+	SetProviderSuppliers(
 		tr.createRPCProviderSupplier(),
 		tr.createInProcessProviderSupplier(),
 		tr.createFileProviderSupplier(),
 	)
 
+	for i, path := range featurePaths {
+		featurePaths[i] = filepath.Join(tr.testbedDir, path)
+	}
+	
 	// Configure godog with TestingT to create individual subtests
 	opts := godog.Options{
 		Format:         "pretty",
@@ -211,7 +224,7 @@ ctx := context.Background()
 // initializeScenario initializes the scenario with our testbed-specific setup
 func (tr *TestbedRunner) initializeScenario(ctx *godog.ScenarioContext) {
 	// Initialize the base integration steps
-	testframework.InitializeScenario(ctx)
+	InitializeScenario(ctx)
 
 	// Add a before hook to set the container in TestState
 	ctx.Before(tr.setupScenario)
@@ -220,8 +233,8 @@ func (tr *TestbedRunner) initializeScenario(ctx *godog.ScenarioContext) {
 // setupScenario sets up the testbed container in the TestState before each scenario
 func (tr *TestbedRunner) setupScenario(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 	// Get the TestState from context
-	if state := ctx.Value(testframework.TestStateKey{}); state != nil {
-		if testState, ok := state.(*testframework.TestState); ok {
+	if state := ctx.Value(TestStateKey{}); state != nil {
+		if testState, ok := state.(*TestState); ok {
 			// Set the container in the TestState so integration steps can use it
 			testState.Container = tr.container
 		}
@@ -231,44 +244,44 @@ func (tr *TestbedRunner) setupScenario(ctx context.Context, sc *godog.Scenario) 
 
 // Provider supplier functions
 
-func (tr *TestbedRunner) createRPCProviderSupplier() testframework.ProviderSupplier {
-	return func(state testframework.TestState) (openfeature.FeatureProvider, error) {
-		opts := tr.buildProviderOptions(state, testframework.RPC)
+func (tr *TestbedRunner) createRPCProviderSupplier() ProviderSupplier {
+	return func(state TestState) (openfeature.FeatureProvider, error) {
+		opts := tr.buildProviderOptions(state, RPC)
 		return flagd.NewProvider(opts...)
 	}
 }
 
-func (tr *TestbedRunner) createInProcessProviderSupplier() testframework.ProviderSupplier {
-	return func(state testframework.TestState) (openfeature.FeatureProvider, error) {
-		opts := tr.buildProviderOptions(state, testframework.InProcess)
+func (tr *TestbedRunner) createInProcessProviderSupplier() ProviderSupplier {
+	return func(state TestState) (openfeature.FeatureProvider, error) {
+		opts := tr.buildProviderOptions(state, InProcess)
 		return flagd.NewProvider(opts...)
 	}
 }
 
-func (tr *TestbedRunner) createFileProviderSupplier() testframework.ProviderSupplier {
-	return func(state testframework.TestState) (openfeature.FeatureProvider, error) {
-		opts := tr.buildProviderOptions(state, testframework.File)
+func (tr *TestbedRunner) createFileProviderSupplier() ProviderSupplier {
+	return func(state TestState) (openfeature.FeatureProvider, error) {
+		opts := tr.buildProviderOptions(state, File)
 		return flagd.NewProvider(opts...)
 	}
 }
 
 // buildProviderOptions creates flagd provider options from config and container info
-func (tr *TestbedRunner) buildProviderOptions(state testframework.TestState, resolverType testframework.ProviderType) []flagd.ProviderOption {
+func (tr *TestbedRunner) buildProviderOptions(state TestState, resolverType ProviderType) []flagd.ProviderOption {
 	var opts []flagd.ProviderOption
 
 	// Add resolver type
 	switch resolverType {
-	case testframework.RPC:
+	case RPC:
 		host := tr.container.GetHost()
 		port := tr.container.GetPort("rpc")
 		opts = append(opts, flagd.WithRPCResolver())
 		opts = append(opts, flagd.WithHost(host))
 		opts = append(opts, flagd.WithPort(uint16(port)))
-	case testframework.InProcess:
+	case InProcess:
 		opts = append(opts, flagd.WithInProcessResolver())
 		opts = append(opts, flagd.WithHost(tr.container.GetHost()))
 		opts = append(opts, flagd.WithPort(uint16(tr.container.GetPort("in-process"))))
-	case testframework.File:
+	case File:
 		opts = append(opts, flagd.WithInProcessResolver())
 		if tr.flagsDir != "" {
 			// Use the local path to the launchpad-generated allFlags.json file
@@ -290,18 +303,6 @@ func (tr *TestbedRunner) buildProviderOptions(state testframework.TestState, res
 }
 
 // Testbed interaction methods
-
-// Utility methods
-
-func (tr *TestbedRunner) getTestbedVersion() string {
-	// Read version from flagd-testbed/version.txt to match submodule version
-	versionFile := "./flagd-testbed/version.txt"
-	if data, err := os.ReadFile(versionFile); err == nil {
-		// Trim whitespace from version string
-		return strings.TrimSpace(string(data))
-	}
-	return "latest"
-}
 
 // Cleanup releases resources
 func (tr *TestbedRunner) Cleanup() error {

@@ -27,7 +27,7 @@ func TestFileProviderE2E(t *testing.T) {
 	// Launchpad will generate allFlags.json inside the container at /flags/allFlags.json
 	// Which corresponds to tempDir/allFlags.json on the host
 	// The file provider will read from the local path tempDir/allFlags.json
-	runner := NewTestbedRunner(TestbedConfig{
+	runner := testframework.NewTestbedRunner(testframework.TestbedConfig{
 		ResolverType:  testframework.File,
 		FlagsDir:      tempDir,
 		TestbedConfig: "default", // Use default config to ensure flags are available
@@ -36,7 +36,7 @@ func TestFileProviderE2E(t *testing.T) {
 
 	// Define feature paths
 	featurePaths := []string{
-		"../flagd-testbed/gherkin",
+		"./",
 	}
 
 	// Run tests with file-specific tags, focusing on core evaluation scenarios

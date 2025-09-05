@@ -71,8 +71,8 @@ type TestState struct {
 	DefaultValue   interface{}
 
 	// Event tracking
-	EventChannel  chan EventRecord // Single channel for all events
-	LastEvent     *EventRecord     // Store the last received event for multiple step access
+	EventChannel chan EventRecord // Single channel for all events
+	LastEvent    *EventRecord     // Store the last received event for multiple step access
 
 	// Container/testbed state
 	Container    TestContainer
@@ -120,6 +120,7 @@ type FlagdContainerConfig struct {
 	FlagsDir      string
 	Networks      []string
 	ExtraWaitTime time.Duration
+	TestbedDir    string
 }
 
 // ContainerInfo provides information about the running container

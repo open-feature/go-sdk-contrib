@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -28,13 +30,21 @@ type FlagdTestContainer struct {
 func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*FlagdTestContainer, error) {
 	// Build the image name
 	image := "ghcr.io/open-feature/flagd-testbed"
+	if config.Image != "" {
+		image = config.Image
+	}
 	if config.Feature != "" {
 		image = fmt.Sprintf("%s-%s", image, config.Feature)
 	}
-	if config.Tag == "" {
-		config.Tag = "latest" // Should be read from version.txt in real implementation
+	tag := config.Tag
+	if tag == "" {
+		versionTag, err := readTestbedVersion(config)
+		if err != nil {
+			return nil, err
+		}
+		tag = versionTag
 	}
-	image = fmt.Sprintf("%s:%s", image, config.Tag)
+	image = fmt.Sprintf("%s:%s", image, tag)
 
 	// Define ports
 	rpcPort := 8013
@@ -121,6 +131,23 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 	// Note: We don't check health here because flagd needs to be started via launchpad API first
 
 	return flagdContainer, nil
+}
+
+func readTestbedVersion(config FlagdContainerConfig) (string, error) {
+	wd, _ := os.Getwd()
+	fileName := "version.txt"
+	path := "../flagd-testbed"
+	if config.TestbedDir != "" {
+		path = config.TestbedDir
+	}
+
+	content, err := os.ReadFile(fmt.Sprintf("%s/%s", wd, filepath.Join(path, fileName)))
+	if err != nil {
+		fmt.Printf("Failed to read file: %s", fileName)
+		return "", err
+	}
+
+	return "v" + strings.TrimSuffix(string(content), "\n"), nil
 }
 
 // GetHost returns the container host
