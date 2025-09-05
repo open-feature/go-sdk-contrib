@@ -444,6 +444,10 @@ func handleError(err error) openfeature.ResolutionError {
 	return openfeature.NewGeneralResolutionError(err.Error())
 }
 
+func (s *Service) ContextValues() map[string]any {
+	return nil
+}
+
 func (s *Service) EventChannel() <-chan of.Event {
 	return s.events
 }
