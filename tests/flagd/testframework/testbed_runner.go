@@ -24,6 +24,8 @@ type TestbedRunner struct {
 	resolverType  ProviderType
 	options       []flagd.ProviderOption
 	debugHelper   *DebugHelper
+	Tag           string
+	Image         string
 }
 
 // TestbedConfig holds configuration for testbed runner
@@ -33,6 +35,8 @@ type TestbedConfig struct {
 	FlagsDir      string
 	TestbedConfig string
 	ExtraOptions  []flagd.ProviderOption
+	Tag           string
+	Image         string
 }
 
 // NewTestbedRunner creates a new testbed-based test runner
@@ -49,6 +53,8 @@ func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
 		testbedConfig: config.TestbedConfig,
 		options:       config.ExtraOptions,
 		testbedDir:    testbedDir,
+		Tag:           config.Tag,
+		Image:         config.Image,
 	}
 
 	// Initialize debugging helper (will be set after container setup)
@@ -92,6 +98,8 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 		FlagsDir:      flagsDir,
 		TestbedDir:    tr.testbedDir,
 		ExtraWaitTime: 2 * time.Second,
+		Tag:           tr.Tag,
+		Image:         tr.Image,
 	}
 
 	// Create and start container
@@ -195,7 +203,7 @@ func (tr *TestbedRunner) RunGherkinTestsWithSubtests(t *testing.T, featurePaths 
 	for i, path := range featurePaths {
 		featurePaths[i] = filepath.Join(tr.testbedDir, path)
 	}
-	
+
 	// Configure godog with TestingT to create individual subtests
 	opts := godog.Options{
 		Format:         "pretty",
