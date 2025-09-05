@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.5.0...tests/flagd/v1.5.1) (2025-09-05)
+
+
+### 🐛 Bug Fixes
+
+* add missing configuration for tests ([#738](https://github.com/open-feature/go-sdk-contrib/issues/738)) ([8f21b1f](https://github.com/open-feature/go-sdk-contrib/commit/8f21b1fc1452649149a493caeb100f01bdca7cd9))
+
 ## [1.5.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.4.2...tests/flagd/v1.5.0) (2025-09-05)
 
 
