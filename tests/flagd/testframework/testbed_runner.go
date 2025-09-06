@@ -310,11 +310,17 @@ func (tr *TestbedRunner) buildProviderOptions(state TestState, resolverType Prov
 				option.Value = strings.ReplaceAll(
 					option.Value,
 					"<port>",
-					strconv.Itoa(port),
+					strconv.Itoa(tr.container.envoyPort),
 				)
 				state.ProviderOptions[i] = option
+				state.ProviderOptions = append(state.ProviderOptions, ProviderOption{
+					Option:    "port",
+					Value:     "99999",
+					ValueType: "Integer",
+				})
+				break
 			}
-			break
+
 		}
 	}
 	opts = append(opts, state.GenerateOpts()...)
