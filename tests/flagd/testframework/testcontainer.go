@@ -297,21 +297,6 @@ func (f *FlagdTestContainer) GetContainerLogs(ctx context.Context) (string, erro
 	return "logs would be read here", nil
 }
 
-// GetRPCAddress returns the RPC endpoint address
-func (f *FlagdTestContainer) GetRPCAddress() string {
-	return fmt.Sprintf("%s:%d", f.host, f.rpcPort)
-}
-
-// GetInProcessAddress returns the in-process endpoint address
-func (f *FlagdTestContainer) GetInProcessAddress() string {
-	return fmt.Sprintf("%s:%d", f.host, f.inProcessPort)
-}
-
-// GetHealthAddress returns the health check endpoint address
-func (f *FlagdTestContainer) GetHealthAddress() string {
-	return fmt.Sprintf("%s:%d", f.host, f.healthPort)
-}
-
 // Container info type moved to types.go
 
 // GetInfo returns detailed information about the container
