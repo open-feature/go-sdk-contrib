@@ -3,124 +3,99 @@ package testframework
 import (
 	"context"
 	"fmt"
+	"github.com/docker/go-connections/nat"
 	"net/http"
-	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 // FlagdTestContainer implements the TestContainer interface using testcontainers-go
 type FlagdTestContainer struct {
-	container     testcontainers.Container
+	container     compose.ComposeStack
 	host          string
 	launchpadURL  string
 	rpcPort       int
 	inProcessPort int
 	launchpadPort int
 	healthPort    int
+	envoyPort     int
 }
 
 // Container config type moved to types.go
 
 // NewFlagdContainer creates a new flagd testbed container
 func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*FlagdTestContainer, error) {
-	// Build the image name
-	image := "ghcr.io/open-feature/flagd-testbed"
+	// Create compose stack
+	composeStack, err := compose.NewDockerCompose(filepath.Join(config.TestbedDir, "docker-compose.yaml"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compose stack: %w", err)
+	}
+
+	// Build environment variables
+	env := make(map[string]string)
+	// for file tests
+	env["FLAGS_DIR"] = config.FlagsDir
 	if config.Image != "" {
-		image = config.Image
+		env["IMAGE"] = config.Image
 	}
-	if config.Feature != "" {
-		image = fmt.Sprintf("%s-%s", image, config.Feature)
+	if config.Tag != "" {
+		env["VERSION"] = config.Tag
 	}
-	tag := config.Tag
-	if tag == "" {
-		versionTag, err := readTestbedVersion(config)
-		if err != nil {
-			return nil, err
-		}
-		tag = versionTag
-	}
-	image = fmt.Sprintf("%s:%s", image, tag)
+	composeStack.WithEnv(env)
 
-	// Define ports
-	rpcPort := 8013
-	inProcessPort := 8015
-	launchpadPort := 8080
-	healthPort := 8014
+	// Configure wait strategies
+	const flagdServiceName = "flagd"
+	composeStack.WaitForService(flagdServiceName,
+		wait.ForListeningPort("8080/tcp").WithStartupTimeout(60*time.Second))
 
-	// Create container request
-	req := testcontainers.ContainerRequest{
-		Image: image,
-		ExposedPorts: []string{
-			fmt.Sprintf("%d/tcp", rpcPort),
-			fmt.Sprintf("%d/tcp", inProcessPort),
-			fmt.Sprintf("%d/tcp", launchpadPort),
-			fmt.Sprintf("%d/tcp", healthPort),
-		},
-		WaitingFor: wait.ForAll(
-			// Wait for the container to start and launchpad to be ready
-			wait.ForListeningPort("8080/tcp"),
-		).WithDeadline(60 * time.Second),
-		Networks: config.Networks,
-	}
-
-	// Add volume binding for flags directory if specified
-	if config.FlagsDir != "" {
-		absPath, err := filepath.Abs(config.FlagsDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve flags directory path: %w", err)
-		}
-		req.Mounts = testcontainers.Mounts(testcontainers.BindMount(absPath, "/flags"))
-	}
-
-	// Start the container
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
+	// Start the services
+	err = composeStack.Up(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start flagd container: %w", err)
+		return nil, fmt.Errorf("failed to start compose stack: %w", err)
 	}
 
-	// Get the host
-	host, err := container.Host(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get container host: %w", err)
-	}
+	// Get the host (always localhost for docker-compose)
+	host := "localhost"
 
-	// Get mapped ports
-	mappedLaunchpadPort, err := container.MappedPort(ctx, "8080")
+	flagdService, err := composeStack.ServiceContainer(ctx, flagdServiceName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get launchpad port: %w", err)
+		composeStack.Down(ctx)
+		return nil, fmt.Errorf("failed to start compose stack: %w", err)
 	}
-
-	mappedRPCPort, err := container.MappedPort(ctx, "8013")
+	rpcPort, err := getMappedPort(ctx, composeStack, flagdService, "8013")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get RPC port: %w", err)
+		return nil, err
 	}
-
-	mappedInProcessPort, err := container.MappedPort(ctx, "8015")
+	inProcessPort, err := getMappedPort(ctx, composeStack, flagdService, "8015")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get in-process port: %w", err)
+		return nil, err
 	}
-
-	mappedHealthPort, err := container.MappedPort(ctx, "8014")
+	healthPort, err := getMappedPort(ctx, composeStack, flagdService, "8014")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get health port: %w", err)
+		return nil, err
+	}
+	launchpadPort, err := getMappedPort(ctx, composeStack, flagdService, "8080")
+	if err != nil {
+		return nil, err
+	}
+	envoy, err := composeStack.ServiceContainer(ctx, "envoy")
+	envoyPort, err := getMappedPort(ctx, composeStack, envoy, "9211")
+	if err != nil {
+		return nil, err
 	}
 
 	flagdContainer := &FlagdTestContainer{
-		container:     container,
+		container:     composeStack,
 		host:          host,
-		rpcPort:       mappedRPCPort.Int(),
-		inProcessPort: mappedInProcessPort.Int(),
-		launchpadPort: mappedLaunchpadPort.Int(),
-		healthPort:    mappedHealthPort.Int(),
-		launchpadURL:  fmt.Sprintf("http://%s:%d", host, mappedLaunchpadPort.Int()),
+		rpcPort:       rpcPort,
+		inProcessPort: inProcessPort,
+		healthPort:    healthPort,
+		envoyPort:     envoyPort,
+		launchpadURL:  fmt.Sprintf("http://%s:%d", host, launchpadPort),
 	}
 
 	// Additional wait time if configured
@@ -129,25 +104,16 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 	}
 
 	// Note: We don't check health here because flagd needs to be started via launchpad API first
-
 	return flagdContainer, nil
 }
 
-func readTestbedVersion(config FlagdContainerConfig) (string, error) {
-	wd, _ := os.Getwd()
-	fileName := "version.txt"
-	path := "../flagd-testbed"
-	if config.TestbedDir != "" {
-		path = config.TestbedDir
-	}
-
-	content, err := os.ReadFile(fmt.Sprintf("%s/%s", wd, filepath.Join(path, fileName)))
+func getMappedPort(ctx context.Context, stack *compose.DockerCompose, container *testcontainers.DockerContainer, port nat.Port) (int, error) {
+	rpcPort, err := container.MappedPort(ctx, port)
 	if err != nil {
-		fmt.Printf("Failed to read file: %s", fileName)
-		return "", err
+		stack.Down(ctx)
+		return 0, fmt.Errorf("failed to fetch mapped port %s for %s: %w", port, container.ID, err)
 	}
-
-	return "v" + strings.TrimSuffix(string(content), "\n"), nil
+	return rpcPort.Int(), nil
 }
 
 // GetHost returns the container host
@@ -182,7 +148,7 @@ func (f *FlagdTestContainer) Start() error {
 		return fmt.Errorf("container not initialized")
 	}
 
-	return f.container.Start(context.Background())
+	return f.container.Up(context.Background())
 }
 
 // Stop stops the container
@@ -191,8 +157,7 @@ func (f *FlagdTestContainer) Stop() error {
 		return fmt.Errorf("container not initialized")
 	}
 
-	timeout := 30 * time.Second
-	return f.container.Stop(context.Background(), &timeout)
+	return f.container.Down(context.Background())
 }
 
 // Restart restarts the flagd service after a delay using the launchpad API
@@ -309,7 +274,7 @@ func (f *FlagdTestContainer) Terminate() error {
 		return nil
 	}
 
-	return f.container.Terminate(context.Background())
+	return f.container.Down(context.Background())
 }
 
 // GetContainerLogs returns the container logs for debugging
@@ -318,7 +283,11 @@ func (f *FlagdTestContainer) GetContainerLogs(ctx context.Context) (string, erro
 		return "", fmt.Errorf("container not initialized")
 	}
 
-	logs, err := f.container.Logs(ctx)
+	container, err := f.container.ServiceContainer(ctx, "flagd")
+	if err != nil {
+		return "", fmt.Errorf("failed to get flagd container: %w", err)
+	}
+	logs, err := container.Logs(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -351,13 +320,17 @@ func (f *FlagdTestContainer) GetInfo(ctx context.Context) (*ContainerInfo, error
 		return nil, fmt.Errorf("container not initialized")
 	}
 
-	state, err := f.container.State(ctx)
+	container, err := f.container.ServiceContainer(ctx, "flagd")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get flagd container: %w", err)
+	}
+	state, err := container.State(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container state: %w", err)
 	}
 
 	return &ContainerInfo{
-		ID:            f.container.GetContainerID(),
+		ID:            container.GetContainerID(),
 		Host:          f.host,
 		RPCPort:       f.rpcPort,
 		InProcessPort: f.inProcessPort,
