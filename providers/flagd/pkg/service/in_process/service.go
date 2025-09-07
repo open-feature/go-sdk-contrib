@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"regexp"
 	parallel "sync"
@@ -33,6 +34,8 @@ type InProcess struct {
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
 	wg               parallel.WaitGroup
+	sendReady        parallel.Once
+	configuration    Configuration
 }
 
 type Configuration struct {
@@ -47,8 +50,17 @@ type Configuration struct {
 	CustomSyncProviderUri   string
 	GrpcDialOptionsOverride []googlegrpc.DialOption
 	CertificatePath         string
+	GracePeriod             time.Duration
 }
 
+type EventSync interface {
+	sync.ISync
+	Events() chan SyncEvent
+}
+
+type SyncEvent struct {
+	event of.EventType
+}
 type Shutdowner interface {
 	Shutdown() error
 }
@@ -76,6 +88,7 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		listenerShutdown: make(chan interface{}),
 		serviceMetadata:  svcMetadata,
 		sync:             iSync,
+		configuration:    cfg,
 	}
 }
 
@@ -88,7 +101,54 @@ func (i *InProcess) Init() error {
 		return err
 	}
 
-	initOnce := parallel.Once{}
+	if eventSync, ok := i.sync.(EventSync); ok {
+		go func() {
+			var staleTimer *time.Timer
+			var staleTimerMu parallel.Mutex
+
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case msg := <-eventSync.Events():
+					switch msg.event {
+					case of.ProviderError:
+						i.events <- of.Event{
+							ProviderName:         "flagd",
+							EventType:            of.ProviderStale,
+							ProviderEventDetails: of.ProviderEventDetails{Message: "connection error"},
+						}
+						i.sendReady = parallel.Once{}
+
+						// Start stale timer (cancel existing one if running)
+						staleTimerMu.Lock()
+						if staleTimer != nil {
+							staleTimer.Stop()
+						}
+						staleTimer = time.AfterFunc(i.configuration.GracePeriod, func() { // n seconds
+							i.events <- of.Event{
+								ProviderName:         "flagd",
+								EventType:            of.ProviderError,
+								ProviderEventDetails: of.ProviderEventDetails{Message: "provider error"},
+							}
+						})
+						staleTimerMu.Unlock()
+
+					case of.ProviderReady:
+						// Cancel stale timer if running
+						staleTimerMu.Lock()
+						if staleTimer != nil {
+							staleTimer.Stop()
+							staleTimer = nil
+						}
+						staleTimerMu.Unlock()
+					}
+				}
+			}
+		}()
+	}
+
+	i.sendReady = parallel.Once{}
 	syncInitSuccess := make(chan interface{})
 	syncInitErr := make(chan error)
 
@@ -118,7 +178,7 @@ func (i *InProcess) Init() error {
 						ProviderName: "flagd", EventType: of.ProviderError,
 						ProviderEventDetails: of.ProviderEventDetails{Message: "Error from flag sync " + err.Error()}}
 				}
-				initOnce.Do(func() {
+				i.sendReady.Do(func() {
 					i.events <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
 					syncInitSuccess <- nil
 				})
@@ -320,7 +380,7 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 
 	log.Info("operating in in-process mode with flags sourced from " + uri)
 
-	return &grpc.Sync{
+	return &Sync{
 		CredentialBuilder:       &credentials.CredentialBuilder{},
 		GrpcDialOptionsOverride: cfg.GrpcDialOptionsOverride,
 		Logger:                  log,

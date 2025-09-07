@@ -3,15 +3,15 @@ package flagd
 import (
 	"errors"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
-
 	"github.com/go-logr/logr"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"google.golang.org/grpc"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type ResolverType string
@@ -26,6 +26,7 @@ const (
 	defaultCache                        = cache.LRUValue
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
+	defaultGracePeriod                  = 5 * time.Second
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -44,6 +45,7 @@ const (
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
 	flagdTargetUriEnvironmentVariableName             = "FLAGD_TARGET_URI"
+	flagdGracePeriodVariableName                      = "FLAGD_GRACE_PERIOD"
 )
 
 type ProviderConfiguration struct {
@@ -64,6 +66,7 @@ type ProviderConfiguration struct {
 	CustomSyncProvider               sync.ISync
 	CustomSyncProviderUri            string
 	GrpcDialOptionsOverride          []grpc.DialOption
+	GracePeriod                      time.Duration
 
 	log logr.Logger
 }
@@ -77,6 +80,7 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
+		GracePeriod:                      defaultGracePeriod,
 	}
 
 	p.updateFromEnvVar()
@@ -223,6 +227,14 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 
 	if targetUri := os.Getenv(flagdTargetUriEnvironmentVariableName); targetUri != "" {
 		cfg.TargetUri = targetUri
+	}
+	if gracePeriod := os.Getenv(flagdGracePeriodVariableName); gracePeriod != "" {
+		if seconds, err := strconv.Atoi(gracePeriod); err == nil {
+			cfg.GracePeriod = time.Duration(seconds) * time.Second
+		} else {
+			// Handle parsing error
+			cfg.log.Error(err, fmt.Sprintf("invalid grace period '%s': %v", gracePeriod, err))
+		}
 	}
 
 }
