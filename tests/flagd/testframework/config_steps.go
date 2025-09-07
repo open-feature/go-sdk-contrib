@@ -12,10 +12,6 @@ import (
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 )
 
-// Type definitions moved to types.go
-
-// Context keys moved to types.go
-
 // ignoredOptions a list of options that are currently not supported
 var ignoredOptions = []string{
 	"deadlineMs",
@@ -28,33 +24,32 @@ var ignoredOptions = []string{
 }
 
 // InitializeConfigScenario initializes the config test scenario
-func InitializeConfigScenario(ctx *godog.ScenarioContext, state *TestState) {
-	ctx.Step(`^a config was initialized$`, state.aConfigWasInitialized)
-	ctx.Step(`^an environment variable "([^"]*)" with value "([^"]*)"$`, state.anEnvironmentVariableWithValue)
-	ctx.Step(`^an option "([^"]*)" of type "([^"]*)" with value "([^"]*)"$`, state.anOptionOfTypeWithValue)
+func InitializeConfigScenario(ctx *godog.ScenarioContext) {
+	ctx.Step(`^a config was initialized$`, withStateNoArgs((*TestState).aConfigWasInitialized))
+	ctx.Step(`^an environment variable "([^"]*)" with value "([^"]*)"$`, withState2Args((*TestState).anEnvironmentVariableWithValue))
+	ctx.Step(`^an option "([^"]*)" of type "([^"]*)" with value "([^"]*)"$`, withState3Args((*TestState).anOptionOfTypeWithValue))
 	ctx.Step(
 		`^the option "([^"]*)" of type "([^"]*)" should have the value "([^"]*)"$`,
-		state.theOptionOfTypeShouldHaveTheValue,
+		withState3ArgsReturningContext((*TestState).theOptionOfTypeShouldHaveTheValue),
 	)
-	ctx.Step(`^we should have an error$`, state.weShouldHaveAnError)
+	ctx.Step(`^we should have an error$`, withStateNoArgsReturningContext((*TestState).weShouldHaveAnError))
 }
 
-func (s *TestState) aConfigWasInitialized(ctx context.Context) {
+// State methods - these now expect state as first parameter
+
+func (s *TestState) aConfigWasInitialized(ctx context.Context) error {
 	opts := s.GenerateOpts()
-
 	providerConfiguration, err := flagd.NewProviderConfiguration(opts)
-
 	s.ProviderConfig = ErrorAwareProviderConfiguration{
 		Configuration: providerConfiguration,
 		Error:         err,
 	}
+	return nil
 }
 
 func (s *TestState) GenerateOpts() []flagd.ProviderOption {
 	providerOptions := s.ProviderOptions
-
 	var opts []flagd.ProviderOption
-
 	for _, providerOption := range providerOptions {
 		if !slices.Contains(ignoredOptions, providerOption.Option) {
 			opts = append(
@@ -66,25 +61,24 @@ func (s *TestState) GenerateOpts() []flagd.ProviderOption {
 	return opts
 }
 
-func (s *TestState) anEnvironmentVariableWithValue(key, value string) {
-
+func (s *TestState) anEnvironmentVariableWithValue(ctx context.Context, key, value string) error {
 	s.EnvVars[key] = os.Getenv(key)
 	err := os.Setenv(key, value)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to set environment variable %s: %w", key, err)
 	}
+	return nil
 }
 
-func (s *TestState) anOptionOfTypeWithValue(ctx context.Context, option, valueType, value string) {
+func (s *TestState) anOptionOfTypeWithValue(ctx context.Context, option, valueType, value string) error {
 	providerOptions := s.ProviderOptions
-
 	data := ProviderOption{
 		Option:    option,
 		ValueType: valueType,
 		Value:     value,
 	}
-
 	s.ProviderOptions = append(providerOptions, data)
+	return nil
 }
 
 func (s *TestState) theOptionOfTypeShouldHaveTheValue(
@@ -95,7 +89,6 @@ func (s *TestState) theOptionOfTypeShouldHaveTheValue(
 	}
 
 	errorAwareConfiguration := s.ProviderConfig
-
 	// gherkins null value needs to converted to an empty string
 	if expectedValueS == "null" {
 		expectedValueS = ""
@@ -103,7 +96,6 @@ func (s *TestState) theOptionOfTypeShouldHaveTheValue(
 
 	config := errorAwareConfiguration.Configuration
 	currentValue := reflect.ValueOf(config).Elem().FieldByName(ToFieldName(option))
-
 	converter := NewValueConverter()
 	var expectedValue = converter.ConvertToReflectValue(valueType, expectedValueS, currentValue.Type())
 
@@ -115,18 +107,15 @@ func (s *TestState) theOptionOfTypeShouldHaveTheValue(
 			fmt.Sprintf("%v", currentValue),
 		)
 	}
-
 	return ctx, nil
 }
 
 func (s *TestState) weShouldHaveAnError(ctx context.Context) (context.Context, error) {
 	errorAwareConfiguration := s.ProviderConfig
-
 	if errorAwareConfiguration.Error == nil {
 		return ctx, errors.New("configuration check succeeded, but should not")
-	} else {
-		return ctx, nil
 	}
+	return ctx, nil
 }
 
 func genericProviderOption(option, valueType, value string) flagd.ProviderOption {

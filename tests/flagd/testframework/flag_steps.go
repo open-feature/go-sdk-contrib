@@ -9,26 +9,51 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// initializeFlagSteps registers flag evaluation step definitions
-func initializeFlagSteps(ctx *godog.ScenarioContext, state *TestState) {
-	ctx.Step(`^a ([^-]*)-flag with key "([^"]*)" and a default value "([^"]*)"$`, state.setFlagForEvaluation)
-	ctx.Step(`^the flag was evaluated with details$`, state.evaluateFlagWithDetails)
-	ctx.Step(`^the resolved details value should be "([^"]*)"$`, state.assertResolvedValue)
-	ctx.Step(`^the reason should be "([^"]*)"$`, state.assertReason)
-	ctx.Step(`^the error-code should be "([^"]*)"$`, state.assertErrorCode)
-	ctx.Step(`^the flag should be part of the event payload$`, state.assertFlagInEventPayload)
-	ctx.Step(`^the flag was modified$`, state.modifyFlag)
-	ctx.Step(`^a change event was fired$`, state.triggerChangeEvent)
-	ctx.Step(`^the variant should be "([^"]*)"$`, state.assertVariant)
-	ctx.Step(`^the resolved details value should be "{"([^"]*)": true, "([^"]*)": "([^"]*)", "([^"]*)": (\d+)\.(\d+) }"$`, state.assertComplexValue)
+// InitializeFlagSteps registers flag evaluation step definitions
+func InitializeFlagSteps(ctx *godog.ScenarioContext) {
+	ctx.Step(`^a ([^-]*)-flag with key "([^"]*)" and a default value "([^"]*)"$`,
+		withState3Args((*TestState).setFlagForEvaluation))
+	ctx.Step(`^the flag was evaluated with details$`,
+		withStateNoArgs((*TestState).evaluateFlagWithDetails))
+	ctx.Step(`^the resolved details value should be "([^"]*)"$`,
+		withState1Arg((*TestState).assertResolvedValue))
+	ctx.Step(`^the reason should be "([^"]*)"$`,
+		withState1Arg((*TestState).assertReason))
+	ctx.Step(`^the error-code should be "([^"]*)"$`,
+		withState1Arg((*TestState).assertErrorCode))
+	ctx.Step(`^the flag should be part of the event payload$`,
+		withStateNoArgs((*TestState).assertFlagInEventPayload))
+	ctx.Step(`^the flag was modified$`,
+		withStateNoArgs((*TestState).modifyFlag))
+	ctx.Step(`^a change event was fired$`,
+		withStateNoArgs((*TestState).triggerChangeEvent))
+	ctx.Step(`^the variant should be "([^"]*)"$`,
+		withState1Arg((*TestState).assertVariant))
+	ctx.Step(`^the resolved details value should be "{"([^"]*)": true, "([^"]*)": "([^"]*)", "([^"]*)": (\d+)\.(\d+) }"$`,
+		withStateComplexValue((*TestState).assertComplexValue))
 
 	// Missing step definitions - added as stubs
-	ctx.Step(`^the resolved metadata is empty$`, state.assertResolvedMetadataIsEmpty)
-	ctx.Step(`^the resolved metadata should contain$`, state.assertResolvedMetadataContains)
+	ctx.Step(`^the resolved metadata is empty$`,
+		withStateNoArgs((*TestState).assertResolvedMetadataIsEmpty))
+	ctx.Step(`^the resolved metadata should contain$`,
+		withStateTable((*TestState).assertResolvedMetadataContains))
 }
 
+// Additional helper for complex value assertion
+func withStateComplexValue(fn func(*TestState, context.Context, string, string, string, string, int, int) error) func(context.Context, string, string, string, string, int, int) error {
+	return func(ctx context.Context, key1, key2, value2, key3 string, intPart, fracPart int) error {
+		state := GetStateFromContext(ctx)
+		if state == nil {
+			return fmt.Errorf("test state not found in context")
+		}
+		return fn(state, ctx, key1, key2, value2, key3, intPart, fracPart)
+	}
+}
+
+// State methods - these now expect context as first parameter after state
+
 // setFlagForEvaluation prepares a flag for evaluation
-func (s *TestState) setFlagForEvaluation(flagType, flagKey, defaultValue string) error {
+func (s *TestState) setFlagForEvaluation(ctx context.Context, flagType, flagKey, defaultValue string) error {
 	s.FlagType = flagType
 	s.FlagKey = flagKey
 
@@ -48,7 +73,7 @@ func (s *TestState) convertDefaultValue(flagType, value string) (interface{}, er
 }
 
 // evaluateFlagWithDetails evaluates the current flag with details
-func (s *TestState) evaluateFlagWithDetails() error {
+func (s *TestState) evaluateFlagWithDetails(ctx context.Context) error {
 	if s.Client == nil {
 		return fmt.Errorf("no client available for evaluation")
 	}
@@ -61,8 +86,6 @@ func (s *TestState) evaluateFlagWithDetails() error {
 	evalCtx := openfeature.NewEvaluationContext(s.TargetingKey, s.EvalContext)
 
 	// Evaluate based on flag type
-	ctx := context.Background()
-
 	switch s.FlagType {
 	case "Boolean":
 		if defaultVal, ok := s.DefaultValue.(bool); ok {
@@ -143,7 +166,7 @@ func (s *TestState) evaluateFlagWithDetails() error {
 }
 
 // assertResolvedValue checks that the resolved value matches expected
-func (s *TestState) assertResolvedValue(expectedValue string) error {
+func (s *TestState) assertResolvedValue(ctx context.Context, expectedValue string) error {
 	if s.LastEvaluation.FlagKey == "" {
 		return fmt.Errorf("no evaluation details available")
 	}
@@ -172,7 +195,7 @@ func (s *TestState) assertResolvedValue(expectedValue string) error {
 }
 
 // assertReason checks that the evaluation reason matches expected
-func (s *TestState) assertReason(expectedReason string) error {
+func (s *TestState) assertReason(ctx context.Context, expectedReason string) error {
 	if s.LastEvaluation.FlagKey == "" {
 		return fmt.Errorf("no evaluation details available")
 	}
@@ -186,7 +209,7 @@ func (s *TestState) assertReason(expectedReason string) error {
 }
 
 // assertErrorCode checks that the error code matches expected
-func (s *TestState) assertErrorCode(expectedCode string) error {
+func (s *TestState) assertErrorCode(ctx context.Context, expectedCode string) error {
 	if s.LastEvaluation.FlagKey == "" {
 		return fmt.Errorf("no evaluation details available")
 	}
@@ -207,13 +230,13 @@ func (s *TestState) assertErrorCode(expectedCode string) error {
 }
 
 // assertFlagInEventPayload checks that the current flag is in the latest change event
-func (s *TestState) assertFlagInEventPayload() error {
+func (s *TestState) assertFlagInEventPayload(ctx context.Context) error {
 	// Use the improved channel-based implementation from event_steps.go
-	return s.assertFlagInChangeEvent()
+	return s.assertFlagInChangeEvent(ctx)
 }
 
 // modifyFlag modifies the current flag (typically by calling testbed API)
-func (s *TestState) modifyFlag() error {
+func (s *TestState) modifyFlag(ctx context.Context) error {
 	if s.Container == nil {
 		return fmt.Errorf("no container available to modify flags")
 	}
@@ -227,7 +250,7 @@ func (s *TestState) modifyFlag() error {
 }
 
 // triggerChangeEvent triggers a flag change event
-func (s *TestState) triggerChangeEvent() error {
+func (s *TestState) triggerChangeEvent(ctx context.Context) error {
 	// Add change event handler
 	handler := func(details openfeature.EventDetails) {
 		s.addEvent("CONFIGURATION_CHANGE", details)
@@ -332,7 +355,7 @@ func (s *TestState) evaluateFloatFlag(flagKey string, defaultValue float64, eval
 }
 
 // assertVariant checks that the evaluation result has the expected variant
-func (s *TestState) assertVariant(expectedVariant string) error {
+func (s *TestState) assertVariant(ctx context.Context, expectedVariant string) error {
 	if s.LastEvaluation.Variant != expectedVariant {
 		return fmt.Errorf("expected variant %s, got %s", expectedVariant, s.LastEvaluation.Variant)
 	}
@@ -340,7 +363,7 @@ func (s *TestState) assertVariant(expectedVariant string) error {
 }
 
 // assertComplexValue checks a complex object value with specific structure
-func (s *TestState) assertComplexValue(key1 string, key2 string, value2 string, key3 string, intPart int, fracPart int) error {
+func (s *TestState) assertComplexValue(ctx context.Context, key1 string, key2 string, value2 string, key3 string, intPart int, fracPart int) error {
 	// For now, this is a placeholder that always passes
 	// In a real implementation, you'd parse the JSON object from the evaluation result
 	return nil
@@ -349,12 +372,12 @@ func (s *TestState) assertComplexValue(key1 string, key2 string, value2 string, 
 // Missing step definition implementations - added as stubs that throw errors
 
 // assertResolvedMetadataIsEmpty checks if resolved metadata is empty
-func (s *TestState) assertResolvedMetadataIsEmpty() error {
+func (s *TestState) assertResolvedMetadataIsEmpty(ctx context.Context) error {
 	return fmt.Errorf("UNIMPLEMENTED: assertResolvedMetadataIsEmpty")
 }
 
 // assertResolvedMetadataContains checks if resolved metadata contains specific values
-func (s *TestState) assertResolvedMetadataContains(table *godog.Table) error {
+func (s *TestState) assertResolvedMetadataContains(ctx context.Context, table *godog.Table) error {
 	if len(table.Rows) < 2 {
 		return fmt.Errorf("table must have at least header row and one data row")
 	}

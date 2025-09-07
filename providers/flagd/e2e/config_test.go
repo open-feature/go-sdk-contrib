@@ -41,15 +41,22 @@ func TestConfiguration(t *testing.T) {
 			suite := godog.TestSuite{
 				Name: "flagd-config-" + tc.name,
 				ScenarioInitializer: func(context *godog.ScenarioContext) {
-					state := testframework.TestState{
-						EnvVars:      make(map[string]string),
-						EvalContext:  make(map[string]interface{}),
-						EventChannel: make(chan testframework.EventRecord, 100),
-					}
-					testframework.InitializeConfigScenario(context, &state)
+
+					testframework.InitializeConfigScenario(context)
+					context.Before(func(ctx context2.Context, sc *godog.Scenario) (context2.Context, error) {
+						state := testframework.TestState{
+							EnvVars:      make(map[string]string),
+							EvalContext:  make(map[string]interface{}),
+							EventChannel: make(chan testframework.EventRecord, 100),
+						}
+
+						return context2.WithValue(ctx, testframework.TestStateKey{}, state), nil
+					})
 					context.After(func(ctx context2.Context, sc *godog.Scenario, err error) (context2.Context, error) {
-						state.CleanupEnvironmentVariables()
-						return ctx, nil
+						if state, ok := ctx.Value(testframework.TestStateKey{}).(*testframework.TestState); ok {
+							state.CleanupEnvironmentVariables()
+						}
+						return ctx, err
 					})
 				},
 				Options: &godog.Options{
