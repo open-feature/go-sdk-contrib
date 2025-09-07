@@ -233,7 +233,7 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 			cfg.GracePeriod = time.Duration(seconds) * time.Second
 		} else {
 			// Handle parsing error
-			cfg.log.Error(err, fmt.Sprintf("invalid grace period '%s': %v", gracePeriod, err))
+			cfg.log.Error(err, fmt.Sprintf("invalid grace period '%s'", gracePeriod))
 		}
 	}
 
@@ -407,5 +407,12 @@ func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProvi
 func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.GrpcDialOptionsOverride = grpcDialOptionsOverride
+	}
+}
+
+// WithGracePeriod allows to set a time window for the transition from stale to error state
+func WithGracePeriod(gracePeriod time.Duration) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.GracePeriod = gracePeriod
 	}
 }
