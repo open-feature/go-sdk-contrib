@@ -1,6 +1,7 @@
 package testframework
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -18,13 +19,17 @@ func SetProviderSuppliers(rpc, inProcess, file ProviderSupplier) {
 	FileProviderSupplier = file
 }
 
-// initializeProviderSteps registers provider lifecycle step definitions
-func initializeProviderSteps(ctx *godog.ScenarioContext, state *TestState) {
-	ctx.Step(`^the connection is lost for (\d+)s$`, state.simulateConnectionLoss)
+// InitializeProviderSteps registers provider lifecycle step definitions
+func InitializeProviderSteps(ctx *godog.ScenarioContext) {
+	ctx.Step(`^the connection is lost for (\d+)s$`,
+		withStateIntArg((*TestState).simulateConnectionLoss))
 
 	// Generic provider step definition - accepts any provider type including "stable"
-	ctx.Step(`^a (\w+) flagd provider$`, state.createSpecializedFlagdProvider)
+	ctx.Step(`^a (\w+) flagd provider$`,
+		withState1Arg((*TestState).createSpecializedFlagdProvider))
 }
+
+// State methods - these now expect context as first parameter after state
 
 // createProviderInstance creates and initializes a flagd provider (formerly createStableFlagdProvider)
 func (s *TestState) createProviderInstance() error {
@@ -83,7 +88,7 @@ func (s *TestState) waitForProviderReady(timeout time.Duration) error {
 	}
 
 	// Use generic event handler infrastructure
-	if err := s.addGenericEventHandler("ready"); err != nil {
+	if err := s.addGenericEventHandler(context.Background(), "ready"); err != nil {
 		return fmt.Errorf("failed to add ready event handler: %w", err)
 	}
 
@@ -91,10 +96,8 @@ func (s *TestState) waitForProviderReady(timeout time.Duration) error {
 	return s.waitForEvents("READY", timeout)
 }
 
-// addReadyEventHandler adds a handler for provider ready events
-
 // simulateConnectionLoss simulates connection loss for specified duration
-func (s *TestState) simulateConnectionLoss(seconds int) error {
+func (s *TestState) simulateConnectionLoss(ctx context.Context, seconds int) error {
 	if s.Container == nil {
 		return fmt.Errorf("no container available to simulate connection loss")
 	}
@@ -103,10 +106,8 @@ func (s *TestState) simulateConnectionLoss(seconds int) error {
 	return s.Container.Restart(seconds)
 }
 
-// Missing step definition implementation - normalized with placeholder
-
 // createSpecializedFlagdProvider creates specialized flagd providers based on type
-func (s *TestState) createSpecializedFlagdProvider(providerType string) error {
+func (s *TestState) createSpecializedFlagdProvider(ctx context.Context, providerType string) error {
 	// Apply specialized configuration based on provider type
 	if err := s.applySpecializedConfig(providerType); err != nil {
 		return fmt.Errorf("failed to apply specialized config for %s provider: %w", providerType, err)
@@ -171,7 +172,6 @@ func (s *TestState) configureUnavailableProvider() error {
 
 func (s *TestState) configureSocketProvider() error {
 	// Configure for unix socket connection
-
 	s.addProviderOption("socketPath", "String", "/tmp/flagd.sock")
 	s.addProviderOption("port", "Integer", "0") // Disable port when using socket
 	return nil
