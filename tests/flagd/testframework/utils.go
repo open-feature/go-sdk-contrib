@@ -1,6 +1,7 @@
 package testframework
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -169,3 +170,61 @@ func StringToBoolean(str string) bool {
 
 // Global converter instance
 var DefaultConverter = NewValueConverter()
+
+// Helper functions for wrapping state methods
+func withStateNoArgs(fn func(*TestState, context.Context) error) func(context.Context) error {
+	return func(ctx context.Context) error {
+		state := GetStateFromContext(ctx)
+		if state == nil {
+			return fmt.Errorf("test state not found in context")
+		}
+		return fn(state, ctx)
+	}
+}
+
+func withState2Args(fn func(*TestState, context.Context, string, string) error) func(context.Context, string, string) error {
+	return func(ctx context.Context, arg1, arg2 string) error {
+		state := GetStateFromContext(ctx)
+		if state == nil {
+			return fmt.Errorf("test state not found in context")
+		}
+		return fn(state, ctx, arg1, arg2)
+	}
+}
+
+func withState3Args(fn func(*TestState, context.Context, string, string, string) error) func(context.Context, string, string, string) error {
+	return func(ctx context.Context, arg1, arg2, arg3 string) error {
+		state := GetStateFromContext(ctx)
+		if state == nil {
+			return fmt.Errorf("test state not found in context")
+		}
+		return fn(state, ctx, arg1, arg2, arg3)
+	}
+}
+
+func withState3ArgsReturningContext(fn func(*TestState, context.Context, string, string, string) (context.Context, error)) func(context.Context, string, string, string) (context.Context, error) {
+	return func(ctx context.Context, arg1, arg2, arg3 string) (context.Context, error) {
+		state := GetStateFromContext(ctx)
+		if state == nil {
+			return ctx, fmt.Errorf("test state not found in context")
+		}
+		return fn(state, ctx, arg1, arg2, arg3)
+	}
+}
+
+func withStateNoArgsReturningContext(fn func(*TestState, context.Context) (context.Context, error)) func(context.Context) (context.Context, error) {
+	return func(ctx context.Context) (context.Context, error) {
+		state := GetStateFromContext(ctx)
+		if state == nil {
+			return ctx, fmt.Errorf("test state not found in context")
+		}
+		return fn(state, ctx)
+	}
+}
+
+func GetStateFromContext(ctx context.Context) *TestState {
+	if state, ok := ctx.Value(TestStateKey{}).(*TestState); ok {
+		return state
+	}
+	return nil
+}

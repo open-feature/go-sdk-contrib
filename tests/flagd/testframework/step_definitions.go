@@ -2,85 +2,57 @@ package testframework
 
 import (
 	"context"
-	"os"
-
 	"github.com/cucumber/godog"
+	"os"
+	"sync"
 )
 
 // All type definitions have been moved to types.go for better organization
+var scenarioMutex sync.Mutex
 
 // InitializeScenario registers all step definitions for gherkin scenarios
 func InitializeScenario(ctx *godog.ScenarioContext) {
-	state := &TestState{
-		EnvVars:      make(map[string]string),
-		EvalContext:  make(map[string]interface{}),
-		EventChannel: make(chan EventRecord, 100),
-	}
 
 	// Configuration steps (existing config_steps.go steps work fine with TestState via context)
-	InitializeConfigScenario(ctx, state)
+	InitializeConfigScenario(ctx)
 
 	// Provider lifecycle steps
-	initializeProviderSteps(ctx, state)
+	InitializeProviderSteps(ctx)
 
 	// Flag evaluation steps
-	initializeFlagSteps(ctx, state)
+	InitializeFlagSteps(ctx)
 
 	// Context management steps
-	initializeContextSteps(ctx, state)
+	InitializeContextSteps(ctx)
 
 	// Event handling steps
-	initializeEventSteps(ctx, state)
+	InitializeEventSteps(ctx)
 
 	// Setup scenario hooks
 	ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
-		// Reset state for each scenario
-		state.resetState()
+		scenarioMutex.Lock()
+		defer scenarioMutex.Unlock()
+		state := &TestState{
+			EnvVars:      make(map[string]string),
+			EvalContext:  make(map[string]interface{}),
+			EventChannel: make(chan EventRecord, 100),
+		}
 		state.ProviderType = ctx.Value("resolver").(ProviderType)
 		state.FlagDir = ctx.Value("flagDir").(string)
-		// Store state in context for steps that need it
+
 		return context.WithValue(ctx, TestStateKey{}, state), nil
 	})
 
 	ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
-		// Clean up per-scenario state, but keep the container running
-		state.CleanupEnvironmentVariables()
-
-		// Properly cleanup provider and client to prevent event contamination
-		state.cleanupProvider()
-
-		// Clear events after provider cleanup to ensure no residual events
-		state.clearEvents()
-
-		// NOTE: We do NOT stop the container here - it should run for the entire test suite
+		scenarioMutex.Lock()
+		defer scenarioMutex.Unlock()
+		if state, ok := ctx.Value(TestStateKey{}).(*TestState); ok {
+			state.CleanupEnvironmentVariables()
+			state.cleanupProvider()
+			state.clearEvents()
+		}
 		return ctx, nil
 	})
-}
-
-// resetState clears test state between scenarios
-func (s *TestState) resetState() {
-	s.EnvVars = make(map[string]string)
-	s.LastEvaluation = EvaluationResult{}
-	s.EvalContext = make(map[string]interface{})
-	s.TargetingKey = ""
-	s.ConfigError = nil
-	s.FlagKey = ""
-	s.FlagType = ""
-	s.DefaultValue = nil
-
-	// Reset config state
-	s.ProviderOptions = []ProviderOption{}
-	s.ProviderConfig = ErrorAwareProviderConfiguration{}
-
-	// Create a fresh event channel for this scenario
-	// This ensures no events from previous scenarios leak through
-	s.EventChannel = make(chan EventRecord, 100)
-	s.LastEvent = nil
-
-	// Note: Provider and client cleanup is handled in the After hook
-	// to ensure proper shutdown sequencing
-	s.Client = nil
-	s.Provider = nil
 }
 
 // Type conversion utilities are now centralized in utils.go
@@ -119,13 +91,6 @@ func (s *TestState) CleanupEnvironmentVariables() {
 
 // cleanupProvider properly shuts down the provider and client to prevent event contamination
 func (s *TestState) cleanupProvider() {
-	// Remove all event handlers from client to prevent lingering events
-	if s.Client != nil {
-		// Note: OpenFeature Go SDK doesn't have a RemoveAllHandlers method,
-		// but setting the client to nil will prevent further event handling
-		s.Client = nil
-	}
-
 	// Shutdown the provider if it has a shutdown method
 	if s.Provider != nil {
 		// Try to cast to common provider interfaces that might have shutdown methods

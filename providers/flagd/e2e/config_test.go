@@ -1,7 +1,7 @@
 package e2e
 
 import (
-	context2 "context"
+	"context"
 	"testing"
 
 	"github.com/cucumber/godog"
@@ -40,23 +40,31 @@ func TestConfiguration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			suite := godog.TestSuite{
 				Name: "flagd-config-" + tc.name,
-				ScenarioInitializer: func(context *godog.ScenarioContext) {
-					state := testframework.TestState{
-						EnvVars:      make(map[string]string),
-						EvalContext:  make(map[string]interface{}),
-						EventChannel: make(chan testframework.EventRecord, 100),
-					}
-					testframework.InitializeConfigScenario(context, &state)
-					context.After(func(ctx context2.Context, sc *godog.Scenario, err error) (context2.Context, error) {
-						state.CleanupEnvironmentVariables()
-						return ctx, nil
+				ScenarioInitializer: func(sc *godog.ScenarioContext) {
+
+					testframework.InitializeConfigScenario(sc)
+					sc.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
+						state := &testframework.TestState{
+							EnvVars:      make(map[string]string),
+							EvalContext:  make(map[string]interface{}),
+							EventChannel: make(chan testframework.EventRecord, 100),
+						}
+
+						return context.WithValue(ctx, testframework.TestStateKey{}, state), nil
+					})
+					sc.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
+						if state, ok := ctx.Value(testframework.TestStateKey{}).(*testframework.TestState); ok {
+							state.CleanupEnvironmentVariables()
+						}
+						return ctx, err
 					})
 				},
 				Options: &godog.Options{
-					Format:   "pretty",
-					Paths:    []string{"../flagd-testbed/gherkin/config.feature"},
-					Tags:     tc.tags,
-					TestingT: t,
+					Format:         "pretty",
+					Paths:          []string{"../flagd-testbed/gherkin/config.feature"},
+					Tags:           tc.tags,
+					TestingT:       t,
+					DefaultContext: context.Background(),
 				},
 			}
 
