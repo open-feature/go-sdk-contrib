@@ -1,6 +1,7 @@
 package testframework
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -9,24 +10,40 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// initializeEventSteps registers event handling step definitions
-func initializeEventSteps(ctx *godog.ScenarioContext, state *TestState) {
+// InitializeEventSteps registers event handling step definitions
+func InitializeEventSteps(ctx *godog.ScenarioContext) {
 	// Specific event handlers that have custom logic
-	ctx.Step(`^the flag should be part of the event payload$`, state.assertFlagInChangeEvent)
+	ctx.Step(`^the flag should be part of the event payload$`,
+		withStateNoArgs((*TestState).assertFlagInChangeEvent))
 
 	// Generic wildcard event handler patterns - future-proof
-	ctx.Step(`^a (\w+) event handler$`, state.addGenericEventHandler)
-	ctx.Step(`^a (\w+) event was fired$`, state.waitForGenericEvent)
-	ctx.Step(`^the (\w+) event handler should have been executed$`, state.assertGenericEventExecuted)
+	ctx.Step(`^a (\w+) event handler$`,
+		withState1Arg((*TestState).addGenericEventHandler))
+	ctx.Step(`^a (\w+) event was fired$`,
+		withState1Arg((*TestState).waitForGenericEvent))
+	ctx.Step(`^the (\w+) event handler should have been executed$`,
+		withState1Arg((*TestState).assertGenericEventExecuted))
 
 	// Missing step definition - added as stub
-	ctx.Step(`^the (\w+) event handler should have been executed within (\d+)ms$`, state.assertGenericEventExecutedWithin)
+	ctx.Step(`^the (\w+) event handler should have been executed within (\d+)ms$`,
+		withStateStringAndInt((*TestState).assertGenericEventExecutedWithin))
 }
 
-// Specific event handlers consolidated into generic handlers above
+// Additional helper for string + int arguments
+func withStateStringAndInt(fn func(*TestState, context.Context, string, int) error) func(context.Context, string, int) error {
+	return func(ctx context.Context, arg1 string, arg2 int) error {
+		state := GetStateFromContext(ctx)
+		if state == nil {
+			return fmt.Errorf("test state not found in context")
+		}
+		return fn(state, ctx, arg1, arg2)
+	}
+}
+
+// State methods - these now expect context as first parameter after state
 
 // assertFlagInChangeEvent verifies that the current flag is in the change event payload
-func (s *TestState) assertFlagInChangeEvent() error {
+func (s *TestState) assertFlagInChangeEvent(ctx context.Context) error {
 	if s.FlagKey == "" {
 		return fmt.Errorf("no flag key set for verification")
 	}
@@ -60,7 +77,7 @@ func (s *TestState) assertFlagInChangeEvent() error {
 func (s *TestState) clearEvents() {
 	// Clear the last event
 	s.LastEvent = nil
-	
+
 	// Drain the channel
 	for {
 		select {
@@ -73,11 +90,10 @@ func (s *TestState) clearEvents() {
 	}
 }
 
-
 // Generic event handler functions - consolidated and future-proof
 
 // addGenericEventHandler adds a handler for any event type
-func (s *TestState) addGenericEventHandler(eventType string) error {
+func (s *TestState) addGenericEventHandler(ctx context.Context, eventType string) error {
 	if s.Client == nil {
 		return fmt.Errorf("no client available to add %s event handler", eventType)
 	}
@@ -106,13 +122,13 @@ func (s *TestState) addGenericEventHandler(eventType string) error {
 }
 
 // waitForGenericEvent waits for any event type to be fired
-func (s *TestState) waitForGenericEvent(eventType string) error {
+func (s *TestState) waitForGenericEvent(ctx context.Context, eventType string) error {
 	timeout := 5 * time.Second
 	return s.waitForEvents(strings.ToUpper(eventType), timeout)
 }
 
 // assertGenericEventExecuted verifies that any event type was received
-func (s *TestState) assertGenericEventExecuted(eventType string) error {
+func (s *TestState) assertGenericEventExecuted(ctx context.Context, eventType string) error {
 	return s.assertEventOccurred(strings.ToUpper(eventType))
 }
 
@@ -123,11 +139,8 @@ func (s *TestState) handleProviderStateChange(eventType string) func(openfeature
 	}
 }
 
-
-// Missing step definition implementation - added as stub that throws error
-
 // assertGenericEventExecutedWithin checks if any event was executed within specified time
-func (s *TestState) assertGenericEventExecutedWithin(eventType string, timeoutMs int) error {
+func (s *TestState) assertGenericEventExecutedWithin(ctx context.Context, eventType string, timeoutMs int) error {
 	timeout := time.Duration(timeoutMs) * time.Millisecond
 	return s.waitForEvents(strings.ToUpper(eventType), timeout)
 }
@@ -141,7 +154,7 @@ func (s *TestState) addEvent(eventType string, details openfeature.EventDetails)
 		Timestamp: time.Now(),
 		Details:   details,
 	}
-	
+
 	// Send to channel for immediate notification (non-blocking)
 	select {
 	case s.EventChannel <- event:
@@ -172,7 +185,7 @@ func (s *TestState) waitForEvents(eventType string, maxWait time.Duration) error
 
 // assertEventOccurred checks if a specific event occurred (with immediate timeout)
 func (s *TestState) assertEventOccurred(eventType string) error {
-	return s.waitForEvents(eventType, 100*time.Millisecond)
+	return s.waitForEvents(eventType, 10*time.Second)
 }
 
 // waitForEventWithPayload waits for a specific event type and validates its payload

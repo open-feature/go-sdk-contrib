@@ -1,5 +1,3 @@
-//go:build e2e
-
 package testframework
 
 import (
@@ -140,46 +138,6 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 			// File might still be generating, this is for debugging purposes
 			fmt.Printf("Warning: allFlags.json not yet available at %s\n", flagFile)
 		}
-	}
-
-	return nil
-}
-
-// RunGherkinTests executes gherkin tests against the testbed
-func (tr *TestbedRunner) RunGherkinTests(featurePaths []string, tags string) error {
-	if tr.container == nil {
-		return fmt.Errorf("container not initialized")
-	}
-
-	// Setup provider suppliers for the integration package
-	SetProviderSuppliers(
-		tr.createRPCProviderSupplier(),
-		tr.createInProcessProviderSupplier(),
-		tr.createFileProviderSupplier(),
-	)
-
-	for i, path := range featurePaths {
-		featurePaths[i] = filepath.Join(tr.testbedDir, path)
-	}
-	// Configure godog
-	opts := godog.Options{
-		Format:      "pretty",
-		Paths:       featurePaths,
-		Tags:        tags,
-		Concurrency: 1,
-	}
-
-	// Create test suite
-	suite := godog.TestSuite{
-		Name:                "flagd-e2e",
-		ScenarioInitializer: tr.initializeScenario,
-		Options:             &opts,
-	}
-
-	// Run tests
-	status := suite.Run()
-	if status != 0 {
-		return fmt.Errorf("tests failed with status: %d", status)
 	}
 
 	return nil
