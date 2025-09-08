@@ -95,9 +95,11 @@ func (s *TestState) cleanupProvider() {
 	if s.Provider != nil {
 		// Try to cast to common provider interfaces that might have shutdown methods
 		// This is defensive - not all providers will have explicit shutdown
-		if shutdownable, ok := s.Provider.(interface{ Shutdown() }); ok {
-			shutdownable.Shutdown()
-		}
+		go func() {
+			if shutdownable, ok := s.Provider.(interface{ Shutdown() }); ok {
+				shutdownable.Shutdown()
+			}
+		}()
 		s.Provider = nil
 	}
 }
