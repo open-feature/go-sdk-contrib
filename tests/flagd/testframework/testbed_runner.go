@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -235,18 +237,16 @@ func (tr *TestbedRunner) createFileProviderSupplier() ProviderSupplier {
 func (tr *TestbedRunner) buildProviderOptions(state TestState, resolverType ProviderType) []flagd.ProviderOption {
 	var opts []flagd.ProviderOption
 
+	host := tr.container.host
+	var port int
 	// Add resolver type
 	switch resolverType {
 	case RPC:
-		host := tr.container.GetHost()
-		port := tr.container.GetPort("rpc")
+		port = tr.container.rpcPort
 		opts = append(opts, flagd.WithRPCResolver())
-		opts = append(opts, flagd.WithHost(host))
-		opts = append(opts, flagd.WithPort(uint16(port)))
 	case InProcess:
+		port = tr.container.inProcessPort
 		opts = append(opts, flagd.WithInProcessResolver())
-		opts = append(opts, flagd.WithHost(tr.container.GetHost()))
-		opts = append(opts, flagd.WithPort(uint16(tr.container.GetPort("in-process"))))
 	case File:
 		opts = append(opts, flagd.WithInProcessResolver())
 		if tr.flagsDir != "" {
@@ -260,6 +260,27 @@ func (tr *TestbedRunner) buildProviderOptions(state TestState, resolverType Prov
 		}
 	}
 
+	opts = append(opts, flagd.WithHost(host))
+	opts = append(opts, flagd.WithPort(uint16(port)))
+	for i, option := range state.ProviderOptions {
+		if option.Option == "targetUri" {
+			if option.Value != "" {
+				option.Value = strings.ReplaceAll(
+					option.Value,
+					"<port>",
+					strconv.Itoa(tr.container.envoyPort),
+				)
+				state.ProviderOptions[i] = option
+				state.ProviderOptions = append(state.ProviderOptions, ProviderOption{
+					Option:    "port",
+					Value:     "99999",
+					ValueType: "Integer",
+				})
+				break
+			}
+
+		}
+	}
 	opts = append(opts, state.GenerateOpts()...)
 
 	// Add extra options

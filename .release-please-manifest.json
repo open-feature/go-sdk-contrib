@@ -17,5 +17,6 @@
     "tests/flagd": "1.5.0",
     "providers/go-feature-flag-in-process": "0.1.1",
     "providers/multi-provider": "0.0.4",
-    "tools/flagd-http-connector": "0.0.2"
+    "tools/flagd-http-connector": "0.0.2",
+    "providers/rocketflag": "0.0.1"
 }

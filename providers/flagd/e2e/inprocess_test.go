@@ -25,7 +25,7 @@ func TestInProcessProviderE2E(t *testing.T) {
 		"./",
 	}
 
-	// Run tests with in-process specific tags - exclude connection/event issues we won't tackle
+	// Run tests with in-process specific tags
 	tags := "@in-process && ~@unixsocket && ~@metadata && ~@customCert && ~@contextEnrichment && ~@sync-payload"
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
