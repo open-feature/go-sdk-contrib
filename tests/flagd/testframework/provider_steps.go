@@ -153,8 +153,6 @@ func (s *TestState) applySpecializedConfig(providerType string) error {
 		return s.configureMetadataProvider()
 	case "syncpayload":
 		return nil
-	case "target":
-		return s.configureTargetProvider()
 	default:
 		// For unknown provider types, just use default configuration
 		return nil
@@ -190,16 +188,6 @@ func (s *TestState) configureMetadataProvider() error {
 	if selector := s.findExistingProviderOption("selector"); selector != "" {
 		// Selector already configured, keep it
 		return nil
-	}
-	return nil
-}
-
-func (s *TestState) configureTargetProvider() error {
-	// Configure provider with specific target URI
-	if s.Container != nil {
-		rpcPort := s.Container.GetPort("rpc")
-		targetURI := fmt.Sprintf("%s:%d", s.Container.GetHost(), rpcPort)
-		s.addProviderOption("targetUri", "String", targetURI)
 	}
 	return nil
 }
