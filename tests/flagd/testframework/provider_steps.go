@@ -40,6 +40,11 @@ func (s *TestState) createProviderInstance() error {
 	var provider openfeature.FeatureProvider
 	var err error
 
+	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+		Option:    "RetryGracePeriod",
+		ValueType: "Integer",
+		Value:     "1",
+	})
 	switch s.ProviderType {
 	case RPC:
 		if RPCProviderSupplier == nil {

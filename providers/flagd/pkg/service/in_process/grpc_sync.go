@@ -22,20 +22,27 @@ const (
 	Prefix          = "grpc://"
 	PrefixSecure    = "grpcs://"
 	SupportedScheme = "(envoy|dns|uds|xds)"
+
+	// Default timeouts and retry intervals
+	defaultRetryDelay       = 1 * time.Second
+	defaultKeepaliveTime    = 30 * time.Second
+	defaultKeepaliveTimeout = 5 * time.Second
 )
 
-// type aliases for interfaces required by this component - needed for mock generation with gomock
-
+// Type aliases for interfaces required by this component - needed for mock generation with gomock
 type FlagSyncServiceClient interface {
 	syncv1grpc.FlagSyncServiceClient
 }
+
 type FlagSyncServiceClientResponse interface {
 	syncv1grpc.FlagSyncService_SyncFlagsClient
 }
 
 var once msync.Once
 
+// Sync implements gRPC-based flag synchronization with improved context cancellation and error handling
 type Sync struct {
+	// Configuration
 	GrpcDialOptionsOverride []grpc.DialOption
 	CertPath                string
 	CredentialBuilder       grpccredential.Builder
@@ -46,141 +53,253 @@ type Sync struct {
 	URI                     string
 	MaxMsgSize              int
 
-	client     FlagSyncServiceClient
-	connection *grpc.ClientConn
-	ready      bool
-	events     chan SyncEvent
+	// Runtime state
+	client           FlagSyncServiceClient
+	connection       *grpc.ClientConn
+	ready            bool
+	events           chan SyncEvent
+	shutdownComplete chan struct{}
+	shutdownOnce     msync.Once
 }
 
+// Init initializes the gRPC connection and starts background monitoring
 func (g *Sync) Init(ctx context.Context) error {
-	var rpcCon *grpc.ClientConn
-	var err error
+	g.Logger.Info(fmt.Sprintf("initializing gRPC client for %s", g.URI))
 
-	g.events = make(chan SyncEvent)
+	// Initialize channels
+	g.shutdownComplete = make(chan struct{})
+	g.events = make(chan SyncEvent, 10) // Buffered to prevent blocking
 
-	if len(g.GrpcDialOptionsOverride) > 0 {
-		g.Logger.Debug("GRPC DialOptions override provided")
-		rpcCon, err = grpc.NewClient(g.URI, g.GrpcDialOptionsOverride...)
-	} else {
-		// Build dial options with enhanced features
-		var dialOptions []grpc.DialOption
-
-		// Transport credentials
-		tCredentials, err := g.CredentialBuilder.Build(g.Secure, g.CertPath)
-		if err != nil {
-			err = fmt.Errorf("error building transport credentials: %w", err)
-			g.Logger.Error(err.Error())
-			return err
-		}
-		dialOptions = append(dialOptions, grpc.WithTransportCredentials(tCredentials))
-
-		// Call options
-		var callOptions []grpc.CallOption
-		if g.MaxMsgSize > 0 {
-			callOptions = append(callOptions, grpc.MaxCallRecvMsgSize(g.MaxMsgSize))
-			g.Logger.Info(fmt.Sprintf("setting max receive message size %d bytes", g.MaxMsgSize))
-		}
-		if len(callOptions) > 0 {
-			dialOptions = append(dialOptions, grpc.WithDefaultCallOptions(callOptions...))
-		}
-
-		// Keepalive settings
-		keepaliveParams := keepalive.ClientParameters{
-			Time:                30 * time.Second, // Send ping every 30 seconds
-			Timeout:             5 * time.Second,  // Wait 5 seconds for ping response
-			PermitWithoutStream: true,             // Allow pings when no streams active
-		}
-		dialOptions = append(dialOptions, grpc.WithKeepaliveParams(keepaliveParams))
-
-		// Create connection
-		rpcCon, err = grpc.NewClient(g.URI, dialOptions...)
-	}
-
+	// Establish gRPC connection
+	conn, err := g.createConnection()
 	if err != nil {
-		err := fmt.Errorf("error initiating grpc client connection: %w", err)
-		g.Logger.Error(err.Error())
-		return err
+		return fmt.Errorf("failed to create gRPC connection: %w", err)
 	}
 
-	// Store connection for state tracking
-	g.connection = rpcCon
-
-	// Setup service client
-	g.client = syncv1grpc.NewFlagSyncServiceClient(rpcCon)
+	g.connection = conn
+	g.client = syncv1grpc.NewFlagSyncServiceClient(conn)
 
 	// Start connection state monitoring in background
 	go g.monitorConnectionState(ctx)
 
-	g.Logger.Info(fmt.Sprintf("gRPC client initialized for %s", g.URI))
+	g.Logger.Info(fmt.Sprintf("gRPC client initialized successfully for %s", g.URI))
 	return nil
 }
 
-func (g *Sync) ReSync(ctx context.Context, dataSync chan<- sync.DataSync) error {
-	res, err := g.client.FetchAllFlags(ctx, &v1.FetchAllFlagsRequest{ProviderId: g.ProviderID, Selector: g.Selector})
-	if err != nil {
-		err = fmt.Errorf("error fetching all flags: %w", err)
-		g.Logger.Error(err.Error())
-		return err
+// createConnection creates and configures the gRPC connection
+func (g *Sync) createConnection() (*grpc.ClientConn, error) {
+	if len(g.GrpcDialOptionsOverride) > 0 {
+		g.Logger.Debug("using provided gRPC DialOptions override")
+		return grpc.NewClient(g.URI, g.GrpcDialOptionsOverride...)
 	}
-	dataSync <- sync.DataSync{
+
+	// Build standard dial options
+	dialOptions, err := g.buildDialOptions()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build dial options: %w", err)
+	}
+
+	return grpc.NewClient(g.URI, dialOptions...)
+}
+
+// buildDialOptions constructs the standard gRPC dial options
+func (g *Sync) buildDialOptions() ([]grpc.DialOption, error) {
+	var dialOptions []grpc.DialOption
+
+	// Transport credentials
+	tCredentials, err := g.CredentialBuilder.Build(g.Secure, g.CertPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build transport credentials: %w", err)
+	}
+	dialOptions = append(dialOptions, grpc.WithTransportCredentials(tCredentials))
+
+	// Call options for message size
+	if g.MaxMsgSize > 0 {
+		callOptions := []grpc.CallOption{grpc.MaxCallRecvMsgSize(g.MaxMsgSize)}
+		dialOptions = append(dialOptions, grpc.WithDefaultCallOptions(callOptions...))
+		g.Logger.Info(fmt.Sprintf("setting max receive message size to %d bytes", g.MaxMsgSize))
+	}
+
+	// Keepalive settings for connection health
+	keepaliveParams := keepalive.ClientParameters{
+		Time:                defaultKeepaliveTime,
+		Timeout:             defaultKeepaliveTimeout,
+		PermitWithoutStream: true,
+	}
+	dialOptions = append(dialOptions, grpc.WithKeepaliveParams(keepaliveParams))
+
+	return dialOptions, nil
+}
+
+// ReSync performs a one-time fetch of all flags
+func (g *Sync) ReSync(ctx context.Context, dataSync chan<- sync.DataSync) error {
+	g.Logger.Debug("performing ReSync - fetching all flags")
+
+	res, err := g.client.FetchAllFlags(ctx, &v1.FetchAllFlagsRequest{
+		ProviderId: g.ProviderID,
+		Selector:   g.Selector,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to fetch all flags: %w", err)
+	}
+
+	select {
+	case dataSync <- sync.DataSync{
 		FlagData: res.GetFlagConfiguration(),
 		Source:   g.URI,
+	}:
+		g.Logger.Debug("ReSync completed successfully")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-	return nil
 }
 
+// IsReady returns whether the sync is ready to serve requests
 func (g *Sync) IsReady() bool {
 	return g.ready
 }
 
+// Sync starts the continuous flag synchronization process with improved context handling
 func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
+	g.Logger.Info("starting continuous flag synchronization")
+
+	// Ensure shutdown completion is signaled when THIS method exits
+	defer g.markShutdownComplete()
+
 	for {
-		g.Logger.Debug("creating sync stream...")
-
-		// Create sync stream with wait-for-ready - let gRPC handle the connection waiting
-		syncClient, err := g.client.SyncFlags(
-			ctx,
-			&v1.SyncFlagsRequest{
-				ProviderId: g.ProviderID,
-				Selector:   g.Selector,
-			},
-			grpc.WaitForReady(true), // gRPC will wait for connection to be ready
-		)
-		if err != nil {
-			// Check if context is cancelled
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-
-			g.Logger.Warn(fmt.Sprintf("failed to create sync stream: %v", err))
-
-			// Brief pause before retry
-			select {
-			case <-time.After(time.Second):
-				continue
-			case <-ctx.Done():
-				return ctx.Err()
-			}
+		// Check for cancellation before each iteration
+		select {
+		case <-ctx.Done():
+			g.Logger.Info("sync stopped due to context cancellation")
+			return ctx.Err()
+		default:
+			// Continue with sync logic
 		}
 
-		g.Logger.Info("sync stream established, starting to receive flags...")
-
-		// Handle the stream - when it breaks, we'll create a new one
-		err = g.handleFlagSync(syncClient, dataSync)
-		if err != nil {
+		// Attempt to create sync stream
+		if err := g.performSyncCycle(ctx, dataSync); err != nil {
 			if ctx.Err() != nil {
+				g.Logger.Info("sync cycle failed due to context cancellation")
 				return ctx.Err()
 			}
 
-			g.Logger.Warn(fmt.Sprintf("stream closed: %v", err))
-			// Loop will automatically create a new stream with wait-for-ready
+			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
+
+			// Wait before retry with cancellation support
+			select {
+			case <-time.After(defaultRetryDelay):
+				continue
+			case <-ctx.Done():
+				g.Logger.Info("sync stopped during retry delay due to context cancellation")
+				return ctx.Err()
+			}
 		}
 	}
 }
 
-// monitorConnectionState monitors connection state changes and logs errors
+// performSyncCycle handles a single sync cycle (create stream, handle messages, cleanup)
+func (g *Sync) performSyncCycle(ctx context.Context, dataSync chan<- sync.DataSync) error {
+	g.Logger.Debug("creating new sync stream")
+
+	// Create sync stream with wait-for-ready to handle connection issues gracefully
+	stream, err := g.client.SyncFlags(
+		ctx,
+		&v1.SyncFlagsRequest{
+			ProviderId: g.ProviderID,
+			Selector:   g.Selector,
+		},
+		grpc.WaitForReady(true),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create sync stream: %w", err)
+	}
+
+	g.Logger.Info("sync stream established, starting to receive flags")
+
+	// Handle the stream with proper context cancellation
+	return g.handleFlagSync(ctx, stream, dataSync)
+}
+
+// handleFlagSync processes messages from the sync stream with proper context handling
+func (g *Sync) handleFlagSync(ctx context.Context, stream syncv1grpc.FlagSyncService_SyncFlagsClient, dataSync chan<- sync.DataSync) error {
+	// Mark as ready on first successful stream
+	once.Do(func() {
+		g.ready = true
+		g.Logger.Info("sync service is now ready")
+	})
+
+	// Create channels for stream communication
+	streamChan := make(chan *v1.SyncFlagsResponse, 1)
+	errChan := make(chan error, 1)
+
+	// Start goroutine to receive from stream
+	go func() {
+		defer close(streamChan)
+		defer close(errChan)
+
+		for {
+			data, err := stream.Recv()
+			if err != nil {
+				select {
+				case errChan <- err:
+				case <-ctx.Done():
+				}
+				return
+			}
+
+			select {
+			case streamChan <- data:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// Main message handling loop with proper cancellation support
+	for {
+		select {
+		case data, ok := <-streamChan:
+			if !ok {
+				return fmt.Errorf("stream channel closed")
+			}
+
+			if err := g.processFlagData(ctx, data, dataSync); err != nil {
+				return err
+			}
+
+		case err := <-errChan:
+			return fmt.Errorf("stream error: %w", err)
+
+		case <-ctx.Done():
+			g.Logger.Info("handleFlagSync stopped due to context cancellation")
+			return ctx.Err()
+		}
+	}
+}
+
+// processFlagData handles individual flag configuration updates
+func (g *Sync) processFlagData(ctx context.Context, data *v1.SyncFlagsResponse, dataSync chan<- sync.DataSync) error {
+	syncData := sync.DataSync{
+		FlagData:    data.FlagConfiguration,
+		SyncContext: data.SyncContext,
+		Source:      g.URI,
+		Selector:    g.Selector,
+	}
+
+	select {
+	case dataSync <- syncData:
+		g.Logger.Debug("successfully processed flag configuration update")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// monitorConnectionState monitors gRPC connection state changes with improved cancellation handling
 func (g *Sync) monitorConnectionState(ctx context.Context) {
 	if g.connection == nil {
+		g.Logger.Warn("no connection available for state monitoring")
 		return
 	}
 
@@ -188,60 +307,102 @@ func (g *Sync) monitorConnectionState(ctx context.Context) {
 	g.Logger.Debug(fmt.Sprintf("starting connection state monitoring, initial state: %s", currentState))
 
 	for {
-		// Wait for next state change
+		// Wait for state change with context support
 		if !g.connection.WaitForStateChange(ctx, currentState) {
-			// Context cancelled, exit monitoring
-			g.Logger.Debug("connection state monitoring stopped")
+			g.Logger.Debug("connection state monitoring stopped due to context cancellation")
 			return
+		}
+
+		// Check for cancellation
+		select {
+		case <-ctx.Done():
+			g.Logger.Debug("connection state monitoring stopped due to context cancellation")
+			return
+		default:
 		}
 
 		newState := g.connection.GetState()
 		g.Logger.Debug(fmt.Sprintf("connection state changed: %s -> %s", currentState, newState))
 
-		// Log error states
-		switch newState {
-		case connectivity.TransientFailure:
-			g.events <- SyncEvent{event: of.ProviderError}
-			g.Logger.Error(fmt.Sprintf("gRPC connection entered TransientFailure state for %s", g.URI))
-		case connectivity.Shutdown:
-			g.Logger.Error(fmt.Sprintf("gRPC connection shutdown for %s", g.URI))
-			//return // Exit monitoring on shutdown
-		case connectivity.Ready:
-			g.Logger.Info(fmt.Sprintf("gRPC connection ready for %s", g.URI))
-		case connectivity.Idle:
-			g.Logger.Debug(fmt.Sprintf("gRPC connection idle for %s", g.URI))
-		case connectivity.Connecting:
-			g.Logger.Debug(fmt.Sprintf("gRPC connection attempting to connect to %s", g.URI))
-		}
-
+		// Handle state-specific logic
+		g.handleConnectionState(ctx, newState)
 		currentState = newState
 	}
 }
 
-// handleFlagSync wraps the stream listening and push updates through dataSync channel
-func (g *Sync) handleFlagSync(stream syncv1grpc.FlagSyncService_SyncFlagsClient, dataSync chan<- sync.DataSync) error {
-	once.Do(func() {
-		g.ready = true
-	})
+// handleConnectionState processes specific connection state changes
+func (g *Sync) handleConnectionState(ctx context.Context, state connectivity.State) {
+	switch state {
+	case connectivity.TransientFailure:
+		g.Logger.Error(fmt.Sprintf("gRPC connection entered TransientFailure state for %s", g.URI))
+		g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
 
-	// Stream message handling loop - receives each individual message from the stream
-	for {
-		data, err := stream.Recv()
-		if err != nil {
-			return fmt.Errorf("error receiving payload from stream: %w", err)
-		}
+	case connectivity.Shutdown:
+		g.Logger.Error(fmt.Sprintf("gRPC connection shutdown for %s", g.URI))
 
-		dataSync <- sync.DataSync{
-			FlagData:    data.FlagConfiguration,
-			SyncContext: data.SyncContext,
-			Source:      g.URI,
-			Selector:    g.Selector,
-		}
+	case connectivity.Ready:
+		g.Logger.Info(fmt.Sprintf("gRPC connection ready for %s", g.URI))
+		g.sendEvent(ctx, SyncEvent{event: of.ProviderReady})
 
-		g.Logger.Debug("received full configuration payload")
+	case connectivity.Idle:
+		g.Logger.Debug(fmt.Sprintf("gRPC connection idle for %s", g.URI))
+
+	case connectivity.Connecting:
+		g.Logger.Debug(fmt.Sprintf("gRPC connection attempting to connect to %s", g.URI))
 	}
 }
 
+// sendEvent safely sends events with cancellation support
+func (g *Sync) sendEvent(ctx context.Context, event SyncEvent) {
+	select {
+	case g.events <- event:
+		// Event sent successfully
+	case <-ctx.Done():
+		// Context cancelled, don't block
+	default:
+		// Channel full, log warning but don't block
+		g.Logger.Warn("event channel full, dropping event")
+	}
+}
+
+// markShutdownComplete signals that shutdown has completed
+func (g *Sync) markShutdownComplete() {
+	g.shutdownOnce.Do(func() {
+		close(g.shutdownComplete)
+		g.Logger.Debug("shutdown completion signaled")
+	})
+}
+
+// Events returns the channel for sync events
 func (g *Sync) Events() chan SyncEvent {
 	return g.events
+}
+
+// Shutdown gracefully shuts down the sync service
+func (g *Sync) Shutdown() error {
+	g.Logger.Info("shutting down gRPC sync service")
+
+	// Wait for shutdown completion with timeout
+	select {
+	case <-g.shutdownComplete:
+		g.Logger.Info("sync operations completed gracefully")
+	case <-time.After(5 * time.Second):
+		g.Logger.Warn("shutdown timeout exceeded - forcing close")
+	}
+
+	// Close events channel
+	if g.events != nil {
+		close(g.events)
+	}
+
+	// Close gRPC connection
+	if g.connection != nil {
+		if err := g.connection.Close(); err != nil {
+			g.Logger.Error(fmt.Sprintf("error closing gRPC connection: %v", err))
+			return err
+		}
+	}
+
+	g.Logger.Info("gRPC sync service shutdown completed successfully")
+	return nil
 }
