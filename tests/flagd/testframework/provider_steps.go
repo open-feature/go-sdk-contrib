@@ -40,6 +40,11 @@ func (s *TestState) createProviderInstance() error {
 	var provider openfeature.FeatureProvider
 	var err error
 
+	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+		Option:    "RetryGracePeriod",
+		ValueType: "Integer",
+		Value:     "1",
+	})
 	switch s.ProviderType {
 	case RPC:
 		if RPCProviderSupplier == nil {
@@ -82,13 +87,13 @@ func (s *TestState) createProviderInstance() error {
 }
 
 // waitForProviderReady waits for the provider to be in READY state
-func (s *TestState) waitForProviderReady(timeout time.Duration) error {
+func (s *TestState) waitForProviderReady(ctx context.Context, timeout time.Duration) error {
 	if s.Client == nil {
 		return fmt.Errorf("no client available to wait for provider ready")
 	}
 
 	// Use generic event handler infrastructure
-	if err := s.addGenericEventHandler(context.Background(), "ready"); err != nil {
+	if err := s.addGenericEventHandler(ctx, "ready"); err != nil {
 		return fmt.Errorf("failed to add ready event handler: %w", err)
 	}
 
@@ -130,7 +135,7 @@ func (s *TestState) createSpecializedFlagdProvider(ctx context.Context, provider
 		}
 
 		// Wait for provider to be ready
-		return s.waitForProviderReady(15 * time.Second)
+		return s.waitForProviderReady(ctx, 15*time.Second)
 	}
 	return nil
 }
