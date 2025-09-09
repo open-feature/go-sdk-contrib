@@ -82,10 +82,9 @@ func (st *staleTimer) start(duration time.Duration, callback func()) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 
-	if st.timer != nil {
-		st.timer.Stop()
+	if st.timer == nil {
+		st.timer = time.AfterFunc(duration, callback)
 	}
-	st.timer = time.AfterFunc(duration, callback)
 }
 
 // stop stops the stale timer

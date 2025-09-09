@@ -24,9 +24,43 @@ const (
 	SupportedScheme = "(envoy|dns|uds|xds)"
 
 	// Default timeouts and retry intervals
-	defaultRetryDelay       = 1 * time.Second
 	defaultKeepaliveTime    = 30 * time.Second
 	defaultKeepaliveTimeout = 5 * time.Second
+
+	retryPolicy = `{
+		  "methodConfig": [
+			{
+			  "name": [
+				{
+				  "service": "flagd.sync.v1.FlagSyncService"
+				}
+			  ],
+			  "retryPolicy": {
+				"MaxAttempts": 3,
+				"InitialBackoff": "1s",
+				"MaxBackoff": "5s",
+				"BackoffMultiplier": 2.0,
+				"RetryableStatusCodes": [
+				  "CANCELLED",
+				  "UNKNOWN",
+				  "INVALID_ARGUMENT",
+				  "NOT_FOUND",
+				  "ALREADY_EXISTS",
+				  "PERMISSION_DENIED",
+				  "RESOURCE_EXHAUSTED",
+				  "FAILED_PRECONDITION",
+				  "ABORTED",
+				  "OUT_OF_RANGE",
+				  "UNIMPLEMENTED",
+				  "INTERNAL",
+				  "UNAVAILABLE",
+				  "DATA_LOSS",
+				  "UNAUTHENTICATED"
+				]
+			  }
+			}
+		  ]
+		}`
 )
 
 // Type aliases for interfaces required by this component - needed for mock generation with gomock
@@ -128,6 +162,8 @@ func (g *Sync) buildDialOptions() ([]grpc.DialOption, error) {
 	}
 	dialOptions = append(dialOptions, grpc.WithKeepaliveParams(keepaliveParams))
 
+	dialOptions = append(dialOptions, grpc.WithDefaultServiceConfig(retryPolicy))
+
 	return dialOptions, nil
 }
 
@@ -185,13 +221,9 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 			}
 
 			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
+			g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
 
-			// Wait before retry with cancellation support
-			select {
-			case <-time.After(defaultRetryDelay):
-				continue
-			case <-ctx.Done():
-				g.Logger.Info("sync stopped during retry delay due to context cancellation")
+			if ctx.Err() != nil {
 				return ctx.Err()
 			}
 		}
@@ -342,7 +374,6 @@ func (g *Sync) handleConnectionState(ctx context.Context, state connectivity.Sta
 
 	case connectivity.Ready:
 		g.Logger.Info(fmt.Sprintf("gRPC connection ready for %s", g.URI))
-		g.sendEvent(ctx, SyncEvent{event: of.ProviderReady})
 
 	case connectivity.Idle:
 		g.Logger.Debug(fmt.Sprintf("gRPC connection idle for %s", g.URI))
