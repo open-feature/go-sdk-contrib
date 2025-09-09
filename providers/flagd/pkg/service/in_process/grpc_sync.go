@@ -17,12 +17,6 @@ import (
 )
 
 const (
-	// Prefix for GRPC URL inputs. GRPC does not define a standard prefix. This prefix helps to differentiate remote
-	// URLs for REST APIs (i.e - HTTP) from GRPC endpoints.
-	Prefix          = "grpc://"
-	PrefixSecure    = "grpcs://"
-	SupportedScheme = "(envoy|dns|uds|xds)"
-
 	// Default timeouts and retry intervals
 	defaultKeepaliveTime    = 30 * time.Second
 	defaultKeepaliveTimeout = 5 * time.Second
@@ -72,8 +66,6 @@ type FlagSyncServiceClientResponse interface {
 	syncv1grpc.FlagSyncService_SyncFlagsClient
 }
 
-var once msync.Once
-
 // Sync implements gRPC-based flag synchronization with improved context cancellation and error handling
 type Sync struct {
 	// Configuration
@@ -94,6 +86,7 @@ type Sync struct {
 	events           chan SyncEvent
 	shutdownComplete chan struct{}
 	shutdownOnce     msync.Once
+	initializer      msync.Once
 }
 
 // Init initializes the gRPC connection and starts background monitoring
@@ -256,7 +249,7 @@ func (g *Sync) performSyncCycle(ctx context.Context, dataSync chan<- sync.DataSy
 // handleFlagSync processes messages from the sync stream with proper context handling
 func (g *Sync) handleFlagSync(ctx context.Context, stream syncv1grpc.FlagSyncService_SyncFlagsClient, dataSync chan<- sync.DataSync) error {
 	// Mark as ready on first successful stream
-	once.Do(func() {
+	g.initializer.Do(func() {
 		g.ready = true
 		g.Logger.Info("sync service is now ready")
 	})
