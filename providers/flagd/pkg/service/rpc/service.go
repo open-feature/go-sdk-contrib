@@ -50,9 +50,10 @@ type Service struct {
 	logger       logr.Logger
 	retryCounter retryCounter
 
-	client     schemaConnectV1.ServiceClient
-	cancelHook context.CancelFunc
-	wg         sync.WaitGroup
+	client      schemaConnectV1.ServiceClient
+	cancelHook  context.CancelFunc
+	wg          sync.WaitGroup
+	streamReady chan error // Channel to signal when event stream is connected
 }
 
 func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, retries int) *Service {
@@ -63,6 +64,7 @@ func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, ret
 		events:       make(chan of.Event, 1),
 		logger:       logger,
 		retryCounter: newRetryCounter(retries),
+		streamReady:  make(chan error, 1),
 	}
 }
 
@@ -94,7 +96,9 @@ func (s *Service) Init() error {
 		s.startEventStream(ctx)
 	}()
 
-	return nil
+	// Wait for event stream to be established before considering init complete
+	// This ensures isInitialised() only returns true when we can actually handle events
+	return <-s.streamReady
 }
 
 func (s *Service) Shutdown() {
@@ -141,6 +145,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -199,6 +204,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -257,6 +263,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -315,6 +322,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -372,6 +380,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
+				Reason:          of.ErrorReason,
 			},
 		}
 	}
@@ -443,14 +452,20 @@ func (s *Service) EventChannel() <-chan of.Event {
 // This contains blocking calls and busy wait backed retry attempts, hence must be called concurrently.
 // If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
+	streamReadySignaled := false
+	
 	// wraps connection with retry attempts
 	for s.retryCounter.retry() {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
-		err := s.streamClient(ctx)
+		err := s.streamClient(ctx, &streamReadySignaled)
 		if err != nil {
 			// first check for ctx close and exit retrying as this is a shutdown
 			if errors.Is(ctx.Err(), context.Canceled) {
 				s.logger.V(logger.Debug).Info("context cancelled, exiting")
+				// Signal error if we haven't signaled success yet
+				if !streamReadySignaled {
+					s.signalStreamReady(ctx.Err())
+				}
 				return
 			}
 
@@ -463,6 +478,9 @@ func (s *Service) startEventStream(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
+			if !streamReadySignaled {
+				s.signalStreamReady(ctx.Err())
+			}
 			return
 		case <-time.After(s.retryCounter.sleep()):
 		}
@@ -470,23 +488,46 @@ func (s *Service) startEventStream(ctx context.Context) {
 
 	// retry attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
+	connErr := fmt.Errorf("grpc connection establishment failed")
+	
+	// Signal error if we haven't signaled success yet
+	if !streamReadySignaled {
+		s.signalStreamReady(connErr)
+	}
+	
 	s.sendEvent(ctx, of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderError,
 		ProviderEventDetails: of.ProviderEventDetails{
-			Message: "grpc connection establishment failed",
+			Message: connErr.Error(),
 		},
 	})
 }
 
+// signalStreamReady signals Init() that the event stream status is known
+func (s *Service) signalStreamReady(err error) {
+	select {
+	case s.streamReady <- err:
+		// Signal sent successfully
+	default:
+		// Channel already has a value, don't block
+	}
+}
+
 // streamClient opens the event stream and distribute streams to appropriate handlers.
-func (s *Service) streamClient(ctx context.Context) error {
+func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) error {
 	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
 	if err != nil {
 		return err
 	}
 
 	s.logger.V(logger.Info).Info("connected to event stream")
+	
+	// Signal successful connection to Init() - stream is now ready
+	if !*streamReadySignaled {
+		s.signalStreamReady(nil) // nil means success
+		*streamReadySignaled = true
+	}
 
 	for stream.Receive() {
 		// reset retry counters and proceed to message handling
