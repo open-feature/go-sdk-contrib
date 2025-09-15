@@ -234,7 +234,8 @@ func TestErrorProviderStates(t *testing.T) {
 		Sources: []string{"datafile://non-existing.yaml"},
 	}
 	errorProvider, _ := prefabProvider.NewProvider(providerConfig)
-	errorProvider.Init(of.EvaluationContext{})
+	err := errorProvider.Init(of.EvaluationContext{})
+	require.Error(t, err)
 
 	boolRes := errorProvider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
 	require.Equal(t, of.GeneralCode, boolRes.ResolutionDetail().ErrorCode)
@@ -253,7 +254,8 @@ func TestErrorProviderStates(t *testing.T) {
 
 	providerConfig = prefabProvider.ProviderConfig{}
 	errorProvider, _ = prefabProvider.NewProvider(providerConfig)
-	errorProvider.Init(of.EvaluationContext{})
+	err = errorProvider.Init(of.EvaluationContext{})
+	require.Error(t, err)
 }
 
 func TestEvaluationMethods(t *testing.T) {
@@ -363,7 +365,12 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	of.SetProviderAndWait(provider)
+	err = of.SetProviderAndWait(provider)
+	if err != nil {
+		fmt.Printf("Error during provider set: %v\n", err)
+		os.Exit(1)
+	}
+
 	ofClient = of.NewClient("my-app")
 
 	fmt.Printf("provider: %v\n", provider)

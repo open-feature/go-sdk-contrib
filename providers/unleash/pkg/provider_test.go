@@ -1,6 +1,7 @@
 package unleash_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -8,14 +9,18 @@ import (
 	"testing"
 	"time"
 
+	_ "embed"
+
 	"github.com/Unleash/unleash-client-go/v4"
 	unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
 )
 
-var provider *unleashProvider.Provider
-var ofClient *of.Client
+var (
+	provider *unleashProvider.Provider
+	ofClient *of.Client
+)
 
 func TestBooleanEvaluation(t *testing.T) {
 	resolution := provider.BooleanEvaluation(context.Background(), "variant-flag", false, nil)
@@ -197,7 +202,6 @@ func TestInvalidContextEvaluation(t *testing.T) {
 }
 
 func TestEvaluationMethods(t *testing.T) {
-
 	tests := []struct {
 		flag          string
 		defaultValue  interface{}
@@ -254,18 +258,19 @@ func cleanup() {
 	provider.Shutdown()
 }
 
-func TestMain(m *testing.M) {
+//go:embed demo_app_toggles.json
+var appToggles []byte
 
+func TestMain(m *testing.M) {
 	// global init
-	demoReader, err := os.Open("demo_app_toggles.json")
-	if err != nil {
-		fmt.Printf("Error during features file open: %v\n", err)
-		os.Exit(1)
-	}
-	defer demoReader.Close()
+	demoReader := bytes.NewReader(appToggles)
 
 	appName := "my-application"
-	backupFile := fmt.Sprintf("unleash-repo-schema-v1-%s.json", appName)
+	backupPath, err := os.MkdirTemp("", "unleash-backup")
+	if err != nil {
+		fmt.Printf("Error during creating temporary directory: %v\n", err)
+		os.Exit(1)
+	}
 
 	providerOptions := unleashProvider.ProviderConfig{
 		Options: []unleash.ConfigOption{
@@ -274,13 +279,12 @@ func TestMain(m *testing.M) {
 			unleash.WithRefreshInterval(5 * time.Second),
 			unleash.WithMetricsInterval(5 * time.Second),
 			unleash.WithStorage(&unleash.BootstrapStorage{Reader: demoReader}),
-			unleash.WithBackupPath("./"),
+			unleash.WithBackupPath(backupPath),
 			unleash.WithUrl("https://localhost:4242"),
 		},
 	}
 
 	provider, err = unleashProvider.NewProvider(providerOptions)
-
 	if err != nil {
 		fmt.Printf("Error during provider open: %v\n", err)
 	}
@@ -298,6 +302,9 @@ func TestMain(m *testing.M) {
 
 	cleanup()
 
-	os.Remove(backupFile)
+	err = os.RemoveAll(backupPath)
+	if err != nil {
+		fmt.Printf("Error during removing backup directory: %v\n", err)
+	}
 	os.Exit(exitCode)
 }

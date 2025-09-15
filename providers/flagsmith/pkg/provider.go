@@ -28,7 +28,7 @@ func NewProvider(client *flagsmithClient.Client, opts ...ProviderOption) *Provid
 
 }
 
-// flagsmith provider does not have any hooks, returns empty slice
+// Hooks returns empty slice as flagsmith provider does not have any
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }
@@ -144,7 +144,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 
 	if p.usingBooleanConfigValue {
 		// Value will be true if the flag is enabled, false otherwise
-		value := !(resolutionDetails.Reason == of.DisabledReason)
+		value := resolutionDetails.Reason != of.DisabledReason
 		return of.BoolResolutionDetail{
 			Value: value,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{

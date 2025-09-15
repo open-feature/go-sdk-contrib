@@ -30,18 +30,3 @@ func ToPrefabContext(evalCtx of.FlattenedContext) (prefab.ContextSet, error) {
 	}
 	return *prefabContext, nil
 }
-
-func toStr(val interface{}) (string, bool) {
-	switch v := val.(type) {
-	case string:
-		return v, true
-	case int, int8, int16, int32, int64:
-		return fmt.Sprintf("%d", v), true
-	case float32, float64:
-		return fmt.Sprintf("%.6f", v), true
-	case bool:
-		return fmt.Sprintf("%t", v), true
-	default:
-		return "", false
-	}
-}

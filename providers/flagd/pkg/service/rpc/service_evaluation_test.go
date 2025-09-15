@@ -173,7 +173,7 @@ func TestBooleanEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -309,7 +309,7 @@ func TestStringEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -445,7 +445,7 @@ func TestFloatEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -581,7 +581,7 @@ func TestIntEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -730,7 +730,7 @@ func TestObjectEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -742,7 +742,7 @@ func TestObjectEvaluation(t *testing.T) {
 }
 
 // validate is a generic validator
-func validate[T responseType](t *testing.T, test testStruct[T], resolutionDetail T, error of.ResolutionError, service Service) {
+func validate[T responseType](t *testing.T, test testStruct[T], resolutionDetail T, error of.ResolutionError, service *Service) {
 	if diff := cmp.Diff(
 		test.expectResponse, resolutionDetail,
 		cmpopts.IgnoreFields(of.ProviderResolutionDetail{}, "ResolutionError"),

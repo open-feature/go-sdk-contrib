@@ -1,2 +1,46 @@
+---
+version: "2"
+
+formatters:
+  enable: []
+    # - gofumpt
+    # - gci
+
+linters:
+  default: none
+  enable:
+    - copyloopvar
+    - dupword
+    - errcheck
+    - govet
+    - ineffassign
+    - intrange
+    - misspell
+    - staticcheck
+    # - unused
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        - "-ST1000" # package comment
+        - "-ST1003" # incorrect identifier
+        - "-ST1005" # incorrectly formatted error
+        - "-QF1008" # omit embedded field from selector expression
+        - "-SA1019" # using deprecated
+  exclusions:
+    paths:
+      - tests/flagd
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
 run:
   timeout: 3m
+  build-tags:
+    - testtools
+  modules-download-mode: readonly
+
+output:
+  sort-order:
+    - file

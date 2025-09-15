@@ -11,8 +11,10 @@ import (
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
-const providerNotReady = "Provider not ready"
-const generalError = "general error"
+const (
+	providerNotReady = "Provider not ready"
+	generalError     = "general error"
+)
 
 type Provider struct {
 	providerConfig ProviderConfig
@@ -44,11 +46,11 @@ func (p *Provider) Status() of.State {
 }
 
 func (p *Provider) Shutdown() {
-	unleash.Close()
+	_ = unleash.Close()
 	p.status = of.NotReadyState
 }
 
-// provider does not have any hooks, returns empty slice
+// Hooks returns empty slice as provider does not have any
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }

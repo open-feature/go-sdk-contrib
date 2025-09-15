@@ -79,7 +79,7 @@ func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 
 	m.callCount++
 	mockPath := "../testutils/mock_responses/%s.json"
-	flagName := strings.Replace(req.URL.Path, "/ofrep/v1/evaluate/flags/", "", -1)
+	flagName := strings.ReplaceAll(req.URL.Path, "/ofrep/v1/evaluate/flags/", "")
 
 	if flagName == "unauthorized" {
 		return &http.Response{

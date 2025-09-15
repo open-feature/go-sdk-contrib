@@ -43,11 +43,11 @@ func (p *Provider) Status() of.State {
 }
 
 func (p *Provider) Shutdown() {
-	p.harnessClient.Close()
+	_ = p.harnessClient.Close()
 	p.status = of.NotReadyState
 }
 
-// provider does not have any hooks, returns empty slice
+// Hooks returns empty slices as provider does not have any
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }

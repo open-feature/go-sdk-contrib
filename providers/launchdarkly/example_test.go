@@ -24,7 +24,9 @@ func Example() {
 	}
 
 	// Flushes all pending analytics events.
-	defer ldClient.Close()
+	defer func() {
+		_ = ldClient.Close()
+	}()
 
 	// Set Launchdarkly as OpenFeature provider
 	err = openfeature.SetProvider(ofld.NewProvider(ldClient))
