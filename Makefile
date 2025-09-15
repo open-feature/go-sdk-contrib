@@ -3,7 +3,7 @@ MODULE_TYPE ?= providers
 FLAGD_TESTBED = flagd-testbed
 FLAGD_SYNC = sync-testbed
 GOLANGCI_LINT_VERSION := v2.4.0
-GOROOT := $(shell go env GOROOT)
+GOBIN := $(shell go env GOBIN)
 
 workspace-init:
 	go work init
@@ -21,7 +21,7 @@ e2e:
 
 lint:
 	go install -v github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOROOT}/bin/golangci-lint run $(module)/...;)
+	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOBIN}/golangci-lint run $(module)/...;)
 
 new-provider:
 	mkdir ./providers/$(MODULE_NAME)
