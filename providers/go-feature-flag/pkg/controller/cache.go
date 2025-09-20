@@ -12,10 +12,9 @@ const defaultCacheSize = 10000
 const defaultCacheTTL = 1 * time.Minute
 
 type Cache struct {
-	internalCache    gcache.Cache
-	maxEventInMemory int64
-	ttl              time.Duration
-	disabled         bool
+	internalCache gcache.Cache
+	ttl           time.Duration
+	disabled      bool
 }
 
 // NewCache creates a new cache with the given options.
