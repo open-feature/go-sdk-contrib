@@ -6,6 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/cucumber/godog v0.15.1
+	github.com/docker/go-connections v0.5.0
 	github.com/open-feature/go-sdk v1.11.0
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.3.0
 	github.com/testcontainers/testcontainers-go v0.38.0
@@ -70,7 +71,6 @@ require (
 	github.com/docker/docker v28.2.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c // indirect
-	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect

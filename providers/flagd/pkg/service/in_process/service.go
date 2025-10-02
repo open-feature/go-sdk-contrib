@@ -115,7 +115,9 @@ func (i *InProcess) Init() error {
 				// re-syncs are ignored as we only support single flag sync source
 				changes, _, err := i.evaluator.SetState(data)
 				if data.SyncContext != nil {
+					i.mtx.Lock()
 					i.contextValues = data.SyncContext.AsMap()
+					i.mtx.Unlock()
 				}
 
 				if err != nil {

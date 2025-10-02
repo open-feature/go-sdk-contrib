@@ -81,9 +81,11 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		})
 	}
 
-	provider.hooks = append(provider.hooks, NewSyncContextHook(func() *of.EvaluationContext {
-		return provider.providerConfiguration.ContextEnricher(service.ContextValues())
-	}))
+	if provider.providerConfiguration.Resolver == inProcess {
+		provider.hooks = append(provider.hooks, NewSyncContextHook(func() *of.EvaluationContext {
+			return provider.providerConfiguration.ContextEnricher(service.ContextValues())
+		}))
+	}
 	provider.service = service
 
 	return provider, nil
