@@ -33,6 +33,7 @@ type InProcess struct {
 	syncEnd          context.CancelFunc
 	wg               parallel.WaitGroup
 	contextValues    map[string]any
+	mtx              parallel.RWMutex
 }
 
 type Configuration struct {
@@ -299,7 +300,19 @@ func (i *InProcess) appendMetadata(evalMetadata model.Metadata) {
 }
 
 func (i *InProcess) ContextValues() map[string]any {
-	return i.contextValues
+	i.mtx.RLock()
+	defer i.mtx.RUnlock()
+
+	if i.contextValues == nil {
+		return nil
+	}
+
+	// Return a copy to prevent mutation of internal state
+	contextValuesCopy := make(map[string]any, len(i.contextValues))
+	for k, v := range i.contextValues {
+		contextValuesCopy[k] = v
+	}
+	return contextValuesCopy
 }
 
 // makeSyncProvider is a helper to create sync.ISync and return the underlying uri used by it to the caller

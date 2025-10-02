@@ -305,8 +305,12 @@ func TestNewProvider(t *testing.T) {
 			options: []ProviderOption{
 				WithInProcessResolver(),
 				WithContextEnricher(func(m map[string]any) *of.EvaluationContext {
-					m["test2"] = "test2"
-					context := of.NewTargetlessEvaluationContext(m)
+					newMap := make(map[string]any, len(m)+1)
+					for k, v := range m {
+						newMap[k] = v
+					}
+					newMap["test2"] = "test2"
+					context := of.NewTargetlessEvaluationContext(newMap)
 					return &context
 				}),
 			},
@@ -413,10 +417,8 @@ func TestNewProvider(t *testing.T) {
 
 			if test.expectContextEnrichment != nil {
 				enriched := config.ContextEnricher(enrichment).Attributes()
-				for k, v := range test.expectContextEnrichment {
-					if enriched[k] != v {
-						t.Errorf("incorrect context_enrichment attribute, expected %v, got %v", v, enriched[k])
-					}
+				if !reflect.DeepEqual(test.expectContextEnrichment, enriched) {
+					t.Errorf("incorrect context_enrichment attribute, expected %v, got %v", test.expectContextEnrichment, enriched)
 				}
 			}
 
