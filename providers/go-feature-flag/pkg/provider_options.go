@@ -42,13 +42,6 @@ type ProviderOptions struct {
 	// default: 1 minute
 	DataFlushInterval time.Duration
 
-	// DataMaxEventInMemory (optional) maximum number of item we keep in memory before calling the API.
-	// If this number is reached before the DataFlushInterval we will call the API.
-	// The parameter is used only if the cache is enabled, otherwise the collection of the data is done directly
-	// when calling the evaluation API.
-	// default: 500
-	DataMaxEventInMemory int64
-
 	// DataCollectorMaxEventStored (optional) maximum number of event we keep in memory, if we reach this number it means
 	// that we will start to drop the new events. This is a security to avoid a memory leak.
 	// default: 100000

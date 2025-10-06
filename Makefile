@@ -15,10 +15,10 @@ test:
 
 # call with TESTCONTAINERS_RYUK_DISABLED="true" to avoid problems with podman on Macs
 e2e:
-	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -tags=e2e {}
+	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -timeout=1m -tags=e2e {}
 
 lint:
-	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
+	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run $(module)/...;)
 
 new-provider:

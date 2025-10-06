@@ -645,7 +645,6 @@ func TestGithubRawContent(t *testing.T) {
 		data := <-syncChan
 		assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
 		assert.Equal(t, testURL, data.Source, "Source should match the test URL")
-		assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
 		// set success = true via atomic operation
 		success.Store(true)
 	}()
@@ -714,7 +713,6 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 			slog.Info("Received data from sync channel",
 				"source", data.Source,
 				"testURL", testURL,
-				"type", data.Type,
 			)
 			if data.FlagData == "" {
 				slog.Info("Received empty flag data from sync channel")
@@ -722,7 +720,6 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 			}
 			assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
 			assert.Equal(t, testURL, data.Source, "Source should match the test URL")
-			assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
 			success.Store(true)
 		}
 	}()
@@ -852,7 +849,6 @@ func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
 		data := <-syncChan
 		assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
 		assert.Equal(t, invalidTestUrl, data.Source, "Source should match the test URL")
-		assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
 		assert.Equal(t, testPayload, data.FlagData, "Flag data should match the cached payload")
 		success.Store(true)
 	}()
@@ -908,7 +904,6 @@ func TestGithubRawContentUsingHttpCache(t *testing.T) {
 		data := <-syncChan
 		assert.NotEmpty(t, data.FlagData, "Flag data should not be empty")
 		assert.Equal(t, testURL, data.Source, "Source should match the test URL")
-		assert.Equal(t, flagdsync.ALL, data.Type, "Type should be ALL for initial sync")
 		dataCount.Add(1)
 	}()
 

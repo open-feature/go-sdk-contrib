@@ -46,6 +46,7 @@ type Configuration struct {
 	CustomSyncProvider      sync.ISync
 	CustomSyncProviderUri   string
 	GrpcDialOptionsOverride []googlegrpc.DialOption
+	CertificatePath         string
 }
 
 type Shutdowner interface {
@@ -324,6 +325,7 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 		GrpcDialOptionsOverride: cfg.GrpcDialOptionsOverride,
 		Logger:                  log,
 		Secure:                  cfg.TLSEnabled,
+		CertPath:                cfg.CertificatePath,
 		ProviderID:              cfg.ProviderID,
 		Selector:                cfg.Selector,
 		URI:                     uri,
@@ -334,15 +336,15 @@ func makeSyncProvider(cfg Configuration, log *logger.Logger) (sync.ISync, string
 func mapError(flagKey string, err error) of.ResolutionError {
 	switch err.Error() {
 	case model.FlagNotFoundErrorCode:
-		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: " + flagKey + " not found"))
+		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: %s not found", flagKey))
 	case model.FlagDisabledErrorCode:
-		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: " + flagKey + " is disabled"))
+		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: %s is disabled", flagKey))
 	case model.TypeMismatchErrorCode:
-		return of.NewTypeMismatchResolutionError(fmt.Sprintf("flag: " + flagKey + " evaluated type not valid"))
+		return of.NewTypeMismatchResolutionError(fmt.Sprintf("flag: %s evaluated type not valid", flagKey))
 	case model.ParseErrorCode:
-		return of.NewParseErrorResolutionError(fmt.Sprintf("flag: " + flagKey + " parsing error"))
+		return of.NewParseErrorResolutionError(fmt.Sprintf("flag: %s parsing error", flagKey))
 	default:
-		return of.NewGeneralResolutionError(fmt.Sprintf("flag: " + flagKey + " unable to evaluate"))
+		return of.NewGeneralResolutionError(fmt.Sprintf("flag: %s unable to evaluate", flagKey))
 	}
 }
 

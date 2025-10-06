@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.4.2...tests/flagd/v1.5.0) (2025-09-05)
+
+
+### ✨ New Features
+
+* comprehensive flagd e2e testing framework with testcontainers integration ([#732](https://github.com/open-feature/go-sdk-contrib/issues/732)) ([e3ec17b](https://github.com/open-feature/go-sdk-contrib/commit/e3ec17bdc7140582582a5df1154b6044cbf5b640))
+
+## [1.4.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.4.1...tests/flagd/v1.4.2) (2025-09-02)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+
 ## [1.4.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.4.0...tests/flagd/v1.4.1) (2024-03-18)
 
 
