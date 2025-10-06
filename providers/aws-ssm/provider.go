@@ -15,10 +15,8 @@ type ProviderOption func(*Provider)
 
 func NewProvider(cfg aws.Config, opts ...ProviderOption) (*Provider, error) {
 
-	svc := newAWSService(cfg)
-
 	p := &Provider{
-		svc: svc,
+		svc: newAWSService(cfg),
 	}
 
 	for _, opt := range opts {
