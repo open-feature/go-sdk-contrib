@@ -14,11 +14,16 @@ type Provider struct {
 type ProviderOption func(*Provider)
 
 func NewProvider(cfg aws.Config, opts ...ProviderOption) (*Provider, error) {
-	svc := newAWSService(cfg)
 
-	return &Provider{
-		svc: svc,
-	}, nil
+	p := &Provider{
+		svc: newAWSService(cfg),
+	}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	return p, nil
 }
 
 func (p *Provider) Metadata() openfeature.Metadata {
