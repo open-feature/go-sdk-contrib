@@ -3,7 +3,6 @@ package process
 import (
 	"context"
 	"fmt"
-
 	"regexp"
 	parallel "sync"
 
@@ -33,6 +32,8 @@ type InProcess struct {
 	sync             sync.ISync
 	syncEnd          context.CancelFunc
 	wg               parallel.WaitGroup
+	contextValues    map[string]any
+	mtx              parallel.RWMutex
 }
 
 type Configuration struct {
@@ -113,6 +114,12 @@ func (i *InProcess) Init() error {
 			case data := <-syncChan:
 				// re-syncs are ignored as we only support single flag sync source
 				changes, _, err := i.evaluator.SetState(data)
+				if data.SyncContext != nil {
+					i.mtx.Lock()
+					i.contextValues = data.SyncContext.AsMap()
+					i.mtx.Unlock()
+				}
+
 				if err != nil {
 					i.events <- of.Event{
 						ProviderName: "flagd", EventType: of.ProviderError,
@@ -292,6 +299,22 @@ func (i *InProcess) appendMetadata(evalMetadata model.Metadata) {
 	for k, v := range i.serviceMetadata {
 		evalMetadata[k] = v
 	}
+}
+
+func (i *InProcess) ContextValues() map[string]any {
+	i.mtx.RLock()
+	defer i.mtx.RUnlock()
+
+	if i.contextValues == nil {
+		return nil
+	}
+
+	// Return a copy to prevent mutation of internal state
+	contextValuesCopy := make(map[string]any, len(i.contextValues))
+	for k, v := range i.contextValues {
+		contextValuesCopy[k] = v
+	}
+	return contextValuesCopy
 }
 
 // makeSyncProvider is a helper to create sync.ISync and return the underlying uri used by it to the caller

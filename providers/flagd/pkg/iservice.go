@@ -21,4 +21,5 @@ type IService interface {
 	ResolveObject(ctx context.Context, key string, defaultValue interface{},
 		evalCtx map[string]interface{}) of.InterfaceResolutionDetail
 	EventChannel() <-chan of.Event
+	ContextValues() map[string]any
 }

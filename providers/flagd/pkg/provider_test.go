@@ -22,6 +22,12 @@ func TestNewProvider(t *testing.T) {
 		grpc.WithAuthority("test-authority"),
 	}
 
+	enrichment := make(map[string]any)
+	enrichment["test"] = "test"
+
+	expectedEnrichment := make(map[string]any)
+	expectedEnrichment["test"] = "test"
+	expectedEnrichment["test2"] = "test2"
 	tests := []struct {
 		name                          string
 		expectedResolver              ResolverType
@@ -41,6 +47,7 @@ func TestNewProvider(t *testing.T) {
 		expectCustomSyncProviderUri   string
 		expectOfflineFlagSourcePath   string
 		expectGrpcDialOptionsOverride []grpc.DialOption
+		expectContextEnrichment       map[string]any
 		options                       []ProviderOption
 	}{
 		{
@@ -269,6 +276,45 @@ func TestNewProvider(t *testing.T) {
 				WithOfflineFilePath("offlineFilePath"),
 			},
 		},
+		{
+			name:                    "with ContextEnricher inprocess resolver",
+			expectedResolver:        inProcess,
+			expectHost:              defaultHost,
+			expectPort:              defaultInProcessPort,
+			expectCacheType:         defaultCache,
+			expectCacheSize:         defaultMaxCacheSize,
+			expectMaxRetries:        defaultMaxEventStreamRetries,
+			expectContextEnrichment: enrichment,
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithContextEnricher(func(m map[string]any) *of.EvaluationContext {
+					context := of.NewTargetlessEvaluationContext(m)
+					return &context
+				}),
+			},
+		},
+		{
+			name:                    "with ContextEnricher inprocess resolver adding values",
+			expectedResolver:        inProcess,
+			expectHost:              defaultHost,
+			expectPort:              defaultInProcessPort,
+			expectCacheType:         defaultCache,
+			expectCacheSize:         defaultMaxCacheSize,
+			expectMaxRetries:        defaultMaxEventStreamRetries,
+			expectContextEnrichment: expectedEnrichment,
+			options: []ProviderOption{
+				WithInProcessResolver(),
+				WithContextEnricher(func(m map[string]any) *of.EvaluationContext {
+					newMap := make(map[string]any, len(m)+1)
+					for k, v := range m {
+						newMap[k] = v
+					}
+					newMap["test2"] = "test2"
+					context := of.NewTargetlessEvaluationContext(newMap)
+					return &context
+				}),
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -366,6 +412,13 @@ func TestNewProvider(t *testing.T) {
 			} else {
 				if config.GrpcDialOptionsOverride != nil {
 					t.Errorf("incorrent configuration GrpcDialOptionsOverride, expected nil, got %v", config.GrpcDialOptionsOverride)
+				}
+			}
+
+			if test.expectContextEnrichment != nil {
+				enriched := config.ContextEnricher(enrichment).Attributes()
+				if !reflect.DeepEqual(test.expectContextEnrichment, enriched) {
+					t.Errorf("incorrect context_enrichment attribute, expected %v, got %v", test.expectContextEnrichment, enriched)
 				}
 			}
 

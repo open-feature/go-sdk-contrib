@@ -3,6 +3,7 @@ package flagd
 import (
 	"errors"
 	"fmt"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"os"
 	"strconv"
 	"strings"
@@ -64,6 +65,7 @@ type ProviderConfiguration struct {
 	CustomSyncProvider               sync.ISync
 	CustomSyncProviderUri            string
 	GrpcDialOptionsOverride          []grpc.DialOption
+	ContextEnricher                  ContextEnricher
 
 	log logr.Logger
 }
@@ -77,6 +79,10 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
+		ContextEnricher: func(contextValues map[string]any) *of.EvaluationContext {
+			evaluationContext := of.NewTargetlessEvaluationContext(contextValues)
+			return &evaluationContext
+		},
 	}
 
 	p.updateFromEnvVar()
@@ -395,5 +401,12 @@ func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProvi
 func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.GrpcDialOptionsOverride = grpcDialOptionsOverride
+	}
+}
+
+// WithContextEnricher allows to add a custom context enricher (BeforeHook)
+func WithContextEnricher(contextEnricher ContextEnricher) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.ContextEnricher = contextEnricher
 	}
 }
