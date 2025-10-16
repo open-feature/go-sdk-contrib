@@ -11,6 +11,8 @@ type Provider struct {
 	svc *awsService
 }
 
+var _ openfeature.FeatureProvider = (*Provider)(nil)
+
 type ProviderOption func(*Provider)
 
 func NewProvider(cfg aws.Config, opts ...ProviderOption) (*Provider, error) {
