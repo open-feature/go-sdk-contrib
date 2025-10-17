@@ -76,6 +76,7 @@ func (g *GoffAPI) CollectData(events []model.ExportableEvent) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("jsonData", string(jsonData))
 
 	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
 	if err != nil {

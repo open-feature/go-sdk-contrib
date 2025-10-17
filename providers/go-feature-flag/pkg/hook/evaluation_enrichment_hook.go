@@ -2,6 +2,8 @@ package hook
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -15,6 +17,7 @@ type evaluationEnrichmentHook struct {
 }
 
 func (d *evaluationEnrichmentHook) Before(_ context.Context, hookCtx openfeature.HookContext, _ openfeature.HookHints) (*openfeature.EvaluationContext, error) {
+	fmt.Println("Before", d.exporterMetadata)
 	attributes := hookCtx.EvaluationContext().Attributes()
 	if goffSpecific, ok := attributes["gofeatureflag"]; ok {
 		switch typed := goffSpecific.(type) {

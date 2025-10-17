@@ -44,12 +44,12 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	if err := options.Validation(); err != nil {
 		return nil, err
 	}
-
+	options = enrichExporterMetadataWithDefaults(options)
 	evaluator, err := selectEvaluator(options)
 	if err != nil {
 		return nil, err
 	}
-	dataCollectorMngr := newDataCollectorManager(options)
+	dataCollectorMngr := createDataCollectorManager(options)
 	return &Provider{
 		options:           options,
 		evaluator:         evaluator,
@@ -176,8 +176,8 @@ func selectEvaluator(options ProviderOptions) (evaluator.EvaluatorInterface, err
 	}
 }
 
-// NewDataCollectorManager is preparing the data collector manager based on the provider options.
-func newDataCollectorManager(options ProviderOptions) *service.DataCollectorManager {
+// createDataCollectorManager is preparing the data collector manager based on the provider options.
+func createDataCollectorManager(options ProviderOptions) *service.DataCollectorManager {
 	mngr := service.NewDataCollectorManager(
 		api.NewGoffAPI(api.GoffAPIOptions{
 			Endpoint:              options.Endpoint,
@@ -190,4 +190,14 @@ func newDataCollectorManager(options ProviderOptions) *service.DataCollectorMana
 		options.DataFlushInterval,
 	)
 	return &mngr
+}
+
+// enrichExporterMetadataWithDefaults sets the default exporter metadata if not provided.
+func enrichExporterMetadataWithDefaults(options ProviderOptions) ProviderOptions {
+	if options.ExporterMetadata == nil {
+		options.ExporterMetadata = make(map[string]any)
+	}
+	options.ExporterMetadata["provider"] = "go"
+	options.ExporterMetadata["openfeature"] = true
+	return options
 }
