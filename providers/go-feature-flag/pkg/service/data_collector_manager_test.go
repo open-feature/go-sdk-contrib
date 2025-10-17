@@ -1,12 +1,15 @@
-package controller_test
+package service_test
 
 import (
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 	"time"
+
+	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/testutils/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_DataCollectorManager(t *testing.T) {
@@ -23,17 +26,17 @@ func Test_DataCollectorManager(t *testing.T) {
 		Source:       "SERVER",
 	}
 	t.Run("Should collect only once if there is no event in queue", func(t *testing.T) {
-		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+		mrt := mock.RoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{
 				StatusCode: http.StatusOK,
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.NewGoffAPI(gofeatureflag.ProviderOptions{
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(g, 100, 100*time.Millisecond)
+		collector := service.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		_ = collector.AddEvent(eventExample)
@@ -43,17 +46,17 @@ func Test_DataCollectorManager(t *testing.T) {
 	})
 
 	t.Run("Should collect multiple times if we are adding events in between intervals", func(t *testing.T) {
-		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+		mrt := mock.RoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{
 				StatusCode: http.StatusOK,
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.NewGoffAPI(gofeatureflag.ProviderOptions{	
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(g, 100, 100*time.Millisecond)
+		collector := service.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		_ = collector.AddEvent(eventExample)
@@ -68,17 +71,17 @@ func Test_DataCollectorManager(t *testing.T) {
 	})
 
 	t.Run("Should stop adding events if max items reached", func(t *testing.T) {
-		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+		mrt := mock.RoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{
 				StatusCode: http.StatusOK,
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.NewGoffAPIgofeatureflag.ProviderOptions{
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(g, 5, 10*time.Minute)
+		collector := service.NewDataCollectorManager(g, 5, 10*time.Minute)
 		collector.Start()
 		defer collector.Stop()
 		err := collector.AddEvent(eventExample)
@@ -108,11 +111,11 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.NewGoffAPI(controller.GoFeatureFlagApiOptions{
 			HTTPClient: client,
 		})
 
-		collector := controller.NewDataCollectorManager(g, 5, 100*time.Millisecond)
+		collector := service.NewDataCollectorManager(g, 5, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		err := collector.AddEvent(eventExample)

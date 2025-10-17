@@ -2,19 +2,20 @@ package hook
 
 import (
 	"context"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	"github.com/open-feature/go-sdk/openfeature"
 	"time"
+
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/service"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
-func NewDataCollectorHook(dataCollectorManager *controller.DataCollectorManager) openfeature.Hook {
+func NewDataCollectorHook(dataCollectorManager *service.DataCollectorManager) openfeature.Hook {
 	return &dataCollectorHook{dataCollectorManager: dataCollectorManager}
 }
 
 type dataCollectorHook struct {
 	openfeature.UnimplementedHook
-	dataCollectorManager *controller.DataCollectorManager
+	dataCollectorManager *service.DataCollectorManager
 }
 
 func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookContext,

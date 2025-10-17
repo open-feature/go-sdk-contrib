@@ -1,10 +1,18 @@
 package gofeatureflag
 
 import (
-	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/goff_error"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/gofferror"
+)
+
+type EvaluationType string
+
+const (
+	EvaluationTypeInProcess EvaluationType = "InProcess"
+	EvaluationTypeRemote    EvaluationType = "Remote"
 )
 
 // ProviderOptions is the struct containing the provider options you can
@@ -13,6 +21,11 @@ import (
 type ProviderOptions struct {
 	// Endpoint contains the DNS of your GO Feature Flag relay proxy (ex: http://localhost:1031)
 	Endpoint string
+
+	// EvaluationType (optional) type of evaluation to use.
+	// If not set, we will use the default evaluation type.
+	// default: InProcess
+	EvaluationType EvaluationType
 
 	// HTTPClient (optional) is the HTTP Client we will use to contact GO Feature Flag.
 	// By default, we are using a custom HTTPClient with a timeout configure to 10000 milliseconds.
@@ -23,18 +36,6 @@ type ProviderOptions struct {
 	// (This feature is available only if you are using GO Feature Flag relay proxy v1.7.0 or above)
 	// Default: null
 	APIKey string
-
-	// DisableCache (optional) set to true if you would like that every flag evaluation goes to the GO Feature Flag directly.
-	DisableCache bool
-
-	// FlagCacheSize (optional) is the maximum number of flag events we keep in memory to cache your flags.
-	// default: 10000
-	FlagCacheSize int
-
-	// FlagCacheTTL (optional) is the time we keep the evaluation in the cache before we consider it as obsolete.
-	// If you want to keep the value forever you can set the FlagCacheTTL field to -1
-	// default: 1 minute
-	FlagCacheTTL time.Duration
 
 	// DataFlushInterval (optional) interval time we use to call the relay proxy to collect data.
 	// The parameter is used only if the cache is enabled, otherwise the collection of the data is done directly
@@ -50,23 +51,48 @@ type ProviderOptions struct {
 	// DisableDataCollector (optional) set to true if you would like to disable the data collector.
 	DisableDataCollector bool
 
-	// FlagChangePollingInterval (optional) interval time we poll the proxy to check if the configuration has changed.
-	// If the cache is enabled, we will poll the relay-proxy every X milliseconds to check if the configuration has changed.
-	// Use -1 if you want to deactivate polling.
-	// default: 120000ms
-	FlagChangePollingInterval time.Duration
+	// DataCollectorEndpoint (optional) endpoint to send the data collector events to.
+	// If not set, we will use the same endpoint as the provider endpoint.
+	DataCollectorEndpoint string
 
 	// ExporterMetadata (optional) is the metadata we send to the GO Feature Flag relay proxy when we report the
 	// evaluation data usage.
-	//
-	// ‼️Important: If you are using a GO Feature Flag relay proxy before version v1.41.0, the information of this
-	// field will not be added to your feature events.
-	ExporterMetadata map[string]interface{}
+	ExporterMetadata map[string]any
 }
 
 func (o *ProviderOptions) Validation() error {
-	if o.Endpoint == "" {
-		return goff_error.NewInvalidOption(fmt.Sprintf("invalid option: %s", o.Endpoint))
+	if err := validateEndpoint(o.Endpoint); err != nil {
+		return err
 	}
+
+	if o.DataCollectorEndpoint != "" {
+		if err := validateEndpoint(o.DataCollectorEndpoint); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateEndpoint(endpoint string) error {
+	if endpoint == "" {
+		return gofferror.NewInvalidOption("invalid option: endpoint is required")
+	}
+
+	// Validate that the endpoint is a valid URL
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		return gofferror.NewInvalidOption("invalid option: endpoint must be a valid URL")
+	}
+
+	// Validate that the URL has a scheme (http or https)
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return gofferror.NewInvalidOption("invalid option: endpoint must have http or https scheme")
+	}
+
+	// Validate that the URL has a host
+	if parsedURL.Host == "" {
+		return gofferror.NewInvalidOption("invalid option: endpoint must have a valid host")
+	}
+
 	return nil
 }

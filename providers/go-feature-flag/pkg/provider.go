@@ -3,31 +3,34 @@ package gofeatureflag
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/evaluator"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/hook"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/util"
-	"github.com/open-feature/go-sdk-contrib/providers/ofrep"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/service"
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
 const providerName = "GO Feature Flag"
-const cacheableMetadataKey = "gofeatureflag_cacheable"
 
 type Provider struct {
-	ofrepProvider        *ofrep.Provider
-	cache                *controller.Cache
-	dataCollectorManager controller.DataCollectorManager
-	options              ProviderOptions
-	status               of.State
-	hooks                []of.Hook
-	goffAPI              controller.GoFeatureFlagAPI
-	pollingInfo          struct {
-		ticker  *time.Ticker
-		channel chan bool
-	}
-	events chan of.Event
+	// options are the provider options to use GO Feature Flag.
+	options ProviderOptions
+
+	// hooks are the hooks to use for the GO Feature Flag provider.
+	hooks []openfeature.Hook
+
+	// evaluator is the evaluator to use for the GO Feature Flag provider.
+	// Depending on the evaluation type, it will be a different evaluator.
+	// If the evaluation type is remote, it will be a remote evaluator.
+	// If the evaluation type is in process, it will be an in process evaluator.
+	// By default, it will be an in process evaluator.
+	// The evaluator is used to evaluate the flags.
+	evaluator evaluator.EvaluatorInterface
+
+	// dataCollectorMngr is a service that is in charge of sending telemetry data to the relay-proxy.
+	dataCollectorMngr *service.DataCollectorManager
 }
 
 // NewProvider allows you to create a GO Feature Flag provider without any context.
@@ -41,237 +44,150 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	if err := options.Validation(); err != nil {
 		return nil, err
 	}
-	ofrepOptions := make([]ofrep.Option, 0)
-	if options.APIKey != "" {
-		ofrepOptions = append(ofrepOptions, ofrep.WithBearerToken(options.APIKey))
-	}
-	if options.HTTPClient != nil {
-		ofrepOptions = append(ofrepOptions, ofrep.WithClient(options.HTTPClient))
-	}
-	ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (key string, value string) {
-		return controller.ContentTypeHeader, controller.ApplicationJson
-	}))
-	ofrepProvider := ofrep.NewProvider(options.Endpoint, ofrepOptions...)
-	cacheCtrl := controller.NewCache(options.FlagCacheSize, options.FlagCacheTTL, options.DisableCache)
 
-	// Adding metadata to the GO Feature Flag provider to be sent to the exporter
-	if options.ExporterMetadata == nil {
-		options.ExporterMetadata = make(map[string]interface{})
+	evaluator, err := selectEvaluator(options)
+	if err != nil {
+		return nil, err
 	}
-	options.ExporterMetadata["provider"] = "go"
-	options.ExporterMetadata["openfeature"] = true
-
-	goffAPI := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
-		Endpoint:         options.Endpoint,
-		HTTPClient:       options.HTTPClient,
-		APIKey:           options.APIKey,
-		ExporterMetadata: options.ExporterMetadata,
-	})
-	dataCollectorManager := controller.NewDataCollectorManager(
-		goffAPI,
-		options.DataCollectorMaxEventStored,
-		options.DataFlushInterval,
-	)
+	dataCollectorMngr := newDataCollectorManager(options)
 	return &Provider{
-		ofrepProvider:        ofrepProvider,
-		cache:                cacheCtrl,
-		dataCollectorManager: dataCollectorManager,
-		options:              options,
-		goffAPI:              goffAPI,
-		events:               make(chan of.Event, 5),
-		hooks:                []of.Hook{},
+		options:           options,
+		evaluator:         evaluator,
+		dataCollectorMngr: dataCollectorMngr,
+		hooks: []openfeature.Hook{
+			hook.NewEvaluationEnrichmentHook(options.ExporterMetadata),
+		},
 	}, nil
 }
 
-func (p *Provider) Metadata() of.Metadata {
-	return of.Metadata{
+// Metadata returns the metadata of the GO Feature Flag provider.
+func (p *Provider) Metadata() openfeature.Metadata {
+	return openfeature.Metadata{
 		Name: fmt.Sprintf("%s Provider", providerName),
 	}
 }
 
-func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
-	if err := util.ValidateTargetingKey(evalCtx); err != nil {
-		return of.BoolResolutionDetail{
-			Value:                    defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{ResolutionError: *err, Reason: of.ErrorReason},
-		}
-	}
-	if cacheValue, err := p.cache.GetBool(flag, evalCtx); err == nil && cacheValue != nil {
-		cacheValue.Reason = of.CachedReason
-		return *cacheValue
-	}
-	res := p.ofrepProvider.BooleanEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
-		_ = p.cache.Set(flag, evalCtx, res)
-	}
-	return res
-}
-
-func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
-	if err := util.ValidateTargetingKey(evalCtx); err != nil {
-		return of.StringResolutionDetail{
-			Value:                    defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{ResolutionError: *err, Reason: of.ErrorReason},
-		}
-	}
-	if cacheValue, err := p.cache.GetString(flag, evalCtx); err == nil && cacheValue != nil {
-		cacheValue.Reason = of.CachedReason
-		return *cacheValue
-	}
-	res := p.ofrepProvider.StringEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
-		_ = p.cache.Set(flag, evalCtx, res)
-	}
-	return res
-}
-
-func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
-	if err := util.ValidateTargetingKey(evalCtx); err != nil {
-		return of.FloatResolutionDetail{
-			Value:                    defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{ResolutionError: *err, Reason: of.ErrorReason},
-		}
-	}
-	if cacheValue, err := p.cache.GetFloat(flag, evalCtx); err == nil && cacheValue != nil {
-		cacheValue.Reason = of.CachedReason
-		return *cacheValue
-	}
-	res := p.ofrepProvider.FloatEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
-		_ = p.cache.Set(flag, evalCtx, res)
-	}
-	return res
-}
-
-func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
-	if err := util.ValidateTargetingKey(evalCtx); err != nil {
-		return of.IntResolutionDetail{
-			Value:                    defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{ResolutionError: *err, Reason: of.ErrorReason},
-		}
-	}
-	if cacheValue, err := p.cache.GetInt(flag, evalCtx); err == nil && cacheValue != nil {
-		cacheValue.Reason = of.CachedReason
-		return *cacheValue
-	}
-	res := p.ofrepProvider.IntEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
-		_ = p.cache.Set(flag, evalCtx, res)
-	}
-	return res
-}
-
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-	if err := util.ValidateTargetingKey(evalCtx); err != nil {
-		return of.InterfaceResolutionDetail{
-			Value:                    defaultValue,
-			ProviderResolutionDetail: of.ProviderResolutionDetail{ResolutionError: *err, Reason: of.ErrorReason},
-		}
-	}
-	if cacheValue, err := p.cache.GetInterface(flag, evalCtx); err == nil && cacheValue != nil {
-		cacheValue.Reason = of.CachedReason
-		return *cacheValue
-	}
-	res := p.ofrepProvider.ObjectEvaluation(ctx, flag, defaultValue, evalCtx)
-	if cachable, err := res.FlagMetadata.GetBool(cacheableMetadataKey); err == nil && cachable {
-		_ = p.cache.Set(flag, evalCtx, res)
-	}
-	return res
-}
-
-func (p *Provider) Hooks() []of.Hook {
+// Hooks returns a collection of openfeature.Hook defined by this provider
+func (p *Provider) Hooks() []openfeature.Hook {
 	return p.hooks
 }
 
 // Init holds initialization logic of the provider
-func (p *Provider) Init(_ of.EvaluationContext) error {
-	p.hooks = append(p.hooks, hook.NewEvaluationEnrichmentHook(p.options.ExporterMetadata))
+func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
+	if err := p.evaluator.Init(evaluationContext); err != nil {
+		return err
+	}
 	if !p.options.DisableDataCollector {
-		dataCollectorHook := hook.NewDataCollectorHook(&p.dataCollectorManager)
-		p.hooks = append(p.hooks, dataCollectorHook)
-		p.dataCollectorManager.Start()
+		dcHook := hook.NewDataCollectorHook(p.dataCollectorMngr)
+		p.hooks = append([]openfeature.Hook{dcHook}, p.hooks...)
+		p.dataCollectorMngr.Start()
 	}
-
-	// Start polling to check if there is any flag change in order to invalidate the cache.
-	if p.options.FlagChangePollingInterval >= 0 && !p.options.DisableCache {
-		p.startPolling(p.options.FlagChangePollingInterval)
-	}
-
-	p.status = of.ReadyState
-	p.events <- of.Event{
-		ProviderName: providerName, EventType: of.ProviderReady,
-		ProviderEventDetails: of.ProviderEventDetails{Message: "Provider is ready"}}
 	return nil
 }
 
-// Status exposes the status of the provider
-func (p *Provider) Status() of.State {
-	return p.status
-}
-
-// Shutdown defines the shutdown operation of the provider
+// Shutdown define the shutdown operation of the provider
 func (p *Provider) Shutdown() {
+	p.evaluator.Shutdown()
 	if !p.options.DisableDataCollector {
-		p.hooks = []of.Hook{}
-		p.dataCollectorManager.Stop()
+		p.dataCollectorMngr.Stop()
 	}
-	p.stopPolling()
 }
 
-// EventChannel returns the event channel of this provider
-func (p *Provider) EventChannel() <-chan of.Event {
-	return p.events
+func (p *Provider) EventChannel() <-chan openfeature.Event {
+	// panic("not implemented")
+	return nil
 }
 
-// startPolling starts the polling mechanism that checks if the configuration has changed.
-func (p *Provider) startPolling(pollingInterval time.Duration) {
-	if pollingInterval == 0 {
-		pollingInterval = 120000 * time.Millisecond
-	}
-	p.pollingInfo = struct {
-		ticker  *time.Ticker
-		channel chan bool
-	}{
-		ticker:  time.NewTicker(pollingInterval),
-		channel: make(chan bool),
-	}
-	go func() {
-		for {
-			select {
-			case <-p.pollingInfo.channel:
-				return
-			case <-p.pollingInfo.ticker.C:
-				changeStatus, err := p.goffAPI.ConfigurationHasChanged()
-				switch changeStatus {
-				case controller.FlagConfigurationInitialized,
-					controller.FlagConfigurationNotChanged:
-					// do nothing
-
-				case controller.FlagConfigurationUpdated:
-					// Clearing the cache when the configuration is updated
-					p.cache.Purge()
-					p.events <- of.Event{
-						ProviderName: providerName, EventType: of.ProviderConfigChange,
-						ProviderEventDetails: of.ProviderEventDetails{Message: "Configuration has changed"}}
-				case controller.ErrorConfigurationChange:
-					p.events <- of.Event{
-						ProviderName: providerName, EventType: of.ProviderStale,
-						ProviderEventDetails: of.ProviderEventDetails{
-							Message: fmt.Sprintf("Impossible to check configuration change: %s", err),
-						},
-					}
-				}
-			}
-		}
-	}()
+// BooleanEvaluation returns a boolean flag
+func (p *Provider) BooleanEvaluation(
+	ctx context.Context,
+	flag string, defaultValue bool,
+	flatCtx openfeature.FlattenedContext,
+) openfeature.BoolResolutionDetail {
+	return p.evaluator.BooleanEvaluation(ctx, flag, defaultValue, flatCtx)
 }
 
-// stopPolling stops the polling mechanism that check if the configuration has changed.
-func (p *Provider) stopPolling() {
-	if p.pollingInfo.channel != nil {
-		p.pollingInfo.channel <- true
+// StringEvaluation returns a string flag
+func (p *Provider) StringEvaluation(
+	ctx context.Context,
+	flag string,
+	defaultValue string,
+	flatCtx openfeature.FlattenedContext,
+) openfeature.StringResolutionDetail {
+	return p.evaluator.StringEvaluation(ctx, flag, defaultValue, flatCtx)
+}
+
+// FloatEvaluation returns a float flag
+func (p *Provider) FloatEvaluation(
+	ctx context.Context,
+	flag string,
+	defaultValue float64,
+	flatCtx openfeature.FlattenedContext,
+) openfeature.FloatResolutionDetail {
+	return p.evaluator.FloatEvaluation(ctx, flag, defaultValue, flatCtx)
+}
+
+// IntEvaluation returns an int flag
+func (p *Provider) IntEvaluation(
+	ctx context.Context,
+	flag string,
+	defaultValue int64,
+	flatCtx openfeature.FlattenedContext,
+) openfeature.IntResolutionDetail {
+	return p.evaluator.IntEvaluation(ctx, flag, defaultValue, flatCtx)
+}
+
+// ObjectEvaluation returns an object flag
+func (p *Provider) ObjectEvaluation(
+	ctx context.Context,
+	flag string,
+	defaultValue any,
+	flatCtx openfeature.FlattenedContext,
+) openfeature.InterfaceResolutionDetail {
+	return p.evaluator.ObjectEvaluation(ctx, flag, defaultValue, flatCtx)
+}
+
+// Track is used to track the usage of a flag.
+// It will add a tracking event to the data collector manager.
+// The tracking event will be sent to the relay-proxy periodically.
+// The tracking event will contain the name of the flag, the evaluation context, and the details of the tracking event.
+func (p *Provider) Track(
+	ctx context.Context,
+	trackingEventName string,
+	evaluationContext openfeature.EvaluationContext,
+	details openfeature.TrackingEventDetails,
+) {
+	p.dataCollectorMngr.AddEvent(
+		model.NewTrackingEvent(evaluationContext, trackingEventName, details),
+	)
+}
+
+// selectEvaluator gets the evaluator for the GO Feature Flag provider.
+func selectEvaluator(options ProviderOptions) (evaluator.EvaluatorInterface, error) {
+	switch options.EvaluationType {
+	case EvaluationTypeRemote:
+		return evaluator.NewRemoteEvaluator(evaluator.RemoteEvaluatorOptions{
+			Endpoint:   options.Endpoint,
+			APIKey:     options.APIKey,
+			HTTPClient: options.HTTPClient,
+		}), nil
+	default:
+		return nil, fmt.Errorf("invalid evaluation type: %s", options.EvaluationType)
 	}
-	if p.pollingInfo.ticker != nil {
-		p.pollingInfo.ticker.Stop()
-	}
+}
+
+// NewDataCollectorManager is preparing the data collector manager based on the provider options.
+func newDataCollectorManager(options ProviderOptions) *service.DataCollectorManager {
+	mngr := service.NewDataCollectorManager(
+		api.NewGoffAPI(api.GoffAPIOptions{
+			Endpoint:              options.Endpoint,
+			DataCollectorEndpoint: options.DataCollectorEndpoint,
+			HTTPClient:            options.HTTPClient,
+			APIKey:                options.APIKey,
+			ExporterMetadata:      options.ExporterMetadata,
+		}),
+		options.DataCollectorMaxEventStored,
+		options.DataFlushInterval,
+	)
+	return &mngr
 }

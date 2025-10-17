@@ -1,17 +1,19 @@
-package controller
+package service
 
 import (
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"sync"
 	"time"
+
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 )
 
 // DataCollectorManager is a manager for the GO Feature Flag data collector
 type DataCollectorManager struct {
 	mutex                       *sync.Mutex
-	goffAPI                     GoFeatureFlagAPI
-	events                      []model.FeatureEvent
+	goffAPI                     api.GoffAPI
+	events                      []model.ExportableEvent
 	dataCollectorMaxEventStored int64
 
 	ticker         *time.Ticker
@@ -20,7 +22,7 @@ type DataCollectorManager struct {
 
 // NewDataCollectorManager creates a new data collector manager
 func NewDataCollectorManager(
-	goffAPI GoFeatureFlagAPI,
+	goffAPI api.GoffAPI,
 	dataCollectorMaxEventStored int64,
 	collectInterval time.Duration) DataCollectorManager {
 	if dataCollectorMaxEventStored <= 0 {
@@ -32,7 +34,7 @@ func NewDataCollectorManager(
 	return DataCollectorManager{
 		mutex:                       &sync.Mutex{},
 		goffAPI:                     goffAPI,
-		events:                      make([]model.FeatureEvent, 0),
+		events:                      make([]model.ExportableEvent, 0),
 		dataCollectorMaxEventStored: dataCollectorMaxEventStored,
 		ticker:                      time.NewTicker(collectInterval),
 		collectChannel:              make(chan bool),
@@ -66,19 +68,19 @@ func (d *DataCollectorManager) SendData() error {
 		return nil
 	}
 
-	copySend := make([]model.FeatureEvent, len(d.events))
+	copySend := make([]model.ExportableEvent, len(d.events))
 	copy(copySend, d.events)
 	err := d.goffAPI.CollectData(copySend)
 	if err != nil {
 		return err
 	}
-	d.events = make([]model.FeatureEvent, 0)
+	d.events = make([]model.ExportableEvent, 0)
 	return nil
 }
 
 // AddEvent adds an event to the data collector manager
 // If the number of events in the queue is greater than the maxItem, the event will be skipped
-func (d *DataCollectorManager) AddEvent(event model.FeatureEvent) error {
+func (d *DataCollectorManager) AddEvent(event model.ExportableEvent) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 

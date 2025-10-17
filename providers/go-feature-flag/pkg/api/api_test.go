@@ -1,39 +1,43 @@
-package controller_test
+package api_test
 
 import (
 	"bytes"
 	"errors"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"testing"
+
+	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/consts"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/testutils/mock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_CollectDataAPI(t *testing.T) {
 	type test struct {
 		name          string
 		wantErr       assert.ErrorAssertionFunc
-		options       controller.GoFeatureFlagApiOptions
+		options       gofeatureflag.ProviderOptions
 		roundtripFunc func(req *http.Request) *http.Response
 		roundtripErr  error
 		wantHeaders   http.Header
 		wantReqBody   string
-		events        []model.FeatureEvent
+		events        []model.ExportableEvent
 	}
 	tests := []test{
 		{
 			name:    "Valid api call",
 			wantErr: assert.NoError,
-			options: controller.GoFeatureFlagApiOptions{
+			options: gofeatureflag.ProviderOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "",
 				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
 			},
-			events: []model.FeatureEvent{
-				{
+			events: []model.ExportableEvent{
+				model.FeatureEvent{
 					Kind:         "feature",
 					ContextKind:  "user",
 					UserKey:      "ABCD",
@@ -45,7 +49,7 @@ func Test_CollectDataAPI(t *testing.T) {
 					Version:      "",
 					Source:       "SERVER",
 				},
-				{
+				model.FeatureEvent{
 					Kind:         "feature",
 					ContextKind:  "user",
 					UserKey:      "EFGH",
@@ -66,7 +70,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			},
 			wantHeaders: func() http.Header {
 				headers := http.Header{}
-				headers.Set(controller.ContentTypeHeader, controller.ApplicationJson)
+				headers.Set(consts.ContentTypeHeader, consts.ApplicationJson)
 				return headers
 			}(),
 			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
@@ -74,13 +78,13 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Valid api call with API Key",
 			wantErr: assert.NoError,
-			options: controller.GoFeatureFlagApiOptions{
+			options: gofeatureflag.ProviderOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "my-key",
 				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
 			},
-			events: []model.FeatureEvent{
-				{
+			events: []model.ExportableEvent{
+				model.FeatureEvent{
 					Kind:         "feature",
 					ContextKind:  "user",
 					UserKey:      "ABCD",
@@ -92,7 +96,7 @@ func Test_CollectDataAPI(t *testing.T) {
 					Version:      "",
 					Source:       "SERVER",
 				},
-				{
+				model.FeatureEvent{
 					Kind:         "feature",
 					ContextKind:  "user",
 					UserKey:      "EFGH",
@@ -113,8 +117,8 @@ func Test_CollectDataAPI(t *testing.T) {
 			},
 			wantHeaders: func() http.Header {
 				headers := http.Header{}
-				headers.Set(controller.ContentTypeHeader, controller.ApplicationJson)
-				headers.Set(controller.AuthorizationHeader, controller.BearerPrefix+"my-key")
+				headers.Set(consts.ContentTypeHeader, consts.ApplicationJson)
+				headers.Set(consts.AuthorizationHeader, consts.BearerPrefix+"my-key")
 				return headers
 			}(),
 			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
@@ -122,10 +126,10 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Request failed",
 			wantErr: assert.Error,
-			options: controller.GoFeatureFlagApiOptions{
+			options: gofeatureflag.ProviderOptions{
 				Endpoint: "http://localhost:1031",
 			},
-			events: []model.FeatureEvent{},
+			events: []model.ExportableEvent{},
 			roundtripFunc: func(req *http.Request) *http.Response {
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -137,25 +141,74 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Request return 400",
 			wantErr: assert.Error,
-			options: controller.GoFeatureFlagApiOptions{
+			options: gofeatureflag.ProviderOptions{
 				Endpoint: "http://localhost:1031",
 			},
-			events: []model.FeatureEvent{},
+			events: []model.ExportableEvent{},
 			roundtripFunc: func(req *http.Request) *http.Response {
 				return &http.Response{
 					StatusCode: http.StatusBadRequest,
 				}
 			},
 		},
+		{
+			name:    "Valid api call with TrackingEvent",
+			wantErr: assert.NoError,
+			options: gofeatureflag.ProviderOptions{
+				Endpoint:         "http://localhost:1031",
+				APIKey:           "",
+				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
+			},
+			events: []model.ExportableEvent{
+				model.TrackingEvent{
+					Kind:         "tracking",
+					ContextKind:  "anonymousUser",
+					UserKey:      "ABCD",
+					CreationDate: 1722266324,
+					Key:          "random-key",
+					EvaluationContext: map[string]interface{}{
+						"anonymous":    true,
+						"targetingKey": "ABCD",
+					},
+					TrackingDetails: map[string]interface{}{
+						"event": "123",
+					},
+				},
+				model.FeatureEvent{
+					Kind:         "feature",
+					ContextKind:  "user",
+					UserKey:      "EFGH",
+					CreationDate: 1722266324,
+					Key:          "random-key",
+					Variation:    "variationA",
+					Value:        "YO",
+					Default:      false,
+					Version:      "",
+					Source:       "SERVER",
+				},
+			},
+			roundtripFunc: func(req *http.Request) *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(bytes.NewReader([]byte(`{"ingestedContentCount":1}`))),
+				}
+			},
+			wantHeaders: func() http.Header {
+				headers := http.Header{}
+				headers.Set(consts.ContentTypeHeader, consts.ApplicationJson)
+				return headers
+			}(),
+			wantReqBody: "{\"events\":[{\"kind\":\"tracking\",\"contextKind\":\"anonymousUser\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"evaluationContext\":{\"anonymous\":true,\"targetingKey\":\"ABCD\"},\"trackingEventDetails\":{\"event\":\"123\"}},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mrt := MockRoundTripper{RoundTripFunc: tt.roundtripFunc, Err: tt.roundtripErr}
+			mrt := mock.RoundTripper{RoundTripFunc: tt.roundtripFunc, Err: tt.roundtripErr}
 			client := &http.Client{Transport: &mrt}
 
 			options := tt.options
 			options.HTTPClient = client
-			g := controller.NewGoFeatureFlagAPI(options)
+			g := api.NewGoffAPI(options)
 			err := g.CollectData(tt.events)
 			tt.wantErr(t, err)
 
@@ -170,108 +223,4 @@ func Test_CollectDataAPI(t *testing.T) {
 			assert.JSONEq(t, tt.wantReqBody, string(bodyBytes))
 		})
 	}
-}
-
-func Test_ConfigurationHasChanged(t *testing.T) {
-	t.Run("Initial configuration call", func(t *testing.T) {
-		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
-			return &http.Response{
-				StatusCode: http.StatusOK,
-			}
-		}}
-		client := &http.Client{Transport: &mrt}
-		options := controller.GoFeatureFlagApiOptions{
-			Endpoint:   "http://localhost:1031",
-			HTTPClient: client,
-		}
-		g := controller.NewGoFeatureFlagAPI(options)
-		status, err := g.ConfigurationHasChanged()
-		require.NoError(t, err)
-		assert.Equal(t, controller.FlagConfigurationInitialized, status)
-	})
-
-	t.Run("Change in the configuration", func(t *testing.T) {
-		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
-			if req.Header.Get("If-None-Match") == "123456" {
-				resp := &http.Response{
-					StatusCode: http.StatusOK,
-					Header:     map[string][]string{},
-				}
-				resp.Header.Set("ETag", "78910")
-				return resp
-			}
-			resp := &http.Response{
-				StatusCode: http.StatusOK,
-				Header:     map[string][]string{},
-			}
-			resp.Header.Set("ETag", "123456")
-			return resp
-		}}
-		client := &http.Client{Transport: &mrt}
-		options := controller.GoFeatureFlagApiOptions{
-			Endpoint:   "http://localhost:1031",
-			HTTPClient: client,
-		}
-		g := controller.NewGoFeatureFlagAPI(options)
-		status, err := g.ConfigurationHasChanged()
-		require.NoError(t, err)
-		assert.Equal(t, controller.FlagConfigurationInitialized, status)
-		status, err = g.ConfigurationHasChanged()
-		require.NoError(t, err)
-		assert.Equal(t, controller.FlagConfigurationUpdated, status)
-	})
-
-	t.Run("No change in the configuration", func(t *testing.T) {
-		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
-			if req.Header.Get("If-None-Match") == "123456" {
-				resp := &http.Response{
-					StatusCode: http.StatusNotModified,
-				}
-				return resp
-			}
-			resp := &http.Response{
-				StatusCode: http.StatusOK,
-				Header:     map[string][]string{},
-			}
-			resp.Header.Set("ETag", "123456")
-			return resp
-		}}
-		client := &http.Client{Transport: &mrt}
-		options := controller.GoFeatureFlagApiOptions{
-			Endpoint:   "http://localhost:1031",
-			HTTPClient: client,
-		}
-		g := controller.NewGoFeatureFlagAPI(options)
-		status, err := g.ConfigurationHasChanged()
-		require.NoError(t, err)
-		assert.Equal(t, controller.FlagConfigurationInitialized, status)
-		status, err = g.ConfigurationHasChanged()
-		require.NoError(t, err)
-		assert.Equal(t, controller.FlagConfigurationNotChanged, status)
-	})
-}
-
-type MockRoundTripper struct {
-	RoundTripFunc func(req *http.Request) *http.Response
-	Err           error
-	LastRequest   *http.Request
-	NumberCall    int
-}
-
-func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	m.LastRequest = req
-	m.NumberCall++
-	return m.RoundTripFunc(req), m.Err
-}
-
-// NewMockClient creates a new http.Client with the mock RoundTripper.
-func NewMockClient(roundTripFunc func(req *http.Request) *http.Response, err error) *http.Client {
-	return &http.Client{
-		Transport: &MockRoundTripper{RoundTripFunc: roundTripFunc, Err: err},
-	}
-}
-
-// GetLastRequest returns the last request made by the mock client.
-func (m *MockRoundTripper) GetLastRequest() *http.Request {
-	return m.LastRequest
 }

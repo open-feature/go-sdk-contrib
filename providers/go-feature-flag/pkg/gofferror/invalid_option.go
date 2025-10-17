@@ -1,4 +1,4 @@
-package goff_error
+package gofferror
 
 type InvalidOption struct {
 	Message string

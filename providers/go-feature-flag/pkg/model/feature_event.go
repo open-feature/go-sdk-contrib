@@ -2,28 +2,31 @@ package model
 
 import (
 	"encoding/json"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"time"
+
+	"github.com/open-feature/go-sdk/openfeature"
 )
 
+type FeatureEventMetadata = map[string]interface{}
+
 func NewFeatureEvent(
-	evalCtx of.EvaluationContext,
+	ctx openfeature.EvaluationContext,
 	flagKey string,
 	value interface{},
 	variation string,
 	failed bool,
 	version string,
 	source string,
+	metadata FeatureEventMetadata,
 ) FeatureEvent {
 	contextKind := "user"
-	if evalCtx.Attribute("anonymous") == true {
+	if ctx.Attribute("anonymous") == true {
 		contextKind = "anonymousUser"
 	}
-
 	return FeatureEvent{
 		Kind:         "feature",
 		ContextKind:  contextKind,
-		UserKey:      evalCtx.TargetingKey(),
+		UserKey:      ctx.TargetingKey(),
 		CreationDate: time.Now().Unix(),
 		Key:          flagKey,
 		Variation:    variation,
@@ -31,10 +34,11 @@ func NewFeatureEvent(
 		Default:      failed,
 		Version:      version,
 		Source:       source,
+		Metadata:     metadata,
 	}
 }
 
-// FeatureEvent represent an event that we store in the data storage
+// FeatureEvent represent an Event that we store in the data storage
 // nolint:lll
 type FeatureEvent struct {
 	// Kind for a feature event is feature.
@@ -74,17 +78,18 @@ type FeatureEvent struct {
 	// Source indicates where the event was generated.
 	// This is set to SERVER when the event was evaluated in the relay-proxy and PROVIDER_CACHE when it is evaluated from the cache.
 	Source string `json:"source" example:"SERVER" parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"`
+
+	// Metadata are static information added in the providers to give context about the events generated.
+	Metadata FeatureEventMetadata `json:"metadata,omitempty" parquet:"name=metadata, type=MAP, keytype=BYTE_ARRAY, keyconvertedtype=UTF8, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8"`
 }
 
-// MarshalInterface marshals all interface type fields in FeatureEvent into JSON-encoded string.
-func (f *FeatureEvent) MarshalInterface() error {
-	if f == nil {
-		return nil
-	}
-	b, err := json.Marshal(f.Value)
+// ToMap returns the event as a map of strings to any.
+func (f FeatureEvent) ToMap() (map[string]any, error) {
+	b, err := json.Marshal(f)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.Value = string(b)
-	return nil
+	var result map[string]any
+	err = json.Unmarshal(b, &result)
+	return result, err
 }
