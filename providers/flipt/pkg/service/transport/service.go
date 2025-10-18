@@ -253,7 +253,7 @@ func (s *Service) Evaluate(ctx context.Context, namespaceKey, flagKey string, ev
 	return resp, nil
 }
 
-func convertMapInterface(m map[string]interface{}) map[string]string {
+func convertMapInterface(m map[string]any) map[string]string {
 	ee := make(map[string]string)
 	for k, v := range m {
 		ee[k] = fmt.Sprintf("%v", v)
