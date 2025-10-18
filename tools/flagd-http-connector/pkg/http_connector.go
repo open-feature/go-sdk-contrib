@@ -188,7 +188,10 @@ func (h *HttpConnector) fetchAndUpdate(dataSync chan<- flagdsync.DataSync) bool 
 				if err != nil {
 					h.options.Log.Error("Failed to drain response body", zap.Error(err))
 				}
-				resp.Body.Close()
+				err = resp.Body.Close()
+				if err != nil {
+					h.options.Log.Error("Failed to close response body", zap.Error(err))
+				}
 			}
 		}()
 		if err != nil {

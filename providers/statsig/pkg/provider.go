@@ -9,8 +9,10 @@ import (
 	statsig "github.com/statsig-io/go-sdk"
 )
 
-const providerNotReady = "Provider not ready"
-const generalError = "general error"
+const (
+	providerNotReady = "Provider not ready"
+	generalError     = "general error"
+)
 
 const featureConfigKey = "feature_config"
 
@@ -42,7 +44,7 @@ func (p *Provider) Shutdown() {
 	p.status = of.NotReadyState
 }
 
-// provider does not have any hooks, returns empty slice
+// Hooks returns empty slice as provider does not have any
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }
@@ -55,7 +57,6 @@ func (p *Provider) Metadata() of.Metadata {
 }
 
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
-
 	// TODO to be removed on new SDK version adoption which includes https://github.com/open-feature/spec/issues/238
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
@@ -170,7 +171,6 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 }
 
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-
 	// TODO to be removed on new SDK version adoption which includes https://github.com/open-feature/spec/issues/238
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
@@ -215,7 +215,8 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 	var value interface{}
 	flagMetadata := make(map[string]interface{})
-	if featureConfig.FeatureConfigType == CONFIG {
+	switch featureConfig.FeatureConfigType {
+	case CONFIG:
 		config := statsig.GetConfig(*statsigUser, featureConfig.Name)
 		defaultValueV := reflect.ValueOf(defaultValue)
 		switch defaultValueV.Kind() {
@@ -254,7 +255,8 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		flagMetadata["GroupName"] = config.GroupName
 		flagMetadata["Name"] = config.Name
 		flagMetadata["RuleID"] = config.RuleID
-	} else if featureConfig.FeatureConfigType == LAYER {
+
+	case LAYER:
 		layer := statsig.GetLayer(*statsigUser, featureConfig.Name)
 		defaultValueV := reflect.ValueOf(defaultValue)
 		switch defaultValueV.Kind() {
@@ -294,7 +296,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		flagMetadata["LogExposure"] = layer.LogExposure
 		flagMetadata["Name"] = layer.Name
 		flagMetadata["RuleID"] = layer.RuleID
-	} else {
+	default:
 		return of.InterfaceResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{

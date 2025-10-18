@@ -2,6 +2,8 @@ ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | s
 MODULE_TYPE ?= providers
 FLAGD_TESTBED = flagd-testbed
 FLAGD_SYNC = sync-testbed
+GOLANGCI_LINT_VERSION := v2.4.0
+GOBIN := $(shell go env GOBIN)
 
 workspace-init:
 	go work init
@@ -18,8 +20,8 @@ e2e:
 	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -timeout=1m -tags=e2e {}
 
 lint:
-	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
-	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOPATH}/bin/golangci-lint run $(module)/...;)
+	go install -v github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOBIN}/golangci-lint run $(module)/...;)
 
 new-provider:
 	mkdir ./providers/$(MODULE_NAME)

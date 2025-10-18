@@ -36,9 +36,9 @@ type (
 		customStrategy   strategies.Strategy
 		logger           *slog.Logger
 		publishEvents    bool
-		metadata         *of.Metadata
+		metadata         *of.Metadata //nolint unused
 		timeout          time.Duration
-		hooks            []of.Hook // Not implemented yet
+		hooks            []of.Hook //nolint unused - Not implemented yet
 	}
 
 	// EvaluationStrategy Defines a strategy to use for resolving the result from multiple providers

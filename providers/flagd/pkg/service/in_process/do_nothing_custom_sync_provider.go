@@ -6,7 +6,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync"
 )
 
-// Fake implementation of sync.ISync. Does not conform to the contract because it does not send any events to the DataSync.
+// DoNothingCustomSyncProvider is fake implementation of sync.ISync. Does not conform to the contract because it does not send any events to the DataSync.
 // Only used for unit tests.
 type DoNothingCustomSyncProvider struct {
 }
@@ -27,7 +27,7 @@ func (fps DoNothingCustomSyncProvider) ReSync(ctx context.Context, dataSync chan
 	return nil
 }
 
-// Returns an implementation of sync.ISync interface that does nothing at all.
+// NewDoNothingCustomSyncProvider returns an implementation of sync.ISync interface that does nothing at all.
 // The returned implementation does not conform to the sync.DataSync contract.
 // This is useful only for unit tests.
 func NewDoNothingCustomSyncProvider() DoNothingCustomSyncProvider {

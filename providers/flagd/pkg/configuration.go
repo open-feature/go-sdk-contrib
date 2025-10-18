@@ -379,7 +379,7 @@ func WithCustomSyncProvider(customSyncProvider sync.ISync) ProviderOption {
 	return WithCustomSyncProviderAndUri(customSyncProvider, defaultCustomSyncProviderUri)
 }
 
-// WithCustomSyncProvider provides a custom implementation of the sync.ISync interface used by the inProcess Service
+// WithCustomSyncProviderAndUri provides a custom implementation of the sync.ISync interface used by the inProcess Service
 // This is only useful with inProcess resolver type
 func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProviderUri string) ProviderOption {
 	return func(p *ProviderConfiguration) {

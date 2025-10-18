@@ -2,16 +2,16 @@ package multiprovider
 
 import (
 	"errors"
+	"regexp"
+	"testing"
+
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/internal/mocks"
 	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
-	"github.com/open-feature/go-sdk/openfeature"
 	of "github.com/open-feature/go-sdk/openfeature"
 	imp "github.com/open-feature/go-sdk/openfeature/memprovider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"regexp"
-	"testing"
 )
 
 func TestMultiProvider_ProvidersMethod(t *testing.T) {
@@ -146,7 +146,7 @@ func TestMultiProvider_Init(t *testing.T) {
 	attributes := map[string]interface{}{
 		"foo": "bar",
 	}
-	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
+	evalCtx := of.NewTargetlessEvaluationContext(attributes)
 
 	err = mp.Init(evalCtx)
 	require.NoError(t, err)
@@ -182,7 +182,7 @@ func TestMultiProvider_InitErrorWithProvider(t *testing.T) {
 	attributes := map[string]interface{}{
 		"foo": "bar",
 	}
-	evalCtx := openfeature.NewTargetlessEvaluationContext(attributes)
+	evalCtx := of.NewTargetlessEvaluationContext(attributes)
 
 	err = mp.Init(evalCtx)
 	require.Errorf(t, err, "Provider provider1: test error")

@@ -8,5 +8,5 @@ type ProviderConfig struct {
 	// EnvironmentNames             []string
 	// ProjectEnvID                 int64
 	// InitializationTimeoutSeconds float64
-	// OnInitializationFailure      OnInitializationFailure
+	//nolint OnInitializationFailure      OnInitializationFailure
 }

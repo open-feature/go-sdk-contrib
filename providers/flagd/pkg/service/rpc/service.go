@@ -20,7 +20,6 @@ import (
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk/openfeature"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -115,7 +114,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.BoolResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.BoolResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -174,7 +173,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.StringResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.StringResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -233,7 +232,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.FloatResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.FloatResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -292,7 +291,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.IntResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.IntResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -350,7 +349,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.InterfaceResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.InterfaceResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -414,7 +413,7 @@ func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraint
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		logger.Error(err, "struct from evaluation context")
-		return nil, openfeature.NewParseErrorResolutionError(err.Error())
+		return nil, of.NewParseErrorResolutionError(err.Error())
 	}
 
 	res, err := resolver(ctx, connect.NewRequest(&req{
@@ -428,20 +427,20 @@ func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraint
 	return res.Msg, nil
 }
 
-func handleError(err error) openfeature.ResolutionError {
+func handleError(err error) of.ResolutionError {
 	connectErr := &connect.Error{}
 	errors.As(err, &connectErr)
 	switch connectErr.Code() {
 	case connect.CodeUnavailable:
-		return openfeature.NewProviderNotReadyResolutionError(ConnectionError)
+		return of.NewProviderNotReadyResolutionError(ConnectionError)
 	case connect.CodeNotFound:
-		return openfeature.NewFlagNotFoundResolutionError(err.Error())
+		return of.NewFlagNotFoundResolutionError(err.Error())
 	case connect.CodeInvalidArgument:
-		return openfeature.NewTypeMismatchResolutionError(err.Error())
+		return of.NewTypeMismatchResolutionError(err.Error())
 	case connect.CodeDataLoss:
-		return openfeature.NewParseErrorResolutionError(err.Error())
+		return of.NewParseErrorResolutionError(err.Error())
 	}
-	return openfeature.NewGeneralResolutionError(err.Error())
+	return of.NewGeneralResolutionError(err.Error())
 }
 
 func (s *Service) EventChannel() <-chan of.Event {
