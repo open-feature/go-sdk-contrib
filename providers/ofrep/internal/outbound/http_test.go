@@ -1,7 +1,6 @@
 package outbound
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +23,7 @@ func TestHttpOutbound(t *testing.T) {
 	})
 
 	// when
-	response, err := outbound.Single(context.Background(), key, []byte{})
+	response, err := outbound.Single(t.Context(), key, []byte{})
 	if err != nil {
 		t.Fatalf("error from request: %v", err)
 		return

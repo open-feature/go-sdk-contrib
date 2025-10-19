@@ -57,7 +57,7 @@ func (p Provider) IntEvaluation(ctx context.Context, flag string, defaultValue i
 	return p.evaluator.ResolveInt(ctx, flag, defaultValue, evalCtx)
 }
 
-func (p Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	return p.evaluator.ResolveObject(ctx, flag, defaultValue, evalCtx)
 }
 

@@ -14,7 +14,7 @@ type Flags struct {
 }
 
 type resolver interface {
-	resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (*successDto, *of.ResolutionError)
+	resolveSingle(ctx context.Context, key string, evalCtx map[string]any) (*successDto, *of.ResolutionError)
 }
 
 func NewFlagsEvaluator(cfg outbound.Configuration) *Flags {
@@ -23,7 +23,7 @@ func NewFlagsEvaluator(cfg outbound.Configuration) *Flags {
 	}
 }
 
-func (h Flags) ResolveBoolean(ctx context.Context, key string, defaultValue bool, evalCtx map[string]interface{}) of.BoolResolutionDetail {
+func (h Flags) ResolveBoolean(ctx context.Context, key string, defaultValue bool, evalCtx map[string]any) of.BoolResolutionDetail {
 	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.BoolResolutionDetail{
@@ -68,7 +68,7 @@ func (h Flags) ResolveBoolean(ctx context.Context, key string, defaultValue bool
 	}
 }
 
-func (h Flags) ResolveString(ctx context.Context, key string, defaultValue string, evalCtx map[string]interface{}) of.StringResolutionDetail {
+func (h Flags) ResolveString(ctx context.Context, key string, defaultValue string, evalCtx map[string]any) of.StringResolutionDetail {
 	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.StringResolutionDetail{
@@ -113,7 +113,7 @@ func (h Flags) ResolveString(ctx context.Context, key string, defaultValue strin
 	}
 }
 
-func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float64, evalCtx map[string]interface{}) of.FloatResolutionDetail {
+func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float64, evalCtx map[string]any) of.FloatResolutionDetail {
 	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.FloatResolutionDetail{
@@ -164,7 +164,7 @@ func (h Flags) ResolveFloat(ctx context.Context, key string, defaultValue float6
 	}
 }
 
-func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, evalCtx map[string]interface{}) of.IntResolutionDetail {
+func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, evalCtx map[string]any) of.IntResolutionDetail {
 	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.IntResolutionDetail{
@@ -227,7 +227,7 @@ func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, e
 	}
 }
 
-func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue interface{}, evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
+func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue any, evalCtx map[string]any) of.InterfaceResolutionDetail {
 	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
 		return of.InterfaceResolutionDetail{
