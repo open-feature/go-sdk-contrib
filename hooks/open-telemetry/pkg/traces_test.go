@@ -1,7 +1,6 @@
 package otel
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -23,7 +22,7 @@ func TestHookMethods(t *testing.T) {
 			trace.WithSyncer(exp),
 		)
 		otel.SetTracerProvider(tp)
-		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+		ctx, span := otel.Tracer("test-tracer").Start(t.Context(), "Run")
 		hook := NewTracesHook()
 		err := hook.After(
 			ctx,
@@ -93,7 +92,7 @@ func TestHookMethods(t *testing.T) {
 			trace.WithSyncer(exp),
 		)
 		otel.SetTracerProvider(tp)
-		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+		ctx, span := otel.Tracer("test-tracer").Start(t.Context(), "Run")
 		hook := NewTracesHook()
 		err := errors.New("a terrible error")
 		hook.Error(ctx, openfeature.HookContext{}, err, openfeature.HookHints{})
@@ -124,7 +123,7 @@ func TestHookMethods(t *testing.T) {
 			trace.WithSyncer(exp),
 		)
 		otel.SetTracerProvider(tp)
-		ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+		ctx, span := otel.Tracer("test-tracer").Start(t.Context(), "Run")
 
 		// build traceHook with option WithErrorStatusEnabled
 		hook := NewTracesHook(WithErrorStatusEnabled())
@@ -149,7 +148,7 @@ func TestHookMethods(t *testing.T) {
 		flagKey := "flag-key"
 		providerName := "provider-name"
 		variant := "variant"
-		ctx := context.Background()
+		ctx := t.Context()
 		hook := NewTracesHook()
 
 		err := hook.After(
@@ -210,7 +209,7 @@ func TestTracesHook_MedataExtractionOption(t *testing.T) {
 	hook := NewTracesHook(WithTracesAttributeSetter(extractionCallback))
 
 	// when
-	ctx, span := otel.Tracer("test-tracer").Start(context.Background(), "Run")
+	ctx, span := otel.Tracer("test-tracer").Start(t.Context(), "Run")
 	err := hook.After(ctx, openfeature.HookContext{}, evaluationDetails, openfeature.HookHints{})
 	if err != nil {
 		t.Fatal(err)
