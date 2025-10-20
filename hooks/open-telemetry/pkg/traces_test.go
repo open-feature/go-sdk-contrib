@@ -1,6 +1,7 @@
 package otel
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -148,7 +149,7 @@ func TestHookMethods(t *testing.T) {
 		flagKey := "flag-key"
 		providerName := "provider-name"
 		variant := "variant"
-		ctx := t.Context()
+		var ctx context.Context
 		hook := NewTracesHook()
 
 		err := hook.After(
