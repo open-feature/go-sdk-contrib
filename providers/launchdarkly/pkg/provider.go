@@ -19,6 +19,9 @@ var errKeyMissing = errors.New("key and targetingKey attributes are missing, at 
 // Scream at compile time if Provider does not implement FeatureProvider
 var _ openfeature.FeatureProvider = (*Provider)(nil)
 
+// Scream at compile time if Provider does not implement StateHandler
+var _ openfeature.StateHandler = (*Provider)(nil)
+
 // LDClient is the narrowed local interface for the parts of the
 // `*ld.LDClient` LaunchDarkly client used by the provider.
 type LDClient interface {
@@ -27,6 +30,7 @@ type LDClient interface {
 	Float64VariationDetail(key string, context ldcontext.Context, defaultVal float64) (float64, ldreason.EvaluationDetail, error)
 	StringVariationDetail(key string, context ldcontext.Context, defaultVal string) (string, ldreason.EvaluationDetail, error)
 	JSONVariationDetail(key string, context ldcontext.Context, defaultVal ldvalue.Value) (ldvalue.Value, ldreason.EvaluationDetail, error)
+	Close() error
 }
 
 type Option func(*options)
@@ -371,4 +375,14 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flagKey string, default
 // Hooks returns any hooks implemented by the provider. Not supported by LaunchDarkly.
 func (p *Provider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
+}
+
+func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
+	return nil
+}
+
+func (p *Provider) Shutdown() {
+	if err := p.client.Close(); err != nil {
+		p.l.Error("error during LaunchDarkly client shutdown: %s", err)
+	}
 }
