@@ -280,3 +280,28 @@ func TestContextCancellation(t *testing.T) {
 	_, err = client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, errors.New("GENERAL: context canceled"), errors.Unwrap(err))
 }
+
+// mockLDClient can be a struct that implements the LDClient interface for testing.
+type mockLDClient struct {
+	ld.LDClient // Embedding the real client can be useful for mocking only specific methods
+	closeCalled bool
+	closeErr    error
+}
+
+func (c *mockLDClient) Close() error {
+	c.closeCalled = true
+	return c.closeErr
+}
+
+func TestShutdown(t *testing.T) {
+	t.Run("should call client close on shutdown", func(t *testing.T) {
+		mockClient := &mockLDClient{}
+		provider := NewProvider(mockClient)
+
+		err := openfeature.SetProvider(provider)
+		assert.Ok(t, err)
+
+		openfeature.Shutdown()
+		assert.Cond(t, mockClient.closeCalled, "expected client.Close() to be called")
+	})
+}
