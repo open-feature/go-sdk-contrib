@@ -56,7 +56,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 
 	// Adding metadata to the GO Feature Flag provider to be sent to the exporter
 	if options.ExporterMetadata == nil {
-		options.ExporterMetadata = make(map[string]interface{})
+		options.ExporterMetadata = make(map[string]any)
 	}
 	options.ExporterMetadata["provider"] = "go"
 	options.ExporterMetadata["openfeature"] = true
@@ -161,7 +161,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	return res
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	if err := util.ValidateTargetingKey(evalCtx); err != nil {
 		return of.InterfaceResolutionDetail{
 			Value:                    defaultValue,
