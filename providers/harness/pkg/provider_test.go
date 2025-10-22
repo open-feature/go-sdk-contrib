@@ -107,7 +107,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	ctx := context.Background()
 
-	target := map[string]interface{}{
+	target := map[string]any{
 		of.TargetingKey: "john",
 		"Firstname":     "John",
 		"Lastname":      "Doe",
@@ -130,7 +130,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"john",
-		map[string]interface{}{
+		map[string]any{
 			"Firstname": "John",
 			"Lastname":  "Doe",
 			"Email":     "john@doe.com",
@@ -169,7 +169,7 @@ func TestStringEvaluation(t *testing.T) {
 
 	ctx := context.Background()
 
-	target := map[string]interface{}{
+	target := map[string]any{
 		"Identifier": "john",
 		"Firstname":  "John",
 		"Lastname":   "Doe",

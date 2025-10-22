@@ -9,7 +9,7 @@ import (
 func NewFeatureEvent(
 	evalCtx of.EvaluationContext,
 	flagKey string,
-	value interface{},
+	value any,
 	variation string,
 	failed bool,
 	version string,
@@ -61,7 +61,7 @@ type FeatureEvent struct {
 	Variation string `json:"variation" example:"admin-variation" parquet:"name=variation, type=BYTE_ARRAY, convertedtype=UTF8"`
 
 	// Value of the feature flag returned by feature flag evaluation.
-	Value interface{} `json:"value" parquet:"name=value, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Value any `json:"value" parquet:"name=value, type=BYTE_ARRAY, convertedtype=UTF8"`
 
 	// Default value is set to true if feature flag evaluation failed, in which case the value returned was the default
 	// value passed to variation. If the default field is omitted, it is assumed to be false.
