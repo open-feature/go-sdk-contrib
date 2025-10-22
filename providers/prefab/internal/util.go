@@ -21,7 +21,7 @@ func ToPrefabContext(evalCtx of.FlattenedContext) (prefab.ContextSet, error) {
 		}
 		key, subkey := parts[0], parts[1]
 		if _, exists := prefabContext.Data[key]; !exists {
-			prefabContext.WithNamedContextValues(key, map[string]interface{}{
+			prefabContext.WithNamedContextValues(key, map[string]any{
 				subkey: v,
 			})
 		} else {

@@ -3,6 +3,7 @@ package statsig
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -170,7 +171,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	// TODO to be removed on new SDK version adoption which includes https://github.com/open-feature/spec/issues/238
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
@@ -213,8 +214,8 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			},
 		}
 	}
-	var value interface{}
-	flagMetadata := make(map[string]interface{})
+	var value any
+	flagMetadata := make(map[string]any)
 	switch featureConfig.FeatureConfigType {
 	case CONFIG:
 		config := statsig.GetConfig(*statsigUser, featureConfig.Name)
@@ -229,10 +230,10 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		case reflect.String:
 			value = config.GetString(flag, defaultValueV.String())
 		case reflect.Array, reflect.Slice:
-			sliceDefaultValue, _ := defaultValueV.Interface().([]interface{})
+			sliceDefaultValue, _ := defaultValueV.Interface().([]any)
 			value = config.GetSlice(flag, sliceDefaultValue)
 		case reflect.Map:
-			mapValue, ok := defaultValueV.Interface().(map[string]interface{})
+			mapValue, ok := defaultValueV.Interface().(map[string]any)
 			if !ok {
 				return of.InterfaceResolutionDetail{
 					Value: defaultValue,
@@ -269,10 +270,10 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		case reflect.String:
 			value = layer.GetString(flag, defaultValueV.String())
 		case reflect.Array, reflect.Slice:
-			sliceDefaultValue, _ := defaultValueV.Interface().([]interface{})
+			sliceDefaultValue, _ := defaultValueV.Interface().([]any)
 			value = layer.GetSlice(flag, sliceDefaultValue)
 		case reflect.Map:
-			mapValue, ok := defaultValueV.Interface().(map[string]interface{})
+			mapValue, ok := defaultValueV.Interface().(map[string]any)
 			if !ok {
 				return of.InterfaceResolutionDetail{
 					Value: defaultValue,
@@ -365,19 +366,17 @@ func ToStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 			}
 			statsigUser.AppVersion = val
 		case "Custom":
-			if val, ok := origVal.(map[string]interface{}); ok {
+			if val, ok := origVal.(map[string]any); ok {
 				if statsigUser.Custom == nil {
 					statsigUser.Custom = val
 				} else {
-					for k, v := range val {
-						statsigUser.Custom[k] = v
-					}
+					maps.Copy(statsigUser.Custom, val)
 				}
 			} else {
 				return nil, fmt.Errorf("key `%s` can not be converted to map", key)
 			}
 		case "PrivateAttributes":
-			if val, ok := origVal.(map[string]interface{}); ok {
+			if val, ok := origVal.(map[string]any); ok {
 				statsigUser.PrivateAttributes = val
 			} else {
 				return nil, fmt.Errorf("key `%s` can not be converted to map", key)
@@ -397,7 +396,7 @@ func ToStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 		case featureConfigKey:
 		default:
 			if statsigUser.Custom == nil {
-				statsigUser.Custom = make(map[string]interface{})
+				statsigUser.Custom = make(map[string]any)
 			}
 			statsigUser.Custom[key] = origVal
 		}
@@ -412,7 +411,7 @@ func ToStatsigUser(evalCtx of.FlattenedContext) (*statsig.User, error) {
 	return &statsigUser, nil
 }
 
-func toStr(val interface{}) (string, bool) {
+func toStr(val any) (string, bool) {
 	switch v := val.(type) {
 	case string:
 		return v, true
