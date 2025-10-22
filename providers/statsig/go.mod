@@ -1,8 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/statsig
 
-go 1.23.0
-
-toolchain go1.24.4
+go 1.24.0
 
 require (
 	github.com/open-feature/go-sdk v1.15.1
