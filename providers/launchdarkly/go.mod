@@ -1,8 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/launchdarkly
 
-go 1.23.0
-
-toolchain go1.24.4
+go 1.24.0
 
 require (
 	github.com/hooklift/assert v0.1.0
@@ -29,5 +27,4 @@ require (
 	golang.org/x/sync v0.15.0 // indirect
 	gopkg.in/ghodss/yaml.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
