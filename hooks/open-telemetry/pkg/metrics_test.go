@@ -1,7 +1,6 @@
 package otel
 
 import (
-	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -18,7 +17,7 @@ func TestMetricsHook_BeforeStage(t *testing.T) {
 	// given
 	manualReader := metric.NewManualReader()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	hookHints := openfeature.NewHookHints(map[string]any{})
 
@@ -61,7 +60,7 @@ func TestMetricsHook_AfterStage(t *testing.T) {
 	// given
 	manualReader := metric.NewManualReader()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	evalDetails := openfeature.InterfaceEvaluationDetails{
 		Value: true,
@@ -116,7 +115,7 @@ func TestMetricsHook_ErrorStage(t *testing.T) {
 	// given
 	manualReader := metric.NewManualReader()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	evalError := errors.New("some eval error")
 	hookHints := openfeature.NewHookHints(map[string]any{})
@@ -169,7 +168,7 @@ func TestMetricsHook_FinallyStage(t *testing.T) {
 	// given
 	manualReader := metric.NewManualReader()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	evalDetails := openfeature.InterfaceEvaluationDetails{
 		Value: true,
@@ -222,7 +221,7 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 	// given
 	manualReader := metric.NewManualReader()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	evalDetails := openfeature.InterfaceEvaluationDetails{
 		Value: true,
@@ -295,7 +294,7 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 func TestMetricHook_MetadataExtractionOptions(t *testing.T) {
 	// given
 	manualReader := metric.NewManualReader()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	evalDetails := openfeature.InterfaceEvaluationDetails{
 		Value: true,
