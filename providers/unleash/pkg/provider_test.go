@@ -120,7 +120,7 @@ func TestStringEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 	value, _ := ofClient.StringValue(context.Background(), "variant-flag", "", evalCtx)
 	if value == "" {
@@ -129,7 +129,7 @@ func TestStringEvaluation(t *testing.T) {
 }
 
 func TestBooleanEvaluationByUser(t *testing.T) {
-	resolution := provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]interface{}{
+	resolution := provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]any{
 		"UserId": "111",
 	})
 	enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
@@ -137,7 +137,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 		t.Fatalf("Expected feature to be enabled")
 	}
 
-	resolution = provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]interface{}{
+	resolution = provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]any{
 		"UserId": "2",
 	})
 	enabled, _ = resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
@@ -147,7 +147,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{
+		map[string]any{
 			"UserId":        "111",
 			"AppName":       "test-app",
 			"CurrentTime":   "2006-01-02T15:04:05Z",
@@ -163,7 +163,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 }
 
 func TestStringEvaluationByCurrentTime(t *testing.T) {
-	resolution := provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]interface{}{
+	resolution := provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]any{
 		"UserId":      "2",
 		"CurrentTime": "2025-01-02T15:04:05Z",
 	})
@@ -179,7 +179,7 @@ func TestStringEvaluationByCurrentTime(t *testing.T) {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
-	resolution = provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]interface{}{
+	resolution = provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]any{
 		"UserId":      "2",
 		"CurrentTime": "2023-01-02T15:04:05Z",
 	})
@@ -204,9 +204,9 @@ func TestInvalidContextEvaluation(t *testing.T) {
 func TestEvaluationMethods(t *testing.T) {
 	tests := []struct {
 		flag          string
-		defaultValue  interface{}
+		defaultValue  any
 		evalCtx       of.FlattenedContext
-		expected      interface{}
+		expected      any
 		expectedError string
 	}{
 		{flag: "DateExample", defaultValue: false, evalCtx: of.FlattenedContext{}, expected: true, expectedError: ""},
@@ -222,7 +222,7 @@ func TestEvaluationMethods(t *testing.T) {
 
 		{"float", 1.23, of.FlattenedContext{"UserID": "123"}, 1.23, "flag not found"},
 		{"number", int64(43), of.FlattenedContext{"UserID": "123"}, int64(43), "flag not found"},
-		{"object", map[string]interface{}{"key1": "other-value"}, of.FlattenedContext{"UserID": "123"}, map[string]interface{}{"key1": "other-value"}, "flag not found"},
+		{"object", map[string]any{"key1": "other-value"}, of.FlattenedContext{"UserID": "123"}, map[string]any{"key1": "other-value"}, "flag not found"},
 		{"string", "value2", of.FlattenedContext{"UserID": "123"}, "value2", "flag not found"},
 
 		{"invalid_user_context", false, of.FlattenedContext{"UserID": "123", "invalid": "value"}, false, ""},
