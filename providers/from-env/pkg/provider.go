@@ -133,11 +133,11 @@ func (p *FromEnvProvider) FloatEvaluation(ctx context.Context, flagKey string, d
 }
 
 // ObjectEvaluation returns an object flag
-func (p *FromEnvProvider) ObjectEvaluation(ctx context.Context, flagKey string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *FromEnvProvider) ObjectEvaluation(ctx context.Context, flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	return p.resolveFlag(flagKey, defaultValue, evalCtx)
 }
 
-func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	// fetch the stored flag from environment variables
 	res, err := p.envFetch.fetchStoredFlag(flagKey)
 	if err != nil {
