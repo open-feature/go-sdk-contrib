@@ -259,7 +259,7 @@ func verifyStateString(p *Provider, defaultValue string) (bool, of.StringResolut
 	return false, of.StringResolutionDetail{}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	shouldReturn, returnValue := verifyStateObject(p, defaultValue)
 	if shouldReturn {
 		return returnValue
@@ -276,9 +276,9 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		}
 	}
 
-	var value interface{}
+	var value any
 	switch castedDefaultValue := defaultValue.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		value, _ = p.PrefabClient.GetJSONValueWithDefault(flag, prefabContext, castedDefaultValue)
 	case []string:
 		value, _ = p.PrefabClient.GetStringSliceValueWithDefault(flag, prefabContext, castedDefaultValue)
@@ -294,7 +294,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func verifyStateObject(p *Provider, defaultValue interface{}) (bool, of.InterfaceResolutionDetail) {
+func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
 			return true, of.InterfaceResolutionDetail{

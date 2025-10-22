@@ -1,7 +1,7 @@
 package prefab
 
 type ProviderConfig struct {
-	Configs map[string]interface{}
+	Configs map[string]any
 	APIKey  string
 	APIURLs []string
 	Sources []string
