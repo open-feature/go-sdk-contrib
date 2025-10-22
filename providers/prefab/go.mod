@@ -1,8 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/prefab
 
-go 1.23.0
-
-toolchain go1.24.4
+go 1.24.0
 
 require (
 	github.com/open-feature/go-sdk v1.15.1
@@ -20,7 +18,6 @@ require (
 	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	go.uber.org/mock v0.5.2 // indirect
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
