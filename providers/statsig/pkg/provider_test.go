@@ -27,7 +27,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{
+		map[string]any{
 			"UserID": "123",
 		},
 	)
@@ -51,7 +51,7 @@ func TestStringConfigEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{
+		map[string]any{
 			"UserID":         "123",
 			"Email":          "testuser1@statsig.com",
 			"feature_config": featureConfig,
@@ -78,7 +78,7 @@ func TestBoolLayerEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{
+		map[string]any{
 			"UserID":         "123",
 			"feature_config": featureConfig,
 		},
@@ -110,8 +110,8 @@ func TestConvertsValidEvaluationContextToStatsigUser(t *testing.T) {
 		"Country":            "US",
 		"Locale":             "en-US",
 		"AppVersion":         "1.0.0",
-		"Custom":             map[string]interface{}{"customKey": "customValue"},
-		"PrivateAttributes":  map[string]interface{}{"privateKey": "privateValue"},
+		"Custom":             map[string]any{"customKey": "customValue"},
+		"PrivateAttributes":  map[string]any{"privateKey": "privateValue"},
 		"StatsigEnvironment": map[string]string{"envKey": "envValue"},
 		"CustomIDs":          map[string]string{"customIDKey": "customIDValue"},
 		"custom-key":         "custom-value",
@@ -219,9 +219,9 @@ func TestEvaluationMethods(t *testing.T) {
 
 	tests := []struct {
 		flag          string
-		defaultValue  interface{}
+		defaultValue  any
 		evalCtx       of.FlattenedContext
-		expected      interface{}
+		expected      any
 		expectedError string
 	}{
 		{"always_on_gate", false, of.FlattenedContext{"UserID": "123"}, true, ""},
@@ -229,16 +229,16 @@ func TestEvaluationMethods(t *testing.T) {
 		{"boolean", false, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, true, ""},
 		{"float", 1.5999, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, 1.5, ""},
 		{"number", int64(42999), of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, int64(42), ""},
-		{"object", map[string]interface{}{"key": "value999"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, map[string]interface{}{"key1": "value1"}, ""},
+		{"object", map[string]any{"key": "value999"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, map[string]any{"key1": "value1"}, ""},
 		{"string", "default_value", of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, "expected_value", ""},
-		{"slice", []interface{}{"fallback1", "fallback2"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, []interface{}{"v1", "v2"}, ""},
+		{"slice", []any{"fallback1", "fallback2"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "valid_flag"}}, []any{"v1", "v2"}, ""},
 
 		{"boolean", false, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, true, ""},
 		{"float", 1.5999, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, 1.5, ""},
 		{"number", int64(42999), of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, int64(42), ""},
-		{"object", map[string]interface{}{"key": "value999"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, map[string]interface{}{"key1": "value1"}, ""},
+		{"object", map[string]any{"key": "value999"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, map[string]any{"key1": "value1"}, ""},
 		{"string", "default_value", of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, "expected_value", ""},
-		{"slice", []interface{}{"fallback1", "fallback2"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, []interface{}{"v1", "v2"}, ""},
+		{"slice", []any{"fallback1", "fallback2"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "valid_layer"}}, []any{"v1", "v2"}, ""},
 
 		{"invalid_flag", false, of.FlattenedContext{"UserID": "123"}, false, "flag not found"},
 
@@ -247,12 +247,12 @@ func TestEvaluationMethods(t *testing.T) {
 
 		{"float", 1.23, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "invalid_flag"}}, 1.23, "flag not found"},
 		{"number", int64(43), of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "invalid_flag"}}, int64(43), "flag not found"},
-		{"object", map[string]interface{}{"key1": "other-value"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "invalid_flag"}}, map[string]interface{}{"key1": "other-value"}, "flag not found"},
+		{"object", map[string]any{"key1": "other-value"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "invalid_flag"}}, map[string]any{"key1": "other-value"}, "flag not found"},
 		{"string", "value2", of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "CONFIG", Name: "invalid_flag"}}, "value2", "flag not found"},
 
 		{"float", 1.23, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "invalid_flag"}}, 1.23, "flag not found"},
 		{"number", int64(43), of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "invalid_flag"}}, int64(43), "flag not found"},
-		{"object", map[string]interface{}{"key1": "other-value"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "invalid_flag"}}, map[string]interface{}{"key1": "other-value"}, "flag not found"},
+		{"object", map[string]any{"key1": "other-value"}, of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "invalid_flag"}}, map[string]any{"key1": "other-value"}, "flag not found"},
 		{"string", "value2", of.FlattenedContext{"UserID": "123", "feature_config": statsigProvider.FeatureConfig{FeatureConfigType: "LAYER", Name: "invalid_flag"}}, "value2", "flag not found"},
 
 		{"invalid_user_context", false, of.FlattenedContext{"UserID": "123", "invalid": "value"}, false, ""},
