@@ -70,8 +70,8 @@ func (p *Provider) IntEvaluation(_ context.Context, flag string, defaultValue in
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
-func (p *Provider) ObjectEvaluation(_ context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-	res := evaluateLocally[interface{}](p, flag, defaultValue, evalCtx)
+func (p *Provider) ObjectEvaluation(_ context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+	res := evaluateLocally[any](p, flag, defaultValue, evalCtx)
 	return of.InterfaceResolutionDetail{
 		Value:                    res.Value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,

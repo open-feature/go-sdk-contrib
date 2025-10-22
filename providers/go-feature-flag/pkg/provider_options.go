@@ -61,7 +61,7 @@ type ProviderOptions struct {
 	//
 	// ‼️Important: If you are using a GO Feature Flag relay proxy before version v1.41.0, the information of this
 	// field will not be added to your feature events.
-	ExporterMetadata map[string]interface{}
+	ExporterMetadata map[string]any
 }
 
 func (o *ProviderOptions) Validation() error {
