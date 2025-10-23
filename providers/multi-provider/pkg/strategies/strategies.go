@@ -59,7 +59,7 @@ type (
 
 // buildDefaultResult Creates a default result using reflection via generics
 func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 | interface{}](strategy EvaluationStrategy, defaultValue DV, err error) resultWrapper[R] {
-	result := *new(R)
+	result := new(R)
 	var rErr of.ResolutionError
 	var reason of.Reason
 	if err != nil {
@@ -76,33 +76,28 @@ func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 |
 	}
 	switch dv := any(defaultValue).(type) {
 	case bool:
-		r := any(result).(of.BoolResolutionDetail)
+		r := any(result).(*of.BoolResolutionDetail)
 		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
 	case string:
-		r := any(result).(of.StringResolutionDetail)
+		r := any(result).(*of.StringResolutionDetail)
 		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
 	case int64:
-		r := any(result).(of.IntResolutionDetail)
+		r := any(result).(*of.IntResolutionDetail)
 		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
 	case float64:
-		r := any(result).(of.FloatResolutionDetail)
+		r := any(result).(*of.FloatResolutionDetail)
 		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
 	default:
-		r := any(result).(of.InterfaceResolutionDetail)
+		r := any(result).(*of.InterfaceResolutionDetail)
 		r.Value = defaultValue
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
 	}
 
-	return resultWrapper[R]{result: &result, detail: details}
+	return resultWrapper[R]{result: result, detail: details}
 }
 
 func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string, metadata of.FlagMetadata) of.FlagMetadata {
