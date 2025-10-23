@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/hooks/open-telemetry
 go 1.24.0
 
 require (
-	github.com/open-feature/go-sdk v1.15.1
+	github.com/open-feature/go-sdk v1.16.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/metric v1.37.0
 	go.opentelemetry.io/otel/sdk v1.37.0
@@ -16,6 +16,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.uber.org/mock v0.5.2 // indirect
+	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 )
