@@ -15,7 +15,6 @@ require (
 	github.com/open-feature/flagd/core v0.12.1
 	github.com/open-feature/go-sdk v1.15.1
 	github.com/open-feature/go-sdk-contrib/tests/flagd v0.0.0
-	github.com/testcontainers/testcontainers-go v0.32.0
 	go.uber.org/mock v0.5.2
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b

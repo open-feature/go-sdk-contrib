@@ -19,7 +19,6 @@ var ignoredOptions = []string{
 	"keepAliveTime",
 	"retryBackoffMs",
 	"retryBackoffMaxMs",
-	"retryGracePeriod",
 	"offlinePollIntervalMs",
 }
 
