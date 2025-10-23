@@ -5,10 +5,10 @@ package strategies
 
 import (
 	"context"
-	of "github.com/open-feature/go-sdk/openfeature"
-	"reflect"
 	"regexp"
 	"strings"
+
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 const (
@@ -74,25 +74,25 @@ func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 |
 		Reason:          reason,
 		FlagMetadata:    of.FlagMetadata{MetadataSuccessfulProviderName: "none", MetadataStrategyUsed: strategy},
 	}
-	switch reflect.TypeOf(result).Name() {
-	case "BoolResolutionDetail":
+	switch dv := any(defaultValue).(type) {
+	case bool:
 		r := any(result).(of.BoolResolutionDetail)
-		r.Value = any(defaultValue).(bool)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
 		result = any(r).(R)
-	case "StringResolutionDetail":
+	case string:
 		r := any(result).(of.StringResolutionDetail)
-		r.Value = any(defaultValue).(string)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
 		result = any(r).(R)
-	case "IntResolutionDetail":
+	case int64:
 		r := any(result).(of.IntResolutionDetail)
-		r.Value = any(defaultValue).(int64)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
 		result = any(r).(R)
-	case "FloatResolutionDetail":
+	case float64:
 		r := any(result).(of.FloatResolutionDetail)
-		r.Value = any(defaultValue).(float64)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
 		result = any(r).(R)
 	default:
@@ -117,7 +117,7 @@ func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string
 func cleanErrorMessage(msg string) string {
 	codeRegex := strings.Join([]string{
 		string(of.ProviderNotReadyCode),
-		//string(of.ProviderFatalCode), // TODO: not available until go-sdk 14
+		// string(of.ProviderFatalCode), // TODO: not available until go-sdk 14
 		string(of.FlagNotFoundCode),
 		string(of.ParseErrorCode),
 		string(of.TypeMismatchCode),
