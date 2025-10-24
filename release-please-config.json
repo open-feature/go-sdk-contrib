@@ -156,6 +156,14 @@
       "versioning": "default",
       "extra-files": []
     },
+    "tools/ofrep": {
+      "release-type": "go",
+      "package-name": "tools/ofrep",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
     "providers/aws-ssm": {
       "release-type": "go",
       "package-name": "providers/aws-ssm",
