@@ -5,6 +5,7 @@ import (
 	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
 	"fmt"
+	"github.com/goccy/go-json"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	grpccredential "github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 	msync "sync"
 	"time"
 )
@@ -55,7 +57,17 @@ const (
 			}
 		  ]
 		}`
+
+	nonRetryableStatusCodes = `
+		[
+		  "PermissionDenied",
+		  "Unauthenticated",
+		]
+	`
 )
+
+// Set of non-retryable gRPC status codes for faster lookup
+var nonRetryableCodes map[string]struct{}
 
 // Type aliases for interfaces required by this component - needed for mock generation with gomock
 type FlagSyncServiceClient interface {
@@ -92,6 +104,7 @@ type Sync struct {
 // Init initializes the gRPC connection and starts background monitoring
 func (g *Sync) Init(ctx context.Context) error {
 	g.Logger.Info(fmt.Sprintf("initializing gRPC client for %s", g.URI))
+	initNonRetryableStatusCodesSet()
 
 	// Initialize channels
 	g.shutdownComplete = make(chan struct{})
@@ -160,6 +173,17 @@ func (g *Sync) buildDialOptions() ([]grpc.DialOption, error) {
 	return dialOptions, nil
 }
 
+// initNonRetryableStatusCodesSet initializes the set of non-retryable gRPC status codes for quick lookup
+func initNonRetryableStatusCodesSet()  {
+	var codes []string
+	nonRetryableCodes = make(map[string]struct{})
+	if err := json.Unmarshal([]byte(nonRetryableStatusCodes), &codes); err == nil {
+		for _, code := range codes {
+			nonRetryableCodes[code] = struct{}{}
+		}
+	}
+}
+
 // ReSync performs a one-time fetch of all flags
 func (g *Sync) ReSync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 	g.Logger.Debug("performing ReSync - fetching all flags")
@@ -207,10 +231,21 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 		}
 
 		// Attempt to create sync stream
-		if err := g.performSyncCycle(ctx, dataSync); err != nil {
+		err := g.performSyncCycle(ctx, dataSync)
+		if err != nil {
 			if ctx.Err() != nil {
 				g.Logger.Info("sync cycle failed due to context cancellation")
 				return ctx.Err()
+			}
+
+			// Check if error is a gRPC status error and if code is retryable
+			st, ok := status.FromError(err)
+			if ok {
+				codeStr := st.Code().String()
+				if _, found := nonRetryableCodes[codeStr]; found {
+					g.Logger.Error(fmt.Sprintf("sync cycle failed with non-retryable code: %v", codeStr))
+					return err
+				}
 			}
 
 			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
