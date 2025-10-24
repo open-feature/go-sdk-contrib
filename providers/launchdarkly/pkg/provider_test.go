@@ -294,9 +294,20 @@ func (c *mockLDClient) Close() error {
 }
 
 func TestShutdown(t *testing.T) {
-	t.Run("should call client close on shutdown", func(t *testing.T) {
+	t.Run("should not call client close on shutdown", func(t *testing.T) {
 		mockClient := &mockLDClient{}
 		provider := NewProvider(mockClient)
+
+		err := openfeature.SetProvider(provider)
+		assert.Ok(t, err)
+
+		openfeature.Shutdown()
+		assert.Cond(t, !mockClient.closeCalled, "expected client.Close() to be called")
+	})
+
+	t.Run("should call client close on shutdown", func(t *testing.T) {
+		mockClient := &mockLDClient{}
+		provider := NewProvider(mockClient, WithCloseOnShutdown(true))
 
 		err := openfeature.SetProvider(provider)
 		assert.Ok(t, err)

@@ -37,8 +37,9 @@ type Option func(*options)
 
 // options contains all the optional arguments supported by Provider.
 type options struct {
-	kindAttr string
-	l        Logger
+	kindAttr        string
+	l               Logger
+	closeOnShutdown bool
 }
 
 // WithLogger sets a logger implementation. By default a noop logger is used.
@@ -53,6 +54,14 @@ func WithLogger(l Logger) Option {
 func WithKindAttr(name string) Option {
 	return func(o *options) {
 		o.kindAttr = name
+	}
+}
+
+// WithCloseOnShutdown sets whether the LaunchDarkly client should be closed
+// when the provider is shut down. By default, this is false.
+func WithCloseOnShutdown(close bool) Option {
+	return func(o *options) {
+		o.closeOnShutdown = close
 	}
 }
 
@@ -382,7 +391,9 @@ func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
 }
 
 func (p *Provider) Shutdown() {
-	if err := p.client.Close(); err != nil {
-		p.l.Error("error during LaunchDarkly client shutdown: %s", err)
+	if p.closeOnShutdown {
+		if err := p.client.Close(); err != nil {
+			p.l.Error("error during LaunchDarkly client shutdown: %s", err)
+		}
 	}
 }
