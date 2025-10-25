@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -40,10 +41,18 @@ type Service struct {
 	once              sync.Once
 	tokenProvider     sdk.ClientTokenProvider
 	grpcDialOptions   []grpc.DialOption
+	httpClient        *http.Client
 }
 
 // Option is a service option.
 type Option func(*Service)
+
+// WithHTTPClient returns an [Option] that specifies the HTTP client to use as the basis of communications.
+func WithHTTPClient(client *http.Client) Option {
+	return func(s *Service) {
+		s.httpClient = client
+	}
+}
 
 // WithAddress sets the address for the remote Flipt gRPC API.
 func WithAddress(address string) Option {
@@ -91,6 +100,7 @@ func New(opts ...Option) *Service {
 		grpcDialOptions: []grpc.DialOption{
 			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		},
+		httpClient: http.DefaultClient,
 	}
 
 	for _, opt := range opts {
@@ -158,7 +168,7 @@ func (s *Service) instance() (offlipt.Client, error) {
 			opts = append(opts, sdk.WithClientTokenProvider(s.tokenProvider))
 		}
 
-		hclient := sdk.New(sdkhttp.NewTransport(s.address), opts...)
+		hclient := sdk.New(sdkhttp.NewTransport(s.address, sdkhttp.WithHTTPClient(s.httpClient)), opts...)
 		if u.Scheme == "https" || u.Scheme == "http" {
 			s.client = &fclient{
 				hclient.Flipt(),
