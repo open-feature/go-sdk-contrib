@@ -25,8 +25,8 @@ func TestRPCProviderE2E(t *testing.T) {
 		"./",
 	}
 
-	// Run tests with RPC-specific tags - exclude connection/event issues we won't tackle
-	tags := "@rpc && ~@unixsocket && ~@targetURI && ~@sync && ~@metadata && ~@grace && ~@events && ~@customCert && ~@reconnect && ~@caching"
+	// Run tests with RPC-specific tags - exclude unimplemented scenarios
+	tags := "@rpc && ~@unixsocket && ~@targetURI && ~@sync && ~@metadata && ~@grace && ~@customCert && ~@caching"
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)

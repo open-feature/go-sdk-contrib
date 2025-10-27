@@ -11,8 +11,10 @@ import (
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
-const providerNotReady = "Provider not ready"
-const generalError = "general error"
+const (
+	providerNotReady = "Provider not ready"
+	generalError     = "general error"
+)
 
 type Provider struct {
 	providerConfig ProviderConfig
@@ -44,11 +46,11 @@ func (p *Provider) Status() of.State {
 }
 
 func (p *Provider) Shutdown() {
-	unleash.Close()
+	_ = unleash.Close()
 	p.status = of.NotReadyState
 }
 
-// provider does not have any hooks, returns empty slice
+// Hooks returns empty slice as provider does not have any
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }
@@ -93,7 +95,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 	}
 
 	res := unleash.IsEnabled(flag, unleash.WithFallback(defaultValue), unleash.WithContext(*unleashContext))
-	flagMetadata := map[string]interface{}{
+	flagMetadata := map[string]any{
 		"enabled": res,
 	}
 
@@ -174,7 +176,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
 			return of.InterfaceResolutionDetail{
@@ -207,7 +209,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 
 	variant := unleash.GetVariant(flag, unleash.WithVariantContext(*unleashContext))
-	flagMetadata := map[string]interface{}{
+	flagMetadata := map[string]any{
 		"enabled": variant.Enabled,
 	}
 	if variant.Name == api.DISABLED_VARIANT.Name {
@@ -265,7 +267,7 @@ func toUnleashContext(evalCtx of.FlattenedContext) (*unleashContext.Context, err
 	return unleashContext, nil
 }
 
-func toStr(val interface{}) (string, bool) {
+func toStr(val any) (string, bool) {
 	switch v := val.(type) {
 	case string:
 		return v, true

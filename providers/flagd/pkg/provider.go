@@ -46,7 +46,8 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		provider.providerConfiguration.log)
 
 	var service IService
-	if provider.providerConfiguration.Resolver == rpc {
+	switch provider.providerConfiguration.Resolver {
+	case rpc:
 		service = rpcService.NewService(
 			rpcService.Configuration{
 				Host:            provider.providerConfiguration.Host,
@@ -59,7 +60,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			cacheService,
 			provider.providerConfiguration.log,
 			provider.providerConfiguration.EventStreamConnectionMaxAttempts)
-	} else if provider.providerConfiguration.Resolver == inProcess {
+	case inProcess:
 		service = process.NewInProcessService(process.Configuration{
 			Host:                    provider.providerConfiguration.Host,
 			Port:                    provider.providerConfiguration.Port,
@@ -74,7 +75,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
 			RetryGracePeriod:        provider.providerConfiguration.RetryGracePeriod,
 		})
-	} else {
+	default:
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
 		})

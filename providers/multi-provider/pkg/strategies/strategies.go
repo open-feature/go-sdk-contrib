@@ -5,10 +5,10 @@ package strategies
 
 import (
 	"context"
-	of "github.com/open-feature/go-sdk/openfeature"
-	"reflect"
 	"regexp"
 	"strings"
+
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
 const (
@@ -59,7 +59,7 @@ type (
 
 // buildDefaultResult Creates a default result using reflection via generics
 func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 | interface{}](strategy EvaluationStrategy, defaultValue DV, err error) resultWrapper[R] {
-	result := *new(R)
+	result := new(R)
 	var rErr of.ResolutionError
 	var reason of.Reason
 	if err != nil {
@@ -74,35 +74,30 @@ func buildDefaultResult[R resultConstraint, DV bool | string | int64 | float64 |
 		Reason:          reason,
 		FlagMetadata:    of.FlagMetadata{MetadataSuccessfulProviderName: "none", MetadataStrategyUsed: strategy},
 	}
-	switch reflect.TypeOf(result).Name() {
-	case "BoolResolutionDetail":
-		r := any(result).(of.BoolResolutionDetail)
-		r.Value = any(defaultValue).(bool)
+	switch dv := any(defaultValue).(type) {
+	case bool:
+		r := any(result).(*of.BoolResolutionDetail)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
-	case "StringResolutionDetail":
-		r := any(result).(of.StringResolutionDetail)
-		r.Value = any(defaultValue).(string)
+	case string:
+		r := any(result).(*of.StringResolutionDetail)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
-	case "IntResolutionDetail":
-		r := any(result).(of.IntResolutionDetail)
-		r.Value = any(defaultValue).(int64)
+	case int64:
+		r := any(result).(*of.IntResolutionDetail)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
-	case "FloatResolutionDetail":
-		r := any(result).(of.FloatResolutionDetail)
-		r.Value = any(defaultValue).(float64)
+	case float64:
+		r := any(result).(*of.FloatResolutionDetail)
+		r.Value = dv
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
 	default:
-		r := any(result).(of.InterfaceResolutionDetail)
+		r := any(result).(*of.InterfaceResolutionDetail)
 		r.Value = defaultValue
 		r.ProviderResolutionDetail = details
-		result = any(r).(R)
 	}
 
-	return resultWrapper[R]{result: &result, detail: details}
+	return resultWrapper[R]{result: result, detail: details}
 }
 
 func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string, metadata of.FlagMetadata) of.FlagMetadata {
@@ -117,7 +112,7 @@ func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string
 func cleanErrorMessage(msg string) string {
 	codeRegex := strings.Join([]string{
 		string(of.ProviderNotReadyCode),
-		//string(of.ProviderFatalCode), // TODO: not available until go-sdk 14
+		// string(of.ProviderFatalCode), // TODO: not available until go-sdk 14
 		string(of.FlagNotFoundCode),
 		string(of.ParseErrorCode),
 		string(of.TypeMismatchCode),

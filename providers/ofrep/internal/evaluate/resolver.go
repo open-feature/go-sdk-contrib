@@ -28,9 +28,7 @@ func NewOutboundResolver(cfg outbound.Configuration) *OutboundResolver {
 	return &OutboundResolver{client: outbound.NewHttp(cfg)}
 }
 
-func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (
-	*successDto, *of.ResolutionError) {
-
+func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]any) (*successDto, *of.ResolutionError) {
 	b, err := json.Marshal(requestFrom(evalCtx))
 	if err != nil {
 		resErr := of.NewGeneralResolutionError(fmt.Sprintf("context marshelling error: %v", err))
@@ -140,10 +138,10 @@ func parseError500(data []byte) *of.ResolutionError {
 // DTOs and OFREP models
 
 type successDto struct {
-	Value    interface{}
+	Value    any
 	Reason   string
 	Variant  string
-	Metadata map[string]interface{}
+	Metadata map[string]any
 }
 
 func toSuccessDto(e evaluationSuccess) (*successDto, *of.ResolutionError) {
@@ -154,7 +152,7 @@ func toSuccessDto(e evaluationSuccess) (*successDto, *of.ResolutionError) {
 	}
 
 	if e.Metadata != nil {
-		m, ok := e.Metadata.(map[string]interface{})
+		m, ok := e.Metadata.(map[string]any)
 		if !ok {
 			resErr := of.NewParseErrorResolutionError("metadata must be a map of string keys and arbitrary values")
 			return nil, &resErr
@@ -165,21 +163,21 @@ func toSuccessDto(e evaluationSuccess) (*successDto, *of.ResolutionError) {
 }
 
 type request struct {
-	Context interface{} `json:"context"`
+	Context any `json:"context"`
 }
 
-func requestFrom(ctx map[string]interface{}) request {
+func requestFrom(ctx map[string]any) request {
 	return request{
 		Context: ctx,
 	}
 }
 
 type evaluationSuccess struct {
-	Value    interface{} `json:"value"`
-	Key      string      `json:"key"`
-	Reason   string      `json:"reason"`
-	Variant  string      `json:"variant"`
-	Metadata interface{} `json:"metadata"`
+	Value    any    `json:"value"`
+	Key      string `json:"key"`
+	Reason   string `json:"reason"`
+	Variant  string `json:"variant"`
+	Metadata any    `json:"metadata"`
 }
 
 type evaluationError struct {

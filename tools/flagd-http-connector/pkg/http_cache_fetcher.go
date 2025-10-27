@@ -37,7 +37,10 @@ func (f *HttpCacheFetcher) FetchContent(client *http.Client, req *http.Request) 
 			if err != nil {
 				slog.Error("Failed to drain response body", "error", err)
 			}
-			resp.Body.Close()
+			err = resp.Body.Close()
+			if err != nil {
+				slog.Error("Failed to close response body", "error", err)
+			}
 		}
 	}()
 
