@@ -547,6 +547,13 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	if err := stream.Err(); err != nil {
+		s.sendEvent(ctx, of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderError,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message: fmt.Sprintf("stream error: %s", err.Error()),
+			},
+		})
 		return err
 	}
 

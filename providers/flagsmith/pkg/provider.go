@@ -40,7 +40,7 @@ func (p *Provider) Metadata() of.Metadata {
 	}
 }
 
-func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	var flags flagsmithClient.Flags
 	var err error
 
@@ -281,7 +281,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 	resolutionDetails := res.ResolutionDetail()
 
