@@ -9,6 +9,8 @@ const (
 	ContentTypeHeader   = "Content-Type"
 	IfNoneMatchHeader   = "If-None-Match"
 	AuthorizationHeader = "Authorization"
+	LastModifiedHeader  = "Last-Modified"
+	ETagHeader          = "ETag"
 	ApplicationJson     = "application/json"
 	BearerPrefix        = "Bearer "
 )

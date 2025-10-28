@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/testutils/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +32,7 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.NewGoffAPI(gofeatureflag.ProviderOptions{
+		g := api.NewGoffAPI(api.GoffAPIOptions{
 			HTTPClient: client,
 		})
 
@@ -42,7 +42,7 @@ func Test_DataCollectorManager(t *testing.T) {
 		_ = collector.AddEvent(eventExample)
 
 		time.Sleep(300 * time.Millisecond)
-		assert.Equal(t, 1, mrt.NumberCall)
+		assert.Equal(t, 1, mrt.CallCount)
 	})
 
 	t.Run("Should collect multiple times if we are adding events in between intervals", func(t *testing.T) {
@@ -52,7 +52,7 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.NewGoffAPI(gofeatureflag.ProviderOptions{	
+		g := api.NewGoffAPI(api.GoffAPIOptions{
 			HTTPClient: client,
 		})
 
@@ -67,7 +67,7 @@ func Test_DataCollectorManager(t *testing.T) {
 		time.Sleep(120 * time.Millisecond)
 		_ = collector.AddEvent(eventExample)
 		time.Sleep(120 * time.Millisecond)
-		assert.Equal(t, 3, mrt.NumberCall)
+		assert.Equal(t, 3, mrt.CallCount)
 	})
 
 	t.Run("Should stop adding events if max items reached", func(t *testing.T) {
@@ -77,7 +77,7 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.NewGoffAPIgofeatureflag.ProviderOptions{
+		g := api.NewGoffAPI(api.GoffAPIOptions{
 			HTTPClient: client,
 		})
 
@@ -105,16 +105,15 @@ func Test_DataCollectorManager(t *testing.T) {
 	})
 
 	t.Run("Should not remove items if saveData failed", func(t *testing.T) {
-		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+		mrt := mock.RoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{
 				StatusCode: http.StatusServiceUnavailable,
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.NewGoffAPI(controller.GoFeatureFlagApiOptions{
+		g := api.NewGoffAPI(api.GoffAPIOptions{
 			HTTPClient: client,
 		})
-
 		collector := service.NewDataCollectorManager(g, 5, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
@@ -136,6 +135,6 @@ func Test_DataCollectorManager(t *testing.T) {
 		assert.Error(t, err)
 
 		// Should have tried only once to call the API
-		assert.Equal(t, 1, mrt.NumberCall)
+		assert.Equal(t, 1, mrt.CallCount)
 	})
 }

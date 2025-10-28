@@ -3,15 +3,16 @@ package api_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
 
-	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/consts"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/testutils/mock"
+	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ func Test_CollectDataAPI(t *testing.T) {
 	type test struct {
 		name          string
 		wantErr       assert.ErrorAssertionFunc
-		options       gofeatureflag.ProviderOptions
+		options       api.GoffAPIOptions
 		roundtripFunc func(req *http.Request) *http.Response
 		roundtripErr  error
 		wantHeaders   http.Header
@@ -31,7 +32,7 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Valid api call",
 			wantErr: assert.NoError,
-			options: gofeatureflag.ProviderOptions{
+			options: api.GoffAPIOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "",
 				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
@@ -78,7 +79,7 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Valid api call with API Key",
 			wantErr: assert.NoError,
-			options: gofeatureflag.ProviderOptions{
+			options: api.GoffAPIOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "my-key",
 				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
@@ -126,7 +127,7 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Request failed",
 			wantErr: assert.Error,
-			options: gofeatureflag.ProviderOptions{
+			options: api.GoffAPIOptions{
 				Endpoint: "http://localhost:1031",
 			},
 			events: []model.ExportableEvent{},
@@ -141,7 +142,7 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Request return 400",
 			wantErr: assert.Error,
-			options: gofeatureflag.ProviderOptions{
+			options: api.GoffAPIOptions{
 				Endpoint: "http://localhost:1031",
 			},
 			events: []model.ExportableEvent{},
@@ -154,7 +155,7 @@ func Test_CollectDataAPI(t *testing.T) {
 		{
 			name:    "Valid api call with TrackingEvent",
 			wantErr: assert.NoError,
-			options: gofeatureflag.ProviderOptions{
+			options: api.GoffAPIOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "",
 				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
@@ -170,9 +171,7 @@ func Test_CollectDataAPI(t *testing.T) {
 						"anonymous":    true,
 						"targetingKey": "ABCD",
 					},
-					TrackingDetails: map[string]interface{}{
-						"event": "123",
-					},
+					TrackingDetails: openfeature.NewTrackingEventDetails(1234).Add("event", "123"),
 				},
 				model.FeatureEvent{
 					Kind:         "feature",
@@ -198,9 +197,10 @@ func Test_CollectDataAPI(t *testing.T) {
 				headers.Set(consts.ContentTypeHeader, consts.ApplicationJson)
 				return headers
 			}(),
-			wantReqBody: "{\"events\":[{\"kind\":\"tracking\",\"contextKind\":\"anonymousUser\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"evaluationContext\":{\"anonymous\":true,\"targetingKey\":\"ABCD\"},\"trackingEventDetails\":{\"event\":\"123\"}},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
+			wantReqBody: "{\"events\":[{\"kind\":\"tracking\",\"contextKind\":\"anonymousUser\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"evaluationContext\":{\"anonymous\":true,\"targetingKey\":\"ABCD\"},\"trackingEventDetails\":{\"value\":1234, \"attributes\":{\"event\":\"123\"}}},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mrt := mock.RoundTripper{RoundTripFunc: tt.roundtripFunc, Err: tt.roundtripErr}
@@ -220,6 +220,7 @@ func Test_CollectDataAPI(t *testing.T) {
 
 			bodyBytes, err := io.ReadAll(mrt.GetLastRequest().Body)
 			require.NoError(t, err)
+			fmt.Println("bodyBytes", string(bodyBytes))
 			assert.JSONEq(t, tt.wantReqBody, string(bodyBytes))
 		})
 	}

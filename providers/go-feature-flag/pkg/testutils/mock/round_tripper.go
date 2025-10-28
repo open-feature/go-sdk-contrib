@@ -21,6 +21,7 @@ type RoundTripper struct {
 }
 
 func (m *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	m.LastRequest = req
 	return m.RoundTripFunc(req), m.Err
 }
 

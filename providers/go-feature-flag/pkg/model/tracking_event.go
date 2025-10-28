@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/open-feature/go-sdk/openfeature"
@@ -67,5 +68,18 @@ func (f TrackingEvent) ToMap() (map[string]any, error) {
 	}
 	var result map[string]any
 	err = json.Unmarshal(b, &result)
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Manually serialize TrackingDetails since it has unexported fields
+	trackingDetails := map[string]any{
+		"value":      f.TrackingDetails.Value(),
+		"attributes": f.TrackingDetails.Attributes(),
+	}
+	result["trackingEventDetails"] = trackingDetails
+
+	fmt.Println("result", result)
+
+	return result, nil
 }
