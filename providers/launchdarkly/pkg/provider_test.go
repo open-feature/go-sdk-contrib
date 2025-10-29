@@ -302,7 +302,7 @@ func TestShutdown(t *testing.T) {
 		assert.Ok(t, err)
 
 		openfeature.Shutdown()
-		assert.Cond(t, !mockClient.closeCalled, "expected client.Close() to be called")
+		assert.Cond(t, !mockClient.closeCalled, "expected client.Close() not to be called")
 	})
 
 	t.Run("should call client close on shutdown", func(t *testing.T) {
