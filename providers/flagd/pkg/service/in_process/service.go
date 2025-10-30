@@ -569,6 +569,7 @@ func createSyncProvider(cfg Configuration, log *logger.Logger) (isync.ISync, str
 		ProviderID:              cfg.ProviderID,
 		Selector:                cfg.Selector,
 		URI:                     uri,
+		RetryGracePeriod:        cfg.RetryGracePeriod,
 	}, uri
 }
 

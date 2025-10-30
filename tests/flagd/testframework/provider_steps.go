@@ -27,6 +27,9 @@ func InitializeProviderSteps(ctx *godog.ScenarioContext) {
 	// Generic provider step definition - accepts any provider type including "stable"
 	ctx.Step(`^a (\w+) flagd provider$`,
 		withState1Arg((*TestState).createSpecializedFlagdProvider))
+
+	ctx.Step(`^the client is in (\w+) state$`,
+		withState1Arg((*TestState).assertClientState))
 }
 
 // State methods - these now expect context as first parameter after state
@@ -111,6 +114,13 @@ func (s *TestState) simulateConnectionLoss(ctx context.Context, seconds int) err
 	return s.Container.Restart(seconds)
 }
 
+func (s *TestState) assertClientState(ctx context.Context, state string) error {
+	if string(s.Client.State()) == strings.ToUpper(state) {
+		return nil
+	}
+	return fmt.Errorf("expected client state %s but got %s", state, s.Client.State())
+}
+
 // createSpecializedFlagdProvider creates specialized flagd providers based on type
 func (s *TestState) createSpecializedFlagdProvider(ctx context.Context, providerType string) error {
 	// Apply specialized configuration based on provider type
@@ -128,7 +138,7 @@ func (s *TestState) createSpecializedFlagdProvider(ctx context.Context, provider
 		return fmt.Errorf("failed to create instance for %s provider: %w", providerType, err)
 	}
 
-	if providerType != "unavailable" {
+	if providerType != "unavailable" && providerType != "forbidden" {
 		if s.ProviderType == RPC {
 			// Small delay to allow flagd server to fully load flags after connection
 			time.Sleep(50 * time.Millisecond)
@@ -150,6 +160,7 @@ func (s *TestState) applySpecializedConfig(providerType string) error {
 		return nil
 	case "unavailable":
 		return s.configureUnavailableProvider()
+	case "forbidden": return s.configureForbiddenProvider()
 	case "socket":
 		return s.configureSocketProvider()
 	case "ssl", "tls":
@@ -170,6 +181,12 @@ func (s *TestState) configureUnavailableProvider() error {
 	s.addProviderOption("host", "String", "127.0.0.1")
 	s.addProviderOption("deadlineMs", "Integer", "1000") // Short timeout for faster failure
 	s.addProviderOption("offlineFlagSourcePath", "String", "not-existing")
+	return nil
+}
+
+func (s *TestState) configureForbiddenProvider() error {
+	// Set an Envoy port which always responds with forbidden
+	s.addProviderOption("port", "Integer", "9212")
 	return nil
 }
 

@@ -4,8 +4,8 @@ import (
 	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
 	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/goccy/go-json"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	grpccredential "github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
+	"strings"
 	msync "sync"
 	"time"
 )
@@ -37,21 +38,8 @@ const (
 				"MaxBackoff": "5s",
 				"BackoffMultiplier": 2.0,
 				"RetryableStatusCodes": [
-				  "CANCELLED",
 				  "UNKNOWN",
-				  "INVALID_ARGUMENT",
-				  "NOT_FOUND",
-				  "ALREADY_EXISTS",
-				  "PERMISSION_DENIED",
-				  "RESOURCE_EXHAUSTED",
-				  "FAILED_PRECONDITION",
-				  "ABORTED",
-				  "OUT_OF_RANGE",
-				  "UNIMPLEMENTED",
-				  "INTERNAL",
-				  "UNAVAILABLE",
-				  "DATA_LOSS",
-				  "UNAUTHENTICATED"
+				  "UNAVAILABLE"
 				]
 			  }
 			}
@@ -61,7 +49,7 @@ const (
 	nonRetryableStatusCodes = `
 		[
 		  "PermissionDenied",
-		  "Unauthenticated",
+		  "Unauthenticated"
 		]
 	`
 )
@@ -90,6 +78,7 @@ type Sync struct {
 	Selector                string
 	URI                     string
 	MaxMsgSize              int
+	RetryGracePeriod		int
 
 	// Runtime state
 	client           FlagSyncServiceClient
@@ -104,7 +93,7 @@ type Sync struct {
 // Init initializes the gRPC connection and starts background monitoring
 func (g *Sync) Init(ctx context.Context) error {
 	g.Logger.Info(fmt.Sprintf("initializing gRPC client for %s", g.URI))
-	initNonRetryableStatusCodesSet()
+	g.initNonRetryableStatusCodesSet()
 
 	// Initialize channels
 	g.shutdownComplete = make(chan struct{})
@@ -174,13 +163,16 @@ func (g *Sync) buildDialOptions() ([]grpc.DialOption, error) {
 }
 
 // initNonRetryableStatusCodesSet initializes the set of non-retryable gRPC status codes for quick lookup
-func initNonRetryableStatusCodesSet()  {
+func (g *Sync) initNonRetryableStatusCodesSet()  {
 	var codes []string
 	nonRetryableCodes = make(map[string]struct{})
-	if err := json.Unmarshal([]byte(nonRetryableStatusCodes), &codes); err == nil {
+	trimmed := strings.TrimSpace(nonRetryableStatusCodes)
+	if err := json.Unmarshal([]byte(trimmed), &codes); err == nil {
 		for _, code := range codes {
 			nonRetryableCodes[code] = struct{}{}
 		}
+	} else {
+		g.Logger.Debug("parsing non-retryable status codes failed, retrying on all errors")
 	}
 }
 
@@ -243,10 +235,18 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 			if ok {
 				codeStr := st.Code().String()
 				if _, found := nonRetryableCodes[codeStr]; found {
-					g.Logger.Error(fmt.Sprintf("sync cycle failed with non-retryable code: %v", codeStr))
-					return err
+					errStr := fmt.Sprintf("sync cycle failed with non-retryable status: %v, " +
+						"returning provider fatal.", codeStr)
+					g.Logger.Error(errStr)
+					return &of.ProviderInitError{
+						ErrorCode: of.ProviderFatalCode,
+						Message:   errStr,
+					}
 				}
 			}
+
+			// Backoff before retrying
+			time.Sleep(time.Duration(g.RetryGracePeriod))
 
 			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
 			g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
