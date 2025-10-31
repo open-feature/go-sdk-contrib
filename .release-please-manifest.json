@@ -1,7 +1,7 @@
 {
     "hooks/open-telemetry": "0.3.6",
     "hooks/validator": "0.1.7",
-    "providers/configcat": "0.2.2",
+    "providers/configcat": "0.2.3",
     "providers/flagd": "0.3.0",
     "providers/flipt": "0.1.4",
     "providers/from-env": "0.1.6",
