@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/configcat/v0.2.2...providers/configcat/v0.2.3) (2025-10-31)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/configcat/go-sdk/v9 to v9.0.7 ([#561](https://github.com/open-feature/go-sdk-contrib/issues/561)) ([5741676](https://github.com/open-feature/go-sdk-contrib/commit/57416765897bef42245657b055ab6b35749556f3))
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+* **deps:** update module github.com/stretchr/testify to v1.10.0 ([#718](https://github.com/open-feature/go-sdk-contrib/issues/718)) ([d7963ff](https://github.com/open-feature/go-sdk-contrib/commit/d7963ff4f0a9bd25968efca31b92fdfd886a9e92))
+
 ## [0.2.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/configcat/v0.2.1...providers/configcat/v0.2.2) (2025-03-05)
 
 
