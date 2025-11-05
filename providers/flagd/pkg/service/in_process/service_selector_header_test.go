@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,114 +14,206 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// Test that the flagd-selector header is sent in gRPC metadata
-func TestSelectorHeaderIsSent(t *testing.T) {
-// given
-host := "localhost"
-port := 8091
-selector := "source=test,app=selector-test"
-headerReceived := make(chan string, 1)
+// TestSelectorHeader verifies that the flagd-selector header is sent correctly in gRPC metadata
+func TestSelectorHeader(t *testing.T) {
+	tests := []struct {
+		name          string
+		selector      string
+		expectHeader  bool
+		expectedValue string
+	}{
+		{
+			name:          "selector header is sent when configured",
+			selector:      "source=database,app=myapp",
+			expectHeader:  true,
+			expectedValue: "source=database,app=myapp",
+		},
+		{
+			name:          "no selector header when selector is empty",
+			selector:      "",
+			expectHeader:  false,
+			expectedValue: "",
+		},
+		{
+			name:          "selector header with complex value",
+			selector:      "source=test,environment=production,region=us-east",
+			expectHeader:  true,
+			expectedValue: "source=test,environment=production,region=us-east",
+		},
+	}
 
-listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
-if err != nil {
-t.Fatal(err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			port := findFreePort(t)
+			listen, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+			if err != nil {
+				t.Fatalf("Failed to create listener: %v", err)
+			}
+			defer func() {
+				// Listener will be closed by GracefulStop, so ignore "use of closed network connection" errors
+				_ = listen.Close()
+			}()
+
+			headerReceived := make(chan string, 1)
+			mockServer := &selectorHeaderCapturingServer{
+				headerReceived: headerReceived,
+				mockResponse: &v1.SyncFlagsResponse{
+					FlagConfiguration: flagRsp,
+				},
+			}
+
+			grpcServer := grpc.NewServer()
+			syncv1grpc.RegisterFlagSyncServiceServer(grpcServer, mockServer)
+
+			serverDone := make(chan struct{})
+			go func() {
+				defer close(serverDone)
+				if err := grpcServer.Serve(listen); err != nil {
+					t.Logf("Server exited: %v", err)
+				}
+			}()
+			defer func() {
+				grpcServer.GracefulStop()
+				<-serverDone
+			}()
+
+			inProcessService := NewInProcessService(Configuration{
+				Host:       "localhost",
+				Port:       port,
+				Selector:   tt.selector,
+				TLSEnabled: false,
+			})
+
+			// when
+			err = inProcessService.Init()
+			if err != nil {
+				t.Fatalf("Failed to initialize service: %v", err)
+			}
+			defer inProcessService.Shutdown()
+
+			// Wait for provider to be ready
+			select {
+			case <-inProcessService.events:
+				// Provider ready event
+			case <-time.After(2 * time.Second):
+				t.Fatal("Timeout waiting for provider ready event")
+			}
+
+			// then - verify the flagd-selector header
+			select {
+			case receivedSelector := <-headerReceived:
+				if tt.expectHeader {
+					if receivedSelector != tt.expectedValue {
+						t.Errorf("Expected selector header to be %q, but got %q", tt.expectedValue, receivedSelector)
+					}
+				} else {
+					if receivedSelector != "" {
+						t.Errorf("Expected no selector header, but got %q", receivedSelector)
+					}
+				}
+			case <-time.After(3 * time.Second):
+				if tt.expectHeader {
+					t.Fatal("Timeout waiting for flagd-selector header")
+				}
+			}
+		})
+	}
 }
 
-// Mock server that captures the flagd-selector header
-mockServer := &selectorHeaderCapturingServer{
-listener:       listen,
-headerReceived: headerReceived,
-mockResponse: &v1.SyncFlagsResponse{
-FlagConfiguration: flagRsp,
-},
+// findFreePort finds an available port for testing
+func findFreePort(t *testing.T) int {
+	t.Helper()
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("Failed to find free port: %v", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	if err := listener.Close(); err != nil {
+		t.Fatalf("Failed to close listener: %v", err)
+	}
+	return port
 }
 
-inProcessService := NewInProcessService(Configuration{
-Host:       host,
-Port:       port,
-Selector:   selector,
-TLSEnabled: false,
-})
-
-// when
-go func() {
-server := grpc.NewServer()
-syncv1grpc.RegisterFlagSyncServiceServer(server, mockServer)
-if err := server.Serve(mockServer.listener); err != nil {
-t.Logf("Server exited with error: %v", err)
-}
-}()
-
-// Initialize service
-err = inProcessService.Init()
-if err != nil {
-t.Fatal(err)
-}
-
-// then - verify that the flagd-selector header was sent
-select {
-case receivedSelector := <-headerReceived:
-if receivedSelector != selector {
-t.Fatalf("Expected selector header to be %q, but got %q", selector, receivedSelector)
-}
-case <-time.After(3 * time.Second):
-t.Fatal("Timeout waiting for flagd-selector header to be received")
-}
-
-inProcessService.Shutdown()
-}
-
-// Mock server that captures the flagd-selector header from incoming requests
+// selectorHeaderCapturingServer captures the flagd-selector header from incoming requests
 type selectorHeaderCapturingServer struct {
-listener       net.Listener
-headerReceived chan string
-mockResponse   *v1.SyncFlagsResponse
+	syncv1grpc.UnimplementedFlagSyncServiceServer
+	headerReceived chan string
+	mockResponse   *v1.SyncFlagsResponse
+	mu             sync.Mutex
 }
 
 func (s *selectorHeaderCapturingServer) SyncFlags(req *v1.SyncFlagsRequest, stream syncv1grpc.FlagSyncService_SyncFlagsServer) error {
-// Extract metadata from context
-md, ok := metadata.FromIncomingContext(stream.Context())
-if ok {
-// Check for flagd-selector header
-if values := md.Get("flagd-selector"); len(values) > 0 {
-s.headerReceived <- values[0]
-} else {
-s.headerReceived <- ""
-}
-} else {
-s.headerReceived <- ""
-}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-// Send mock response
-err := stream.Send(s.mockResponse)
-if err != nil {
-return err
-}
+	// Extract and capture the flagd-selector header
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if ok {
+		if values := md.Get("flagd-selector"); len(values) > 0 {
+			select {
+			case s.headerReceived <- values[0]:
+			default:
+				// Channel full, skip
+			}
+		} else {
+			select {
+			case s.headerReceived <- "":
+			default:
+				// Channel full, skip
+			}
+		}
+	} else {
+		select {
+		case s.headerReceived <- "":
+		default:
+			// Channel full, skip
+		}
+	}
 
-// Keep stream open for a bit
-time.Sleep(1 * time.Second)
-return nil
+	// Send mock response
+	if err := stream.Send(s.mockResponse); err != nil {
+		return err
+	}
+
+	// Keep stream open briefly
+	time.Sleep(500 * time.Millisecond)
+	return nil
 }
 
 func (s *selectorHeaderCapturingServer) FetchAllFlags(ctx context.Context, req *v1.FetchAllFlagsRequest) (*v1.FetchAllFlagsResponse, error) {
-// Extract metadata from context
-md, ok := metadata.FromIncomingContext(ctx)
-if ok {
-// Check for flagd-selector header
-if values := md.Get("flagd-selector"); len(values) > 0 {
-s.headerReceived <- values[0]
-} else {
-s.headerReceived <- ""
-}
-} else {
-s.headerReceived <- ""
-}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-return &v1.FetchAllFlagsResponse{
-FlagConfiguration: flagRsp,
-}, nil
+	// Extract and capture the flagd-selector header
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		if values := md.Get("flagd-selector"); len(values) > 0 {
+			select {
+			case s.headerReceived <- values[0]:
+			default:
+				// Channel full, skip
+			}
+		} else {
+			select {
+			case s.headerReceived <- "":
+			default:
+				// Channel full, skip
+			}
+		}
+	} else {
+		select {
+		case s.headerReceived <- "":
+		default:
+			// Channel full, skip
+		}
+	}
+
+	return &v1.FetchAllFlagsResponse{
+		FlagConfiguration: flagRsp,
+	}, nil
 }
 
 func (s *selectorHeaderCapturingServer) GetMetadata(ctx context.Context, req *v1.GetMetadataRequest) (*v1.GetMetadataResponse, error) {
-return &v1.GetMetadataResponse{}, nil
+	return &v1.GetMetadataResponse{}, nil
 }
