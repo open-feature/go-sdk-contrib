@@ -1,15 +1,16 @@
 package process
 
 import (
-v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
-"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
-"context"
-"fmt"
-"google.golang.org/grpc"
-"google.golang.org/grpc/metadata"
-"net"
-"testing"
-"time"
+	"context"
+	"fmt"
+	"net"
+	"testing"
+	"time"
+
+	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 // Test that the flagd-selector header is sent in gRPC metadata
