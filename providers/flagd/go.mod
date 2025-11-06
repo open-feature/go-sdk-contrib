@@ -75,7 +75,7 @@ require (
 	github.com/docker/buildx v0.22.0 // indirect
 	github.com/docker/cli v28.0.4+incompatible // indirect
 	github.com/docker/cli-docs-tool v0.9.0 // indirect
-	github.com/docker/compose/v2 v2.35.0 // indirect
+	github.com/docker/compose/v2 v2.40.2 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v28.3.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
