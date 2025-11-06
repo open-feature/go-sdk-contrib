@@ -5,8 +5,8 @@ go 1.24.0
 require (
 	github.com/harness/ff-golang-server-sdk v0.1.26
 	github.com/jarcoal/httpmock v1.4.0
-	github.com/open-feature/go-sdk v1.16.0
-	github.com/stretchr/testify v1.10.0
+	github.com/open-feature/go-sdk v1.17.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
@@ -45,7 +45,7 @@ require (
 	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -19,6 +19,8 @@ github.com/open-feature/go-sdk v1.15.1 h1:TC3FtHtOKlGlIbSf3SEpxXVhgTd/bCbuc39XHI
 github.com/open-feature/go-sdk v1.15.1/go.mod h1:2WAFYzt8rLYavcubpCoiym3iSCXiHdPB6DxtMkv2wyo=
 github.com/open-feature/go-sdk v1.16.0 h1:5NCHYv5slvNBIZhYXAzAufo0OI59OACZ5tczVqSE+Tg=
 github.com/open-feature/go-sdk v1.16.0/go.mod h1:EIF40QcoYT1VbQkMPy2ZJH4kvZeY+qGUXAorzSWgKSo=
+github.com/open-feature/go-sdk v1.17.0 h1:/OUBBw5d9D61JaNZZxb2Nnr5/EJrEpjtKCTY3rspJQk=
+github.com/open-feature/go-sdk v1.17.0/go.mod h1:lPxPSu1UnZ4E3dCxZi5gV3et2ACi8O8P+zsTGVsDZUw=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
@@ -30,6 +32,8 @@ github.com/statsig-io/ip3country-go v0.2.1 h1:bLkWWM0PGz9OQrcGF2qqtfxQeVwxUYP46p
 github.com/statsig-io/ip3country-go v0.2.1/go.mod h1:PKuA/VSpe4puBXw3BNGAHyP8IOZOiXAh/xIz+iYYoMQ=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
+github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/ua-parser/uap-go v0.0.0-20211112212520-00c877edfe0f/go.mod h1:OBcG9bn7sHtXgarhUEb3OfCnNsgtGnkVf41ilSZ3K3E=
 github.com/ua-parser/uap-go v0.0.0-20250326155420-f7f5a2f9f5bc h1:reH9QQKGFOq39MYOvU9+SYrB8uzXtWNo51fWK3g0gGc=
 github.com/ua-parser/uap-go v0.0.0-20250326155420-f7f5a2f9f5bc/go.mod h1:gwANdYmo9R8LLwGnyDFWK2PMsaXXX2HhAvCnb/UhZsM=
