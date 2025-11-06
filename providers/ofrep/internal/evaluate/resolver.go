@@ -31,13 +31,13 @@ func NewOutboundResolver(cfg outbound.Configuration) *OutboundResolver {
 func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]any) (*successDto, *of.ResolutionError) {
 	b, err := json.Marshal(requestFrom(evalCtx))
 	if err != nil {
-		resErr := of.NewGeneralResolutionError(fmt.Sprintf("context marshelling error: %v", err))
+		resErr := of.NewGeneralResolutionError(fmt.Sprintf("context marshelling error: %v", err), err)
 		return nil, &resErr
 	}
 
 	rsp, err := g.client.Single(ctx, key, b)
 	if err != nil {
-		resErr := of.NewGeneralResolutionError(fmt.Sprintf("ofrep request error: %v", err))
+		resErr := of.NewGeneralResolutionError(fmt.Sprintf("ofrep request error: %v", err), err)
 		return nil, &resErr
 	}
 
@@ -47,7 +47,7 @@ func (g *OutboundResolver) resolveSingle(ctx context.Context, key string, evalCt
 		var success evaluationSuccess
 		err := json.Unmarshal(rsp.Data, &success)
 		if err != nil {
-			resErr := of.NewParseErrorResolutionError(fmt.Sprintf("error parsing the response: %v", err))
+			resErr := of.NewParseErrorResolutionError(fmt.Sprintf("error parsing the response: %v", err), err)
 			return nil, &resErr
 		}
 		return toSuccessDto(success)
@@ -82,7 +82,7 @@ func parseError400(data []byte) *of.ResolutionError {
 	var evalError evaluationError
 	err := json.Unmarshal(data, &evalError)
 	if err != nil {
-		resErr := of.NewGeneralResolutionError(fmt.Sprintf("error parsing error payload: %v", err))
+		resErr := of.NewGeneralResolutionError(fmt.Sprintf("error parsing error payload: %v", err), err)
 		return &resErr
 	}
 
@@ -127,7 +127,7 @@ func parseError500(data []byte) *of.ResolutionError {
 
 	err := json.Unmarshal(data, &evalError)
 	if err != nil {
-		resErr = of.NewGeneralResolutionError(fmt.Sprintf("error parsing error payload: %v", err))
+		resErr = of.NewGeneralResolutionError(fmt.Sprintf("error parsing error payload: %v", err), err)
 	} else {
 		resErr = of.NewGeneralResolutionError(evalError.ErrorDetails)
 	}
