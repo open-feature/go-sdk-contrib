@@ -1,6 +1,7 @@
 package otel
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"slices"
@@ -23,6 +24,7 @@ func TestTracesHook_Finally(t *testing.T) {
 		targetingKey   string
 		reason         openfeature.Reason
 		hasSpan        bool
+		ctx            context.Context
 		expectedAttrs  map[attribute.Key]string
 		shouldNotPanic bool
 	}{
@@ -34,6 +36,7 @@ func TestTracesHook_Finally(t *testing.T) {
 			targetingKey: "test-targeting-key",
 			reason:       openfeature.TargetingMatchReason,
 			hasSpan:      true,
+			ctx:          t.Context(),
 			expectedAttrs: map[attribute.Key]string{
 				semconv.FeatureFlagKeyKey:           "flag-key",
 				semconv.FeatureFlagProviderNameKey:  "provider-name",
@@ -49,6 +52,7 @@ func TestTracesHook_Finally(t *testing.T) {
 			variant:        "variant",
 			targetingKey:   "test-targeting-key",
 			hasSpan:        false,
+			ctx:            nil,
 			shouldNotPanic: true,
 		},
 	}
@@ -59,7 +63,7 @@ func TestTracesHook_Finally(t *testing.T) {
 			tp := trace.NewTracerProvider(trace.WithSyncer(exp))
 			otel.SetTracerProvider(tp)
 
-			ctx, span := otel.Tracer("test-tracer").Start(t.Context(), "Run")
+			ctx, span := otel.Tracer("test-tracer").Start(tt.ctx, "Run")
 
 			hook := NewTracesHook()
 

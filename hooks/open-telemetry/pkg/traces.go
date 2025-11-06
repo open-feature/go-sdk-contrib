@@ -22,7 +22,6 @@ const (
 
 // traceHook is the hook implementation for OTel traces.
 type traceHook struct {
-	setErrorStatus          bool
 	attributeMapperCallback func(openfeature.FlagMetadata) []attribute.KeyValue
 
 	openfeature.UnimplementedHook
@@ -150,9 +149,9 @@ func eventAttributes(hookContext openfeature.HookContext, details openfeature.In
 type Options func(*traceHook)
 
 // WithErrorStatusEnabled enable setting span status to codes.Error in case of an error. Default behavior is disabled.
+// Deprecated: this option has no effect. It will be removed in a future release.
 func WithErrorStatusEnabled() Options {
 	return func(h *traceHook) {
-		h.setErrorStatus = true
 	}
 }
 
