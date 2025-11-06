@@ -33,13 +33,13 @@ You can configure the provider using following configuration options,
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | WithApiKeyAuth       | Set the token to be used with "X-API-Key" header                                                                        |
 | WithBearerToken      | Set the token to be used with "Bearer" HTTP Authorization schema                                                        |
-| WithClient           | Provider a custom, pre-configured http.Client for OFREP service communication                                           |
+| WithClient           | Provide a custom, pre-configured http.Client for OFREP service communication                                            |
 | WithHeaderProvider   | Register a custom header provider for OFREP calls. You may utilize this for custom authentication/authorization headers |
 | WithHeader           | Set a custom header to be used for authorization                                                                        |
 | WithBaseURI          | Set the base URI of the OFREP service                                                                                   |
 | WithTimeout          | Set the timeout for the http client used for communication with the OFREP service (ignored if custom client is used)    |
 
-For example, consider below example which set bearer token and provider a customized http client,
+For example, consider below example which sets bearer token and provides a customized http client,
 
 ```go
 provider := ofrep.NewProvider(
