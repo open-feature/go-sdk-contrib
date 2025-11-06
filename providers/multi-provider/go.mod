@@ -1,5 +1,7 @@
 module github.com/open-feature/go-sdk-contrib/providers/multi-provider
 
+// Deprecated: use github.com/open-feature/go-sdk/openfeature/multi instead.
+
 go 1.24.0
 
 require (
