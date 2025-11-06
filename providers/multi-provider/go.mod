@@ -1,3 +1,4 @@
+// Deprecated: use github.com/open-feature/go-sdk/openfeature/multi instead.
 module github.com/open-feature/go-sdk-contrib/providers/multi-provider
 
 go 1.24.0
