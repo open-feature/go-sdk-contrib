@@ -2,7 +2,7 @@ module github.com/open-feature/go-sdk-contrib/providers/from-env
 
 go 1.24.0
 
-require github.com/open-feature/go-sdk v1.16.0
+require github.com/open-feature/go-sdk v1.17.0
 
 require (
 	github.com/go-logr/logr v1.4.3 // indirect
