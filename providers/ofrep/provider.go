@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/evaluate"
@@ -124,5 +127,47 @@ func WithBaseURI(baseURI string) func(*outbound.Configuration) {
 func WithTimeout(timeout time.Duration) func(*outbound.Configuration) {
 	return func(c *outbound.Configuration) {
 		c.Timeout = timeout
+	}
+}
+
+// WithFromEnv uses environment variables to configure the provider.
+//
+// Experimental: This feature is experimental and may change in future versions.
+//
+// Supported environment variables:
+//   - OFREP_ENDPOINT: base URI for the OFREP service
+//   - OFREP_TIMEOUT: timeout duration (e.g., "30s", "1m" or raw "5000" in milliseconds )
+//   - OFREP_HEADERS: comma-separated custom headers (e.g., "Key1=Value1,Key2=Value2")
+func WithFromEnv() func(*outbound.Configuration) {
+	envHandlers := map[string]func(*outbound.Configuration, string){
+		"OFREP_ENDPOINT": func(c *outbound.Configuration, v string) {
+			WithBaseURI(v)(c)
+		},
+		"OFREP_TIMEOUT": func(c *outbound.Configuration, v string) {
+			if t, err := time.ParseDuration(v); err == nil && t > 0 {
+				WithTimeout(t)(c)
+				return
+			}
+			// as the specification is not finalized, also support raw milliseconds
+			t, err := strconv.Atoi(v)
+			if err == nil && t > 0 {
+				WithTimeout(time.Duration(t) * time.Millisecond)(c)
+			}
+		},
+		"OFREP_HEADERS": func(c *outbound.Configuration, v string) {
+			for pair := range strings.SplitSeq(v, ",") {
+				kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+				if len(kv) == 2 {
+					WithHeader(kv[0], kv[1])(c)
+				}
+			}
+		},
+	}
+	return func(c *outbound.Configuration) {
+		for key, handler := range envHandlers {
+			if v := os.Getenv(key); v != "" {
+				handler(c, v)
+			}
+		}
 	}
 }

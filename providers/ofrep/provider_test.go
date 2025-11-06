@@ -147,3 +147,148 @@ func (r mockHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		r.t.Logf("error wriging bytes: %v", err)
 	}
 }
+
+func TestWithFromEnv(t *testing.T) {
+	tests := []struct {
+		name          string
+		envVars       map[string]string
+		initialConfig outbound.Configuration
+		wantBaseURI   string
+		wantTimeout   time.Duration
+		wantHeaders   map[string]string
+	}{
+		{
+			name: "configure endpoint from env",
+			envVars: map[string]string{
+				"OFREP_ENDPOINT": "http://test.example.com",
+			},
+			initialConfig: outbound.Configuration{},
+			wantBaseURI:   "http://test.example.com",
+		},
+		{
+			name: "configure timeout from env",
+			envVars: map[string]string{
+				"OFREP_TIMEOUT": "5s",
+			},
+			initialConfig: outbound.Configuration{},
+			wantTimeout:   5 * time.Second,
+		},
+		{
+			name: "configure timeout from env with raw milliseconds",
+			envVars: map[string]string{
+				"OFREP_TIMEOUT": "3000",
+			},
+			initialConfig: outbound.Configuration{},
+			wantTimeout:   3 * time.Second,
+		},
+		{
+			name: "configure timeout from env with invalid data",
+			envVars: map[string]string{
+				"OFREP_TIMEOUT": "s5s",
+			},
+			initialConfig: outbound.Configuration{Timeout: 33 * time.Second},
+			wantTimeout:   33 * time.Second,
+		},
+		{
+			name: "configure timeout from env with negative duration",
+			envVars: map[string]string{
+				"OFREP_TIMEOUT": "-5s",
+			},
+			initialConfig: outbound.Configuration{Timeout: 33 * time.Second},
+			wantTimeout:   33 * time.Second,
+		},
+		{
+			name: "configure timeout from env with negative milliseconds",
+			envVars: map[string]string{
+				"OFREP_TIMEOUT": "-5000",
+			},
+			initialConfig: outbound.Configuration{Timeout: 33 * time.Second},
+			wantTimeout:   33 * time.Second,
+		},
+		{
+			name: "ignore invalid timeout",
+			envVars: map[string]string{
+				"OFREP_TIMEOUT": "invalid",
+			},
+			initialConfig: outbound.Configuration{Timeout: 10 * time.Second},
+			wantTimeout:   10 * time.Second,
+		},
+		{
+			name: "configure custom headers from env",
+			envVars: map[string]string{
+				"OFREP_HEADERS": "X-Custom-1=Value1,X-Custom-2=Value2",
+			},
+			initialConfig: outbound.Configuration{},
+			wantHeaders: map[string]string{
+				"X-Custom-1": "Value1",
+				"X-Custom-2": "Value2",
+			},
+		},
+		{
+			name: "configure all options from env",
+			envVars: map[string]string{
+				"OFREP_ENDPOINT": "http://all.example.com",
+				"OFREP_TIMEOUT":  "3s",
+				"OFREP_HEADERS":  "X-Test=TestValue",
+			},
+			initialConfig: outbound.Configuration{},
+			wantBaseURI:   "http://all.example.com",
+			wantTimeout:   3 * time.Second,
+			wantHeaders: map[string]string{
+				"X-Test": "TestValue",
+			},
+		},
+		{
+			name: "empty env variables do not override defaults",
+			envVars: map[string]string{
+				"OFREP_ENDPOINT": "",
+				"OFREP_TIMEOUT":  "",
+			},
+			initialConfig: outbound.Configuration{
+				BaseURI: "http://default.example.com",
+				Timeout: 15 * time.Second,
+			},
+			wantBaseURI: "http://default.example.com",
+			wantTimeout: 15 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for key, value := range tt.envVars {
+				t.Setenv(key, value)
+			}
+
+			c := tt.initialConfig
+			WithFromEnv()(&c)
+
+			if tt.wantBaseURI != "" && c.BaseURI != tt.wantBaseURI {
+				t.Errorf("expected BaseURI %s, but got %s", tt.wantBaseURI, c.BaseURI)
+			}
+
+			if tt.wantTimeout != 0 && c.Timeout != tt.wantTimeout {
+				t.Errorf("expected Timeout %v, but got %v", tt.wantTimeout, c.Timeout)
+			}
+
+			actualHeaders := make(map[string]string)
+			for _, cb := range c.Callbacks {
+				k, v := cb()
+				actualHeaders[k] = v
+			}
+
+			if tt.wantHeaders != nil {
+				for expectedKey, expectedValue := range tt.wantHeaders {
+					if actualValue, ok := actualHeaders[expectedKey]; !ok {
+						t.Errorf("expected header %s not found", expectedKey)
+					} else if actualValue != expectedValue {
+						t.Errorf("expected %s=%s, but got %s=%s", expectedKey, expectedValue, expectedKey, actualValue)
+					}
+				}
+			}
+
+			if len(tt.wantHeaders) == 0 && len(actualHeaders) != 0 {
+				t.Errorf("expected no headers, but got %v", actualHeaders)
+			}
+		})
+	}
+}
