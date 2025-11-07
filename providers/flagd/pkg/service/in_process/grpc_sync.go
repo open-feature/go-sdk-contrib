@@ -115,13 +115,26 @@ func (g *Sync) Init(ctx context.Context) error {
 
 // createConnection creates and configures the gRPC connection
 func (g *Sync) createConnection() (*grpc.ClientConn, error) {
+
+	var grpcInterceptorDialOptions []grpc.DialOption
+	if g.Selector != "" {
+		grpcInterceptorDialOptions = append(grpcInterceptorDialOptions,
+			grpc.WithChainUnaryInterceptor(selectorUnaryInterceptor(g.Selector)),
+			grpc.WithChainStreamInterceptor(selectorStreamInterceptor(g.Selector)),
+		)
+	}
+
 	if len(g.GrpcDialOptionsOverride) > 0 {
 		g.Logger.Debug("using provided gRPC DialOptions override")
-		return grpc.NewClient(g.URI, g.GrpcDialOptionsOverride...)
+		dialOptions := make([]grpc.DialOption, len(g.GrpcDialOptionsOverride))
+		dialOptions = append(dialOptions, g.GrpcDialOptionsOverride...)
+		dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
+		return grpc.NewClient(g.URI, dialOptions...)
 	}
 
 	// Build standard dial options
 	dialOptions, err := g.buildDialOptions()
+	dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build dial options: %w", err)
 	}
