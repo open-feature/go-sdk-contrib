@@ -73,6 +73,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			CustomSyncProvider:      provider.providerConfiguration.CustomSyncProvider,
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
+			RetryGracePeriod:        provider.providerConfiguration.RetryGracePeriod,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
