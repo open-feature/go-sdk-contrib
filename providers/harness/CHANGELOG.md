@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.5-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/harness/v0.0.4-alpha...providers/harness/v0.0.5-alpha) (2025-10-29)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+* **deps:** update module github.com/harness/ff-golang-server-sdk to v0.1.17 ([#382](https://github.com/open-feature/go-sdk-contrib/issues/382)) ([6a3dfee](https://github.com/open-feature/go-sdk-contrib/commit/6a3dfee47f8b97ba15f0c2b5b70a86184a8559a6))
+* **deps:** update module github.com/harness/ff-golang-server-sdk to v0.1.24 ([#480](https://github.com/open-feature/go-sdk-contrib/issues/480)) ([1eb6dad](https://github.com/open-feature/go-sdk-contrib/commit/1eb6dad21b0cffd6da5ad881b19026f2f94b24d5))
+* **deps:** update module github.com/harness/ff-golang-server-sdk to v0.1.25 ([#592](https://github.com/open-feature/go-sdk-contrib/issues/592)) ([e3a4baa](https://github.com/open-feature/go-sdk-contrib/commit/e3a4baa93b5a3d219c689e0f38ca6dac2a4c10d4))
+* **deps:** update module github.com/jarcoal/httpmock to v1.4.0 ([#676](https://github.com/open-feature/go-sdk-contrib/issues/676)) ([d816d1d](https://github.com/open-feature/go-sdk-contrib/commit/d816d1d0562affa8033e6d263a66e777b41d9735))
+* **deps:** update module github.com/open-feature/go-sdk to v1.10.0 ([#469](https://github.com/open-feature/go-sdk-contrib/issues/469)) ([21810af](https://github.com/open-feature/go-sdk-contrib/commit/21810afc33fce9a3940ec9dc59e65f140fcbaa57))
+* **deps:** update module github.com/open-feature/go-sdk to v1.11.0 ([#501](https://github.com/open-feature/go-sdk-contrib/issues/501)) ([3f0eaa5](https://github.com/open-feature/go-sdk-contrib/commit/3f0eaa575500baa663dc24dbfc6cf8214565471f))
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+* **deps:** update module github.com/stretchr/testify to v1.10.0 ([#718](https://github.com/open-feature/go-sdk-contrib/issues/718)) ([d7963ff](https://github.com/open-feature/go-sdk-contrib/commit/d7963ff4f0a9bd25968efca31b92fdfd886a9e92))
+* **deps:** update module github.com/stretchr/testify to v1.9.0 ([#470](https://github.com/open-feature/go-sdk-contrib/issues/470)) ([5263567](https://github.com/open-feature/go-sdk-contrib/commit/52635679b633e01e23196885a4a98d3cecbc8822))
+* **security:** update vulnerability-updates [security] ([#724](https://github.com/open-feature/go-sdk-contrib/issues/724)) ([629a535](https://github.com/open-feature/go-sdk-contrib/commit/629a5351c2c4b8fed00522f7453d5545920ceaaf))
+
 ## [0.0.4-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/harness/v0.0.3-alpha...providers/harness/v0.0.4-alpha) (2024-01-05)
 
 

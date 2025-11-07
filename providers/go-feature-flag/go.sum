@@ -16,6 +16,8 @@ github.com/open-feature/go-sdk v1.15.1 h1:TC3FtHtOKlGlIbSf3SEpxXVhgTd/bCbuc39XHI
 github.com/open-feature/go-sdk v1.15.1/go.mod h1:2WAFYzt8rLYavcubpCoiym3iSCXiHdPB6DxtMkv2wyo=
 github.com/open-feature/go-sdk v1.16.0 h1:5NCHYv5slvNBIZhYXAzAufo0OI59OACZ5tczVqSE+Tg=
 github.com/open-feature/go-sdk v1.16.0/go.mod h1:EIF40QcoYT1VbQkMPy2ZJH4kvZeY+qGUXAorzSWgKSo=
+github.com/open-feature/go-sdk v1.17.0 h1:/OUBBw5d9D61JaNZZxb2Nnr5/EJrEpjtKCTY3rspJQk=
+github.com/open-feature/go-sdk v1.17.0/go.mod h1:lPxPSu1UnZ4E3dCxZi5gV3et2ACi8O8P+zsTGVsDZUw=
 github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.6 h1:WinefYxeVx5rV0uQmuWbxQf8iACu/JiRubo5w0saToc=
 github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.6/go.mod h1:Dwcaoma6lZVqYwyfVlY7eB6RXbG+Ju3b9cnpTlUN+Hc=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
@@ -25,6 +27,8 @@ github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZV
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
+github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.uber.org/mock v0.5.2 h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko=
 go.uber.org/mock v0.5.2/go.mod h1:wLlUxC2vVTPTaE3UD51E0BGOAElKrILxhVSDYQLld5o=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
