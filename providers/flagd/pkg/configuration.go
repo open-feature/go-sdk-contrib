@@ -3,15 +3,14 @@ package flagd
 import (
 	"errors"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
-
 	"github.com/go-logr/logr"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	"google.golang.org/grpc"
+	"os"
+	"strconv"
+	"strings"
 )
 
 type ResolverType string
@@ -26,6 +25,7 @@ const (
 	defaultCache                        = cache.LRUValue
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
+	defaultGracePeriod                  = 5
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -44,6 +44,7 @@ const (
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
 	flagdTargetUriEnvironmentVariableName             = "FLAGD_TARGET_URI"
+	flagdGracePeriodVariableName                      = "FLAGD_RETRY_GRACE_PERIOD"
 )
 
 type ProviderConfiguration struct {
@@ -64,6 +65,7 @@ type ProviderConfiguration struct {
 	CustomSyncProvider               sync.ISync
 	CustomSyncProviderUri            string
 	GrpcDialOptionsOverride          []grpc.DialOption
+	RetryGracePeriod                 int
 
 	log logr.Logger
 }
@@ -77,6 +79,7 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
+		RetryGracePeriod:                 defaultGracePeriod,
 	}
 
 	p.updateFromEnvVar()
@@ -223,6 +226,14 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 
 	if targetUri := os.Getenv(flagdTargetUriEnvironmentVariableName); targetUri != "" {
 		cfg.TargetUri = targetUri
+	}
+	if gracePeriod := os.Getenv(flagdGracePeriodVariableName); gracePeriod != "" {
+		if seconds, err := strconv.Atoi(gracePeriod); err == nil {
+			cfg.RetryGracePeriod = seconds
+		} else {
+			// Handle parsing error
+			cfg.log.Error(err, fmt.Sprintf("invalid grace period '%s'", gracePeriod))
+		}
 	}
 
 }
@@ -395,5 +406,12 @@ func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProvi
 func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.GrpcDialOptionsOverride = grpcDialOptionsOverride
+	}
+}
+
+// WithRetryGracePeriod allows to set a time window for the transition from stale to error state
+func WithRetryGracePeriod(gracePeriod int) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.RetryGracePeriod = gracePeriod
 	}
 }

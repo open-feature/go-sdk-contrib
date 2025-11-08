@@ -47,9 +47,9 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 		scenarioMutex.Lock()
 		defer scenarioMutex.Unlock()
 		if state, ok := ctx.Value(TestStateKey{}).(*TestState); ok {
+			state.clearEvents()
 			state.CleanupEnvironmentVariables()
 			state.cleanupProvider()
-			state.clearEvents()
 		}
 		return ctx, nil
 	})
@@ -95,11 +95,11 @@ func (s *TestState) cleanupProvider() {
 	if s.Provider != nil {
 		// Try to cast to common provider interfaces that might have shutdown methods
 		// This is defensive - not all providers will have explicit shutdown
-		go func() {
-			if shutdownable, ok := s.Provider.(interface{ Shutdown() }); ok {
-				shutdownable.Shutdown()
-			}
-		}()
+
+		if shutdownable, ok := s.Provider.(interface{ Shutdown() }); ok {
+			shutdownable.Shutdown()
+		}
+
 		s.Provider = nil
 	}
 }
