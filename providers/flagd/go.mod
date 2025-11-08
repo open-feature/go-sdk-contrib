@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.18.1-20250529171031-ebdc14163473.1
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.5.1-20250529171031-ebdc14163473.2
-	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.6-20250529171031-ebdc14163473.1
+	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.10-20250529171031-ebdc14163473.1
 	connectrpc.com/connect v1.18.1
 	connectrpc.com/otelconnect v0.7.2
 	github.com/cucumber/godog v0.15.1
