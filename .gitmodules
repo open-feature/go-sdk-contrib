@@ -4,3 +4,4 @@
 [submodule "providers/flagd/flagd-testbed"]
 	path = providers/flagd/flagd-testbed
 	url = https://github.com/open-feature/flagd-testbed.git
+	branch = v2.11.1
