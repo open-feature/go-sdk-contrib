@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/evaluate"
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
 	"github.com/open-feature/go-sdk/openfeature"
 )
+
+var _ openfeature.FeatureProvider = &Provider{}
 
 // Provider implementation for OFREP
 type Provider struct {
@@ -22,6 +25,7 @@ type Option func(*outbound.Configuration)
 func NewProvider(baseUri string, options ...Option) *Provider {
 	cfg := outbound.Configuration{
 		BaseURI: baseUri,
+		Timeout: 10 * time.Second,
 	}
 
 	for _, option := range options {
@@ -96,5 +100,29 @@ func WithApiKeyAuth(token string) func(*outbound.Configuration) {
 func WithClient(client *http.Client) func(configuration *outbound.Configuration) {
 	return func(configuration *outbound.Configuration) {
 		configuration.Client = client
+	}
+}
+
+// WithHeader allows to set a custom header
+func WithHeader(key, value string) func(*outbound.Configuration) {
+	return func(c *outbound.Configuration) {
+		c.Callbacks = append(c.Callbacks, func() (string, string) {
+			return key, value
+		})
+	}
+}
+
+// WithBaseURI allows to override the base URI of the OFREP service
+func WithBaseURI(baseURI string) func(*outbound.Configuration) {
+	return func(c *outbound.Configuration) {
+		c.BaseURI = baseURI
+	}
+}
+
+// WithTimeout allows to configure the timeout for the http client used for communication with the OFREP service.
+// This option is ignored if a custom client is provided via WithClient.
+func WithTimeout(timeout time.Duration) func(*outbound.Configuration) {
+	return func(c *outbound.Configuration) {
+		c.Timeout = timeout
 	}
 }

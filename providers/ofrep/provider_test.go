@@ -62,6 +62,42 @@ func TestConfigurations(t *testing.T) {
 			t.Errorf("expected value %s, but got %s", "TOKEN", v)
 		}
 	})
+
+	t.Run("validate custom header", func(t *testing.T) {
+		c := outbound.Configuration{}
+
+		WithHeader("X-Custom-Header", "CustomValue")(&c)
+
+		h, v := c.Callbacks[0]()
+
+		if h != "X-Custom-Header" {
+			t.Errorf("expected header %s, but got %s", "X-Custom-Header", h)
+		}
+
+		if v != "CustomValue" {
+			t.Errorf("expected value %s, but got %s", "CustomValue", v)
+		}
+	})
+
+	t.Run("validate base URI override", func(t *testing.T) {
+		c := outbound.Configuration{BaseURI: "http://initial.example.com"}
+
+		WithBaseURI("http://override.example.com")(&c)
+
+		if c.BaseURI != "http://override.example.com" {
+			t.Errorf("expected BaseURI %s, but got %s", "http://override.example.com", c.BaseURI)
+		}
+	})
+
+	t.Run("validate timeout configuration", func(t *testing.T) {
+		c := outbound.Configuration{}
+
+		WithTimeout(5 * time.Second)(&c)
+
+		if c.Timeout != 5*time.Second {
+			t.Errorf("expected Timeout %v, but got %v", 5*time.Second, c.Timeout)
+		}
+	})
 }
 
 func TestWiringE2E(t *testing.T) {
