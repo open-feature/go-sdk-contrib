@@ -78,6 +78,9 @@ func (vc *ValueConverter) ConvertToReflectValue(valueType, value string, fieldTy
 			panic(fmt.Errorf("failed to convert %s to long: %w", value, err))
 		}
 		return reflect.ValueOf(longVal).Convert(fieldType)
+	case "StringList":
+		arrayVal := strings.Split(value, ",")
+		return reflect.ValueOf(arrayVal).Convert(fieldType)
 	default:
 		return reflect.ValueOf(value).Convert(fieldType)
 	}

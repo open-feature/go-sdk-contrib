@@ -112,7 +112,7 @@ func setFlagMetadata(strategyUsed EvaluationStrategy, successProviderName string
 func cleanErrorMessage(msg string) string {
 	codeRegex := strings.Join([]string{
 		string(of.ProviderNotReadyCode),
-		// string(of.ProviderFatalCode), // TODO: not available until go-sdk 14
+		string(of.ProviderFatalCode),
 		string(of.FlagNotFoundCode),
 		string(of.ParseErrorCode),
 		string(of.TypeMismatchCode),
