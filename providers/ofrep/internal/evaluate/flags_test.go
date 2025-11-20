@@ -359,7 +359,7 @@ func genericValidator[T knownTypes](test testDefinition[T], resolvedValue T, rea
 		}
 
 		if !reflect.DeepEqual(test.defaultValue, resolvedValue) {
-			t.Errorf("expected deafault value %v, but got %v", test.defaultValue, resolvedValue)
+			t.Errorf("expected default value %v, but got %v", test.defaultValue, resolvedValue)
 		}
 
 		if reason != of.ErrorReason {
