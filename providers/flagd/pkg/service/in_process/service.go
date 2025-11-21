@@ -112,6 +112,9 @@ type Configuration struct {
 	GrpcDialOptionsOverride []googlegrpc.DialOption
 	CertificatePath         string
 	RetryGracePeriod        int
+	RetryBackOffMs          int
+	RetryBackOffMaxMs       int
+	FatalStatusCodes 	    []string
 }
 
 // EventSync interface for sync providers that support events
@@ -569,6 +572,10 @@ func createSyncProvider(cfg Configuration, log *logger.Logger) (isync.ISync, str
 		ProviderID:              cfg.ProviderID,
 		Selector:                cfg.Selector,
 		URI:                     uri,
+		RetryGracePeriod:        cfg.RetryGracePeriod,
+		RetryBackOffMs: 		 cfg.RetryBackOffMs,
+		RetryBackOffMaxMs: 		 cfg.RetryBackOffMaxMs,
+		FatalStatusCodes: 		 cfg.FatalStatusCodes,
 	}, uri
 }
 

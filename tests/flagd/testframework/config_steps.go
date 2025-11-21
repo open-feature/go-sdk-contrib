@@ -17,8 +17,6 @@ var ignoredOptions = []string{
 	"deadlineMs",
 	"streamDeadlineMs",
 	"keepAliveTime",
-	"retryBackoffMs",
-	"retryBackoffMaxMs",
 	"offlinePollIntervalMs",
 }
 
