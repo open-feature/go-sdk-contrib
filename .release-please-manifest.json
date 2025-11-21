@@ -18,5 +18,6 @@
     "providers/go-feature-flag-in-process": "0.1.2",
     "providers/multi-provider": "0.0.5",
     "tools/flagd-http-connector": "0.0.2",
-    "providers/rocketflag": "0.0.2"
+    "providers/rocketflag": "0.0.2",
+    "providers/aws-ssm": "1.0.0"
 }
