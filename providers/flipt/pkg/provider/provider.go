@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service/transport"
@@ -25,10 +26,18 @@ type Config struct {
 	TokenProvider   sdk.ClientTokenProvider
 	Namespace       string
 	GRPCDialOptions []grpc.DialOption
+	httpClient      *http.Client
 }
 
 // Option is a configuration option for the provider.
 type Option func(*Provider)
+
+// WithHTTPClient returns an [Option] that specifies the HTTP client to use as the basis of communications.
+func WithHTTPClient(client *http.Client) Option {
+	return func(p *Provider) {
+		p.config.httpClient = client
+	}
+}
 
 // WithAddress sets the address for the remote Flipt gRPC or HTTP API.
 func WithAddress(address string) Option {
@@ -86,6 +95,7 @@ func NewProvider(opts ...Option) *Provider {
 		Address:         "http://localhost:8080",
 		Namespace:       "default",
 		GRPCDialOptions: []grpc.DialOption{},
+		httpClient:      transport.DefaultClient,
 	}}
 
 	for _, opt := range opts {
@@ -93,7 +103,11 @@ func NewProvider(opts ...Option) *Provider {
 	}
 
 	if p.svc == nil {
-		topts := []transport.Option{transport.WithAddress(p.config.Address), transport.WithCertificatePath(p.config.CertificatePath)}
+		topts := []transport.Option{
+			transport.WithAddress(p.config.Address),
+			transport.WithHTTPClient(p.config.httpClient),
+			transport.WithCertificatePath(p.config.CertificatePath),
+		}
 		if p.config.TokenProvider != nil {
 			topts = append(topts, transport.WithClientTokenProvider(p.config.TokenProvider))
 		}
