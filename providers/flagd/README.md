@@ -189,6 +189,25 @@ The flagd provider currently support following flag evaluation metadata,
 | `scope`      | string | "selector" set for the associated source in flagd   |
 | `providerID` | string | "providerID" set for the associated source in flagd |
 
+## Selector Handling
+
+When using the in-process resolver with a gRPC sync source, the provider supports filtering flag configurations using a selector. The selector can be configured using the `WithSelector` option or the `FLAGD_SOURCE_SELECTOR` environment variable.
+
+### Header-based Selector (Recommended)
+
+The provider now sends the selector as a `flagd-selector` gRPC metadata header when communicating with flagd sync services. This approach is consistent with how selectors are handled across all flagd services (sync, evaluation, and OFREP).
+
+```go
+provider, err := flagd.NewProvider(
+    flagd.WithInProcessResolver(),
+    flagd.WithSelector("source=database,app=myapp"),
+)
+```
+
+### Backward Compatibility
+
+For backward compatibility with older flagd versions, the provider continues to include the selector in the gRPC request fields alongside the header. This dual approach ensures compatibility during the migration period until all flagd instances are updated.
+
 ## Logging
 
 If not configured, logging falls back to the standard Go log package at error level only.
