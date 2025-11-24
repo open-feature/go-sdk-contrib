@@ -3,11 +3,12 @@ package otel
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -44,7 +45,7 @@ func NewTracesHook(opts ...Options) *traceHook {
 func (h *traceHook) Finally(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) {
 	attrs := eventAttributes(hookContext, flagEvaluationDetails)
 	if h.attributeMapperCallback != nil {
-		attrs = append(attrs, h.attributeMapperCallback(flagEvaluationDetails.FlagMetadata)...)
+		attrs = slices.Concat(attrs, h.attributeMapperCallback(flagEvaluationDetails.FlagMetadata))
 	}
 	trace.SpanFromContext(ctx).AddEvent(EventName, trace.WithAttributes(attrs...))
 }

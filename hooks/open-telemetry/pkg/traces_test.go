@@ -2,7 +2,6 @@ package otel
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"slices"
 	"testing"
@@ -12,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 )
 
 func TestTracesHook_Finally(t *testing.T) {
@@ -111,7 +110,7 @@ func TestTracesHook_Finally(t *testing.T) {
 					t.Errorf("missing %s attribute", expKey)
 				}
 				if val != expValue {
-					t.Errorf("unexpected %s attribute value: expected %s, got: %s", expKey, expValue, val)
+					t.Errorf("unexpected %s attribute value: want %s, got: %s", expKey, expValue, val)
 				}
 			}
 		})
@@ -160,19 +159,19 @@ func TestTracesHook_MetadataExtractionOption(t *testing.T) {
 				switch string(attribute.Key) {
 				case scopeKey:
 					if attribute.Value.AsString() != scopeValue {
-						t.Errorf("expected %s, got type %s", scopeValue, attribute.Value.Type().String())
+						t.Errorf("want %s, got type %s", scopeValue, attribute.Value.Type().String())
 					}
 				case stageKey:
 					if attribute.Value.AsInt64() != int64(stageValue) {
-						t.Errorf("expected %d, got type %s", stageValue, attribute.Value.Type().String())
+						t.Errorf("want %d, got type %s", stageValue, attribute.Value.Type().String())
 					}
 				case scoreKey:
 					if attribute.Value.AsFloat64() != scoreValue {
-						t.Errorf("expected %f, got type %s", scoreValue, attribute.Value.Type().String())
+						t.Errorf("want %f, got type %s", scoreValue, attribute.Value.Type().String())
 					}
 				case cachedKey:
 					if attribute.Value.AsBool() != cacheValue {
-						t.Errorf("expected %t, got type %s", cacheValue, attribute.Value.Type().String())
+						t.Errorf("want %t, got type %s", cacheValue, attribute.Value.Type().String())
 					}
 				}
 			}
