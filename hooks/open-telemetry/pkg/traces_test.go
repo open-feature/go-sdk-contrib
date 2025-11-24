@@ -234,7 +234,7 @@ func TestTracesHook_ResultValueTypes(t *testing.T) {
 
 			attrs := extractAttributes(t, exp)
 			found := slices.ContainsFunc(attrs, func(attr attribute.KeyValue) bool {
-				return attr.Key == semconv.FeatureFlagResultValueKey && fmt.Sprint(attr.Value.Emit()) == tt.expected
+				return attr.Key == semconv.FeatureFlagResultValueKey && attr.Value.Emit() == tt.expected
 			})
 			if !found {
 				t.Error("expected feature_flag.result.value attribute to be set")
