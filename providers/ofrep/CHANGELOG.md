@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.6...providers/ofrep/v0.1.7) (2025-11-18)
+
+
+### ✨ New Features
+
+* **ofrep:** add header, base URI, and timeout options ([#794](https://github.com/open-feature/go-sdk-contrib/issues/794)) ([058f837](https://github.com/open-feature/go-sdk-contrib/commit/058f83795e36dc72286daa118c768329855702ba))
+
 ## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/ofrep/v0.1.5...providers/ofrep/v0.1.6) (2025-06-19)
 
 
