@@ -3,6 +3,7 @@ package flipt
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"testing"
 
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -671,4 +672,10 @@ func TestObjectEvaluation(t *testing.T) {
 			assert.Equal(t, tt.expected.Value, actual.Value)
 		})
 	}
+}
+
+func TestWithHTTPClientOption(t *testing.T) {
+	client := &http.Client{}
+	p := NewProvider(WithHTTPClient(client))
+	assert.Equal(t, client, p.config.httpClient)
 }
