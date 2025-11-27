@@ -84,6 +84,7 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 defaultGracePeriod,
+		FatalStatusCodes:                 strings.Split(defaultFatalStatusCodes, ","),
 	}
 
 	p.updateFromEnvVar()
@@ -212,12 +213,7 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	if targetUri := os.Getenv(flagdTargetUriEnvironmentVariableName); targetUri != "" {
 		cfg.TargetUri = targetUri
 	}
-	if gracePeriod := os.Getenv(flagdGracePeriodVariableName); gracePeriod != "" {
-		if seconds, err := strconv.Atoi(gracePeriod); err == nil {
-			cfg.RetryGracePeriod = seconds
-			cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
-		}
-	}
+	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
