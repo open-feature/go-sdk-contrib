@@ -254,18 +254,15 @@ func getIntFromEnvVarOrDefault(envVarName string, defaultValue int, log logr.Log
 func (cfg *ProviderConfiguration) updatePortFromEnvVar() {
 	var portS string
 	var envVarName string
+	var portS string
+	var envVarName string
 
 	if cfg.Resolver == inProcess {
-		// For in-process resolver, FLAGD_SYNC_PORT takes priority over FLAGD_PORT
 		portS = os.Getenv(flagdSyncPortEnvironmentVariableName)
 		envVarName = flagdSyncPortEnvironmentVariableName
-		if portS == "" {
-			// Fall back to FLAGD_PORT for backwards compatibility
-			portS = os.Getenv(flagdPortEnvironmentVariableName)
-			envVarName = flagdPortEnvironmentVariableName
-		}
-	} else {
-		// For rpc resolver, use FLAGD_PORT
+	}
+
+	if portS == "" {
 		portS = os.Getenv(flagdPortEnvironmentVariableName)
 		envVarName = flagdPortEnvironmentVariableName
 	}
