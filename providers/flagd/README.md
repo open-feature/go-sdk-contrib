@@ -95,7 +95,7 @@ Configuration can be provided as constructor options or as environment variables
 | Option name                                              | Environment variable name      | Type & supported value      | Default   | Compatible resolver |
 |----------------------------------------------------------|--------------------------------|-----------------------------|-----------|---------------------|
 | WithHost                                                 | FLAGD_HOST                     | string                      | localhost | rpc & in-process    |
-| WithPort                                                 | FLAGD_PORT, FLAGD_SYNC_PORT    | number                      | 8013 (rpc), 8015 (in-process) | rpc & in-process    |
+| WithPort                                                 | FLAGD_PORT (rpc), FLAGD_SYNC_PORT or FLAGD_PORT (in-process) | number | 8013 (rpc), 8015 (in-process) | rpc & in-process |
 | WithTargetUri                                            | FLAGD_TARGET_URI               | string                      | ""        | in-process          |
 | WithTLS                                                  | FLAGD_TLS                      | boolean                     | false     | rpc & in-process    |
 | WithSocketPath                                           | FLAGD_SOCKET_PATH              | string                      | ""        | rpc & in-process    |
