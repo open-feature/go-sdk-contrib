@@ -38,6 +38,9 @@ type Sync struct {
 	Selector                string
 	URI                     string
 	MaxMsgSize              int
+	RetryGracePeriod        int
+	RetryBackOffMs          int
+	RetryBackOffMaxMs       int
 	FatalStatusCodes        []string
 
 	// Runtime state
@@ -190,6 +193,9 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 					}
 				}
 			}
+
+			// Backoff before retrying
+			time.Sleep(time.Duration(g.RetryBackOffMaxMs) * time.Millisecond)
 
 			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
 			g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
