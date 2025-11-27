@@ -140,10 +140,9 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 	}
 
 	inProcessService := NewInProcessService(Configuration{
-		TargetUri:         "envoy://localhost:9211/foo.service",
-		Selector:          scope,
-		TLSEnabled:        false,
-		RetryBackOffMaxMs: 5000,
+		TargetUri:  "envoy://localhost:9211/foo.service",
+		Selector:   scope,
+		TLSEnabled: false,RetryBackOffMaxMs: 5000,
 		RetryBackOffMs:    1000,
 	})
 
