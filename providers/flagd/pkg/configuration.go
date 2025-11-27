@@ -234,8 +234,6 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 func (cfg *ProviderConfiguration) updatePortFromEnvVar() {
 	var portS string
 	var envVarName string
-	var portS string
-	var envVarName string
 
 	if cfg.Resolver == inProcess {
 		portS = os.Getenv(flagdSyncPortEnvironmentVariableName)
