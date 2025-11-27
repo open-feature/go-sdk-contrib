@@ -138,7 +138,7 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 	}
 
 	inProcessService := NewInProcessService(Configuration{
-		TargetUri: "envoy://localhost:9211/foo.service",
+		TargetUri:  "envoy://localhost:9211/foo.service",
 		Selector:   scope,
 		TLSEnabled: false,
 	})
@@ -200,7 +200,6 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
 }
-
 
 // bufferedServer - a mock grpc service backed by buffered connection
 type bufferedServer struct {
