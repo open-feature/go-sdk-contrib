@@ -12,52 +12,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 	msync "sync"
 	"time"
 )
 
-const (
-	// Default timeouts and retry intervals
-	defaultKeepaliveTime    = 30 * time.Second
-	defaultKeepaliveTimeout = 5 * time.Second
-
-	retryPolicy = `{
-		  "methodConfig": [
-			{
-			  "name": [
-				{
-				  "service": "flagd.sync.v1.FlagSyncService"
-				}
-			  ],
-			  "retryPolicy": {
-				"MaxAttempts": 3,
-				"InitialBackoff": "1s",
-				"MaxBackoff": "5s",
-				"BackoffMultiplier": 2.0,
-				"RetryableStatusCodes": [
-				  "CANCELLED",
-				  "UNKNOWN",
-				  "INVALID_ARGUMENT",
-				  "NOT_FOUND",
-				  "ALREADY_EXISTS",
-				  "PERMISSION_DENIED",
-				  "RESOURCE_EXHAUSTED",
-				  "FAILED_PRECONDITION",
-				  "ABORTED",
-				  "OUT_OF_RANGE",
-				  "UNIMPLEMENTED",
-				  "INTERNAL",
-				  "UNAVAILABLE",
-				  "DATA_LOSS",
-				  "UNAUTHENTICATED"
-				]
-			  }
-			}
-		  ]
-		}`
-)
-
-// Type aliases for interfaces required by this component - needed for mock generation with gomock
+// FlagSyncServiceClient Type aliases for interfaces required by this component - needed for mock generation with gomock
 type FlagSyncServiceClient interface {
 	syncv1grpc.FlagSyncServiceClient
 }
@@ -78,6 +38,7 @@ type Sync struct {
 	Selector                string
 	URI                     string
 	MaxMsgSize              int
+	FatalStatusCodes        []string
 
 	// Runtime state
 	client           FlagSyncServiceClient
@@ -92,6 +53,7 @@ type Sync struct {
 // Init initializes the gRPC connection and starts background monitoring
 func (g *Sync) Init(ctx context.Context) error {
 	g.Logger.Info(fmt.Sprintf("initializing gRPC client for %s", g.URI))
+	g.initNonRetryableStatusCodesSet()
 
 	// Initialize channels
 	g.shutdownComplete = make(chan struct{})
@@ -155,7 +117,7 @@ func (g *Sync) buildDialOptions() ([]grpc.DialOption, error) {
 	}
 	dialOptions = append(dialOptions, grpc.WithKeepaliveParams(keepaliveParams))
 
-	dialOptions = append(dialOptions, grpc.WithDefaultServiceConfig(retryPolicy))
+	dialOptions = append(dialOptions, grpc.WithDefaultServiceConfig(g.buildRetryPolicy()))
 
 	return dialOptions, nil
 }
@@ -213,6 +175,22 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 				return ctx.Err()
 			}
 
+			// check for non-retryable errors during initialization, if found return with FATAL
+			if !g.IsReady() {
+				st, ok := status.FromError(err)
+				if ok {
+					if _, found := nonRetryableCodes[st.Code()]; found {
+						errStr := fmt.Sprintf("first sync cycle failed with non-retryable status: %v, "+
+							"returning provider fatal.", st.Code().String())
+						g.Logger.Error(errStr)
+						return &of.ProviderInitError{
+							ErrorCode: of.ProviderFatalCode,
+							Message:   errStr,
+						}
+					}
+				}
+			}
+
 			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
 			g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
 
@@ -248,12 +226,6 @@ func (g *Sync) performSyncCycle(ctx context.Context, dataSync chan<- sync.DataSy
 
 // handleFlagSync processes messages from the sync stream with proper context handling
 func (g *Sync) handleFlagSync(ctx context.Context, stream syncv1grpc.FlagSyncService_SyncFlagsClient, dataSync chan<- sync.DataSync) error {
-	// Mark as ready on first successful stream
-	g.initializer.Do(func() {
-		g.ready = true
-		g.Logger.Info("sync service is now ready")
-	})
-
 	// Create channels for stream communication
 	streamChan := make(chan *v1.SyncFlagsResponse, 1)
 	errChan := make(chan error, 1)
@@ -293,6 +265,11 @@ func (g *Sync) handleFlagSync(ctx context.Context, stream syncv1grpc.FlagSyncSer
 				return err
 			}
 
+			// Mark as ready on first successful stream
+			g.initializer.Do(func() {
+				g.ready = true
+				g.Logger.Info("sync service is now ready")
+			})
 		case err := <-errChan:
 			return fmt.Errorf("stream error: %w", err)
 

@@ -278,7 +278,12 @@ func (tr *TestbedRunner) buildProviderOptions(state TestState, resolverType Prov
 				})
 				break
 			}
-
+		}
+		if option.Option == "port" {
+			if option.Value == "9212" {
+				option.Value = strconv.Itoa(tr.container.forbiddenPort)
+				state.ProviderOptions[i] = option
+			}
 		}
 	}
 	opts = append(opts, state.GenerateOpts()...)
