@@ -112,8 +112,6 @@ type Configuration struct {
 	GrpcDialOptionsOverride []googlegrpc.DialOption
 	CertificatePath         string
 	RetryGracePeriod        int
-	RetryBackOffMs          int
-	RetryBackOffMaxMs       int
 	FatalStatusCodes        []string
 }
 
