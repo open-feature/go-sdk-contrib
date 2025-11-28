@@ -111,7 +111,10 @@ func NewProviderConfiguration(opts []ProviderOption) (*ProviderConfiguration, er
 		opt(providerConfiguration)
 	}
 
+	providerConfiguration.updatePortFromEnvVar()
+
 	configureProviderConfiguration(providerConfiguration)
+
 	err := validateProviderConfiguration(providerConfiguration)
 
 	return providerConfiguration, err
@@ -191,9 +194,6 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 		}
 	}
 
-	// Parse port after resolver is known to handle FLAGD_SYNC_PORT for in-process resolver
-	cfg.updatePortFromEnvVar()
-
 	if offlinePath := os.Getenv(flagdOfflinePathEnvironmentVariableName); offlinePath != "" {
 		cfg.OfflineFlagSourcePath = offlinePath
 	}
@@ -252,6 +252,10 @@ func getIntFromEnvVarOrDefault(envVarName string, defaultValue int, log logr.Log
 // For in-process resolver, FLAGD_SYNC_PORT takes priority over FLAGD_PORT (backwards compatibility).
 // For rpc resolver, only FLAGD_PORT is used.
 func (cfg *ProviderConfiguration) updatePortFromEnvVar() {
+	if cfg.Port != 0 {
+		// Port is already set, no need to update from env var
+		return
+	}
 	var portS string
 	var envVarName string
 
