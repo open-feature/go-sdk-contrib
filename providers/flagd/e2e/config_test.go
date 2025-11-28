@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/cucumber/godog"
@@ -19,20 +20,16 @@ type configTestCase struct {
 func TestConfiguration(t *testing.T) {
 	testCases := []configTestCase{
 		{
-			name: "All",
-			tags: "",
-		},
-		{
 			name: "RPC",
-			tags: "@rpc",
+			tags: "@rpc && ~@forbidden",
 		},
 		{
 			name: "InProcess",
-			tags: "@in-process",
+			tags: "@in-process && ~@forbidden",
 		},
 		{
 			name: "File",
-			tags: "@file",
+			tags: "@file && ~@forbidden",
 		},
 	}
 
@@ -44,6 +41,12 @@ func TestConfiguration(t *testing.T) {
 
 					testframework.InitializeConfigScenario(sc)
 					sc.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
+						options := make([]testframework.ProviderOption, 1)
+						options[0] = testframework.ProviderOption{
+							Option:    "resolver",
+							ValueType: "string",
+							Value:     strings.ToLower(tc.name),
+						}
 						state := &testframework.TestState{
 							EnvVars:      make(map[string]string),
 							EvalContext:  make(map[string]interface{}),
