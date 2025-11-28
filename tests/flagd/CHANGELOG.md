@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.5.1...tests/flagd/v1.6.0) (2025-11-27)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/docker/compose/v2 to v2.40.2 [security] ([#785](https://github.com/open-feature/go-sdk-contrib/issues/785)) ([805823f](https://github.com/open-feature/go-sdk-contrib/commit/805823f5ded2d81359fd7663804beb50f30d52f7))
+
+
+### ✨ New Features
+
+* **flagd:** add eventing with graceperiod for inprocess resolver ([#744](https://github.com/open-feature/go-sdk-contrib/issues/744)) ([a9fabb6](https://github.com/open-feature/go-sdk-contrib/commit/a9fabb623d22b6a1ef888722ffe68686031309b8))
+
 ## [1.5.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.5.0...tests/flagd/v1.5.1) (2025-10-30)
 
 
