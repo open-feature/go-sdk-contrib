@@ -573,6 +573,8 @@ func createSyncProvider(cfg Configuration, log *logger.Logger) (isync.ISync, str
 		Selector:                cfg.Selector,
 		URI:                     uri,
 		FatalStatusCodes:        cfg.FatalStatusCodes,
+		RetryBackOffMaxMs: 		 cfg.RetryBackOffMaxMs,
+		RetryBackOffMs: 		 cfg.RetryBackOffMs,
 	}, uri
 }
 

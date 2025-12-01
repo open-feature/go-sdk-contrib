@@ -1,10 +1,13 @@
 package process
 
 import (
-	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
 	"fmt"
+	msync "sync"
+	"time"
+
+	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	grpccredential "github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
@@ -13,8 +16,6 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
-	msync "sync"
-	"time"
 )
 
 // FlagSyncServiceClient Type aliases for interfaces required by this component - needed for mock generation with gomock
@@ -193,16 +194,15 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 					}
 				}
 			}
-
-			// Backoff before retrying
-			time.Sleep(time.Duration(g.RetryBackOffMaxMs) * time.Millisecond)
-
-			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
 			g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
 
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
+
+			// Backoff before retrying
+			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying after %d backoff...", err, g.RetryBackOffMaxMs))
+			time.Sleep(time.Duration(g.RetryBackOffMaxMs) * time.Millisecond)
 		}
 	}
 }
