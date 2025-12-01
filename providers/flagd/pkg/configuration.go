@@ -84,7 +84,6 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 defaultGracePeriod,
-		FatalStatusCodes:                 strings.Split(defaultFatalStatusCodes, ","),
 	}
 
 	p.updateFromEnvVar()
