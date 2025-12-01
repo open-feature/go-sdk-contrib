@@ -84,7 +84,6 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 defaultGracePeriod,
-		FatalStatusCodes:                 strings.Split(defaultFatalStatusCodes, ","),
 	}
 
 	p.updateFromEnvVar()
@@ -220,7 +219,15 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 		}
 	}
 
-	if fatalStatusCodes := os.Getenv(flagdFatalStatusCodesVariableName); fatalStatusCodes != "" {
+	var fatalStatusCodes string
+	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
+		fatalStatusCodes = envVal
+	} else {
+		fatalStatusCodes = defaultFatalStatusCodes
+	}
+	if fatalStatusCodes == "" {
+		cfg.FatalStatusCodes = []string{}
+	} else {
 		fatalStatusCodesArr := strings.Split(fatalStatusCodes, ",")
 		for i, fatalStatusCode := range fatalStatusCodesArr {
 			fatalStatusCodesArr[i] = strings.TrimSpace(fatalStatusCode)
