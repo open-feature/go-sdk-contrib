@@ -13,82 +13,94 @@ import (
 
 func main() {
 	ctx := context.Background()
+
+	// Required: Optimizely SDK key
 	sdkKey := os.Getenv("OPTIMIZELY_SDK_KEY")
 	if sdkKey == "" {
 		fmt.Println("OPTIMIZELY_SDK_KEY environment variable is required")
 		os.Exit(1)
 	}
 
+	// Optional: customize flag key and user ID
+	flagKey := os.Getenv("FLAG_KEY")
+	if flagKey == "" {
+		flagKey = "my_flag"
+	}
+	userID := os.Getenv("USER_ID")
+	if userID == "" {
+		userID = "user_123"
+	}
+
+	// Create Optimizely client
 	optimizelyClient, err := (&client.OptimizelyFactory{
 		SDKKey: sdkKey,
 	}).Client()
 	if err != nil {
-		panic(err)
+		fmt.Printf("failed to create Optimizely client: %v\n", err)
+		os.Exit(1)
 	}
 
+	// Set up OpenFeature with the Optimizely provider
 	provider := optimizely.NewProvider(optimizelyClient)
 	err = openfeature.SetProviderAndWait(provider)
 	if err != nil {
-		panic(err)
+		fmt.Printf("failed to set provider: %v\n", err)
+		os.Exit(1)
 	}
 	defer openfeature.Shutdown()
 
 	ofClient := openfeature.NewClient("my-app")
+	evalCtx := openfeature.NewEvaluationContext(userID, nil)
 
-	const newConst = "user_123"
+	fmt.Printf("Testing flag: %s (user: %s)\n\n", flagKey, userID)
 
 	// Boolean evaluation
-	boolCtx := openfeature.NewEvaluationContext(newConst, map[string]any{
-		"variableKey": "boolean_variable",
-	})
-	boolValue, err := ofClient.BooleanValue(ctx, "flag", false, boolCtx)
+	// Use for: flags with 0 variables (returns enabled state) OR flags with 1 bool variable
+	fmt.Println("=== BooleanEvaluation ===")
+	boolResult, err := ofClient.BooleanValueDetails(ctx, flagKey, false, evalCtx)
 	if err != nil {
-		fmt.Printf("boolean evaluation error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("boolean value: %v\n", boolValue)
+		fmt.Printf("Value: %v, Reason: %s, Variant: %s\n", boolResult.Value, boolResult.Reason, boolResult.Variant)
 	}
 
 	// String evaluation
-	stringCtx := openfeature.NewEvaluationContext(newConst, map[string]any{
-		"variableKey": "string_variable",
-	})
-	stringValue, err := ofClient.StringValue(ctx, "flag", "default", stringCtx)
+	// Use for: flags with 1 string variable
+	fmt.Println("\n=== StringEvaluation ===")
+	stringResult, err := ofClient.StringValueDetails(ctx, flagKey, "default", evalCtx)
 	if err != nil {
-		fmt.Printf("string evaluation error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("string value: %s\n", stringValue)
+		fmt.Printf("Value: %s, Reason: %s, Variant: %s\n", stringResult.Value, stringResult.Reason, stringResult.Variant)
 	}
 
-	// Int evaluation with custom variableKey
-	intCtx := openfeature.NewEvaluationContext(newConst, map[string]any{
-		"variableKey": "integer_variable",
-	})
-	intValue, err := ofClient.IntValue(ctx, "flag", 10, intCtx)
+	// Int evaluation
+	// Use for: flags with 1 integer variable
+	fmt.Println("\n=== IntEvaluation ===")
+	intResult, err := ofClient.IntValueDetails(ctx, flagKey, 0, evalCtx)
 	if err != nil {
-		fmt.Printf("int evaluation error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("int value: %d\n", intValue)
+		fmt.Printf("Value: %d, Reason: %s, Variant: %s\n", intResult.Value, intResult.Reason, intResult.Variant)
 	}
 
-	// Float evaluation with custom variableKey
-	floatCtx := openfeature.NewEvaluationContext(newConst, map[string]any{
-		"variableKey": "double_variable",
-	})
-	floatValue, err := ofClient.FloatValue(ctx, "flag", 0.0, floatCtx)
+	// Float evaluation
+	// Use for: flags with 1 double variable
+	fmt.Println("\n=== FloatEvaluation ===")
+	floatResult, err := ofClient.FloatValueDetails(ctx, flagKey, 0.0, evalCtx)
 	if err != nil {
-		fmt.Printf("float evaluation error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("float value: %.2f\n", floatValue)
+		fmt.Printf("Value: %.2f, Reason: %s, Variant: %s\n", floatResult.Value, floatResult.Reason, floatResult.Variant)
 	}
 
-	// Object evaluation with custom variableKey
-	objectCtx := openfeature.NewEvaluationContext(newConst, map[string]any{
-		"variableKey": "json_variable",
-	})
-	objectValue, err := ofClient.ObjectValue(ctx, "flag", map[string]any{}, objectCtx)
+	// Object evaluation
+	// Use for: flags with 1 variable (returns single value) OR flags with multiple variables (returns map)
+	fmt.Println("\n=== ObjectEvaluation ===")
+	objectResult, err := ofClient.ObjectValueDetails(ctx, flagKey, nil, evalCtx)
 	if err != nil {
-		fmt.Printf("object evaluation error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("object value: %v\n", objectValue)
+		fmt.Printf("Value: %v, Reason: %s, Variant: %s\n", objectResult.Value, objectResult.Reason, objectResult.Variant)
 	}
 }

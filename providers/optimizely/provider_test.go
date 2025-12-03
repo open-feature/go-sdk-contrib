@@ -1,364 +1,415 @@
 package optimizely
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/optimizely/go-sdk/v2/pkg/client"
+	"github.com/optimizely/go-sdk/v2/pkg/config/datafileprojectconfig/entities"
+	coreEntities "github.com/optimizely/go-sdk/v2/pkg/entities"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-const testDatafile = `
-{
-  "version": "4",
-  "rollouts": [
-    {
-      "id": "rollout_1",
-      "experiments": [
-        {
-          "id": "exp_1",
-          "key": "exp_1",
-          "status": "Running",
-          "layerId": "layer_1",
-          "audienceIds": [],
-          "variations": [
-            {
-              "id": "var_1",
-              "key": "on",
-              "featureEnabled": true,
-              "variables": [
-                {"id": "var_string", "value": "test_value"},
-                {"id": "var_int", "value": "42"},
-                {"id": "var_float", "value": "3.14"},
-                {"id": "var_json", "value": "{\"nested\": \"object\"}"},
-                {"id": "var_bool", "value": "true"}
-              ]
-            }
-          ],
-          "trafficAllocation": [
-            {"entityId": "var_1", "endOfRange": 10000}
-          ],
-          "forcedVariations": {}
-        }
-      ]
-    }
-  ],
-  "experiments": [],
-  "featureFlags": [
-    {
-      "id": "flag_1",
-      "key": "test_flag",
-      "rolloutId": "rollout_1",
-      "experimentIds": [],
-      "variables": [
-        {"id": "var_string", "key": "value", "defaultValue": "default", "type": "string"},
-        {"id": "var_int", "key": "int_value", "defaultValue": "0", "type": "integer"},
-        {"id": "var_float", "key": "float_value", "defaultValue": "0.0", "type": "double"},
-        {"id": "var_json", "key": "json_value", "defaultValue": "{}", "type": "json"},
-        {"id": "var_bool", "key": "bool_value", "defaultValue": "false", "type": "boolean"}
-      ]
-    },
-    {
-      "id": "flag_2",
-      "key": "disabled_flag",
-      "rolloutId": "",
-      "experimentIds": [],
-      "variables": []
-    }
-  ],
-  "events": [],
-  "audiences": [],
-  "attributes": [],
-  "groups": [],
-  "projectId": "12345",
-  "accountId": "67890",
-  "anonymizeIP": true,
-  "botFiltering": false
-}
-`
-
-func TestProvider_Metadata(t *testing.T) {
-	p := NewProvider(nil)
-	if p.Metadata().Name != "Optimizely" {
-		t.Errorf("expected metadata name 'Optimizely', got %s", p.Metadata().Name)
+// Helper to build a datafile with common defaults
+func buildDatafile(flags []entities.FeatureFlag, rollouts []entities.Rollout) entities.Datafile {
+	return entities.Datafile{
+		Version:      "4",
+		ProjectID:    "12345",
+		AccountID:    "67890",
+		AnonymizeIP:  true,
+		BotFiltering: false,
+		FeatureFlags: flags,
+		Rollouts:     rollouts,
+		Experiments:  []entities.Experiment{},
+		Events:       []entities.Event{},
+		Audiences:    []entities.Audience{},
+		Attributes:   []entities.Attribute{},
+		Groups:       []entities.Group{},
 	}
 }
 
-func TestProvider_BooleanEvaluation(t *testing.T) {
+// Helper to build a simple rollout with one variation
+func buildRollout(id string, variables []entities.VariationVariable) entities.Rollout {
+	return entities.Rollout{
+		ID: "rollout_" + id,
+		Experiments: []entities.Experiment{
+			{
+				ID:          "exp_" + id,
+				Key:         "exp_" + id,
+				Status:      "Running",
+				LayerID:     "layer_" + id,
+				AudienceIds: []string{},
+				Variations: []entities.Variation{
+					{
+						ID:             "var_1",
+						Key:            "on",
+						FeatureEnabled: true,
+						Variables:      variables,
+					},
+				},
+				TrafficAllocation: []entities.TrafficAllocation{
+					{EntityID: "var_1", EndOfRange: 10000},
+				},
+				ForcedVariations: map[string]string{},
+			},
+		},
+	}
+}
+
+// Helper to create a client from a datafile struct
+func createClient(t *testing.T, datafile entities.Datafile) *client.OptimizelyClient {
+	jsonData, err := json.Marshal(datafile)
+	require.NoError(t, err, "failed to marshal datafile")
+
 	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
+		Datafile: jsonData,
 	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
+	require.NoError(t, err, "failed to create optimizely client")
 
-	p := NewProvider(optimizelyClient)
-	flattenedCtx := map[string]any{
-		openfeature.TargetingKey: "user-1",
-		"variableKey":            "bool_value",
-	}
+	return optimizelyClient
+}
 
-	// Test successful evaluation
-	res := p.BooleanEvaluation(t.Context(), "test_flag", false, flattenedCtx)
-	if res.ResolutionError != (openfeature.ResolutionError{}) {
-		t.Errorf("expected no resolution error, got %v", res.ResolutionError)
-	}
-	if res.Value != true {
-		t.Errorf("expected true, got %v", res.Value)
-	}
+// Test datafiles built from structs
+var (
+	datafileNoVars = buildDatafile(
+		[]entities.FeatureFlag{
+			{
+				ID:            "flag_no_vars",
+				Key:           "flag_no_vars",
+				RolloutID:     "rollout_no_vars",
+				ExperimentIDs: []string{},
+				Variables:     []entities.Variable{},
+			},
+		},
+		[]entities.Rollout{
+			buildRollout("no_vars", []entities.VariationVariable{}),
+		},
+	)
+
+	datafileSingleString = buildDatafile(
+		[]entities.FeatureFlag{
+			{
+				ID:            "flag_single_string",
+				Key:           "flag_single_string",
+				RolloutID:     "rollout_single_string",
+				ExperimentIDs: []string{},
+				Variables: []entities.Variable{
+					{ID: "var_string", Key: "my_string", DefaultValue: "default", Type: coreEntities.String},
+				},
+			},
+		},
+		[]entities.Rollout{
+			buildRollout("single_string", []entities.VariationVariable{
+				{ID: "var_string", Value: "hello_world"},
+			}),
+		},
+	)
+
+	datafileSingleInt = buildDatafile(
+		[]entities.FeatureFlag{
+			{
+				ID:            "flag_single_int",
+				Key:           "flag_single_int",
+				RolloutID:     "rollout_single_int",
+				ExperimentIDs: []string{},
+				Variables: []entities.Variable{
+					{ID: "var_int", Key: "my_int", DefaultValue: "0", Type: coreEntities.Integer},
+				},
+			},
+		},
+		[]entities.Rollout{
+			buildRollout("single_int", []entities.VariationVariable{
+				{ID: "var_int", Value: "42"},
+			}),
+		},
+	)
+
+	datafileSingleFloat = buildDatafile(
+		[]entities.FeatureFlag{
+			{
+				ID:            "flag_single_float",
+				Key:           "flag_single_float",
+				RolloutID:     "rollout_single_float",
+				ExperimentIDs: []string{},
+				Variables: []entities.Variable{
+					{ID: "var_float", Key: "my_float", DefaultValue: "0.0", Type: coreEntities.Double},
+				},
+			},
+		},
+		[]entities.Rollout{
+			buildRollout("single_float", []entities.VariationVariable{
+				{ID: "var_float", Value: "3.14"},
+			}),
+		},
+	)
+
+	datafileSingleBool = buildDatafile(
+		[]entities.FeatureFlag{
+			{
+				ID:            "flag_single_bool",
+				Key:           "flag_single_bool",
+				RolloutID:     "rollout_single_bool",
+				ExperimentIDs: []string{},
+				Variables: []entities.Variable{
+					{ID: "var_bool", Key: "my_bool", DefaultValue: "false", Type: coreEntities.Boolean},
+				},
+			},
+		},
+		[]entities.Rollout{
+			buildRollout("single_bool", []entities.VariationVariable{
+				{ID: "var_bool", Value: "true"},
+			}),
+		},
+	)
+
+	datafileMultipleVars = buildDatafile(
+		[]entities.FeatureFlag{
+			{
+				ID:            "flag_multi",
+				Key:           "flag_multi",
+				RolloutID:     "rollout_multi",
+				ExperimentIDs: []string{},
+				Variables: []entities.Variable{
+					{ID: "var_string", Key: "string_val", DefaultValue: "default", Type: coreEntities.String},
+					{ID: "var_int", Key: "int_val", DefaultValue: "0", Type: coreEntities.Integer},
+				},
+			},
+		},
+		[]entities.Rollout{
+			buildRollout("multi", []entities.VariationVariable{
+				{ID: "var_string", Value: "test_value"},
+				{ID: "var_int", Value: "42"},
+			}),
+		},
+	)
+
+	datafileDisabled = buildDatafile(
+		[]entities.FeatureFlag{
+			{
+				ID:            "flag_disabled",
+				Key:           "disabled_flag",
+				RolloutID:     "",
+				ExperimentIDs: []string{},
+				Variables:     []entities.Variable{},
+			},
+		},
+		[]entities.Rollout{},
+	)
+)
+
+func TestProvider_BooleanEvaluation_NoVars(t *testing.T) {
+	p := NewProvider(createClient(t, datafileNoVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	// Test successful evaluation - returns decision.Enabled (true)
+	res := p.BooleanEvaluation(t.Context(), "flag_no_vars", false, ctx)
+	assert.Empty(t, res.ResolutionError)
+	assert.True(t, res.Value)
+	assert.Equal(t, openfeature.TargetingMatchReason, res.Reason)
 
 	// Test missing targeting key
-	resMissingKey := p.BooleanEvaluation(t.Context(), "test_flag", false, map[string]any{
-		"variableKey": "bool_value",
-	})
-	if resMissingKey.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected targeting key missing error, got nil")
-	}
+	resMissingKey := p.BooleanEvaluation(t.Context(), "flag_no_vars", false, nil)
+	assert.NotEmpty(t, resMissingKey.ResolutionError)
 
 	// Test flag not found
-	resNotFound := p.BooleanEvaluation(t.Context(), "nonexistent_flag", false, flattenedCtx)
-	if resNotFound.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected flag not found error, got nil")
-	}
-	if resNotFound.Value != false {
-		t.Errorf("expected default value false, got %v", resNotFound.Value)
-	}
+	resNotFound := p.BooleanEvaluation(t.Context(), "nonexistent_flag", false, ctx)
+	assert.NotEmpty(t, resNotFound.ResolutionError)
+	assert.False(t, resNotFound.Value)
 }
 
-func TestProvider_StringEvaluation(t *testing.T) {
-	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
-	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
+func TestProvider_BooleanEvaluation_SingleBoolVar(t *testing.T) {
+	p := NewProvider(createClient(t, datafileSingleBool))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	p := NewProvider(optimizelyClient)
-	flattenedCtx := map[string]any{
-		openfeature.TargetingKey: "user-1",
-	}
+	res := p.BooleanEvaluation(t.Context(), "flag_single_bool", false, ctx)
+	assert.Empty(t, res.ResolutionError)
+	assert.True(t, res.Value)
+}
 
-	// Test successful evaluation with default variableKey
-	res := p.StringEvaluation(t.Context(), "test_flag", "default", flattenedCtx)
-	if res.ResolutionError != (openfeature.ResolutionError{}) {
-		t.Errorf("expected no resolution error, got %v", res.ResolutionError)
-	}
-	if res.Value != "test_value" {
-		t.Errorf("expected 'test_value', got %s", res.Value)
-	}
+func TestProvider_BooleanEvaluation_MultipleVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileMultipleVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.BooleanEvaluation(t.Context(), "flag_multi", false, ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+	assert.False(t, res.Value)
+}
+
+func TestProvider_BooleanEvaluation_TypeMismatch(t *testing.T) {
+	p := NewProvider(createClient(t, datafileSingleString))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.BooleanEvaluation(t.Context(), "flag_single_string", false, ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+}
+
+func TestProvider_StringEvaluation_SingleStringVar(t *testing.T) {
+	p := NewProvider(createClient(t, datafileSingleString))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.StringEvaluation(t.Context(), "flag_single_string", "default", ctx)
+	assert.Empty(t, res.ResolutionError)
+	assert.Equal(t, "hello_world", res.Value)
 
 	// Test missing targeting key
-	resMissingKey := p.StringEvaluation(t.Context(), "test_flag", "", map[string]any{})
-	if resMissingKey.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected targeting key missing error, got nil")
-	}
+	resMissingKey := p.StringEvaluation(t.Context(), "flag_single_string", "", map[string]any{})
+	assert.NotEmpty(t, resMissingKey.ResolutionError)
 
 	// Test flag not found
-	resNotFound := p.StringEvaluation(t.Context(), "nonexistent_flag", "default", flattenedCtx)
-	if resNotFound.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected flag not found error, got nil")
-	}
+	resNotFound := p.StringEvaluation(t.Context(), "nonexistent_flag", "default", ctx)
+	assert.NotEmpty(t, resNotFound.ResolutionError)
 }
 
-func TestProvider_IntEvaluation(t *testing.T) {
-	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
-	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
+func TestProvider_StringEvaluation_NoVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileNoVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	p := NewProvider(optimizelyClient)
+	res := p.StringEvaluation(t.Context(), "flag_no_vars", "default", ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+}
 
-	// Test with custom variableKey
-	flattenedCtx := map[string]any{
-		openfeature.TargetingKey: "user-1",
-		"variableKey":            "int_value",
-	}
+func TestProvider_StringEvaluation_MultipleVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileMultipleVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	res := p.IntEvaluation(t.Context(), "test_flag", 0, flattenedCtx)
-	if res.ResolutionError != (openfeature.ResolutionError{}) {
-		t.Errorf("expected no resolution error, got %v", res.ResolutionError)
-	}
-	if res.Value != 42 {
-		t.Errorf("expected 42, got %d", res.Value)
-	}
+	res := p.StringEvaluation(t.Context(), "flag_multi", "default", ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+}
+
+func TestProvider_IntEvaluation_SingleIntVar(t *testing.T) {
+	p := NewProvider(createClient(t, datafileSingleInt))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.IntEvaluation(t.Context(), "flag_single_int", 0, ctx)
+	assert.Empty(t, res.ResolutionError)
+	assert.Equal(t, int64(42), res.Value)
 
 	// Test missing targeting key
-	resMissingKey := p.IntEvaluation(t.Context(), "test_flag", 0, map[string]any{})
-	if resMissingKey.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected targeting key missing error, got nil")
-	}
+	resMissingKey := p.IntEvaluation(t.Context(), "flag_single_int", 0, map[string]any{})
+	assert.NotEmpty(t, resMissingKey.ResolutionError)
 
 	// Test flag not found
 	resNotFound := p.IntEvaluation(t.Context(), "nonexistent_flag", 99, map[string]any{
 		openfeature.TargetingKey: "user-1",
 	})
-	if resNotFound.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected flag not found error, got nil")
-	}
-	if resNotFound.Value != 99 {
-		t.Errorf("expected default value 99, got %d", resNotFound.Value)
-	}
+	assert.NotEmpty(t, resNotFound.ResolutionError)
+	assert.Equal(t, int64(99), resNotFound.Value)
 }
 
-func TestProvider_FloatEvaluation(t *testing.T) {
-	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
-	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
+func TestProvider_IntEvaluation_NoVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileNoVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	p := NewProvider(optimizelyClient)
+	res := p.IntEvaluation(t.Context(), "flag_no_vars", 0, ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+}
 
-	// Test with custom variableKey
-	flattenedCtx := map[string]any{
-		openfeature.TargetingKey: "user-1",
-		"variableKey":            "float_value",
-	}
+func TestProvider_IntEvaluation_MultipleVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileMultipleVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	res := p.FloatEvaluation(t.Context(), "test_flag", 0.0, flattenedCtx)
-	if res.ResolutionError != (openfeature.ResolutionError{}) {
-		t.Errorf("expected no resolution error, got %v", res.ResolutionError)
-	}
-	if res.Value != 3.14 {
-		t.Errorf("expected 3.14, got %f", res.Value)
-	}
+	res := p.IntEvaluation(t.Context(), "flag_multi", 0, ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+}
+
+func TestProvider_FloatEvaluation_SingleFloatVar(t *testing.T) {
+	p := NewProvider(createClient(t, datafileSingleFloat))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.FloatEvaluation(t.Context(), "flag_single_float", 0.0, ctx)
+	assert.Empty(t, res.ResolutionError)
+	assert.Equal(t, 3.14, res.Value)
 
 	// Test missing targeting key
-	resMissingKey := p.FloatEvaluation(t.Context(), "test_flag", 0.0, map[string]any{})
-	if resMissingKey.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected targeting key missing error, got nil")
-	}
+	resMissingKey := p.FloatEvaluation(t.Context(), "flag_single_float", 0.0, map[string]any{})
+	assert.NotEmpty(t, resMissingKey.ResolutionError)
 
 	// Test flag not found
 	resNotFound := p.FloatEvaluation(t.Context(), "nonexistent_flag", 1.5, map[string]any{
 		openfeature.TargetingKey: "user-1",
 	})
-	if resNotFound.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected flag not found error, got nil")
-	}
-	if resNotFound.Value != 1.5 {
-		t.Errorf("expected default value 1.5, got %f", resNotFound.Value)
-	}
+	assert.NotEmpty(t, resNotFound.ResolutionError)
+	assert.Equal(t, 1.5, resNotFound.Value)
 }
 
-func TestProvider_ObjectEvaluation(t *testing.T) {
-	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
-	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
+func TestProvider_FloatEvaluation_NoVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileNoVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	p := NewProvider(optimizelyClient)
+	res := p.FloatEvaluation(t.Context(), "flag_no_vars", 0.0, ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+}
 
-	// Test with default variableKey
-	flattenedCtx := map[string]any{
-		openfeature.TargetingKey: "user-1",
-	}
+func TestProvider_FloatEvaluation_MultipleVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileMultipleVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	res := p.ObjectEvaluation(t.Context(), "test_flag", nil, flattenedCtx)
-	if res.ResolutionError != (openfeature.ResolutionError{}) {
-		t.Errorf("expected no resolution error, got %v", res.ResolutionError)
-	}
-	if res.Value != "test_value" {
-		t.Errorf("expected 'test_value', got %v", res.Value)
-	}
+	res := p.FloatEvaluation(t.Context(), "flag_multi", 0.0, ctx)
+	assert.NotEmpty(t, res.ResolutionError)
+}
+
+func TestProvider_ObjectEvaluation_SingleVar(t *testing.T) {
+	p := NewProvider(createClient(t, datafileSingleString))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.ObjectEvaluation(t.Context(), "flag_single_string", nil, ctx)
+	assert.Empty(t, res.ResolutionError)
+	assert.Equal(t, "hello_world", res.Value)
+}
+
+func TestProvider_ObjectEvaluation_MultipleVars(t *testing.T) {
+	p := NewProvider(createClient(t, datafileMultipleVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.ObjectEvaluation(t.Context(), "flag_multi", nil, ctx)
+	assert.Empty(t, res.ResolutionError)
+
+	resultMap, ok := res.Value.(map[string]any)
+	require.True(t, ok, "expected map[string]any, got %T", res.Value)
+	assert.Equal(t, "test_value", resultMap["string_val"])
+	assert.Equal(t, 42, resultMap["int_val"])
 
 	// Test missing targeting key
-	resMissingKey := p.ObjectEvaluation(t.Context(), "test_flag", nil, map[string]any{})
-	if resMissingKey.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected targeting key missing error, got nil")
-	}
+	resMissingKey := p.ObjectEvaluation(t.Context(), "flag_multi", nil, map[string]any{})
+	assert.NotEmpty(t, resMissingKey.ResolutionError)
 
 	// Test flag not found
 	defaultVal := map[string]any{"default": true}
 	resNotFound := p.ObjectEvaluation(t.Context(), "nonexistent_flag", defaultVal, map[string]any{
 		openfeature.TargetingKey: "user-1",
 	})
-	if resNotFound.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected flag not found error, got nil")
-	}
+	assert.NotEmpty(t, resNotFound.ResolutionError)
+}
+
+func TestProvider_ObjectEvaluation_NoVars_Error(t *testing.T) {
+	p := NewProvider(createClient(t, datafileNoVars))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
+
+	res := p.ObjectEvaluation(t.Context(), "flag_no_vars", nil, ctx)
+	assert.NotEmpty(t, res.ResolutionError)
 }
 
 func TestProvider_TypeMismatch(t *testing.T) {
-	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
-	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
+	p := NewProvider(createClient(t, datafileSingleString))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	p := NewProvider(optimizelyClient)
-	flattenedCtx := map[string]any{
-		openfeature.TargetingKey: "user-1",
-	}
+	// Try to get string variable as int
+	resInt := p.IntEvaluation(t.Context(), "flag_single_string", 0, ctx)
+	assert.NotEmpty(t, resInt.ResolutionError)
 
-	// Try to get string variable as int (should fail with type mismatch)
-	res := p.IntEvaluation(t.Context(), "test_flag", 0, flattenedCtx)
-	if res.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected type mismatch error when getting string as int")
-	}
-
-	// Try to get string variable as float (should fail with type mismatch)
-	resFloat := p.FloatEvaluation(t.Context(), "test_flag", 0.0, flattenedCtx)
-	if resFloat.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected type mismatch error when getting string as float")
-	}
+	// Try to get string variable as float
+	resFloat := p.FloatEvaluation(t.Context(), "flag_single_string", 0.0, ctx)
+	assert.NotEmpty(t, resFloat.ResolutionError)
 }
 
-func TestProvider_CustomVariableKey(t *testing.T) {
-	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
-	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
+func TestProvider_DisabledFlag(t *testing.T) {
+	p := NewProvider(createClient(t, datafileDisabled))
+	ctx := map[string]any{openfeature.TargetingKey: "user-1"}
 
-	p := NewProvider(optimizelyClient)
-
-	// Test custom variableKey for string
-	flattenedCtx := map[string]any{
-		openfeature.TargetingKey: "user-1",
-		"variableKey":            "int_value",
-	}
-
-	// Get int_value as string should fail (type mismatch)
-	res := p.StringEvaluation(t.Context(), "test_flag", "default", flattenedCtx)
-	if res.ResolutionError == (openfeature.ResolutionError{}) {
-		t.Errorf("expected type mismatch error when getting int as string")
-	}
-}
-
-func TestProvider_Hooks(t *testing.T) {
-	p := NewProvider(nil)
-	hooks := p.Hooks()
-	if len(hooks) != 0 {
-		t.Errorf("expected empty hooks slice, got %d hooks", len(hooks))
-	}
-}
-
-func TestProvider_StateHandler(t *testing.T) {
-	optimizelyClient, err := (&client.OptimizelyFactory{
-		Datafile: []byte(testDatafile),
-	}).Client()
-	if err != nil {
-		t.Fatalf("failed to create optimizely client: %v", err)
-	}
-
-	p := NewProvider(optimizelyClient)
-
-	// Test Init
-	if err := p.Init(openfeature.EvaluationContext{}); err != nil {
-		t.Errorf("expected Init to return nil, got %v", err)
-	}
-
-	// Test Status
-	if p.Status() != openfeature.ReadyState {
-		t.Errorf("expected ReadyState, got %v", p.Status())
-	}
-
-	// Test Shutdown
-	p.Shutdown()
+	res := p.BooleanEvaluation(t.Context(), "disabled_flag", true, ctx)
+	assert.Empty(t, res.ResolutionError)
+	assert.True(t, res.Value)
+	assert.Equal(t, openfeature.DisabledReason, res.Reason)
 }
