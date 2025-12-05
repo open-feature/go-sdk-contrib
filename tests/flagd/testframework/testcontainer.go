@@ -23,6 +23,7 @@ type FlagdTestContainer struct {
 	launchpadPort int
 	healthPort    int
 	envoyPort     int
+	forbiddenPort int
 }
 
 // Container config type moved to types.go
@@ -87,6 +88,10 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 	if err != nil {
 		return nil, err
 	}
+	forbiddenPort, err := getMappedPort(ctx, composeStack, envoy, "9212")
+	if err != nil {
+		return nil, err
+	}
 
 	flagdContainer := &FlagdTestContainer{
 		container:     composeStack,
@@ -96,6 +101,7 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 		healthPort:    healthPort,
 		envoyPort:     envoyPort,
 		launchpadURL:  fmt.Sprintf("http://%s:%d", host, launchpadPort),
+		forbiddenPort: forbiddenPort,
 	}
 
 	// Additional wait time if configured
