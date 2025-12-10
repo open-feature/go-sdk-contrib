@@ -202,7 +202,12 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 
 			// Backoff before retrying
 			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying after %d backoff...", err, g.RetryBackOffMaxMs))
-			time.Sleep(time.Duration(g.RetryBackOffMaxMs) * time.Millisecond)
+			select {
+			case <-time.After(time.Duration(g.RetryBackOffMaxMs) * time.Millisecond):
+				// Backoff completed
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
 }
