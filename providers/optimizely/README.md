@@ -31,7 +31,7 @@ func main() {
     openfeature.SetProviderAndWait(provider)
     defer openfeature.Shutdown()
 
-    ofClient := openfeature.NewClient("my-app")
+    ofClient := openfeature.NewDefaultClient()
     evalCtx := openfeature.NewEvaluationContext("user-123", map[string]any{
         "email": "user@example.com",
     })
@@ -40,7 +40,7 @@ func main() {
 }
 ```
 
-See [example/example.go](./example/example.go) for a complete example.
+See [example_test.go](./example_test.go) for runnable examples.
 
 ## Evaluation Context
 

@@ -13,9 +13,6 @@ import (
 // Compile-time check that Provider implements FeatureProvider
 var _ openfeature.FeatureProvider = (*Provider)(nil)
 
-// Compile-time check that Provider implements StateHandler
-var _ openfeature.StateHandler = (*Provider)(nil)
-
 // ErrTargetingKeyMissing is returned when the targeting key is not provided in the evaluation context.
 var ErrTargetingKeyMissing = errors.New("targeting key is required")
 
@@ -275,8 +272,4 @@ func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
 
 func (p *Provider) Shutdown() {
 	p.client.Close()
-}
-
-func (p *Provider) Status() openfeature.State {
-	return openfeature.ReadyState
 }
