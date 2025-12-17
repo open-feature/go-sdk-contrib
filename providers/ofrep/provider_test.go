@@ -166,41 +166,17 @@ func TestWithFromEnv(t *testing.T) {
 			wantBaseURI:   "http://test.example.com",
 		},
 		{
-			name: "configure timeout from env",
-			envVars: map[string]string{
-				"OFREP_TIMEOUT": "5s",
-			},
-			initialConfig: outbound.Configuration{},
-			wantTimeout:   5 * time.Second,
-		},
-		{
 			name: "configure timeout from env with raw milliseconds",
 			envVars: map[string]string{
-				"OFREP_TIMEOUT": "3000",
+				"OFREP_TIMEOUT_MS": "3000",
 			},
 			initialConfig: outbound.Configuration{},
 			wantTimeout:   3 * time.Second,
 		},
 		{
-			name: "configure timeout from env with invalid data",
-			envVars: map[string]string{
-				"OFREP_TIMEOUT": "s5s",
-			},
-			initialConfig: outbound.Configuration{Timeout: 33 * time.Second},
-			wantTimeout:   33 * time.Second,
-		},
-		{
-			name: "configure timeout from env with negative duration",
-			envVars: map[string]string{
-				"OFREP_TIMEOUT": "-5s",
-			},
-			initialConfig: outbound.Configuration{Timeout: 33 * time.Second},
-			wantTimeout:   33 * time.Second,
-		},
-		{
 			name: "configure timeout from env with negative milliseconds",
 			envVars: map[string]string{
-				"OFREP_TIMEOUT": "-5000",
+				"OFREP_TIMEOUT_MS": "-5000",
 			},
 			initialConfig: outbound.Configuration{Timeout: 33 * time.Second},
 			wantTimeout:   33 * time.Second,
@@ -208,7 +184,7 @@ func TestWithFromEnv(t *testing.T) {
 		{
 			name: "ignore invalid timeout",
 			envVars: map[string]string{
-				"OFREP_TIMEOUT": "invalid",
+				"OFREP_TIMEOUT_MS": "invalid",
 			},
 			initialConfig: outbound.Configuration{Timeout: 10 * time.Second},
 			wantTimeout:   10 * time.Second,
@@ -227,9 +203,9 @@ func TestWithFromEnv(t *testing.T) {
 		{
 			name: "configure all options from env",
 			envVars: map[string]string{
-				"OFREP_ENDPOINT": "http://all.example.com",
-				"OFREP_TIMEOUT":  "3s",
-				"OFREP_HEADERS":  "X-Test=TestValue",
+				"OFREP_ENDPOINT":   "http://all.example.com",
+				"OFREP_TIMEOUT_MS": "3000",
+				"OFREP_HEADERS":    "X-Test=TestValue",
 			},
 			initialConfig: outbound.Configuration{},
 			wantBaseURI:   "http://all.example.com",
@@ -241,8 +217,8 @@ func TestWithFromEnv(t *testing.T) {
 		{
 			name: "empty env variables do not override defaults",
 			envVars: map[string]string{
-				"OFREP_ENDPOINT": "",
-				"OFREP_TIMEOUT":  "",
+				"OFREP_ENDPOINT":   "",
+				"OFREP_TIMEOUT_MS": "",
 			},
 			initialConfig: outbound.Configuration{
 				BaseURI: "http://default.example.com",
@@ -250,6 +226,19 @@ func TestWithFromEnv(t *testing.T) {
 			},
 			wantBaseURI: "http://default.example.com",
 			wantTimeout: 15 * time.Second,
+		},
+		{
+			name: "configure headers with baggage header format",
+			envVars: map[string]string{
+				"OFREP_HEADERS": "Key1=value1 ,Key2=val%3Due2,Key3=base64==,Key4 = 50%25",
+			},
+			initialConfig: outbound.Configuration{},
+			wantHeaders: map[string]string{
+				"Key1": "value1",
+				"Key2": "val=ue2",
+				"Key3": "base64==",
+				"Key4": "50%",
+			},
 		},
 	}
 

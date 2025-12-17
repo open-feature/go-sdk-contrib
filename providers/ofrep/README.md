@@ -63,8 +63,8 @@ provider := ofrep.NewProvider(
 
 Supported environment variables:
 
-| Environment Variable | Description                                                           | Example                                   |
-| -------------------- | --------------------------------------------------------------------- | ----------------------------------------- |
-| OFREP_ENDPOINT       | Base URI for the OFREP service (overrides the baseUri parameter)      | `http://localhost:8016`                   |
-| OFREP_TIMEOUT        | Timeout duration for HTTP requests (ignored if custom client is used) | `30s`, `1m` or raw `5000` in milliseconds |
-| OFREP_HEADERS        | Comma-separated custom headers                                        | `Key1=Value1,Key2=Value2`                 |
+| Environment Variable | Description                                                                           | Example                   |
+| -------------------- | ------------------------------------------------------------------------------------- | ------------------------- |
+| OFREP_ENDPOINT       | Base URI for the OFREP service (overrides the baseUri parameter)                      | `http://localhost:8016`   |
+| OFREP_TIMEOUT_MS     | Timeout duration in milliseconds for HTTP requests (ignored if custom client is used) | `5000`                    |
+| OFREP_HEADERS        | Comma-separated custom headers                                                        | `Key1=Value1,Key2=Value2` |
