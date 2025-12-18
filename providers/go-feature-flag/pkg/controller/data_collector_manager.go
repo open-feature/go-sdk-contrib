@@ -2,9 +2,10 @@ package controller
 
 import (
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"sync"
 	"time"
+
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/model"
 )
 
 // DataCollectorManager is a manager for the GO Feature Flag data collector
@@ -22,7 +23,8 @@ type DataCollectorManager struct {
 func NewDataCollectorManager(
 	goffAPI GoFeatureFlagAPI,
 	dataCollectorMaxEventStored int64,
-	collectInterval time.Duration) DataCollectorManager {
+	collectInterval time.Duration,
+) DataCollectorManager {
 	if dataCollectorMaxEventStored <= 0 {
 		dataCollectorMaxEventStored = 100000
 	}

@@ -14,9 +14,9 @@ import (
 	"github.com/harness/ff-golang-server-sdk/rest"
 	"github.com/harness/ff-golang-server-sdk/test_helpers"
 	"github.com/jarcoal/httpmock"
-	harnessProvider "github.com/open-feature/go-sdk-contrib/providers/harness/pkg"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
+	harnessProvider "go.openfeature.dev/contrib/providers/harness/v2/pkg"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 // based on Harness test: https://github.com/harness/ff-golang-server-sdk/blob/main/client/client_test.go
@@ -100,7 +100,7 @@ func TestBooleanEvaluation(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	err = provider.Init(of.EvaluationContext{})
+	err = provider.Init(t.Context())
 	if err != nil {
 		t.Fail()
 	}
@@ -124,7 +124,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		require.Equal(t, false, resolution.Value)
 	})
 
-	err = of.SetProviderAndWait(provider)
+	err = of.SetProviderAndWait(t.Context(), provider)
 	require.NoError(t, err)
 	ofClient := of.NewClient("my-app")
 
@@ -136,8 +136,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			"Email":     "john@doe.com",
 		},
 	)
-	enabled, err := ofClient.BooleanValue(context.Background(), "TestTrueOn", false, evalCtx)
-	require.NoError(t, err)
+	enabled := ofClient.Boolean(context.Background(), "TestTrueOn", false, evalCtx)
 	if enabled == false {
 		t.Fatalf("Expected feature to be enabled")
 	}
@@ -162,7 +161,7 @@ func TestStringEvaluation(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	err = provider.Init(of.EvaluationContext{})
+	err = provider.Init(t.Context())
 	if err != nil {
 		t.Fail()
 	}

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -18,10 +19,9 @@ import (
 	"github.com/go-logr/logr"
 	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	of "github.com/open-feature/go-sdk/openfeature"
-	"golang.org/x/net/context"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/cache"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/logger"
+	of "go.openfeature.dev/openfeature/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -109,8 +109,8 @@ func (s *Service) Shutdown() {
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
 func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue bool,
-	evalCtx map[string]interface{}) of.BoolResolutionDetail {
-
+	evalCtx map[string]interface{},
+) of.BoolResolutionDetail {
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
@@ -168,8 +168,8 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 
 // ResolveString handles the flag evaluation response from the  flagd interface ResolveString rpc
 func (s *Service) ResolveString(ctx context.Context, key string, defaultValue string,
-	evalCtx map[string]interface{}) of.StringResolutionDetail {
-
+	evalCtx map[string]interface{},
+) of.StringResolutionDetail {
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
@@ -227,8 +227,8 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 
 // ResolveFloat handles the flag evaluation response from the  flagd interface ResolveFloat rpc
 func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue float64,
-	evalCtx map[string]interface{}) of.FloatResolutionDetail {
-
+	evalCtx map[string]interface{},
+) of.FloatResolutionDetail {
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
@@ -286,8 +286,8 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 
 // ResolveInt handles the flag evaluation response from the  flagd interface ResolveNumber rpc
 func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64,
-	evalCtx map[string]interface{}) of.IntResolutionDetail {
-
+	evalCtx map[string]interface{},
+) of.IntResolutionDetail {
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
@@ -345,11 +345,12 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 
 // ResolveObject handles the flag evaluation response from the  flagd interface ResolveObject rpc
 func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue interface{},
-	evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
+	evalCtx map[string]interface{},
+) of.ObjectResolutionDetail {
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(of.InterfaceResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.ObjectResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -358,7 +359,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	}
 
 	if !s.isInitialised() {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: ErrClientNotReady,
@@ -375,7 +376,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 			e = of.NewGeneralResolutionError(err.Error())
 		}
 
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
@@ -384,7 +385,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		}
 	}
 
-	detail := of.InterfaceResolutionDetail{
+	detail := of.ObjectResolutionDetail{
 		Value: resp.Value.AsMap(),
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
@@ -452,7 +453,7 @@ func (s *Service) EventChannel() <-chan of.Event {
 // If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
 	streamReadySignaled := false
-	
+
 	// wraps connection with retry attempts
 	for s.retryCounter.retry() {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
@@ -488,12 +489,12 @@ func (s *Service) startEventStream(ctx context.Context) {
 	// retry attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
 	connErr := fmt.Errorf("grpc connection establishment failed")
-	
+
 	// Signal error if we haven't signaled success yet
 	if !streamReadySignaled {
 		s.signalStreamReady(connErr)
 	}
-	
+
 	s.sendEvent(ctx, of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderError,
@@ -521,7 +522,7 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	s.logger.V(logger.Info).Info("connected to event stream")
-	
+
 	// Signal successful connection to Init() - stream is now ready
 	if !*streamReadySignaled {
 		s.signalStreamReady(nil) // nil means success

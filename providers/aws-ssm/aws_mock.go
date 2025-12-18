@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 )
 
-
 type mockSSMClient struct {
 	err       error
 	responses map[string]*types.Parameter
@@ -57,3 +56,4 @@ func (m *mockSSMClient) GetParameter(ctx context.Context, params *ssm.GetParamet
 		},
 	}, nil
 }
+

@@ -9,7 +9,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/evaluator"
 	"github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/flagd/core/pkg/sync"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // Tests below use a mock evaluator to test correct wiring of responses

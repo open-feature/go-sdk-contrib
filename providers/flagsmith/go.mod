@@ -1,17 +1,16 @@
-module github.com/open-feature/go-sdk-contrib/providers/flagsmith
+module go.openfeature.dev/contrib/providers/flagsmith/v2
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/Flagsmith/flagsmith-go-client/v4 v4.4.0
-	github.com/open-feature/go-sdk v1.17.0
 	github.com/stretchr/testify v1.11.1
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
 )
 
 require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-resty/resty/v2 v2.16.5 // indirect
 	github.com/itlightning/dateparse v0.2.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

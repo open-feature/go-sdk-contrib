@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const ofrepV1 = "/ofrep/v1/evaluate/flags/"

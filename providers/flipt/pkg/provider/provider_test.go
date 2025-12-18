@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"testing"
 
-	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 func TestMetadata(t *testing.T) {
@@ -486,7 +486,7 @@ func TestObjectEvaluation(t *testing.T) {
 		defaultValue          map[string]any
 		mockRespEvaluation    *evaluation.VariantEvaluationResponse
 		mockRespEvaluationErr error
-		expected              of.InterfaceResolutionDetail
+		expected              of.ObjectResolutionDetail
 	}{
 		{
 			name:    "flag enabled",
@@ -499,7 +499,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Match:             true,
 				VariantAttachment: attachmentJSON,
 			},
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value:                    attachment,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.TargetingMatchReason},
 			},
@@ -515,7 +515,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Match:  false,
 				Reason: evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON,
 			},
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"baz": "qux",
 				},
@@ -530,7 +530,7 @@ func TestObjectEvaluation(t *testing.T) {
 				"baz": "qux",
 			},
 			mockRespEvaluationErr: of.NewInvalidContextResolutionError("boom"),
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"baz": "qux",
 				}, ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -550,7 +550,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Match:             true,
 				VariantAttachment: "x",
 			},
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"baz": "qux",
 				},
@@ -568,7 +568,7 @@ func TestObjectEvaluation(t *testing.T) {
 				"baz": "qux",
 			},
 			mockRespEvaluationErr: errors.New("boom"),
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"baz": "qux",
 				},
@@ -588,7 +588,7 @@ func TestObjectEvaluation(t *testing.T) {
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match: false,
 			},
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"baz": "qux",
 				},
@@ -607,7 +607,7 @@ func TestObjectEvaluation(t *testing.T) {
 				VariantKey:        "2",
 				VariantAttachment: "{\"foo\": \"bar\"}",
 			},
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"foo": "bar",
 				},
@@ -627,7 +627,7 @@ func TestObjectEvaluation(t *testing.T) {
 				Match:      true,
 				VariantKey: "2",
 			},
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"baz": "qux",
 				},
@@ -649,7 +649,7 @@ func TestObjectEvaluation(t *testing.T) {
 				VariantKey:        "2",
 				VariantAttachment: `{"foo": "bar"}`,
 			},
-			expected: of.InterfaceResolutionDetail{
+			expected: of.ObjectResolutionDetail{
 				Value: map[string]any{
 					"foo": "bar",
 				},

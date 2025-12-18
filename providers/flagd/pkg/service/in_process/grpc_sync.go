@@ -1,20 +1,21 @@
 package process
 
 import (
-	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
 	"fmt"
+	msync "sync"
+	"time"
+
+	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	grpccredential "github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
-	msync "sync"
-	"time"
 )
 
 // FlagSyncServiceClient Type aliases for interfaces required by this component - needed for mock generation with gomock

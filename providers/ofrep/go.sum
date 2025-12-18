@@ -1,8 +1,6 @@
-github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
-github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
-github.com/open-feature/go-sdk v1.17.0 h1:/OUBBw5d9D61JaNZZxb2Nnr5/EJrEpjtKCTY3rspJQk=
-github.com/open-feature/go-sdk v1.17.0/go.mod h1:lPxPSu1UnZ4E3dCxZi5gV3et2ACi8O8P+zsTGVsDZUw=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727 h1:I292Rh8Le2gFJBAahMXx7n9P9dfdCcdEIi/zafOq0Ks=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
 go.uber.org/mock v0.6.0/go.mod h1:KiVJ4BqZJaMj4svdfmHM0AUx4NJYO8ZNpPnZn1Z+BBU=
-golang.org/x/text v0.30.0 h1:yznKA/E9zq54KzlzBEAWn1NXSQ8DIp/NYMy88xJjl4k=
-golang.org/x/text v0.30.0/go.mod h1:yDdHFIX9t+tORqspjENWgzaCVXgk0yYnYuSZ8UzzBVM=
+golang.org/x/text v0.31.0 h1:aC8ghyu4JhP8VojJ2lEHBnochRno1sgL6nEi9WGFGMM=
+golang.org/x/text v0.31.0/go.mod h1:tKRAlv61yKIjGGHX/4tP1LTbc13YSec1pxVEWXzfoeM=

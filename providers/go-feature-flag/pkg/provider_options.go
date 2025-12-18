@@ -2,9 +2,10 @@ package gofeatureflag
 
 import (
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/goff_error"
 	"net/http"
 	"time"
+
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/goff_error"
 )
 
 // ProviderOptions is the struct containing the provider options you can

@@ -2,8 +2,9 @@ package model
 
 import (
 	"encoding/json"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"time"
+
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 func NewFeatureEvent(

@@ -7,13 +7,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 func TestNewAWSService(t *testing.T) {
-
 	cfg, err := config.LoadDefaultConfig(context.Background())
-
 	if err != nil {
 		t.Fatalf("Failed to load AWS config: %v", err)
 	}
@@ -122,3 +120,4 @@ func TestResolveStringError(t *testing.T) {
 		t.Errorf("Expected ErrorReason, got %v", result.ProviderResolutionDetail.Reason)
 	}
 }
+

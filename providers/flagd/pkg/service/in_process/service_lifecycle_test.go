@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 func TestInProcessServiceShutdownCleansUpGoroutines(t *testing.T) {
@@ -16,7 +16,7 @@ func TestInProcessServiceShutdownCleansUpGoroutines(t *testing.T) {
 
 	flagFile := "config.json"
 	offlinePath := filepath.Join(t.TempDir(), flagFile)
-	if err := os.WriteFile(offlinePath, []byte(flagRsp), 0644); err != nil {
+	if err := os.WriteFile(offlinePath, []byte(flagRsp), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	service := NewInProcessService(Configuration{OfflineFlagSource: offlinePath})
@@ -44,7 +44,7 @@ func TestInProcessServiceImmediateShutdownCleansUpGoroutines(t *testing.T) {
 
 	flagFile := "config.json"
 	offlinePath := filepath.Join(t.TempDir(), flagFile)
-	if err := os.WriteFile(offlinePath, []byte(flagRsp), 0644); err != nil {
+	if err := os.WriteFile(offlinePath, []byte(flagRsp), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	service := NewInProcessService(Configuration{OfflineFlagSource: offlinePath})

@@ -1,12 +1,14 @@
-module github.com/open-feature/go-sdk-contrib/providers/flipt
+module go.openfeature.dev/contrib/providers/flipt/v2
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/open-feature/go-sdk v1.17.0
+	github.com/open-feature/go-sdk-contrib/providers/flipt v0.1.5
 	github.com/stretchr/testify v1.11.1
 	go.flipt.io/flipt/rpc/flipt v1.54.0
 	go.flipt.io/flipt/sdk/go v0.13.0
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.56.0
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.6
@@ -28,7 +30,7 @@ require (
 	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241230172942-26aa7a208def // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241230172942-26aa7a208def // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

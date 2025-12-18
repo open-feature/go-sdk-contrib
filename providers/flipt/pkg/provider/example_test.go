@@ -3,12 +3,12 @@ package flipt_test
 import (
 	"context"
 
-	flipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/provider"
-	"github.com/open-feature/go-sdk/openfeature"
+	flipt "go.openfeature.dev/contrib/providers/flipt/v2/pkg/provider"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 func Example() {
-	err := openfeature.SetProviderAndWait(flipt.NewProvider(
+	err := openfeature.SetProviderAndWait(context.TODO(), flipt.NewProvider(
 		flipt.WithAddress("localhost:9000"),
 	))
 	if err != nil {
@@ -16,14 +16,11 @@ func Example() {
 	}
 
 	client := openfeature.NewClient("my-app")
-	value, err := client.BooleanValue(
+	value := client.Boolean(
 		context.TODO(), "v2_enabled", false, openfeature.NewEvaluationContext("tim@apple.com", map[string]any{
 			"favorite_color": "blue",
 		}),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	if value {
 		// do something

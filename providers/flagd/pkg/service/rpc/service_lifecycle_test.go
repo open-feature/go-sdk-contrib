@@ -18,8 +18,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/go-logr/logr"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/cache"
+	of "go.openfeature.dev/openfeature/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 

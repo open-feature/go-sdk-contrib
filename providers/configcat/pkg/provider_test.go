@@ -2,15 +2,16 @@ package configcat_test
 
 import (
 	"context"
-	"github.com/configcat/go-sdk/v9/configcattest"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/configcat/go-sdk/v9/configcattest"
+
 	sdk "github.com/configcat/go-sdk/v9"
-	configcat "github.com/open-feature/go-sdk-contrib/providers/configcat/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
+	configcat "go.openfeature.dev/contrib/providers/configcat/v2/pkg"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 func TestMetadata(t *testing.T) {

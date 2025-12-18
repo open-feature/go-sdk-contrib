@@ -8,33 +8,34 @@ To use the provider, you'll need to install [Statsig Go client](https://github.c
 
 ```shell
 go get github.com/statsig-io/go-sdk
-go get github.com/open-feature/go-sdk-contrib/providers/statsig
+go get go.openfeature.dev/contrib/providers/statsig/v2
 ```
 
 ## Concepts
-* String/Integer/Float evaluations evaluation gets [Dynamic config](https://docs.statsig.com/server/golangSDK#reading-a-dynamic-config) or [Layer](https://docs.statsig.com/server/golangSDK#getting-an-layerexperiment) evaluation.
+
+- String/Integer/Float evaluations evaluation gets [Dynamic config](https://docs.statsig.com/server/golangSDK#reading-a-dynamic-config) or [Layer](https://docs.statsig.com/server/golangSDK#getting-an-layerexperiment) evaluation.
   As the key represents an inner attribute, feature config is required as a parameter with data needed for evaluation.
   For an example of dynamic config of product alias, need to differentiate between dynamic config or layer, and the dynamic config name.
-* Boolean evaluation gets [gate](https://docs.statsig.com/server/golangSDK#checking-a-gate) status when feature config is not passed.
+- Boolean evaluation gets [gate](https://docs.statsig.com/server/golangSDK#checking-a-gate) status when feature config is not passed.
   When feature config exists, it evaluates to the config/layer attribute, similar to String/Integer/Float evaluations.
 
-* Object evaluation gets a structure representing the dynamic config or layer.
-* [Private Attributes](https://docs.statsig.com/server/golangSDK#private-attributes) are supported as 'privateAttributes' context key.
-
+- Object evaluation gets a structure representing the dynamic config or layer.
+- [Private Attributes](https://docs.statsig.com/server/golangSDK#private-attributes) are supported as 'privateAttributes' context key.
 
 ## Usage
+
 Statsig OpenFeature Provider is using Statsig GO SDK.
 
 ## Usage Example
 
 ```go
 import (
-  statsigProvider "github.com/open-feature/go-sdk-contrib/providers/statsig/pkg"
-  of "github.com/open-feature/go-sdk/openfeature"
+  statsigProvider "go.openfeature.dev/contrib/providers/statsig/v2/pkg"
+  of "go.openfeature.dev/openfeature/v2"
   statsig "github.com/statsig-io/go-sdk"
 )
 
-of.SetProvider(provider)
+of.SetProvider(context.TODO(), provider)
 ofClient := of.NewClient("my-app")
 
 evalCtx := of.NewEvaluationContext(
@@ -43,7 +44,7 @@ evalCtx := of.NewEvaluationContext(
     "UserID": "123",
   },
 )
-enabled, _ := ofClient.BooleanValue(context.Background(), "always_on_gate", false, evalCtx)
+enabled := ofClient.Boolean(context.TODO(), "always_on_gate", false, evalCtx)
 
 featureConfig := statsigProvider.FeatureConfig{
   FeatureConfigType: statsigProvider.FeatureConfigType("CONFIG"),
@@ -53,29 +54,31 @@ featureConfig := statsigProvider.FeatureConfig{
 evalCtx := of.NewEvaluationContext(
   "",
   map[string]interface{}{
-    "UserID":         "123", // can use "UserID" or of.TargetingKey ("targetingKey") 
+    "UserID":         "123", // can use "UserID" or of.TargetingKey ("targetingKey")
     "Email":          "testuser1@statsig.com",
     "feature_config": featureConfig,
   },
 )
 expected := "statsig"
-value, _ := ofClient.StringValue(context.Background(), "string", "fallback", evalCtx)
+value := ofClient.StringValue(context.TODO(), "string", "fallback", evalCtx)
 
-of.Shutdown()
+of.Shutdown(context.TODO())
 
 ```
+
 See [provider_test.go](./pkg/provider_test.go) for more information.
 
-
 ## Notes
+
 Some Statsig custom operations are supported from the Statsig client via statsig.
 
 ## Statsig Provider Tests Strategies
 
-Unit test based on Statsig [BootstrapValues](https://docs.statsig.com/server/golangSDK#statsig-options) config file. 
+Unit test based on Statsig [BootstrapValues](https://docs.statsig.com/server/golangSDK#statsig-options) config file.
 As it is limited, evaluation context based tests are limited.
 See [provider_test.go](./pkg/provider_test.go) for more information.
 
 ## Known issues
+
 - Gate BooleanEvaluation with default value true cannot fallback to true.
-  https://github.com/statsig-io/go-sdk/issues/32
+  <https://github.com/statsig-io/go-sdk/issues/32>

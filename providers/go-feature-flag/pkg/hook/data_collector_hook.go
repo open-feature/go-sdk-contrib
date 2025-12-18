@@ -2,11 +2,14 @@ package hook
 
 import (
 	"context"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	"github.com/open-feature/go-sdk/openfeature"
 	"time"
+
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/controller"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/model"
+	"go.openfeature.dev/openfeature/v2"
 )
+
+var _ openfeature.Hook
 
 func NewDataCollectorHook(dataCollectorManager *controller.DataCollectorManager) openfeature.Hook {
 	return &dataCollectorHook{dataCollectorManager: dataCollectorManager}
@@ -18,7 +21,8 @@ type dataCollectorHook struct {
 }
 
 func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookContext,
-	evalDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) error {
+	evalDetails openfeature.HookEvaluationDetails, hint openfeature.HookHints,
+) error {
 	if evalDetails.Reason != openfeature.CachedReason {
 		// we send it only when cached because the evaluation will be collected directly in the relay-proxy
 		return nil
@@ -39,7 +43,8 @@ func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookCon
 }
 
 func (d *dataCollectorHook) Error(_ context.Context, hookCtx openfeature.HookContext,
-	err error, hint openfeature.HookHints) {
+	err error, hint openfeature.HookHints,
+) {
 	event := model.FeatureEvent{
 		Kind:         "feature",
 		ContextKind:  "user",

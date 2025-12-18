@@ -7,11 +7,18 @@ import (
 	harness "github.com/harness/ff-golang-server-sdk/client"
 	"github.com/harness/ff-golang-server-sdk/evaluation"
 	"github.com/harness/ff-golang-server-sdk/types"
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/v2/openfeature"
 )
 
-const providerNotReady = "Provider not ready"
-const generalError = "general error"
+const (
+	providerNotReady = "Provider not ready"
+	generalError     = "general error"
+)
+
+var (
+	_ of.FeatureProvider = (*Provider)(nil)
+	_ of.StateHandler    = (*Provider)(nil)
+)
 
 type Provider struct {
 	providerConfig ProviderConfig
@@ -27,7 +34,7 @@ func NewProvider(providerConfig ProviderConfig) (*Provider, error) {
 	return provider, nil
 }
 
-func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
+func (p *Provider) Init(context.Context) error {
 	harnessClient, err := harness.NewCfClient(p.providerConfig.SdkKey, p.providerConfig.Options...)
 	if err != nil {
 		p.status = of.ErrorState
@@ -42,9 +49,10 @@ func (p *Provider) Status() of.State {
 	return p.status
 }
 
-func (p *Provider) Shutdown() {
-	_ = p.harnessClient.Close()
+func (p *Provider) Shutdown(context.Context) error {
+	err := p.harnessClient.Close()
 	p.status = of.NotReadyState
+	return err
 }
 
 // Hooks returns empty slices as provider does not have any
@@ -201,7 +209,6 @@ func verifyStateInt(p *Provider, defaultValue int64) (bool, of.IntResolutionDeta
 }
 
 func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
-
 	shouldReturn, returnValue := verifyStateString(p, defaultValue)
 	if shouldReturn {
 		return returnValue
@@ -248,7 +255,7 @@ func verifyStateString(p *Provider, defaultValue string) (bool, of.StringResolut
 	return false, of.StringResolutionDetail{}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	shouldReturn, returnValue := verifyStateObject(p, defaultValue)
 	if shouldReturn {
 		return returnValue
@@ -256,7 +263,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 
 	harnessTarget, err := toHarnessTarget(evalCtx)
 	if err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
@@ -267,7 +274,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 
 	defaultValueJson, ok := defaultValue.(types.JSON)
 	if !ok {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewInvalidContextResolutionError("Could not get defaultValue as JSON map"),
@@ -277,16 +284,16 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 
 	res, _ := p.harnessClient.JSONVariation(flag, harnessTarget, defaultValueJson)
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value:                    res,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{},
 	}
 }
 
-func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolutionDetail) {
+func verifyStateObject(p *Provider, defaultValue any) (bool, of.ObjectResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return true, of.InterfaceResolutionDetail{
+			return true, of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -294,7 +301,7 @@ func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolut
 				},
 			}
 		} else {
-			return true, of.InterfaceResolutionDetail{
+			return true, of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -303,7 +310,7 @@ func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolut
 			}
 		}
 	}
-	return false, of.InterfaceResolutionDetail{}
+	return false, of.ObjectResolutionDetail{}
 }
 
 func toHarnessTarget(evalCtx of.FlattenedContext) (*evaluation.Target, error) {

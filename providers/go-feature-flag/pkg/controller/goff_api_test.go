@@ -3,13 +3,14 @@ package controller_test
 import (
 	"bytes"
 	"errors"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/controller"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/model"
 )
 
 func Test_CollectDataAPI(t *testing.T) {

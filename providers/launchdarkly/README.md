@@ -10,11 +10,12 @@ go get github.com/launchdarkly/go-sdk-common/v3/...
 go get github.com/launchdarkly/go-server-sdk/v7/...
 
 # Open Feature SDK
-go get github.com/open-feature/go-sdk/openfeature
-go get github.com/open-feature/go-sdk-contrib/providers/launchdarkly/pkg
+go get go.openfeature.dev/openfeature/v2
+go get go.openfeature.dev/contrib/providers/launchdarkly/v2/pkg
 ```
 
 ## Usage
+
 See [example_test.go](./example_test.go)
 
 ## Representing LaunchDarkly (multi) contexts
@@ -79,4 +80,5 @@ context needs to be well-formed.
 ```
 
 ### References
-* https://docs.openfeature.dev/blog/creating-a-provider-for-the-go-sdk/
+
+- <https://docs.openfeature.dev/blog/creating-a-provider-for-the-go-sdk/>

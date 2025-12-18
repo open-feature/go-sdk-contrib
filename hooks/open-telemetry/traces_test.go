@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -76,12 +76,10 @@ func TestTracesHook_Finally(t *testing.T) {
 					openfeature.Metadata{Name: tt.providerName},
 					openfeature.NewEvaluationContext(tt.targetingKey, map[string]any{"this": "that"}),
 				),
-				openfeature.InterfaceEvaluationDetails{
-					EvaluationDetails: openfeature.EvaluationDetails{
-						ResolutionDetail: openfeature.ResolutionDetail{
-							Variant: tt.variant,
-							Reason:  tt.reason,
-						},
+				openfeature.EvaluationDetails[openfeature.FlagTypes]{
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant: tt.variant,
+						Reason:  tt.reason,
 					},
 				},
 				openfeature.NewHookHints(nil),
@@ -140,14 +138,12 @@ func TestTracesHook_MetadataExtractionOption(t *testing.T) {
 			hook.Finally(
 				ctx,
 				openfeature.HookContext{},
-				openfeature.InterfaceEvaluationDetails{
-					Value: tt.value,
-					EvaluationDetails: openfeature.EvaluationDetails{
-						FlagKey:  "stringFlag",
-						FlagType: openfeature.String,
-						ResolutionDetail: openfeature.ResolutionDetail{
-							FlagMetadata: evalMetadata,
-						},
+				openfeature.EvaluationDetails[openfeature.FlagTypes]{
+					Value:    tt.value,
+					FlagKey:  "stringFlag",
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						FlagMetadata: evalMetadata,
 					},
 				},
 				openfeature.HookHints{},
@@ -219,12 +215,10 @@ func TestTracesHook_ResultValueTypes(t *testing.T) {
 					openfeature.Metadata{Name: "test-provider"},
 					openfeature.NewEvaluationContext("", nil),
 				),
-				openfeature.InterfaceEvaluationDetails{
+				openfeature.EvaluationDetails[openfeature.FlagTypes]{
 					Value: tt.value,
-					EvaluationDetails: openfeature.EvaluationDetails{
-						ResolutionDetail: openfeature.ResolutionDetail{
-							Reason: openfeature.StaticReason,
-						},
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Reason: openfeature.StaticReason,
 					},
 				},
 				openfeature.NewHookHints(nil),
@@ -266,12 +260,10 @@ func TestTracesHook_ReasonTypes(t *testing.T) {
 			ctx, span := otel.Tracer("test-tracer").Start(t.Context(), "Run")
 			hook := NewTracesHook()
 
-			evaluationDetails := openfeature.InterfaceEvaluationDetails{
+			evaluationDetails := openfeature.EvaluationDetails[openfeature.FlagTypes]{
 				Value: "test",
-				EvaluationDetails: openfeature.EvaluationDetails{
-					ResolutionDetail: openfeature.ResolutionDetail{
-						Reason: tt.reason,
-					},
+				ResolutionDetail: openfeature.ResolutionDetail{
+					Reason: tt.reason,
 				},
 			}
 
@@ -374,13 +366,11 @@ func TestTracesHook_FlagMetadata(t *testing.T) {
 					openfeature.Metadata{Name: "test-provider"},
 					openfeature.NewEvaluationContext(tt.targetingKey, nil),
 				),
-				openfeature.InterfaceEvaluationDetails{
+				openfeature.EvaluationDetails[openfeature.FlagTypes]{
 					Value: "test",
-					EvaluationDetails: openfeature.EvaluationDetails{
-						ResolutionDetail: openfeature.ResolutionDetail{
-							FlagMetadata: map[string]any{
-								tt.metadataKey: tt.metadataValue,
-							},
+					ResolutionDetail: openfeature.ResolutionDetail{
+						FlagMetadata: map[string]any{
+							tt.metadataKey: tt.metadataValue,
 						},
 					},
 				},

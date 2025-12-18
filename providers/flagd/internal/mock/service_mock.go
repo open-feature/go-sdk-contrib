@@ -5,6 +5,7 @@
 //
 //	mockgen -source=pkg/iservice.go -destination=internal/mock/service_mock.go -package=mock
 //
+
 // Package mock is a generated GoMock package.
 package mock
 
@@ -12,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	openfeature "github.com/open-feature/go-sdk/openfeature"
+	openfeature "go.openfeature.dev/openfeature/v2"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -20,6 +21,7 @@ import (
 type MockIService struct {
 	ctrl     *gomock.Controller
 	recorder *MockIServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockIServiceMockRecorder is the mock recorder for MockIService.
@@ -110,10 +112,10 @@ func (mr *MockIServiceMockRecorder) ResolveInt(ctx, key, defaultValue, evalCtx a
 }
 
 // ResolveObject mocks base method.
-func (m *MockIService) ResolveObject(ctx context.Context, key string, defaultValue any, evalCtx map[string]any) openfeature.InterfaceResolutionDetail {
+func (m *MockIService) ResolveObject(ctx context.Context, key string, defaultValue any, evalCtx map[string]any) openfeature.ObjectResolutionDetail {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveObject", ctx, key, defaultValue, evalCtx)
-	ret0, _ := ret[0].(openfeature.InterfaceResolutionDetail)
+	ret0, _ := ret[0].(openfeature.ObjectResolutionDetail)
 	return ret0
 }
 

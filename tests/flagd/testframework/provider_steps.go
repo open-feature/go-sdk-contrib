@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // Provider supplier types moved to types.go
@@ -79,7 +79,7 @@ func (s *TestState) createProviderInstance() error {
 
 	// Set the provider in OpenFeature
 	domain := fmt.Sprintf("flagd-e2e-tests-%d", time.Now().UnixNano())
-	err = openfeature.SetNamedProvider(domain, provider)
+	err = openfeature.SetNamedProvider(context.Background(), domain, provider)
 	if err != nil {
 		return fmt.Errorf("failed to set provider: %w", err)
 	}

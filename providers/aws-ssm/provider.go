@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 type Provider struct {
@@ -16,7 +16,6 @@ var _ openfeature.FeatureProvider = (*Provider)(nil)
 type ProviderOption func(*Provider)
 
 func NewProvider(cfg aws.Config, opts ...ProviderOption) (*Provider, error) {
-
 	p := &Provider{
 		svc: newAWSService(cfg),
 	}
@@ -60,6 +59,6 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	return p.svc.ResolveInt(ctx, flag, defaultValue, flatCtx)
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, flatCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, flatCtx openfeature.FlattenedContext) openfeature.ObjectResolutionDetail {
 	return p.svc.ResolveObject(ctx, flag, defaultValue, flatCtx)
 }

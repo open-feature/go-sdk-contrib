@@ -1,16 +1,15 @@
-module github.com/open-feature/go-sdk-contrib/providers/statsig
+module go.openfeature.dev/contrib/providers/statsig/v2
 
-go 1.24.0
+go 1.25.0
 
 require (
-	github.com/open-feature/go-sdk v1.17.0
 	github.com/statsig-io/go-sdk v1.36.4
 	github.com/stretchr/testify v1.11.1
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

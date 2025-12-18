@@ -13,16 +13,15 @@ import (
 
 	"github.com/open-feature/flagd/core/pkg/logger"
 	flagdsync "github.com/open-feature/flagd/core/pkg/sync"
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	flagd "go.openfeature.dev/contrib/providers/flagd/v2/pkg"
+	of "go.openfeature.dev/openfeature/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 func TestIntegrationGithubRawContent(t *testing.T) {
-
 	testURL := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/testing-flags.json"
 
 	log := NewRaw()
@@ -67,7 +66,6 @@ func TestIntegrationGithubRawContent(t *testing.T) {
 }
 
 func TestIntegrationGithubRawContentWithProviderEvaluation(t *testing.T) {
-
 	testUrl := "https://raw.githubusercontent.com/openfeature/go-sdk-contrib/refs/heads/feature/flagd-http-connector/tools/flagd-http-connector/pkg/testing-flags.json"
 
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
@@ -177,11 +175,9 @@ func TestIntegrationGithubRawContentUsingCache(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		return int(opts.PayloadCache.(*MockPayloadCache).SuccessGetCount.Load()) >= 2 && success.Load()
 	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds and cache should be hit once")
-
 }
 
 func TestIntegrationGithubRawContentUsingFailsafeCache(t *testing.T) {
-
 	// non-existing url, simulating Github down
 	invalidTestUrl := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/non-existing-flags.json"
 

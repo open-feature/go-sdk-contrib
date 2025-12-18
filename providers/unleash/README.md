@@ -1,6 +1,6 @@
 # Unofficial Unleash OpenFeature GO Provider
 
- [Unleash](https://getunleash.io) OpenFeature Provider can provide usage for Unleash via OpenFeature GO SDK.
+[Unleash](https://getunleash.io) OpenFeature Provider can provide usage for Unleash via OpenFeature GO SDK.
 
 # Installation
 
@@ -8,14 +8,16 @@ To use the Unleash provider, you'll need to install [unleash Go client](https://
 
 ```shell
 go get github.com/Unleash/unleash-client-go/v4
-go get github.com/open-feature/go-sdk-contrib/providers/unleash
+go get go.openfeature.dev/contrib/providers/unleash/v2
 ```
 
 ## Concepts
-* Boolean evaluation gets feature enabled status.
-* String evaluation gets feature variant value.
+
+- Boolean evaluation gets feature enabled status.
+- String evaluation gets feature variant value.
 
 ## Usage
+
 Unleash OpenFeature Provider is using Unleash GO SDK.
 
 ## Usage Example
@@ -23,7 +25,7 @@ Unleash OpenFeature Provider is using Unleash GO SDK.
 ```go
 import (
   "github.com/Unleash/unleash-client-go/v4"
-  unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
+  unleashProvider "go.openfeature.dev/contrib/providers/unleash/v2/pkg"
 )
 
 providerConfig := unleashProvider.ProviderConfig{
@@ -42,7 +44,7 @@ err = provider.Init(of.EvaluationContext{})
 
 ctx := context.Background()
 
-of.SetProvider(provider)
+of.SetProvider(ctx, provider)
 ofClient := of.NewClient("my-app")
 
 evalCtx := of.NewEvaluationContext(
@@ -51,23 +53,23 @@ evalCtx := of.NewEvaluationContext(
     "UserId": "111",
   },
 )
-enabled, err := ofClient.BooleanValue(context.Background(), "users-flag", false, evalCtx)
+enabled := ofClient.Boolean(ctx, "users-flag", false, evalCtx)
 
 evalCtx := of.NewEvaluationContext(
   "",
   map[string]interface{}{},
 )
-value, err := ofClient.StringValue(context.Background(), "variant-flag", "", evalCtx)
+value := ofClient.String(ctx, "variant-flag", "", evalCtx)
 
-of.Shutdown()
+of.Shutdown(ctx)
 
 ```
-See [provider_test.go](./pkg/provider_test.go) for more information.
 
+See [provider_test.go](./pkg/provider_test.go) for more information.
 
 ### Additional Usage Details
 
-* When default value is used and returned, default variant is not used and variant name is not set.
-* json/csv payloads are evaluated via object evaluation as what returned from Unleash - string, wrapped with Value.
-* Additional evaluation data can be received via flag metadata, such as:
-  * *enabled* - boolean
+- When default value is used and returned, default variant is not used and variant name is not set.
+- json/csv payloads are evaluated via object evaluation as what returned from Unleash - string, wrapped with Value.
+- Additional evaluation data can be received via flag metadata, such as:
+  - _enabled_ - boolean

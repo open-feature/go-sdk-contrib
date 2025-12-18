@@ -1,6 +1,6 @@
 package gofeatureflaginprocess
 
-import of "github.com/open-feature/go-sdk/openfeature"
+import of "go.openfeature.dev/openfeature/v2"
 
 type GenericResolutionDetail[T JsonType] struct {
 	Value T

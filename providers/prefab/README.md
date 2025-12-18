@@ -8,18 +8,19 @@ To use the provider, you'll need to install [Prefab Go client](https://github.co
 
 ```shell
 go get github.com/prefab-cloud/prefab-cloud-go
-go get github.com/open-feature/go-sdk-contrib/providers/prefab
+go get go.openfeature.dev/contrib/providers/prefab/v2
 ```
 
 ## Usage
+
 Prefab OpenFeature Provider is using Prefab GO SDK.
 
 ### Usage Example
 
 ```go
 import (
-  prefabProvider "github.com/open-feature/go-sdk-contrib/providers/prefab/pkg"
-  of "github.com/open-feature/go-sdk/openfeature"
+  prefabProvider "go.openfeature.dev/contrib/providers/prefab/v2/pkg"
+  of "go.openfeature.dev/openfeature/v2"
   prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
 )
 
@@ -27,7 +28,7 @@ var provider *prefabProvider.Provider
 var ofClient *of.Client
 
 providerConfig := prefabProvider.ProviderConfig{
-		APIKey: "YOUR_API_KEY",
+  APIKey: "YOUR_API_KEY",
 }
 
 var err error
@@ -42,7 +43,7 @@ if err != nil {
   os.Exit(1)
 }
 
-of.SetProvider(provider)
+of.SetProvider(context.TODO(), provider)
 ofClient = of.NewClient("my-app")
 
 evalCtx := of.NewEvaluationContext(
@@ -53,16 +54,17 @@ evalCtx := of.NewEvaluationContext(
     "team.description": "team1",
   },
 )
-enabled, _ := ofClient.BooleanValue(context.Background(), "always_on_gate", false, evalCtx)
+enabled := ofClient.Boolean(context.TOOD(), "always_on_gate", false, evalCtx)
 fmt.Printf("enabled: %v\n", enabled)
-value, _ := ofClient.StringValue(context.Background(), "string", "fallback", evalCtx)
+value := ofClient.String(context.TODO(), "string", "fallback", evalCtx)
 fmt.Printf("value: %v\n", value)
-slice, _ := ofClient.ObjectValueDetails(context.Background(), "sample_list", []string{"a2", "b2"}, evalCtx)
+slice, _ := ofClient.ObjectValueDetails(context.TODO(), "sample_list", []string{"a2", "b2"}, evalCtx)
 fmt.Printf("slice: %v\n", slice)
 
-of.Shutdown()
+of.Shutdown(context.TODO())
 
 ```
+
 See [provider_test.go](./pkg/provider_test.go) for more information.
 
 ## Notes
@@ -71,7 +73,7 @@ Some Prefab custom operations are supported from the Prefab client via PrefabCli
 
 ## Prefab Provider Tests Strategies
 
-Unit test based on Prefab yaml config file. 
+Unit test based on Prefab yaml config file.
 Can be enhanced pending [JSON dump data source](https://github.com/prefab-cloud/prefab-cloud-go/blob/0e3d5a4ba7171bbc4484cc99ccaad4c0c32d7e81/README.md?plain=1#L58)
 JSON evaluation not tested properly until then.
 See [provider_test.go](./pkg/provider_test.go) for more information.

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 type mockResolver struct {
@@ -204,7 +204,7 @@ func TestIntegerEvaluation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			flags := Flags{resolver: test.resolver}
 			resolutionDetail := flags.ResolveInt(ctx, "intFlag", test.defaultValue, nil)
-			genericValidator[int64](test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
+			genericValidator(test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
 		})
 	}
 }

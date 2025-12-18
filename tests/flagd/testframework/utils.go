@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	flagd "go.openfeature.dev/contrib/providers/flagd/v2/pkg"
 )
 
 // ValueConverter provides unified type conversion for test steps

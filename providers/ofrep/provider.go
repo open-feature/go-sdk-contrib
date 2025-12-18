@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/evaluate"
-	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/ofrep/v2/internal/evaluate"
+	"go.openfeature.dev/contrib/providers/ofrep/v2/internal/outbound"
+	"go.openfeature.dev/openfeature/v2"
 )
 
-var _ openfeature.FeatureProvider = &Provider{}
+var _ openfeature.FeatureProvider = (*Provider)(nil)
 
 // Provider implementation for OFREP
 type Provider struct {
@@ -61,7 +61,7 @@ func (p Provider) IntEvaluation(ctx context.Context, flag string, defaultValue i
 	return p.evaluator.ResolveInt(ctx, flag, defaultValue, evalCtx)
 }
 
-func (p Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.ObjectResolutionDetail {
 	return p.evaluator.ResolveObject(ctx, flag, defaultValue, evalCtx)
 }
 

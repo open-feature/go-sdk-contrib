@@ -5,15 +5,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/hook"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/util"
-	"github.com/open-feature/go-sdk-contrib/providers/ofrep"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/controller"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/hook"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/util"
+	"go.openfeature.dev/contrib/providers/ofrep/v2"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
-const providerName = "GO Feature Flag"
-const cacheableMetadataKey = "gofeatureflag_cacheable"
+const (
+	providerName         = "GO Feature Flag"
+	cacheableMetadataKey = "gofeatureflag_cacheable"
+)
+
+var (
+	_ of.FeatureProvider = (*Provider)(nil)
+	_ of.StateHandler    = (*Provider)(nil)
+	_ of.EventHandler    = (*Provider)(nil)
+)
 
 type Provider struct {
 	ofrepProvider        *ofrep.Provider
@@ -161,9 +169,9 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	return res
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	if err := util.ValidateTargetingKey(evalCtx); err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{ResolutionError: *err, Reason: of.ErrorReason},
 		}
@@ -184,7 +192,7 @@ func (p *Provider) Hooks() []of.Hook {
 }
 
 // Init holds initialization logic of the provider
-func (p *Provider) Init(_ of.EvaluationContext) error {
+func (p *Provider) Init(context.Context) error {
 	p.hooks = append(p.hooks, hook.NewEvaluationEnrichmentHook(p.options.ExporterMetadata))
 	if !p.options.DisableDataCollector {
 		dataCollectorHook := hook.NewDataCollectorHook(&p.dataCollectorManager)
@@ -200,7 +208,8 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 	p.status = of.ReadyState
 	p.events <- of.Event{
 		ProviderName: providerName, EventType: of.ProviderReady,
-		ProviderEventDetails: of.ProviderEventDetails{Message: "Provider is ready"}}
+		ProviderEventDetails: of.ProviderEventDetails{Message: "Provider is ready"},
+	}
 	return nil
 }
 
@@ -210,12 +219,13 @@ func (p *Provider) Status() of.State {
 }
 
 // Shutdown defines the shutdown operation of the provider
-func (p *Provider) Shutdown() {
+func (p *Provider) Shutdown(context.Context) error {
 	if !p.options.DisableDataCollector {
 		p.hooks = []of.Hook{}
 		p.dataCollectorManager.Stop()
 	}
 	p.stopPolling()
+	return nil
 }
 
 // EventChannel returns the event channel of this provider
@@ -252,7 +262,8 @@ func (p *Provider) startPolling(pollingInterval time.Duration) {
 					p.cache.Purge()
 					p.events <- of.Event{
 						ProviderName: providerName, EventType: of.ProviderConfigChange,
-						ProviderEventDetails: of.ProviderEventDetails{Message: "Configuration has changed"}}
+						ProviderEventDetails: of.ProviderEventDetails{Message: "Configuration has changed"},
+					}
 				case controller.ErrorConfigurationChange:
 					p.events <- of.Event{
 						ProviderName: providerName, EventType: of.ProviderStale,

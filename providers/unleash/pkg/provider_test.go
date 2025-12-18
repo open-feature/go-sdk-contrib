@@ -12,9 +12,9 @@ import (
 	_ "embed"
 
 	"github.com/Unleash/unleash-client-go/v4"
-	unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
+	unleashProvider "go.openfeature.dev/contrib/providers/unleash/v2/pkg"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 var (
@@ -122,7 +122,7 @@ func TestStringEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	value, _ := ofClient.StringValue(context.Background(), "variant-flag", "", evalCtx)
+	value := ofClient.String(context.Background(), "variant-flag", "", evalCtx)
 	if value == "" {
 		t.Fatalf("Expected a value")
 	}
@@ -156,7 +156,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 			"SessionId":     "test-session",
 		},
 	)
-	enabled, _ = ofClient.BooleanValue(context.Background(), "users-flag", false, evalCtx)
+	enabled = ofClient.Boolean(context.Background(), "users-flag", false, evalCtx)
 	if enabled == false {
 		t.Fatalf("Expected feature to be enabled")
 	}
@@ -255,7 +255,7 @@ func TestEvaluationMethods(t *testing.T) {
 
 // global cleanup
 func cleanup() {
-	provider.Shutdown()
+	_ = provider.Shutdown(context.Background())
 }
 
 //go:embed demo_app_toggles.json
@@ -288,7 +288,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		fmt.Printf("Error during provider open: %v\n", err)
 	}
-	err = of.SetProviderAndWait(provider)
+	err = of.SetProviderAndWait(context.TODO(), provider)
 	if err != nil {
 		fmt.Printf("Error during SetProviderAndWait: %v\n", err)
 		os.Exit(1)

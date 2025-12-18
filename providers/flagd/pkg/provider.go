@@ -6,14 +6,20 @@ import (
 
 	parallel "sync"
 
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
-	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/cache"
+	process "go.openfeature.dev/contrib/providers/flagd/v2/pkg/service/in_process"
+	rpcService "go.openfeature.dev/contrib/providers/flagd/v2/pkg/service/rpc"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const (
 	defaultCustomSyncProviderUri = "syncprovider://custom"
+)
+
+var (
+	_ of.FeatureProvider = (*Provider)(nil)
+	_ of.StateHandler    = (*Provider)(nil)
+	_ of.EventHandler    = (*Provider)(nil)
 )
 
 type Provider struct {
@@ -28,7 +34,6 @@ type Provider struct {
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	providerConfiguration, err := NewProviderConfiguration(opts)
-
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +92,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	return provider, nil
 }
 
-func (p *Provider) Init(_ of.EvaluationContext) error {
+func (p *Provider) Init(context.Context) error {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
@@ -134,12 +139,13 @@ func (p *Provider) Status() of.State {
 	return p.status
 }
 
-func (p *Provider) Shutdown() {
+func (p *Provider) Shutdown(context.Context) error {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
 	p.initialized = false
 	p.service.Shutdown()
+	return nil
 }
 
 func (p *Provider) EventChannel() <-chan of.Event {
@@ -184,7 +190,7 @@ func (p *Provider) IntEvaluation(
 
 func (p *Provider) ObjectEvaluation(
 	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
-) of.InterfaceResolutionDetail {
+) of.ObjectResolutionDetail {
 	return p.service.ResolveObject(ctx, flagKey, defaultValue, evalCtx)
 }
 

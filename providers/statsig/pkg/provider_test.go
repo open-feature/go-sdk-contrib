@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	of "github.com/open-feature/go-sdk/openfeature"
 	statsig "github.com/statsig-io/go-sdk"
+	of "go.openfeature.dev/openfeature/v2"
 
-	statsigProvider "github.com/open-feature/go-sdk-contrib/providers/statsig/pkg"
+	statsigProvider "go.openfeature.dev/contrib/providers/statsig/v2/pkg"
 )
 
 var provider *statsigProvider.Provider
 
 func TestBooleanEvaluation(t *testing.T) {
-	err := of.SetProviderAndWait(provider)
+	err := of.SetProviderAndWait(t.Context(), provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
@@ -31,14 +31,14 @@ func TestBooleanEvaluation(t *testing.T) {
 			"UserID": "123",
 		},
 	)
-	enabled, _ := ofClient.BooleanValue(context.Background(), "always_on_gate", false, evalCtx)
+	enabled := ofClient.Boolean(t.Context(), "always_on_gate", false, evalCtx)
 	if enabled == false {
 		t.Fatalf("Expected feature to be enabled")
 	}
 }
 
 func TestStringConfigEvaluation(t *testing.T) {
-	err := of.SetProviderAndWait(provider)
+	err := of.SetProviderAndWait(t.Context(), provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
@@ -58,14 +58,14 @@ func TestStringConfigEvaluation(t *testing.T) {
 		},
 	)
 	expected := "statsig"
-	value, _ := ofClient.StringValue(context.Background(), "string", "fallback", evalCtx)
+	value := ofClient.String(t.Context(), "string", "fallback", evalCtx)
 	if value != expected {
 		t.Fatalf("Expected: %s, actual: %s", expected, value)
 	}
 }
 
 func TestBoolLayerEvaluation(t *testing.T) {
-	err := of.SetProviderAndWait(provider)
+	err := of.SetProviderAndWait(t.Context(), provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
@@ -84,7 +84,7 @@ func TestBoolLayerEvaluation(t *testing.T) {
 		},
 	)
 	expected := "layer_default"
-	value, _ := ofClient.StringValue(context.Background(), "b_param", "fallback", evalCtx)
+	value := ofClient.String(t.Context(), "b_param", "fallback", evalCtx)
 	if value != expected {
 		t.Fatalf("Expected: %s, actual: %s", expected, value)
 	}
@@ -212,7 +212,7 @@ func cleanup() {
 }
 
 func TestEvaluationMethods(t *testing.T) {
-	err := of.SetProviderAndWait(provider)
+	err := of.SetProviderAndWait(t.Context(), provider)
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}

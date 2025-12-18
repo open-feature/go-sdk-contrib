@@ -2,8 +2,11 @@ package hook
 
 import (
 	"context"
-	"github.com/open-feature/go-sdk/openfeature"
+
+	"go.openfeature.dev/openfeature/v2"
 )
+
+var _ openfeature.Hook = (*evaluationEnrichmentHook)(nil)
 
 func NewEvaluationEnrichmentHook(exporterMetadata map[string]any) openfeature.Hook {
 	return &evaluationEnrichmentHook{exporterMetadata: exporterMetadata}
@@ -14,7 +17,7 @@ type evaluationEnrichmentHook struct {
 	exporterMetadata map[string]any
 }
 
-func (d *evaluationEnrichmentHook) Before(_ context.Context, hookCtx openfeature.HookContext, _ openfeature.HookHints) (*openfeature.EvaluationContext, error) {
+func (d *evaluationEnrichmentHook) Before(ctx context.Context, hookCtx openfeature.HookContext, _ openfeature.HookHints) (context.Context, error) {
 	attributes := hookCtx.EvaluationContext().Attributes()
 	if goffSpecific, ok := attributes["gofeatureflag"]; ok {
 		switch typed := goffSpecific.(type) {
@@ -27,5 +30,5 @@ func (d *evaluationEnrichmentHook) Before(_ context.Context, hookCtx openfeature
 		attributes["gofeatureflag"] = map[string]any{"exporterMetadata": d.exporterMetadata}
 	}
 	newCtx := openfeature.NewEvaluationContext(hookCtx.EvaluationContext().TargetingKey(), attributes)
-	return &newCtx, nil
+	return openfeature.WithTransactionContext(ctx, newCtx), nil
 }

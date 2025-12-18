@@ -1,11 +1,11 @@
-module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag-in-process
+module go.openfeature.dev/contrib/providers/go-feature-flag-in-process/v2
 
-go 1.24.0
+go 1.25.0
 
 require (
-	github.com/open-feature/go-sdk v1.17.0
 	github.com/stretchr/testify v1.11.1
 	github.com/thomaspoignant/go-feature-flag v1.32.0
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
 )
 
 require (

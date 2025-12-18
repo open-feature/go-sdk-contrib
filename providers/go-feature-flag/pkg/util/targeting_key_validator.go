@@ -1,6 +1,6 @@
 package util
 
-import "github.com/open-feature/go-sdk/openfeature"
+import "go.openfeature.dev/openfeature/v2"
 
 const targetingKey = "targetingKey"
 

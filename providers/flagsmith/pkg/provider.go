@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 type Provider struct {
@@ -25,7 +25,6 @@ func NewProvider(client *flagsmithClient.Client, opts ...ProviderOption) *Provid
 		opt(provider)
 	}
 	return provider
-
 }
 
 // Hooks returns empty slice as flagsmith provider does not have any
@@ -40,7 +39,7 @@ func (p *Provider) Metadata() of.Metadata {
 	}
 }
 
-func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	var flags flagsmithClient.Flags
 	var err error
 
@@ -54,7 +53,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue an
 		targetKey, ok := evalCtx[of.TargetingKey].(string)
 		if !ok {
 			e := of.NewInvalidContextResolutionError("flagsmith: targeting key is not a string")
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: e,
@@ -77,7 +76,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue an
 		flags, err = p.client.GetIdentityFlags(ctx, targetKey, traits)
 		if err != nil {
 			e := of.NewGeneralResolutionError(err.Error())
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: e,
@@ -91,7 +90,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue an
 		if err != nil {
 			e := of.NewGeneralResolutionError(err.Error())
 
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: e,
@@ -104,7 +103,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue an
 	flagObj, err := flags.GetFlag(flag)
 	if err != nil {
 		e := of.NewFlagNotFoundResolutionError(err.Error())
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: e,
@@ -114,7 +113,7 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue an
 	}
 
 	if !flagObj.Enabled {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Reason: of.DisabledReason,
@@ -122,13 +121,12 @@ func (p *Provider) resolveFlag(ctx context.Context, flag string, defaultValue an
 		}
 	}
 
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value: flagObj.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason: reason,
 		},
 	}
-
 }
 
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
@@ -246,7 +244,6 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 		Value:                    value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
-
 }
 
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
@@ -261,7 +258,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	}
 
 	// Because `encoding/json` uses float64 for JSON numbers
-	//ref: https://pkg.go.dev/encoding/json#Unmarshal
+	// ref: https://pkg.go.dev/encoding/json#Unmarshal
 	value, ok := res.Value.(float64)
 	if !ok {
 		return of.IntResolutionDetail{
@@ -281,7 +278,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	res := p.resolveFlag(ctx, flag, defaultValue, evalCtx)
 	resolutionDetails := res.ResolutionDetail()
 
@@ -292,7 +289,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	// Json/object are stored as string
 	valueAsString, ok := res.Value.(string)
 	if !ok {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid object", res.Value)),
@@ -300,11 +297,11 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			},
 		}
 	}
-	var value = defaultValue
+	value := defaultValue
 
 	err := json.Unmarshal([]byte(valueAsString), &value)
 	if err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid object", res.Value)),
@@ -312,7 +309,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			},
 		}
 	}
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
@@ -324,5 +321,4 @@ func WithUsingBooleanConfigValue() ProviderOption {
 	return func(p *Provider) {
 		p.usingBooleanConfigValue = true
 	}
-
 }

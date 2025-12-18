@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // InitializeEventSteps registers event handling step definitions
@@ -107,13 +107,13 @@ func (s *TestState) addGenericEventHandler(ctx context.Context, eventType string
 	// Map event types to OpenFeature event constants
 	switch eventTypeUpper {
 	case "READY":
-		s.Client.AddHandler(openfeature.ProviderReady, &handler)
+		s.Client.AddHandler(openfeature.ProviderReady, handler)
 	case "ERROR":
-		s.Client.AddHandler(openfeature.ProviderError, &handler)
+		s.Client.AddHandler(openfeature.ProviderError, handler)
 	case "STALE":
-		s.Client.AddHandler(openfeature.ProviderStale, &handler)
+		s.Client.AddHandler(openfeature.ProviderStale, handler)
 	case "CHANGE", "CONFIGURATION_CHANGE":
-		s.Client.AddHandler(openfeature.ProviderConfigChange, &handler)
+		s.Client.AddHandler(openfeature.ProviderConfigChange, handler)
 	default:
 		return fmt.Errorf("unsupported event type: %s", eventType)
 	}

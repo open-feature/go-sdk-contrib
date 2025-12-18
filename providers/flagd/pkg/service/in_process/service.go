@@ -18,7 +18,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync/file"
 	"github.com/open-feature/flagd/core/pkg/sync/grpc"
 	"github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 	"golang.org/x/exp/maps"
 )
 
@@ -515,12 +515,12 @@ func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int
 }
 
 // ResolveObject resolves an object flag value
-func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue interface{}, evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
+func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue interface{}, evalCtx map[string]interface{}) of.ObjectResolutionDetail {
 	value, variant, reason, metadata, err := i.evaluator.ResolveObjectValue(ctx, "", key, evalCtx)
 	i.appendMetadata(metadata)
 
 	if err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: mapError(key, err),
@@ -531,7 +531,7 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 		}
 	}
 
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:       of.Reason(reason),

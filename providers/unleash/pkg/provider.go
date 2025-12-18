@@ -8,12 +8,17 @@ import (
 	"github.com/Unleash/unleash-client-go/v4"
 	"github.com/Unleash/unleash-client-go/v4/api"
 	unleashContext "github.com/Unleash/unleash-client-go/v4/context"
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const (
 	providerNotReady = "Provider not ready"
 	generalError     = "general error"
+)
+
+var (
+	_ of.FeatureProvider = (*Provider)(nil)
+	_ of.StateHandler    = (*Provider)(nil)
 )
 
 type Provider struct {
@@ -29,7 +34,7 @@ func NewProvider(providerConfig ProviderConfig) (*Provider, error) {
 	return provider, nil
 }
 
-func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
+func (p *Provider) Init(context.Context) error {
 	err := unleash.Initialize(
 		p.providerConfig.Options...,
 	)
@@ -45,9 +50,10 @@ func (p *Provider) Status() of.State {
 	return p.status
 }
 
-func (p *Provider) Shutdown() {
-	_ = unleash.Close()
+func (p *Provider) Shutdown(context.Context) error {
+	err := unleash.Close()
 	p.status = of.NotReadyState
+	return err
 }
 
 // Hooks returns empty slice as provider does not have any
@@ -176,10 +182,10 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -187,7 +193,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 				},
 			}
 		} else {
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -199,7 +205,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 
 	unleashContext, err := toUnleashContext(evalCtx)
 	if err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewGeneralResolutionError(err.Error()),
@@ -213,7 +219,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		"enabled": variant.Enabled,
 	}
 	if variant.Name == api.DISABLED_VARIANT.Name {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Variant:      "",
@@ -221,7 +227,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			},
 		}
 	} else {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: variant.Payload.Value,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Variant:      variant.Name,

@@ -2,11 +2,12 @@ package process
 
 import (
 	"context"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 func TestInProcessOfflineMode(t *testing.T) {
@@ -14,7 +15,7 @@ func TestInProcessOfflineMode(t *testing.T) {
 	flagFile := "config.json"
 	offlinePath := filepath.Join(t.TempDir(), flagFile)
 
-	err := os.WriteFile(offlinePath, []byte(flagRsp), 0644)
+	err := os.WriteFile(offlinePath, []byte(flagRsp), 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}

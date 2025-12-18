@@ -4,14 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/open-feature/go-sdk-contrib/providers/prefab/internal"
-	of "github.com/open-feature/go-sdk/openfeature"
 	prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
+	"go.openfeature.dev/contrib/providers/prefab/v2/internal"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const (
 	providerNotReady = "Provider not ready"
 	generalError     = "general error"
+)
+
+var (
+	_ of.FeatureProvider = (*Provider)(nil)
+	_ of.StateHandler    = (*Provider)(nil)
 )
 
 type Provider struct {
@@ -28,7 +33,7 @@ func NewProvider(providerConfig ProviderConfig) (*Provider, error) {
 	return provider, nil
 }
 
-func (p *Provider) Init(evaluationContext of.EvaluationContext) error {
+func (p *Provider) Init(ctx context.Context) error {
 	var prefabClient *prefab.Client
 	var err error
 
@@ -55,9 +60,10 @@ func (p *Provider) Status() of.State {
 	return p.status
 }
 
-func (p *Provider) Shutdown() {
+func (p *Provider) Shutdown(context.Context) error {
 	// no Shutdown method on p.PrefabClient
 	p.status = of.NotReadyState
+	return nil
 }
 
 // Hooks returns empty slice as provider does not have any
@@ -259,7 +265,7 @@ func verifyStateString(p *Provider, defaultValue string) (bool, of.StringResolut
 	return false, of.StringResolutionDetail{}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	shouldReturn, returnValue := verifyStateObject(p, defaultValue)
 	if shouldReturn {
 		return returnValue
@@ -267,7 +273,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 
 	prefabContext, err := internal.ToPrefabContext(evalCtx)
 	if err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewInvalidContextResolutionError(err.Error()),
@@ -288,16 +294,16 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		value = defaultValue
 	}
 
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{},
 	}
 }
 
-func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolutionDetail) {
+func verifyStateObject(p *Provider, defaultValue any) (bool, of.ObjectResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return true, of.InterfaceResolutionDetail{
+			return true, of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -305,7 +311,7 @@ func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolut
 				},
 			}
 		} else {
-			return true, of.InterfaceResolutionDetail{
+			return true, of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -314,5 +320,5 @@ func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolut
 			}
 		}
 	}
-	return false, of.InterfaceResolutionDetail{}
+	return false, of.ObjectResolutionDetail{}
 }

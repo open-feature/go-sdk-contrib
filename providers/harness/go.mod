@@ -1,12 +1,13 @@
-module github.com/open-feature/go-sdk-contrib/providers/harness
+module go.openfeature.dev/contrib/providers/harness/v2
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/harness/ff-golang-server-sdk v0.1.26
 	github.com/jarcoal/httpmock v1.4.1
-	github.com/open-feature/go-sdk v1.17.0
 	github.com/stretchr/testify v1.11.1
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
+	go.openfeature.dev/v2 v2.0.0-20251220140021-a1cf80705d33
 )
 
 require (
@@ -15,7 +16,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen/v2 v2.1.0 // indirect
 	github.com/getkin/kin-openapi v0.131.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
@@ -45,7 +45,7 @@ require (
 	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

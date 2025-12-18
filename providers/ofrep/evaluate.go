@@ -3,7 +3,7 @@ package ofrep
 import (
 	"context"
 
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 // Evaluator contract for flag evaluation
@@ -17,5 +17,5 @@ type Evaluator interface {
 	ResolveInt(ctx context.Context, key string, defaultValue int64,
 		evalCtx map[string]any) of.IntResolutionDetail
 	ResolveObject(ctx context.Context, key string, defaultValue any,
-		evalCtx map[string]any) of.InterfaceResolutionDetail
+		evalCtx map[string]any) of.ObjectResolutionDetail
 }

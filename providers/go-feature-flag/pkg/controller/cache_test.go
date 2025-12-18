@@ -1,12 +1,13 @@
 package controller_test
 
 import (
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk/openfeature"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/controller"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 func TestCache(t *testing.T) {
@@ -92,7 +93,7 @@ func TestCache(t *testing.T) {
 
 	t.Run("should return a InterfaceResolutionDetail", func(t *testing.T) {
 		c := controller.NewCache(10, 1*time.Minute, false)
-		brd := openfeature.InterfaceResolutionDetail{
+		brd := openfeature.ObjectResolutionDetail{
 			Value: 1,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.ResolutionError{},
@@ -106,12 +107,12 @@ func TestCache(t *testing.T) {
 		got, err := c.GetInterface("flag", evalCtx)
 		require.NoError(t, err)
 		assert.Equal(t, &brd, got)
-		assert.IsType(t, &openfeature.InterfaceResolutionDetail{}, got)
+		assert.IsType(t, &openfeature.ObjectResolutionDetail{}, got)
 	})
 
 	t.Run("should have a type error for Bool", func(t *testing.T) {
 		c := controller.NewCache(10, 1*time.Minute, false)
-		brd := openfeature.InterfaceResolutionDetail{
+		brd := openfeature.ObjectResolutionDetail{
 			Value: 1,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.ResolutionError{},
@@ -128,7 +129,7 @@ func TestCache(t *testing.T) {
 
 	t.Run("should have a type error for String", func(t *testing.T) {
 		c := controller.NewCache(10, 1*time.Minute, false)
-		brd := openfeature.InterfaceResolutionDetail{
+		brd := openfeature.ObjectResolutionDetail{
 			Value: 1,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.ResolutionError{},
@@ -145,7 +146,7 @@ func TestCache(t *testing.T) {
 
 	t.Run("should have a type error for Float", func(t *testing.T) {
 		c := controller.NewCache(10, 1*time.Minute, false)
-		brd := openfeature.InterfaceResolutionDetail{
+		brd := openfeature.ObjectResolutionDetail{
 			Value: 1,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.ResolutionError{},
@@ -162,7 +163,7 @@ func TestCache(t *testing.T) {
 
 	t.Run("should have a type error for Int", func(t *testing.T) {
 		c := controller.NewCache(10, -1, false)
-		brd := openfeature.InterfaceResolutionDetail{
+		brd := openfeature.ObjectResolutionDetail{
 			Value: 1,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.ResolutionError{},

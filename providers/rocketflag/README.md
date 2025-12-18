@@ -9,8 +9,7 @@ OpenFeature Go provider implementation for [RocketFlag](https://rocketflag.app) 
 go get github.com/rocketflag/go-sdk
 
 # OpenFeature SDK
-go get github.com/open-feature/go-sdk/openfeature
-go get github.com/open-feature/go-sdk-contrib/providers/rocketflag
+go get go.openfeature.dev/contrib/providers/rocketflag/v2
 ```
 
 ## Usage

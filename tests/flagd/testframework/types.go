@@ -3,8 +3,8 @@ package testframework
 import (
 	"time"
 
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
+	flagd "go.openfeature.dev/contrib/providers/flagd/v2/pkg"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // ProviderType represents the type of provider being tested
@@ -96,8 +96,10 @@ type ErrorAwareProviderConfiguration struct {
 }
 
 // Context keys for passing data between steps (legacy support)
-type ctxProviderOptionsKey struct{}
-type ctxErrorAwareProviderConfigurationKey struct{}
+type (
+	ctxProviderOptionsKey                 struct{}
+	ctxErrorAwareProviderConfigurationKey struct{}
+)
 
 // Container-related interfaces and types
 

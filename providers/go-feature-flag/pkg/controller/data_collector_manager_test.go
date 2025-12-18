@@ -1,12 +1,13 @@
 package controller_test
 
 import (
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/controller"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/model"
 )
 
 func Test_DataCollectorManager(t *testing.T) {

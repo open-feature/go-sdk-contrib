@@ -16,10 +16,10 @@ import (
 
 	"github.com/open-feature/flagd/core/pkg/logger"
 	flagdsync "github.com/open-feature/flagd/core/pkg/sync"
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	flagd "go.openfeature.dev/contrib/providers/flagd/v2/pkg"
+	of "go.openfeature.dev/openfeature/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -420,6 +420,7 @@ func TestValidateHttpConnectorOptions_ValidPayloadCacheConfig(t *testing.T) {
 	err = Validate(opts)
 	assert.NoError(t, err)
 }
+
 func TestValidateHttpConnectorOptions_ValidPayloadCacheWithPolling(t *testing.T) {
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
 	require.NoError(t, err)
@@ -471,9 +472,9 @@ func TestWithFlagdProvider(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.NotNil(t, provider)
-	defer provider.Shutdown()
+	defer provider.Shutdown(context.Background())
 
-	err = provider.Init(of.EvaluationContext{})
+	err = provider.Init(t.Context())
 	if err != nil {
 		t.Fatal("error initialization provider", err)
 	}
@@ -607,7 +608,6 @@ func TestSyncHttpConnector(t *testing.T) {
 
 // integration tests with mock http client
 func TestGithubRawContent(t *testing.T) {
-
 	testURL := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/testing-flags.json"
 
 	zapLogger, err := logger.NewZapLogger(zapcore.LevelOf(zap.DebugLevel), "json")
@@ -740,7 +740,6 @@ func TestGithubRawContentUsingCache(t *testing.T) {
 		return opts.PayloadCache.(*MockPayloadCache).SuccessGetCount.Load() >= 2 && success.Load()
 	}, 15*time.Second, 1*time.Second, "Sync channel should receive data within 15 seconds and cache should be hit once, "+
 		"successGetCount: "+strconv.Itoa(int(opts.PayloadCache.(*MockPayloadCache).SuccessGetCount.Load()))+" success: "+strconv.FormatBool(success.Load()))
-
 }
 
 // MockPayloadCache PayloadCache implementation based on map
@@ -786,7 +785,6 @@ func (m *MockFailSafeCache) PutWithTTL(key, payload string, ttlSeconds int) erro
 
 	// Start a goroutine to remove the key after the TTL expires.
 	go func() {
-
 		// the cache can be used as a distributed cache for other micro-service instances,
 		sleepTime := time.Duration(ttlSeconds) * time.Second // + 1 // Add a small buffer to ensure the key is removed after the TTL
 
@@ -800,7 +798,6 @@ func (m *MockFailSafeCache) PutWithTTL(key, payload string, ttlSeconds int) erro
 }
 
 func TestGithubRawContentUsingFailsafeCache(t *testing.T) {
-
 	// non-existing url, simulating Github down
 	invalidTestUrl := "https://raw.githubusercontent.com/open-feature/java-sdk-contrib/main/tools/flagd-http-connector/src/test/resources/non-existing-flags.json"
 

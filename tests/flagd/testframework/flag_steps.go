@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // InitializeFlagSteps registers flag evaluation step definitions
@@ -255,7 +255,7 @@ func (s *TestState) triggerChangeEvent(ctx context.Context) error {
 	handler := func(details openfeature.EventDetails) {
 		s.addEvent("CONFIGURATION_CHANGE", details)
 	}
-	s.Client.AddHandler(openfeature.ProviderConfigChange, &handler)
+	s.Client.AddHandler(openfeature.ProviderConfigChange, handler)
 
 	// Wait a moment for the change to propagate
 	return s.waitForEvents("CONFIGURATION_CHANGE", 2*time.Second)

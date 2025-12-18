@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/open-feature/flagd/core/pkg/sync"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/cache"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/logger"
 	"google.golang.org/grpc"
 )
 
@@ -91,7 +91,6 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 }
 
 func NewProviderConfiguration(opts []ProviderOption) (*ProviderConfiguration, error) {
-
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
@@ -134,7 +133,6 @@ func validateProviderConfiguration(p *ProviderConfiguration) error {
 
 // updateFromEnvVar is a utility to update configurations based on current environment variables
 func (cfg *ProviderConfiguration) updateFromEnvVar() {
-
 	portS := os.Getenv(flagdPortEnvironmentVariableName)
 	if portS != "" {
 		port, err := strconv.Atoi(portS)

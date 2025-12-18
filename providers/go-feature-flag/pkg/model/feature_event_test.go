@@ -1,10 +1,11 @@
 package model_test
 
 import (
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"testing"
 	"time"
+
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/model"
+	of "go.openfeature.dev/openfeature/v2"
 
 	"github.com/stretchr/testify/assert"
 )

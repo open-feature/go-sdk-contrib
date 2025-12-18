@@ -3,9 +3,15 @@ package gofeatureflaginprocess
 import (
 	"context"
 	"fmt"
-	of "github.com/open-feature/go-sdk/openfeature"
+
 	ff "github.com/thomaspoignant/go-feature-flag"
 	"github.com/thomaspoignant/go-feature-flag/ffcontext"
+	of "go.openfeature.dev/openfeature/v2"
+)
+
+var (
+	_ of.FeatureProvider = (*Provider)(nil)
+	_ of.StateHandler    = (*Provider)(nil)
 )
 
 // Provider is the OpenFeature provider for GO Feature Flag.
@@ -49,6 +55,7 @@ func (p *Provider) BooleanEvaluation(_ context.Context, flag string, defaultValu
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
+
 func (p *Provider) StringEvaluation(_ context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
 	res := evaluateLocally[string](p, flag, defaultValue, evalCtx)
 	return of.StringResolutionDetail{
@@ -56,6 +63,7 @@ func (p *Provider) StringEvaluation(_ context.Context, flag string, defaultValue
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
+
 func (p *Provider) FloatEvaluation(_ context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	res := evaluateLocally[float64](p, flag, defaultValue, evalCtx)
 	return of.FloatResolutionDetail{
@@ -63,6 +71,7 @@ func (p *Provider) FloatEvaluation(_ context.Context, flag string, defaultValue 
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
+
 func (p *Provider) IntEvaluation(_ context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
 	res := evaluateLocally[int64](p, flag, defaultValue, evalCtx)
 	return of.IntResolutionDetail{
@@ -70,18 +79,22 @@ func (p *Provider) IntEvaluation(_ context.Context, flag string, defaultValue in
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
-func (p *Provider) ObjectEvaluation(_ context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+
+func (p *Provider) ObjectEvaluation(_ context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	res := evaluateLocally[any](p, flag, defaultValue, evalCtx)
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value:                    res.Value,
 		ProviderResolutionDetail: res.ProviderResolutionDetail,
 	}
 }
-func (p *Provider) Init(_ of.EvaluationContext) error {
+
+func (p *Provider) Init(context.Context) error {
 	return nil
 }
-func (p *Provider) Shutdown() {
+
+func (p *Provider) Shutdown(context.Context) error {
 	p.goFeatureFlagInstance.Close()
+	return nil
 }
 
 // Hooks is returning an empty array because GO Feature Flag does not use any hooks.

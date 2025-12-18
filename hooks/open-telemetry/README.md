@@ -1,9 +1,5 @@
 # OpenTelemetry Hook
 
-## Requirements
-
-- open-feature/go-sdk >= v1.3.0
-
 ## Usage
 
 ## Metrics hook
@@ -60,7 +56,7 @@ These attributes are added at the `After` stage of the hook.
 NewMetricsHookForProvider(provider,
     WithMetricsAttributeSetter(
     func(metadata openfeature.FlagMetadata) []attribute.KeyValue {
-		// custom attribute extraction logic
+  // custom attribute extraction logic
 
         return attributes
     }))
@@ -112,7 +108,7 @@ These attributes are added at the `Finally` stage of the hook.
 
 NewTracesHook(WithTracesAttributeSetter(
     func(metadata openfeature.FlagMetadata) []attribute.KeyValue {
-		// custom attribute extraction logic
+  // custom attribute extraction logic
 
         return attributes
     }))

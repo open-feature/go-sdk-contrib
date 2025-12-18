@@ -2,15 +2,14 @@ package launchdarkly_test
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/launchdarkly/go-sdk-common/v3/ldlog"
 	"github.com/launchdarkly/go-server-sdk/v7/ldcomponents"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 
 	ld "github.com/launchdarkly/go-server-sdk/v7"
-	ofld "github.com/open-feature/go-sdk-contrib/providers/launchdarkly/pkg"
+	ofld "go.openfeature.dev/contrib/providers/launchdarkly/v2/pkg"
 )
 
 var emptyEvalCtx = openfeature.EvaluationContext{}
@@ -29,7 +28,7 @@ func Example() {
 	}()
 
 	// Set Launchdarkly as OpenFeature provider
-	err = openfeature.SetProvider(ofld.NewProvider(ldClient))
+	err = openfeature.SetProvider(context.TODO(), ofld.NewProvider(ldClient))
 	if err != nil {
 		// handle error for provider initialization
 	}
@@ -54,16 +53,13 @@ func Example() {
 	client := openfeature.NewClient("hello-world")
 	client.SetEvaluationContext(evalCtx)
 
-	if err := doSomething(context.Background(), client); err != nil {
+	if err := doSomething(context.TODO(), client); err != nil {
 		panic(err)
 	}
 }
 
 func doSomething(ctx context.Context, ofclient *openfeature.Client) error {
-	mtlsEnabled, err := ofclient.BooleanValue(ctx, "mtls_enabled", false, emptyEvalCtx)
-	if err != nil {
-		return fmt.Errorf("doing something: %w", err)
-	}
+	mtlsEnabled := ofclient.Boolean(ctx, "mtls_enabled", false, emptyEvalCtx)
 
 	if mtlsEnabled {
 		println("configuring mTLS...")

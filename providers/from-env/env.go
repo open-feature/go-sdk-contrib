@@ -1,11 +1,11 @@
-package from_env
+package envvar
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 type envFetch struct {

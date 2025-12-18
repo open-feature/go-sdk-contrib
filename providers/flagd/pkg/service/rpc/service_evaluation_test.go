@@ -11,20 +11,22 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/cache"
+	of "go.openfeature.dev/openfeature/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Service tests for flag evaluation
 
-var flagKey = "key"
-var metadata map[string]interface{}
-var metadataStruct *structpb.Struct
-var log logr.Logger
+var (
+	flagKey        = "key"
+	metadata       map[string]interface{}
+	metadataStruct *structpb.Struct
+	log            logr.Logger
+)
 
 type responseType interface {
-	of.BoolResolutionDetail | of.StringResolutionDetail | of.FloatResolutionDetail | of.IntResolutionDetail | of.InterfaceResolutionDetail
+	of.BoolResolutionDetail | of.StringResolutionDetail | of.FloatResolutionDetail | of.IntResolutionDetail | of.ObjectResolutionDetail
 }
 
 type testStruct[T responseType] struct {
@@ -608,7 +610,7 @@ func TestObjectEvaluation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tests := []testStruct[of.InterfaceResolutionDetail]{
+	tests := []testStruct[of.ObjectResolutionDetail]{
 		{
 			name: "happy path - simple uncached evaluation",
 			getCache: func() *cache.Service {
@@ -625,7 +627,7 @@ func TestObjectEvaluation(t *testing.T) {
 					},
 				}
 			},
-			expectResponse: of.InterfaceResolutionDetail{
+			expectResponse: of.ObjectResolutionDetail{
 				Value: expectedValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.StaticReason,
@@ -640,7 +642,7 @@ func TestObjectEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				cacheService := cache.NewCacheService(cache.InMemValue, 10, log)
 
-				cacheService.GetCache().Add(flagKey, of.InterfaceResolutionDetail{
+				cacheService.GetCache().Add(flagKey, of.ObjectResolutionDetail{
 					Value: expectedValue,
 					ProviderResolutionDetail: of.ProviderResolutionDetail{
 						Reason:       of.StaticReason,
@@ -655,7 +657,7 @@ func TestObjectEvaluation(t *testing.T) {
 				// empty mock
 				return &MockClient{}
 			},
-			expectResponse: of.InterfaceResolutionDetail{
+			expectResponse: of.ObjectResolutionDetail{
 				Value: expectedValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.CachedReason,
@@ -680,7 +682,7 @@ func TestObjectEvaluation(t *testing.T) {
 					},
 				}
 			},
-			expectResponse: of.InterfaceResolutionDetail{
+			expectResponse: of.ObjectResolutionDetail{
 				Value: expectedValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.StaticReason,
@@ -700,7 +702,7 @@ func TestObjectEvaluation(t *testing.T) {
 					error: of.NewFlagNotFoundResolutionError("requested flag not found"),
 				}
 			},
-			expectResponse: of.InterfaceResolutionDetail{
+			expectResponse: of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),
@@ -718,7 +720,7 @@ func TestObjectEvaluation(t *testing.T) {
 			getMockClient: func() schemaConnectV1.ServiceClient {
 				return nil
 			},
-			expectResponse: of.InterfaceResolutionDetail{
+			expectResponse: of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewFlagNotFoundResolutionError("requested flag not found"),

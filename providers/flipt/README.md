@@ -16,7 +16,7 @@ From the [OpenFeature Specification](https://docs.openfeature.dev/docs/specifica
 ### Installation
 
 ```bash
-go get github.com/open-feature/go-sdk-contrib/providers/flipt
+go get go.openfeature.dev/contrib/providers/flipt/v2
 ```
 
 ### Example
@@ -27,29 +27,25 @@ package main
 import (
     "context"
 
-    flipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/provider"
-    "github.com/open-feature/go-sdk/openfeature"
+    flipt "go.openfeature.dev/contrib/providers/flipt/v2/pkg/provider"
+    "go.openfeature.dev/openfeature/v2"
 )
 
 
 func main() {
     // http://localhost:8080 is the default Flipt address
-    err := openfeature.SetProviderAndWait(flipt.NewProvider())
+    err := openfeature.SetProviderAndWait(context.TODO(), flipt.NewProvider())
     if err != nil {
       panic(err)
     }
 
     client := openfeature.NewClient("my-app")
-    value, err := client.BooleanValue(context.Background(), "v2_enabled", false, openfeature.NewEvaluationContext(
+    value := client.Boolean(context.TODO(), "v2_enabled", false, openfeature.NewEvaluationContext(
         "tim@apple.com",
         map[string]any{
             "favorite_color": "blue",
         },
     ))
-
-    if err != nil {
-        panic(err)
-    }
 
     if value {
         // do something

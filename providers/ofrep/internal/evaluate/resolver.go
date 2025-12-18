@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/ofrep/v2/internal/outbound"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 // OutboundResolver is responsible for resolving flags with outbound communications.

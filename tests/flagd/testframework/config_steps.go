@@ -9,7 +9,7 @@ import (
 	"slices"
 
 	"github.com/cucumber/godog"
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+	flagd "go.openfeature.dev/contrib/providers/flagd/v2/pkg"
 )
 
 // ignoredOptions a list of options that are currently not supported
@@ -96,7 +96,7 @@ func (s *TestState) theOptionOfTypeShouldHaveTheValue(
 	config := errorAwareConfiguration.Configuration
 	currentValue := reflect.ValueOf(config).Elem().FieldByName(ToFieldName(option))
 	converter := NewValueConverter()
-	var expectedValue = converter.ConvertToReflectValue(valueType, expectedValueS, currentValue.Type())
+	expectedValue := converter.ConvertToReflectValue(valueType, expectedValueS, currentValue.Type())
 
 	if ValueToString(currentValue) != ValueToString(expectedValue) {
 		return ctx, fmt.Errorf(

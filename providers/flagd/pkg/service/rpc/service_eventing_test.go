@@ -7,8 +7,8 @@ import (
 	"time"
 
 	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/cache"
+	of "go.openfeature.dev/openfeature/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -111,5 +111,4 @@ func TestConfigChange(t *testing.T) {
 			t.Fatalf("timed out waiting for event")
 		}
 	})
-
 }

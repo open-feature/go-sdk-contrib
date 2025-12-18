@@ -1,16 +1,17 @@
 package process
 
 import (
-	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
 	"fmt"
-	"github.com/open-feature/go-sdk/openfeature"
-	"google.golang.org/grpc"
 	"log"
 	"net"
 	"testing"
 	"time"
+
+	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
+	"go.openfeature.dev/openfeature/v2"
+	"google.golang.org/grpc"
 )
 
 // shared flag for tests
@@ -138,7 +139,7 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 	}
 
 	inProcessService := NewInProcessService(Configuration{
-		TargetUri: "envoy://localhost:9211/foo.service",
+		TargetUri:  "envoy://localhost:9211/foo.service",
 		Selector:   scope,
 		TLSEnabled: false,
 	})
@@ -200,7 +201,6 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
 }
-
 
 // bufferedServer - a mock grpc service backed by buffered connection
 type bufferedServer struct {

@@ -1,17 +1,16 @@
-module github.com/open-feature/go-sdk-contrib/providers/unleash
+module go.openfeature.dev/contrib/providers/unleash/v2
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/Unleash/unleash-client-go/v4 v4.1.4
-	github.com/open-feature/go-sdk v1.17.0
 	github.com/stretchr/testify v1.11.1
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
 )
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect

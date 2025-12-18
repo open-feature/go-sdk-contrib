@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	sdk "github.com/configcat/go-sdk/v9"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
-var _ openfeature.FeatureProvider = (*Provider)(nil)
-var _ sdk.UserAttributes = (*userAttributes)(nil)
+var (
+	_ openfeature.FeatureProvider = (*Provider)(nil)
+	_ sdk.UserAttributes          = (*userAttributes)(nil)
+)
 
 // Evaluation ctx keys that are mapped to ConfigCat user data.
 const (
@@ -86,12 +89,12 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 }
 
 // ObjectEvaluation attempts to parse a string feature flag value as JSON.
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.ObjectResolutionDetail {
 	evaluation := p.client.GetStringValueDetails(flag, "", toUserData(evalCtx))
 	if evaluation.Data.IsDefaultValue || evaluation.Data.Error != nil {
 		// we evaluated with a fake default value, so we
 		// need to use the one we were provided
-		return openfeature.InterfaceResolutionDetail{
+		return openfeature.ObjectResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 		}
@@ -101,7 +104,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	var object map[string]any
 	err := json.Unmarshal([]byte(evaluation.Value), &object)
 	if err != nil {
-		return openfeature.InterfaceResolutionDetail{
+		return openfeature.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.NewTypeMismatchResolutionError(
@@ -112,7 +115,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		}
 	}
 
-	return openfeature.InterfaceResolutionDetail{
+	return openfeature.ObjectResolutionDetail{
 		Value:                    object,
 		ProviderResolutionDetail: toResolutionDetail(evaluation.Data),
 	}
@@ -139,7 +142,6 @@ func toUserData(evalCtx openfeature.FlattenedContext) sdk.User {
 		default:
 			attributes[key] = val
 		}
-
 	}
 	return &userAttributes{attributes: attributes}
 }

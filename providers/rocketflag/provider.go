@@ -3,14 +3,16 @@ package rocketflag
 import (
 	"context"
 
-	"github.com/open-feature/go-sdk/openfeature"
 	rocketflag "github.com/rocketflag/go-sdk"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // Client is an interface for the RocketFlag client.
 type Client interface {
 	GetFlag(flag string, user rocketflag.UserContext) (*rocketflag.FlagStatus, error)
 }
+
+var _ openfeature.FeatureProvider = (*Provider)(nil)
 
 type Provider struct {
 	client Client
@@ -26,7 +28,6 @@ func NewProvider(client Client, opts ...ProviderOption) *Provider {
 		opt(provider)
 	}
 	return provider
-
 }
 
 // Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
@@ -102,8 +103,8 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
-	return openfeature.InterfaceResolutionDetail{
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.ObjectResolutionDetail {
+	return openfeature.ObjectResolutionDetail{
 		Value: defaultValue,
 		ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 			ResolutionError: openfeature.NewTypeMismatchResolutionError("RocketFlag: Object flags are not yet supported."),

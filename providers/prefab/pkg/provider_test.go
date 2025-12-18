@@ -7,10 +7,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/open-feature/go-sdk-contrib/providers/prefab/internal"
-	prefabProvider "github.com/open-feature/go-sdk-contrib/providers/prefab/pkg"
-	of "github.com/open-feature/go-sdk/openfeature"
 	prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
+	"go.openfeature.dev/contrib/providers/prefab/v2/internal"
+	prefabProvider "go.openfeature.dev/contrib/providers/prefab/v2/pkg"
+	of "go.openfeature.dev/openfeature/v2"
 
 	"github.com/stretchr/testify/require"
 )
@@ -37,8 +37,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	enabled, err := ofClient.BooleanValue(context.Background(), "sample_bool", false, evalCtx)
-	require.Nil(t, err)
+	enabled := ofClient.Boolean(context.Background(), "sample_bool", false, evalCtx)
 	require.Equal(t, true, enabled)
 }
 
@@ -94,8 +93,7 @@ func TestFloatEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	value, err := ofClient.FloatValue(context.Background(), "sample_double", 1.2, evalCtx)
-	require.Nil(t, err)
+	value := ofClient.Float(context.Background(), "sample_double", 1.2, evalCtx)
 	require.Equal(t, 12.12, value)
 }
 
@@ -116,8 +114,7 @@ func TestIntEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	value, err := ofClient.IntValue(context.Background(), "sample_int", 1, evalCtx)
-	require.Nil(t, err)
+	value := ofClient.Int(context.Background(), "sample_int", 1, evalCtx)
 	require.Equal(t, int64(123), value)
 }
 
@@ -138,8 +135,7 @@ func TestStringEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	value, err := ofClient.StringValue(context.Background(), "sample", "default", evalCtx)
-	require.Nil(t, err)
+	value := ofClient.String(context.Background(), "sample", "default", evalCtx)
 	require.Equal(t, "test sample value", value)
 }
 
@@ -234,7 +230,7 @@ func TestErrorProviderStates(t *testing.T) {
 		Sources: []string{"datafile://non-existing.yaml"},
 	}
 	errorProvider, _ := prefabProvider.NewProvider(providerConfig)
-	err := errorProvider.Init(of.EvaluationContext{})
+	err := errorProvider.Init(t.Context())
 	require.Error(t, err)
 
 	boolRes := errorProvider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
@@ -254,12 +250,12 @@ func TestErrorProviderStates(t *testing.T) {
 
 	providerConfig = prefabProvider.ProviderConfig{}
 	errorProvider, _ = prefabProvider.NewProvider(providerConfig)
-	err = errorProvider.Init(of.EvaluationContext{})
+	err = errorProvider.Init(t.Context())
 	require.Error(t, err)
 }
 
 func TestEvaluationMethods(t *testing.T) {
-	err := of.SetProvider(provider)
+	err := of.SetProvider(t.Context(), provider)
 	require.Nil(t, err)
 
 	evalCtx := of.NewEvaluationContext(
@@ -345,7 +341,7 @@ func TestEvaluationMethods(t *testing.T) {
 }
 
 func cleanup() {
-	provider.Shutdown()
+	_ = provider.Shutdown(context.Background())
 }
 
 func TestMain(m *testing.M) {
@@ -359,13 +355,13 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error during new provider: %v\n", err)
 		os.Exit(1)
 	}
-	err = provider.Init(of.EvaluationContext{})
+	err = provider.Init(context.Background())
 	if err != nil {
 		fmt.Printf("Error during provider init: %v\n", err)
 		os.Exit(1)
 	}
 
-	err = of.SetProviderAndWait(provider)
+	err = of.SetProviderAndWait(context.TODO(), provider)
 	if err != nil {
 		fmt.Printf("Error during provider set: %v\n", err)
 		os.Exit(1)

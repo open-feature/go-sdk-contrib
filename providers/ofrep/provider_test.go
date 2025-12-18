@@ -7,9 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-feature/go-sdk/openfeature"
-
-	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
+	"go.openfeature.dev/contrib/providers/ofrep/v2/internal/outbound"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 func TestConfigurations(t *testing.T) {

@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	rocketflag "github.com/open-feature/go-sdk-contrib/providers/rocketflag"
-	"github.com/open-feature/go-sdk/openfeature"
 	rocketflagsdk "github.com/rocketflag/go-sdk"
+	rocketflag "go.openfeature.dev/contrib/providers/rocketflag/v2"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 func Example() {
 	provider := rocketflag.NewProvider(rocketflagsdk.NewClient())
-	err := openfeature.SetProviderAndWait(provider)
+	err := openfeature.SetProviderAndWait(context.TODO(), provider)
 	if err != nil {
 		panic(err)
 	}

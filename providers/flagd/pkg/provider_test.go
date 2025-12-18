@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/open-feature/flagd/core/pkg/sync"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
-	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/cache"
+	"go.openfeature.dev/contrib/providers/flagd/v2/internal/mock"
+	process "go.openfeature.dev/contrib/providers/flagd/v2/pkg/service/in_process"
+	of "go.openfeature.dev/openfeature/v2"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -275,7 +275,6 @@ func TestNewProvider(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			flagdProvider, err := NewProvider(test.options...)
-
 			if err != nil {
 				t.Fatal("error creating new provider", err)
 			}
@@ -418,7 +417,7 @@ func TestEventHandling(t *testing.T) {
 	}()
 
 	// Check initial readiness
-	err = provider.Init(of.EvaluationContext{})
+	err = provider.Init(t.Context())
 	if err != nil {
 		t.Fatal("error initialization provider", err)
 	}
@@ -471,18 +470,20 @@ func TestInitializeOnlyOnce(t *testing.T) {
 	}()
 
 	// multiple init invokes
-	_ = provider.Init(of.EvaluationContext{})
-	_ = provider.Init(of.EvaluationContext{})
+	_ = provider.Init(t.Context())
+	_ = provider.Init(t.Context())
 
 	if !provider.initialized {
 		t.Errorf("expected provider to be ready, but got not ready")
 	}
 
 	// shutdown should make provider uninitialized
-	provider.Shutdown()
+	err = provider.Shutdown(t.Context())
+	if err != nil {
+		t.Fatal("error during provider shutdown", err)
+	}
 
 	if provider.initialized {
 		t.Errorf("expected provider to be not ready, but got ready")
 	}
-
 }

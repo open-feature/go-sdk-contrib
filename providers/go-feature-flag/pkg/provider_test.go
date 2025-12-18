@@ -5,17 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	of "github.com/open-feature/go-sdk/openfeature"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	gofeatureflag "go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg"
+	"go.openfeature.dev/contrib/providers/go-feature-flag/v2/pkg/model"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 // MockRoundTripper is a mock implementation of http.RoundTripper.
@@ -43,7 +44,7 @@ type mockClient struct {
 }
 
 func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
-	//read req body and store it
+	// read req body and store it
 	var bodyBytes []byte
 	if req.Body != nil {
 		bodyBytes, _ = io.ReadAll(req.Body)
@@ -150,17 +151,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "unauthorized",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.GeneralCode,
-						ErrorMessage: "authentication/authorization error",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    false,
+				FlagKey:  "unauthorized",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.GeneralCode,
+					ErrorMessage: "authentication/authorization error",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -172,18 +171,16 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: true,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "bool_targeting_match",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{
-							"gofeatureflag_cacheable": true,
-						},
+				Value:    true,
+				FlagKey:  "bool_targeting_match",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "True",
+					Reason:       of.TargetingMatchReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{
+						"gofeatureflag_cacheable": true,
 					},
 				},
 			},
@@ -196,17 +193,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "disabled_bool",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    false,
+				FlagKey:  "disabled_bool",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "SdkDefault",
+					Reason:       of.DisabledReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -218,17 +213,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "string_key",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
-						ErrorMessage: "resolved value CC0000 is not of boolean type",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    false,
+				FlagKey:  "string_key",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.TypeMismatchCode,
+					ErrorMessage: "resolved value CC0000 is not of boolean type",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -240,17 +233,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "does_not_exists",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
-						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    false,
+				FlagKey:  "does_not_exists",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.FlagNotFoundCode,
+					ErrorMessage: "flag for key 'does_not_exists' does not exist",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -262,17 +253,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: true,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "unknown_reason",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "True",
-						Reason:       "CUSTOM_REASON",
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    true,
+				FlagKey:  "unknown_reason",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "True",
+					Reason:       "CUSTOM_REASON",
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -284,16 +273,14 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      of.EvaluationContext{},
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "bool_targeting_match",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TargetingKeyMissingCode,
-						ErrorMessage: "no targetingKey provided in the evaluation context",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    false,
+				FlagKey:  "bool_targeting_match",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.TargetingKeyMissingCode,
+					ErrorMessage: "no targetingKey provided in the evaluation context",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -305,16 +292,14 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "invalid_json_body",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.ParseErrorCode,
-						ErrorMessage: "error parsing the response: unexpected end of JSON input",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    false,
+				FlagKey:  "invalid_json_body",
+				FlagType: of.Boolean,
+				ResolutionDetail: of.ResolutionDetail{
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.ParseErrorCode,
+					ErrorMessage: "error parsing the response: unexpected end of JSON input",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -330,7 +315,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
+			err = of.SetProviderAndWait(t.Context(), provider)
 			require.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
@@ -366,17 +351,15 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.StringEvaluationDetails{
-				Value: "CC0000",
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "string_key",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    "CC0000",
+				FlagKey:  "string_key",
+				FlagType: of.String,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "True",
+					Reason:       of.TargetingMatchReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -388,17 +371,15 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.StringEvaluationDetails{
-				Value: "default",
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "disabled_string",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    "default",
+				FlagKey:  "disabled_string",
+				FlagType: of.String,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "SdkDefault",
+					Reason:       of.DisabledReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -410,17 +391,15 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.StringEvaluationDetails{
-				Value: "default",
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "bool_targeting_match",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
-						ErrorMessage: "resolved value true is not of string type",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    "default",
+				FlagKey:  "bool_targeting_match",
+				FlagType: of.String,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.TypeMismatchCode,
+					ErrorMessage: "resolved value true is not of string type",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -432,17 +411,15 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.StringEvaluationDetails{
-				Value: "default",
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "does_not_exists",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
-						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    "default",
+				FlagKey:  "does_not_exists",
+				FlagType: of.String,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.FlagNotFoundCode,
+					ErrorMessage: "flag for key 'does_not_exists' does not exist",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -458,7 +435,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
+			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
@@ -495,17 +472,15 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.FloatEvaluationDetails{
-				Value: 100.25,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "double_key",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    100.25,
+				FlagKey:  "double_key",
+				FlagType: of.Float,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "True",
+					Reason:       of.TargetingMatchReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -517,17 +492,15 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.FloatEvaluationDetails{
-				Value: 123.45,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "disabled_float",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    123.45,
+				FlagKey:  "disabled_float",
+				FlagType: of.Float,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "SdkDefault",
+					Reason:       of.DisabledReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -539,17 +512,15 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.FloatEvaluationDetails{
-				Value: 123.45,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "bool_targeting_match",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
-						ErrorMessage: "resolved value true is not of float type",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    123.45,
+				FlagKey:  "bool_targeting_match",
+				FlagType: of.Float,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.TypeMismatchCode,
+					ErrorMessage: "resolved value true is not of float type",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -561,17 +532,15 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.FloatEvaluationDetails{
-				Value: 123.45,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "does_not_exists",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
-						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    123.45,
+				FlagKey:  "does_not_exists",
+				FlagType: of.Float,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.FlagNotFoundCode,
+					ErrorMessage: "flag for key 'does_not_exists' does not exist",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -587,7 +556,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
+			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
@@ -624,17 +593,15 @@ func TestProvider_IntEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.IntEvaluationDetails{
-				Value: 100,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "integer_key",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    100,
+				FlagKey:  "integer_key",
+				FlagType: of.Int,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "True",
+					Reason:       of.TargetingMatchReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -646,17 +613,15 @@ func TestProvider_IntEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.IntEvaluationDetails{
-				Value: 123,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "disabled_int",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    123,
+				FlagKey:  "disabled_int",
+				FlagType: of.Int,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "SdkDefault",
+					Reason:       of.DisabledReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -668,17 +633,15 @@ func TestProvider_IntEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.IntEvaluationDetails{
-				Value: 123,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "bool_targeting_match",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
-						ErrorMessage: "resolved value true is not of integer type",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    123,
+				FlagKey:  "bool_targeting_match",
+				FlagType: of.Int,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.TypeMismatchCode,
+					ErrorMessage: "resolved value true is not of integer type",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -690,17 +653,15 @@ func TestProvider_IntEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.IntEvaluationDetails{
-				Value: 123,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "does_not_exists",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
-						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]any{},
-					},
+				Value:    123,
+				FlagKey:  "does_not_exists",
+				FlagType: of.Int,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.FlagNotFoundCode,
+					ErrorMessage: "flag for key 'does_not_exists' does not exist",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -716,7 +677,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
+			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
@@ -743,7 +704,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want of.InterfaceEvaluationDetails
+		want of.ObjectEvaluationDetails
 	}{
 		{
 			name: "should resolve a valid interface flag with TARGETING_MATCH reason",
@@ -752,7 +713,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				defaultValue: nil,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.InterfaceEvaluationDetails{
+			want: of.ObjectEvaluationDetails{
 				Value: map[string]any{
 					"test":  "test1",
 					"test2": false,
@@ -760,16 +721,14 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 					"test4": float64(1),
 					"test5": nil,
 				},
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "object_key",
-					FlagType: of.Object,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+				FlagKey:  "object_key",
+				FlagType: of.Object,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "True",
+					Reason:       of.TargetingMatchReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -780,18 +739,16 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				defaultValue: nil,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.InterfaceEvaluationDetails{
-				Value: nil,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "disabled_int",
-					FlagType: of.Object,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
-						ErrorCode:    "",
-						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
+			want: of.ObjectEvaluationDetails{
+				Value:    nil,
+				FlagKey:  "disabled_int",
+				FlagType: of.Object,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "SdkDefault",
+					Reason:       of.DisabledReason,
+					ErrorCode:    "",
+					ErrorMessage: "",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -802,18 +759,16 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				defaultValue: nil,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.InterfaceEvaluationDetails{
-				Value: nil,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "does_not_exists",
-					FlagType: of.Object,
-					ResolutionDetail: of.ResolutionDetail{
-						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
-						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]any{},
-					},
+			want: of.ObjectEvaluationDetails{
+				Value:    nil,
+				FlagKey:  "does_not_exists",
+				FlagType: of.Object,
+				ResolutionDetail: of.ResolutionDetail{
+					Variant:      "",
+					Reason:       of.ErrorReason,
+					ErrorCode:    of.FlagNotFoundCode,
+					ErrorMessage: "flag for key 'does_not_exists' does not exist",
+					FlagMetadata: map[string]any{},
 				},
 			},
 		},
@@ -829,7 +784,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
+			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
@@ -859,10 +814,13 @@ func TestProvider_Cache(t *testing.T) {
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
 		assert.NoError(t, err)
+		t.Cleanup(func() {
+			err := provider.Shutdown(context.Background())
+			assert.NoError(t, err)
+		})
 
-		err = of.SetProviderAndWait(provider)
+		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
 		got1, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
@@ -891,10 +849,13 @@ func TestProvider_Cache(t *testing.T) {
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
 		assert.NoError(t, err)
+		t.Cleanup(func() {
+			err := provider.Shutdown(context.Background())
+			assert.NoError(t, err)
+		})
 
-		err = of.SetProviderAndWait(provider)
+		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
 		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
@@ -927,10 +888,13 @@ func TestProvider_Cache(t *testing.T) {
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
 		assert.NoError(t, err)
+		t.Cleanup(func() {
+			err := provider.Shutdown(context.Background())
+			assert.NoError(t, err)
+		})
 
-		err = of.SetProviderAndWait(provider)
+		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
 		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
@@ -971,10 +935,13 @@ func TestProvider_Cache(t *testing.T) {
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
 		assert.NoError(t, err)
+		t.Cleanup(func() {
+			err := provider.Shutdown(context.Background())
+			assert.NoError(t, err)
+		})
 
-		err = of.SetProviderAndWait(provider)
+		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
 		_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
@@ -998,9 +965,13 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 			ExporterMetadata:     map[string]any{"toto": 123, "tata": "titi"},
 		}
 		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
 		assert.NoError(t, err)
-		err = of.SetProviderAndWait(provider)
+		t.Cleanup(func() {
+			err := provider.Shutdown(context.Background())
+			assert.NoError(t, err)
+		})
+
+		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
 
@@ -1040,9 +1011,12 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 			DisableDataCollector: false,
 		}
 		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
 		assert.NoError(t, err)
-		err = of.SetProviderAndWait(provider)
+		t.Cleanup(func() {
+			err := provider.Shutdown(context.Background())
+			assert.NoError(t, err)
+		})
+		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
 
@@ -1066,9 +1040,12 @@ func TestProvider_FlagChangePolling(t *testing.T) {
 			FlagChangePollingInterval: 100 * time.Millisecond,
 		}
 		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
 		assert.NoError(t, err)
-		err = of.SetProviderAndWait(provider)
+		t.Cleanup(func() {
+			err := provider.Shutdown(context.Background())
+			assert.NoError(t, err)
+		})
+		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
 
@@ -1128,9 +1105,12 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 				ExporterMetadata: tt.exporterMetadata,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
-			defer provider.Shutdown()
 			assert.NoError(t, err)
-			err = of.SetProviderAndWait(provider)
+			t.Cleanup(func() {
+				err := provider.Shutdown(context.Background())
+				assert.NoError(t, err)
+			})
+			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
 			client := of.NewClient("test-app")
 

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	rfProvider "github.com/open-feature/go-sdk-contrib/providers/rocketflag"
-	"github.com/open-feature/go-sdk/openfeature"
 	rfClient "github.com/rocketflag/go-sdk"
 	"github.com/stretchr/testify/require"
+	rfProvider "go.openfeature.dev/contrib/providers/rocketflag/v2"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // MockClient is a mock implementation of the RocketFlag client.
@@ -26,7 +26,7 @@ func (m *MockClient) GetFlag(flag string, user rfClient.UserContext) (*rfClient.
 func TestBoolean(t *testing.T) {
 	client := &MockClient{}
 	provider := rfProvider.NewProvider(client)
-	err := openfeature.SetProviderAndWait(provider)
+	err := openfeature.SetProviderAndWait(t.Context(), provider)
 	if err != nil {
 		t.Fatalf("error setting up provider %s", err)
 	}
@@ -77,7 +77,7 @@ func TestBoolean(t *testing.T) {
 			},
 		}
 		provider := rfProvider.NewProvider(client)
-		err := openfeature.SetProviderAndWait(provider)
+		err := openfeature.SetProviderAndWait(t.Context(), provider)
 		if err != nil {
 			t.Fatalf("error setting up provider %s", err)
 		}
@@ -86,7 +86,7 @@ func TestBoolean(t *testing.T) {
 		response, _ := ofClient.BooleanValueDetails(ctx, "non-existent-flag", false, evaluationContext)
 		require.False(t, response.Value)
 		require.Equal(t, openfeature.ErrorReason, response.Reason)
-		require.Equal(t, openfeature.ErrorCode("GENERAL"), response.ResolutionDetail.ErrorCode)
+		require.Equal(t, openfeature.ErrorCode("GENERAL"), response.ErrorCode)
 	})
 }
 

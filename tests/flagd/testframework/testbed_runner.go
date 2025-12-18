@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
+	flagd "go.openfeature.dev/contrib/providers/flagd/v2/pkg"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // TestbedRunner manages testbed-based e2e testing
@@ -41,7 +41,6 @@ type TestbedConfig struct {
 
 // NewTestbedRunner creates a new testbed-based test runner
 func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
-
 	testbedDir := config.TestbedDir
 	if testbedDir == "" {
 		testbedDir = "../flagd-testbed"

@@ -2,14 +2,17 @@ package controller
 
 import (
 	"fmt"
-	"github.com/bluele/gcache"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"hash/fnv"
 	"time"
+
+	"github.com/bluele/gcache"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
-const defaultCacheSize = 10000
-const defaultCacheTTL = 1 * time.Minute
+const (
+	defaultCacheSize = 10000
+	defaultCacheTTL  = 1 * time.Minute
+)
 
 type Cache struct {
 	internalCache gcache.Cache
@@ -98,7 +101,7 @@ func (c *Cache) GetInt(flag string, evalCtx of.FlattenedContext) (*of.IntResolut
 }
 
 // GetInterface returns the interface value of the flag from the cache.
-func (c *Cache) GetInterface(flag string, evalCtx of.FlattenedContext) (*of.InterfaceResolutionDetail, error) {
+func (c *Cache) GetInterface(flag string, evalCtx of.FlattenedContext) (*of.ObjectResolutionDetail, error) {
 	if c.disabled || c.internalCache == nil {
 		return nil, nil
 	}
@@ -106,7 +109,7 @@ func (c *Cache) GetInterface(flag string, evalCtx of.FlattenedContext) (*of.Inte
 	if err != nil {
 		return nil, err
 	}
-	if value, ok := cacheValue.(of.InterfaceResolutionDetail); ok {
+	if value, ok := cacheValue.(of.ObjectResolutionDetail); ok {
 		return &value, nil
 	}
 	return nil, fmt.Errorf("unexpected type in cache (expecting interface)")

@@ -1,4 +1,4 @@
-package from_env_test
+package envvar_test
 
 import (
 	"encoding/json"
@@ -7,17 +7,17 @@ import (
 	"strings"
 	"testing"
 
-	fromEnv "github.com/open-feature/go-sdk-contrib/providers/from-env/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/envvar/v2"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 // this line will fail linting if this provider is no longer compatible with the openfeature sdk
-var _ openfeature.FeatureProvider = &fromEnv.FromEnvProvider{}
+var _ openfeature.FeatureProvider = &envvar.EnvVarProvider{}
 
 func TestNewProvider(t *testing.T) {
-	p := fromEnv.NewProvider()
+	p := envvar.NewProvider()
 
-	if reflect.TypeOf(p) != reflect.TypeOf(&fromEnv.FromEnvProvider{}) {
+	if reflect.TypeOf(p) != reflect.TypeFor[*envvar.EnvVarProvider]() {
 		t.Fatalf("expected NewProvider to return a &from_env.FromEnvProvider, got %T", p)
 	}
 }
@@ -27,16 +27,16 @@ func TestWithFlagToEnvMapper(t *testing.T) {
 		return fmt.Sprintf("MY_%s", strings.ToUpper(strings.ReplaceAll(flagKey, "-", "_")))
 	}
 
-	p := fromEnv.NewProvider(fromEnv.WithFlagToEnvMapper(mapper))
+	p := envvar.NewProvider(envvar.WithFlagToEnvMapper(mapper))
 	testFlag := "some-flag-enabled"
-	flagValue := fromEnv.StoredFlag{
+	flagValue := envvar.StoredFlag{
 		DefaultVariant: "not-yellow",
-		Variants: []fromEnv.Variant{
+		Variants: []envvar.Variant{
 			{
 				Name:         "yellow",
 				TargetingKey: "",
 				Value:        true,
-				Criteria: []fromEnv.Criteria{
+				Criteria: []envvar.Criteria{
 					{
 						Key:   "color",
 						Value: "yellow",
@@ -47,7 +47,7 @@ func TestWithFlagToEnvMapper(t *testing.T) {
 				Name:         "not-yellow",
 				TargetingKey: "",
 				Value:        false,
-				Criteria: []fromEnv.Criteria{
+				Criteria: []envvar.Criteria{
 					{
 						Key:   "color",
 						Value: "not yellow",
@@ -89,7 +89,7 @@ func TestBoolFromEnv(t *testing.T) {
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
 		EvaluationContext       map[string]any
-		flagValue               fromEnv.StoredFlag
+		flagValue               envvar.StoredFlag
 	}{
 		"bool happy path": {
 			flagKey:                 "MY_BOOL_FLAG",
@@ -102,14 +102,14 @@ func TestBoolFromEnv(t *testing.T) {
 				"color":                  "yellow",
 				openfeature.TargetingKey: "user1",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        false,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color-extra",
 								Value: "blue",
@@ -124,7 +124,7 @@ func TestBoolFromEnv(t *testing.T) {
 						Name:         "yellow",
 						TargetingKey: "",
 						Value:        true,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "yellow",
@@ -135,7 +135,7 @@ func TestBoolFromEnv(t *testing.T) {
 						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        false,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -155,14 +155,14 @@ func TestBoolFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "default",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "default",
 						TargetingKey: "",
 						Value:        "false",
-						Criteria:     []fromEnv.Criteria{},
+						Criteria:     []envvar.Criteria{},
 					},
 				},
 			},
@@ -177,14 +177,14 @@ func TestBoolFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "not-default",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "default",
 						TargetingKey: "",
 						Value:        false,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -204,14 +204,14 @@ func TestBoolFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "default",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "default",
 						TargetingKey: "",
 						Value:        true,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -232,14 +232,14 @@ func TestBoolFromEnv(t *testing.T) {
 				"color":                  "yellow",
 				openfeature.TargetingKey: "user1",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "default",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "targeting_key_2",
 						TargetingKey: "user2",
 						Value:        true,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "yellow",
@@ -250,7 +250,7 @@ func TestBoolFromEnv(t *testing.T) {
 						Name:         "targeting_key",
 						TargetingKey: "user1",
 						Value:        true,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "yellow",
@@ -261,7 +261,7 @@ func TestBoolFromEnv(t *testing.T) {
 						Name:         "default",
 						TargetingKey: "",
 						Value:        false,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -275,7 +275,7 @@ func TestBoolFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.FromEnvProvider{}
+			p := envvar.EnvVarProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.BooleanEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
@@ -306,7 +306,7 @@ func TestStringFromEnv(t *testing.T) {
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
 		EvaluationContext       map[string]any
-		flagValue               fromEnv.StoredFlag
+		flagValue               envvar.StoredFlag
 	}{
 		"string happy path": {
 			flagKey:                 "MY_STRING_FLAG",
@@ -318,14 +318,14 @@ func TestStringFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        "not yellow",
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color-extra",
 								Value: "blue",
@@ -340,7 +340,7 @@ func TestStringFromEnv(t *testing.T) {
 						Name:         "yellow",
 						TargetingKey: "",
 						Value:        "yellow",
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "yellow",
@@ -351,7 +351,7 @@ func TestStringFromEnv(t *testing.T) {
 						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        "not yellow",
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -371,14 +371,14 @@ func TestStringFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "default",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "default",
 						TargetingKey: "",
 						Value:        true,
-						Criteria:     []fromEnv.Criteria{},
+						Criteria:     []envvar.Criteria{},
 					},
 				},
 			},
@@ -387,7 +387,7 @@ func TestStringFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.FromEnvProvider{}
+			p := envvar.EnvVarProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.StringEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
@@ -419,7 +419,7 @@ func TestFloatFromEnv(t *testing.T) {
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
 		EvaluationContext       map[string]any
-		flagValue               fromEnv.StoredFlag
+		flagValue               envvar.StoredFlag
 	}{
 		"string happy path": {
 			flagKey:                 "MY_FLOAT_FLAG",
@@ -431,14 +431,14 @@ func TestFloatFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        100,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color-extra",
 								Value: "blue",
@@ -453,7 +453,7 @@ func TestFloatFromEnv(t *testing.T) {
 						Name:         "yellow",
 						TargetingKey: "",
 						Value:        10,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "yellow",
@@ -464,7 +464,7 @@ func TestFloatFromEnv(t *testing.T) {
 						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        100,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -484,14 +484,14 @@ func TestFloatFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "default",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "default",
 						TargetingKey: "",
 						Value:        "10",
-						Criteria:     []fromEnv.Criteria{},
+						Criteria:     []envvar.Criteria{},
 					},
 				},
 			},
@@ -500,7 +500,7 @@ func TestFloatFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.FromEnvProvider{}
+			p := envvar.EnvVarProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.FloatEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
@@ -532,7 +532,7 @@ func TestIntFromEnv(t *testing.T) {
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
 		EvaluationContext       map[string]any
-		flagValue               fromEnv.StoredFlag
+		flagValue               envvar.StoredFlag
 	}{
 		"int happy path": {
 			flagKey:                 "MY_INT_FLAG",
@@ -544,14 +544,14 @@ func TestIntFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value:        100,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color-extra",
 								Value: "blue",
@@ -566,7 +566,7 @@ func TestIntFromEnv(t *testing.T) {
 						Name:         "yellow",
 						TargetingKey: "",
 						Value:        10,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "yellow",
@@ -577,7 +577,7 @@ func TestIntFromEnv(t *testing.T) {
 						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        100,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -597,14 +597,14 @@ func TestIntFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "default",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "default",
 						TargetingKey: "",
 						Value:        "10",
-						Criteria:     []fromEnv.Criteria{},
+						Criteria:     []envvar.Criteria{},
 					},
 				},
 			},
@@ -613,7 +613,7 @@ func TestIntFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.FromEnvProvider{}
+			p := envvar.EnvVarProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.IntEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
@@ -645,7 +645,7 @@ func TestObjectFromEnv(t *testing.T) {
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
 		EvaluationContext       map[string]any
-		flagValue               fromEnv.StoredFlag
+		flagValue               envvar.StoredFlag
 	}{
 		"object happy path": {
 			flagKey: "MY_OBJECT_FLAG",
@@ -661,16 +661,16 @@ func TestObjectFromEnv(t *testing.T) {
 			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
-			flagValue: fromEnv.StoredFlag{
+			flagValue: envvar.StoredFlag{
 				DefaultVariant: "not-yellow",
-				Variants: []fromEnv.Variant{
+				Variants: []envvar.Variant{
 					{
 						Name:         "yellow-with-extras",
 						TargetingKey: "",
 						Value: map[string]any{
 							"key": "value3",
 						},
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color-extra",
 								Value: "blue",
@@ -687,7 +687,7 @@ func TestObjectFromEnv(t *testing.T) {
 						Value: map[string]any{
 							"key": "value2",
 						},
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "yellow",
@@ -698,7 +698,7 @@ func TestObjectFromEnv(t *testing.T) {
 						Name:         "not-yellow",
 						TargetingKey: "",
 						Value:        100,
-						Criteria: []fromEnv.Criteria{
+						Criteria: []envvar.Criteria{
 							{
 								Key:   "color",
 								Value: "not yellow",
@@ -712,7 +712,7 @@ func TestObjectFromEnv(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := fromEnv.FromEnvProvider{}
+			p := envvar.EnvVarProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
 			res := p.ObjectEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)

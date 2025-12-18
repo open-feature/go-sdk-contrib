@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/open-feature/go-sdk-contrib/providers/ofrep/internal/outbound"
-	of "github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/contrib/providers/ofrep/v2/internal/outbound"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 // Flags is the flag evaluator implementation. It contains domain logic of the OpenFeature flag evaluation.
@@ -227,10 +227,10 @@ func (h Flags) ResolveInt(ctx context.Context, key string, defaultValue int64, e
 	}
 }
 
-func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue any, evalCtx map[string]any) of.InterfaceResolutionDetail {
+func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue any, evalCtx map[string]any) of.ObjectResolutionDetail {
 	evalSuccess, resolutionError := h.resolver.resolveSingle(ctx, key, evalCtx)
 	if resolutionError != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: *resolutionError,
@@ -240,7 +240,7 @@ func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue any, 
 	}
 
 	if evalSuccess.Reason == string(of.DisabledReason) {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				Reason:       of.DisabledReason,
@@ -250,7 +250,7 @@ func (h Flags) ResolveObject(ctx context.Context, key string, defaultValue any, 
 		}
 	}
 
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value: evalSuccess.Value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			Reason:       of.Reason(evalSuccess.Reason),

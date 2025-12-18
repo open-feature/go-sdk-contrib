@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service/transport"
-	of "github.com/open-feature/go-sdk/openfeature"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
 	sdk "go.flipt.io/flipt/sdk/go"
+	"go.openfeature.dev/contrib/providers/flipt/v2/pkg/service/transport"
+	of "go.openfeature.dev/openfeature/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -200,9 +200,9 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 }
 
 // ObjectEvaluation returns an object flag with attachment if any. Value is a map of key/value pairs ([string]any).
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToObject)
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: detail,
 	}

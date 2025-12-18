@@ -1,10 +1,10 @@
-package from_env
+package envvar
 
 import (
 	"context"
 	"errors"
 
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 const (
@@ -15,23 +15,25 @@ const (
 	ErrorFlagNotFound = "flag not found"
 )
 
-// FromEnvProvider implements the FeatureProvider interface and provides functions for evaluating flags
-type FromEnvProvider struct {
+var _ openfeature.FeatureProvider = (*EnvVarProvider)(nil)
+
+// EnvVarProvider implements the FeatureProvider interface and provides functions for evaluating flags
+type EnvVarProvider struct {
 	envFetch envFetch
 }
 
-type ProviderOption func(*FromEnvProvider)
+type ProviderOption func(*EnvVarProvider)
 
 type FlagToEnvMapper func(string) string
 
 func WithFlagToEnvMapper(mapper FlagToEnvMapper) ProviderOption {
-	return func(p *FromEnvProvider) {
+	return func(p *EnvVarProvider) {
 		p.envFetch.mapper = mapper
 	}
 }
 
-func NewProvider(opts ...ProviderOption) *FromEnvProvider {
-	p := &FromEnvProvider{}
+func NewProvider(opts ...ProviderOption) *EnvVarProvider {
+	p := &EnvVarProvider{}
 
 	for _, opt := range opts {
 		opt(p)
@@ -41,19 +43,19 @@ func NewProvider(opts ...ProviderOption) *FromEnvProvider {
 }
 
 // Metadata returns the metadata of the provider
-func (p *FromEnvProvider) Metadata() openfeature.Metadata {
+func (p *EnvVarProvider) Metadata() openfeature.Metadata {
 	return openfeature.Metadata{
 		Name: "from-env-flag-evaluator",
 	}
 }
 
 // Hooks returns hooks
-func (p *FromEnvProvider) Hooks() []openfeature.Hook {
+func (p *EnvVarProvider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
 }
 
 // BooleanEvaluation returns a boolean flag
-func (p *FromEnvProvider) BooleanEvaluation(ctx context.Context, flagKey string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
+func (p *EnvVarProvider) BooleanEvaluation(ctx context.Context, flagKey string, defaultValue bool, evalCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(bool)
 	if !ok {
@@ -73,7 +75,7 @@ func (p *FromEnvProvider) BooleanEvaluation(ctx context.Context, flagKey string,
 }
 
 // StringEvaluation returns a string flag
-func (p *FromEnvProvider) StringEvaluation(ctx context.Context, flagKey string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
+func (p *EnvVarProvider) StringEvaluation(ctx context.Context, flagKey string, defaultValue string, evalCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(string)
 	if !ok {
@@ -93,7 +95,7 @@ func (p *FromEnvProvider) StringEvaluation(ctx context.Context, flagKey string, 
 }
 
 // IntEvaluation returns an int flag
-func (p *FromEnvProvider) IntEvaluation(ctx context.Context, flagKey string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
+func (p *EnvVarProvider) IntEvaluation(ctx context.Context, flagKey string, defaultValue int64, evalCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(float64)
 	if !ok {
@@ -113,7 +115,7 @@ func (p *FromEnvProvider) IntEvaluation(ctx context.Context, flagKey string, def
 }
 
 // FloatEvaluation returns a float flag
-func (p *FromEnvProvider) FloatEvaluation(ctx context.Context, flagKey string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
+func (p *EnvVarProvider) FloatEvaluation(ctx context.Context, flagKey string, defaultValue float64, evalCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
 	res := p.resolveFlag(flagKey, defaultValue, evalCtx)
 	v, ok := res.Value.(float64)
 	if !ok {
@@ -133,11 +135,11 @@ func (p *FromEnvProvider) FloatEvaluation(ctx context.Context, flagKey string, d
 }
 
 // ObjectEvaluation returns an object flag
-func (p *FromEnvProvider) ObjectEvaluation(ctx context.Context, flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *EnvVarProvider) ObjectEvaluation(ctx context.Context, flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.ObjectResolutionDetail {
 	return p.resolveFlag(flagKey, defaultValue, evalCtx)
 }
 
-func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *EnvVarProvider) resolveFlag(flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.ObjectResolutionDetail {
 	// fetch the stored flag from environment variables
 	res, err := p.envFetch.fetchStoredFlag(flagKey)
 	if err != nil {
@@ -146,7 +148,7 @@ func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue any, evalCtx 
 			e = openfeature.NewGeneralResolutionError(err.Error())
 		}
 
-		return openfeature.InterfaceResolutionDetail{
+		return openfeature.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: e,
@@ -161,7 +163,7 @@ func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue any, evalCtx 
 		if !errors.As(err, &e) {
 			e = openfeature.NewGeneralResolutionError(err.Error())
 		}
-		return openfeature.InterfaceResolutionDetail{
+		return openfeature.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: e,
@@ -171,7 +173,7 @@ func (p *FromEnvProvider) resolveFlag(flagKey string, defaultValue any, evalCtx 
 	}
 
 	// return the type naive ResolutionDetail structure
-	return openfeature.InterfaceResolutionDetail{
+	return openfeature.ObjectResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 			Variant: variant,

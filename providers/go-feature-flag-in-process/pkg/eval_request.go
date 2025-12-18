@@ -1,7 +1,7 @@
 package gofeatureflaginprocess
 
 import (
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const targetingKey = "targetingKey"

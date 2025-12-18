@@ -10,7 +10,7 @@ import (
 	"github.com/launchdarkly/go-sdk-common/v3/ldlog"
 	"github.com/launchdarkly/go-server-sdk/v7/ldcomponents"
 	"github.com/launchdarkly/go-server-sdk/v7/ldfiledata"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 
 	ld "github.com/launchdarkly/go-server-sdk/v7"
 )
@@ -154,7 +154,7 @@ func TestContextEvaluation(t *testing.T) {
 		},
 	}
 
-	err := openfeature.SetProviderAndWait(NewProvider(
+	err := openfeature.SetProviderAndWait(t.Context(), NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -164,15 +164,14 @@ func TestContextEvaluation(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			evalCtx := openfeature.NewEvaluationContext(test.targetKey, test.evalCtx)
 			client := openfeature.NewClient("tests")
-			mtlsEnabled, err := client.BooleanValue(context.Background(), test.flagKey, false, evalCtx)
-			assert.Equals(t, test.expErr, errors.Unwrap(err))
+			mtlsEnabled := client.Boolean(context.Background(), test.flagKey, false, evalCtx)
 			assert.Equals(t, test.expFlagValue, mtlsEnabled)
 		})
 	}
 }
 
 func TestStringEvaluation(t *testing.T) {
-	err := openfeature.SetProviderAndWait(NewProvider(
+	err := openfeature.SetProviderAndWait(t.Context(), NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -187,13 +186,12 @@ func TestStringEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("stringEvalTests")
-	generation, err := client.StringValue(context.Background(), "dataplane_generation", "k8s.v1", evalCtx)
-	assert.Ok(t, err)
+	generation := client.String(t.Context(), "dataplane_generation", "k8s.v1", evalCtx)
 	assert.Equals(t, "metal.v1", generation)
 }
 
 func TestFloatEvaluation(t *testing.T) {
-	err := openfeature.SetProviderAndWait(NewProvider(
+	err := openfeature.SetProviderAndWait(t.Context(), NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -208,13 +206,12 @@ func TestFloatEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("floatEvalTests")
-	discount, err := client.FloatValue(context.Background(), "global_discount_pct", 1.5, evalCtx)
-	assert.Ok(t, err)
+	discount := client.Float(t.Context(), "global_discount_pct", 1.5, evalCtx)
 	assert.Equals(t, 5.5, discount)
 }
 
 func TestIntEvaluation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(t.Context(), NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -229,13 +226,12 @@ func TestIntEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("intEvalTests")
-	abuseRiskWeight, err := client.IntValue(context.Background(), "abuse_risk_weight", 10, evalCtx)
-	assert.Ok(t, err)
+	abuseRiskWeight := client.Int(t.Context(), "abuse_risk_weight", 10, evalCtx)
 	assert.Equals(t, int64(50), abuseRiskWeight)
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(t.Context(), NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -250,8 +246,7 @@ func TestObjectEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("objectEvalTests")
-	rateLimits, err := client.ObjectValue(context.Background(), "rate_limit_config", nil, evalCtx)
-	assert.Ok(t, err)
+	rateLimits := client.Object(t.Context(), "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, map[string]any{
 		"target_quota_byte_rate":       float64(2147483648), // 2GB per second
 		"target_fetch_quota_byte_rate": float64(1073741824), // 1GB
@@ -260,7 +255,7 @@ func TestObjectEvaluation(t *testing.T) {
 }
 
 func TestContextCancellation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProvider(t.Context(), NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -275,9 +270,9 @@ func TestContextCancellation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("objectEvalTests")
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	_, err = client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
+	_, err = client.ObjectValueDetails(ctx, "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, errors.New("GENERAL: context canceled"), errors.Unwrap(err))
 }
 
@@ -298,10 +293,11 @@ func TestShutdown(t *testing.T) {
 		mockClient := &mockLDClient{}
 		provider := NewProvider(mockClient)
 
-		err := openfeature.SetProvider(provider)
+		err := openfeature.SetProvider(t.Context(), provider)
 		assert.Ok(t, err)
 
-		openfeature.Shutdown()
+		err = openfeature.Shutdown(t.Context())
+		assert.Ok(t, err)
 		assert.Cond(t, !mockClient.closeCalled, "expected client.Close() not to be called")
 	})
 
@@ -309,10 +305,11 @@ func TestShutdown(t *testing.T) {
 		mockClient := &mockLDClient{}
 		provider := NewProvider(mockClient, WithCloseOnShutdown(true))
 
-		err := openfeature.SetProvider(provider)
+		err := openfeature.SetProvider(t.Context(), provider)
 		assert.Ok(t, err)
 
-		openfeature.Shutdown()
+		err = openfeature.Shutdown(t.Context())
+		assert.Ok(t, err)
 		assert.Cond(t, mockClient.closeCalled, "expected client.Close() to be called")
 	})
 }

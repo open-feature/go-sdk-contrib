@@ -3,7 +3,7 @@ package otel
 import (
 	"context"
 
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -75,7 +75,7 @@ func NewMetricsHookForProvider(provider metric.MeterProvider, opts ...MetricOpti
 
 func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
 	hint openfeature.HookHints,
-) (*openfeature.EvaluationContext, error) {
+) (context.Context, error) {
 	h.activeCounter.Add(ctx, 1, metric.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 
 	h.requestCounter.Add(ctx, 1,
@@ -83,11 +83,11 @@ func (h *MetricsHook) Before(ctx context.Context, hCtx openfeature.HookContext,
 			semconv.FeatureFlagKey(hCtx.FlagKey()),
 			semconv.FeatureFlagProviderName(hCtx.ProviderMetadata().Name)))
 
-	return nil, nil
+	return ctx, nil
 }
 
 func (h *MetricsHook) After(ctx context.Context, hCtx openfeature.HookContext,
-	details openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints,
+	details openfeature.EvaluationDetails[openfeature.FlagTypes], hint openfeature.HookHints,
 ) error {
 	attribs := []attribute.KeyValue{
 		semconv.FeatureFlagKey(hCtx.FlagKey()),
@@ -123,7 +123,7 @@ func (h *MetricsHook) Error(ctx context.Context, hCtx openfeature.HookContext, e
 	)
 }
 
-func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) {
+func (h *MetricsHook) Finally(ctx context.Context, hCtx openfeature.HookContext, flagEvaluationDetails openfeature.EvaluationDetails[openfeature.FlagTypes], hint openfeature.HookHints) {
 	h.activeCounter.Add(ctx, -1, metric.WithAttributes(semconv.FeatureFlagKey(hCtx.FlagKey())))
 }
 

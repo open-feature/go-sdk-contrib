@@ -1,10 +1,7 @@
-module github.com/open-feature/go-sdk-contrib/providers/from-env
+module go.openfeature.dev/contrib/providers/envvar/v2
 
-go 1.24.0
+go 1.25.0
 
-require github.com/open-feature/go-sdk v1.17.0
+require go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
 
-require (
-	github.com/go-logr/logr v1.4.3 // indirect
-	go.uber.org/mock v0.6.0 // indirect
-)
+require go.uber.org/mock v0.6.0 // indirect

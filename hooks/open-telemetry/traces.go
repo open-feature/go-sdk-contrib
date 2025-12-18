@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
@@ -42,16 +42,16 @@ func NewTracesHook(opts ...Options) *traceHook {
 }
 
 // Finally adds the feature_flag event and associated attributes on the span stored in the context.
-func (h *traceHook) Finally(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) {
-	attrs := eventAttributes(hookContext, flagEvaluationDetails)
+func (h *traceHook) Finally(ctx context.Context, hookContext openfeature.HookContext, details openfeature.HookEvaluationDetails, hookHints openfeature.HookHints) {
+	attrs := eventAttributes(hookContext, details)
 	if h.attributeMapperCallback != nil {
-		attrs = slices.Concat(attrs, h.attributeMapperCallback(flagEvaluationDetails.FlagMetadata))
+		attrs = slices.Concat(attrs, h.attributeMapperCallback(details.FlagMetadata))
 	}
 	trace.SpanFromContext(ctx).AddEvent(EventName, trace.WithAttributes(attrs...))
 }
 
 // eventAttributes returns a slice of OpenTelemetry attributes that can be used to create an event for a feature flag evaluation.
-func eventAttributes(hookContext openfeature.HookContext, details openfeature.InterfaceEvaluationDetails) []attribute.KeyValue {
+func eventAttributes(hookContext openfeature.HookContext, details openfeature.HookEvaluationDetails) []attribute.KeyValue {
 	attrs := []attribute.KeyValue{
 		semconv.FeatureFlagKey(hookContext.FlagKey()),
 		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),

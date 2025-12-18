@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const FlagsJson = `
@@ -258,10 +258,12 @@ const IdentityResponseJson = `{
     ]
 }`
 
-const EnvironmentAPIKey = "API_KEY"
-const Identifier = "test_user"
-const TraitKey = "of_key"
-const TraitValue = "of_value"
+const (
+	EnvironmentAPIKey = "API_KEY"
+	Identifier        = "test_user"
+	TraitKey          = "of_key"
+	TraitValue        = "of_value"
+)
 
 func TestIntEvaluation(t *testing.T) {
 	defaultValue := int64(2)
@@ -366,10 +368,8 @@ func TestIntEvaluation(t *testing.T) {
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
-
 		})
 	}
-
 }
 
 func TestFloatEvaluation(t *testing.T) {
@@ -476,10 +476,8 @@ func TestFloatEvaluation(t *testing.T) {
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
-
 		})
 	}
-
 }
 
 func TestStringEvaluation(t *testing.T) {
@@ -574,7 +572,6 @@ func TestStringEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			res := provider.StringEvaluation(context.Background(), test.flagKey, defaultValue, test.evalCtx)
 
 			assert.Equal(t, test.expectedValue, res.Value)
@@ -586,10 +583,8 @@ func TestStringEvaluation(t *testing.T) {
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
-
 		})
 	}
-
 }
 
 func TestBooleanEvaluation(t *testing.T) {
@@ -707,10 +702,8 @@ func TestBooleanEvaluation(t *testing.T) {
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
-
 		})
 	}
-
 }
 
 func TestObjectEvaluation(t *testing.T) {
@@ -805,7 +798,6 @@ func TestObjectEvaluation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			res := provider.ObjectEvaluation(context.Background(), test.flagKey, defaultValue, test.evalCtx)
 
 			assert.Equal(t, test.expectedValue, res.Value)
@@ -817,16 +809,13 @@ func TestObjectEvaluation(t *testing.T) {
 				assert.Equal(t, test.expectedErrorCode, resolutionDetails.ErrorCode)
 				assert.Equal(t, test.expectederrorString, resolutionDetails.ErrorMessage)
 			}
-
 		})
 	}
-
 }
 
 func getTestServer(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/flags/", func(rw http.ResponseWriter, req *http.Request) {
-
 		assert.Equal(t, EnvironmentAPIKey, req.Header.Get("X-Environment-Key"))
 
 		rw.Header().Set("Content-Type", "application/json")
@@ -834,7 +823,6 @@ func getTestServer(t *testing.T) *httptest.Server {
 		_, err := io.WriteString(rw, FlagsJson)
 
 		assert.NoError(t, err)
-
 	})
 	expectedRequestBodyWithoutTraits := fmt.Sprintf(`{"identifier":"%s"}`, Identifier)
 	expectedRequestBodyWithTraits := fmt.Sprintf(`{"identifier":"%s","traits":[{"trait_key":"of_key","trait_value":"of_value"}]}`, Identifier)
@@ -850,7 +838,6 @@ func getTestServer(t *testing.T) *httptest.Server {
 		_, err = io.WriteString(rw, IdentityResponseJson)
 
 		assert.NoError(t, err)
-
 	})
 
 	return httptest.NewServer(mux)

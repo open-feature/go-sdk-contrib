@@ -6,8 +6,8 @@ import (
 	"maps"
 	"reflect"
 
-	of "github.com/open-feature/go-sdk/openfeature"
 	statsig "github.com/statsig-io/go-sdk"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const (
@@ -16,6 +16,8 @@ const (
 )
 
 const featureConfigKey = "feature_config"
+
+var _ of.FeatureProvider = (*Provider)(nil)
 
 type Provider struct {
 	providerConfig ProviderConfig
@@ -171,11 +173,11 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.ObjectResolutionDetail {
 	// TODO to be removed on new SDK version adoption which includes https://github.com/open-feature/spec/issues/238
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewProviderNotReadyResolutionError(providerNotReady),
@@ -183,7 +185,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 				},
 			}
 		} else {
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(generalError),
@@ -195,7 +197,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 
 	statsigUser, err := ToStatsigUser(evalCtx)
 	if err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewGeneralResolutionError(err.Error()),
@@ -206,7 +208,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 
 	featureConfig, err := toFeatureConfig(evalCtx)
 	if err != nil {
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewGeneralResolutionError(err.Error()),
@@ -235,7 +237,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		case reflect.Map:
 			mapValue, ok := defaultValueV.Interface().(map[string]any)
 			if !ok {
-				return of.InterfaceResolutionDetail{
+				return of.ObjectResolutionDetail{
 					Value: defaultValue,
 					ProviderResolutionDetail: of.ProviderResolutionDetail{
 						ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("default value is from unexpected type: %s", defaultValueV.Kind())),
@@ -245,7 +247,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			}
 			value = config.GetMap(flag, mapValue)
 		default:
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("not implemented default value type: %s", defaultValueV.Kind())),
@@ -275,7 +277,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		case reflect.Map:
 			mapValue, ok := defaultValueV.Interface().(map[string]any)
 			if !ok {
-				return of.InterfaceResolutionDetail{
+				return of.ObjectResolutionDetail{
 					Value: defaultValue,
 					ProviderResolutionDetail: of.ProviderResolutionDetail{
 						ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("default value is from unexpected type: %s", defaultValueV.Kind())),
@@ -285,7 +287,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 			}
 			value = layer.GetMap(flag, mapValue)
 		default:
-			return of.InterfaceResolutionDetail{
+			return of.ObjectResolutionDetail{
 				Value: defaultValue,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("not implemented default value type: %s", defaultValueV.Kind())),
@@ -298,7 +300,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		flagMetadata["Name"] = layer.Name
 		flagMetadata["RuleID"] = layer.RuleID
 	default:
-		return of.InterfaceResolutionDetail{
+		return of.ObjectResolutionDetail{
 			Value: defaultValue,
 			ProviderResolutionDetail: of.ProviderResolutionDetail{
 				ResolutionError: of.NewGeneralResolutionError(fmt.Sprintf("not implemented FeatureConfigType: %s", featureConfig.FeatureConfigType)),
@@ -307,7 +309,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		}
 	}
 
-	return of.InterfaceResolutionDetail{
+	return of.ObjectResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			FlagMetadata: flagMetadata,

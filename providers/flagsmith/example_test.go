@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
-	flagsmith "github.com/open-feature/go-sdk-contrib/providers/flagsmith/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
+	flagsmith "go.openfeature.dev/contrib/providers/flagsmith/v2/pkg"
+	"go.openfeature.dev/openfeature/v2"
 )
-
 
 func Example() {
 	provider := flagsmith.NewProvider(
@@ -26,7 +25,7 @@ func Example() {
 		// Makes of.Boolean return the enabled/disabled state of a feature, and not its value.
 		flagsmith.WithUsingBooleanConfigValue(),
 	)
-	err := openfeature.SetProviderAndWait(provider)
+	err := openfeature.SetProviderAndWait(context.TODO(), provider)
 	if err != nil {
 		panic(err)
 	}

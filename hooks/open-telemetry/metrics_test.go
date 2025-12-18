@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -62,13 +62,11 @@ func TestMetricsHook_AfterStage(t *testing.T) {
 
 	ctx := t.Context()
 
-	evalDetails := openfeature.InterfaceEvaluationDetails{
-		Value: true,
-		EvaluationDetails: openfeature.EvaluationDetails{
-			FlagKey:          "flagA",
-			FlagType:         openfeature.Boolean,
-			ResolutionDetail: openfeature.ResolutionDetail{},
-		},
+	evalDetails := openfeature.EvaluationDetails[openfeature.FlagTypes]{
+		Value:            true,
+		FlagKey:          "flagA",
+		FlagType:         openfeature.Boolean,
+		ResolutionDetail: openfeature.ResolutionDetail{},
 	}
 	hookHints := openfeature.NewHookHints(map[string]any{})
 
@@ -170,13 +168,11 @@ func TestMetricsHook_FinallyStage(t *testing.T) {
 
 	ctx := t.Context()
 
-	evalDetails := openfeature.InterfaceEvaluationDetails{
-		Value: true,
-		EvaluationDetails: openfeature.EvaluationDetails{
-			FlagKey:          "flagA",
-			FlagType:         openfeature.Boolean,
-			ResolutionDetail: openfeature.ResolutionDetail{},
-		},
+	evalDetails := openfeature.EvaluationDetails[openfeature.FlagTypes]{
+		Value:            true,
+		FlagKey:          "flagA",
+		FlagType:         openfeature.Boolean,
+		ResolutionDetail: openfeature.ResolutionDetail{},
 	}
 
 	hookContext := hookContext()
@@ -223,13 +219,11 @@ func TestMetricsHook_ActiveCounterShouldBeZero(t *testing.T) {
 
 	ctx := t.Context()
 
-	evalDetails := openfeature.InterfaceEvaluationDetails{
-		Value: true,
-		EvaluationDetails: openfeature.EvaluationDetails{
-			FlagKey:          "flagA",
-			FlagType:         openfeature.Boolean,
-			ResolutionDetail: openfeature.ResolutionDetail{},
-		},
+	evalDetails := openfeature.EvaluationDetails[openfeature.FlagTypes]{
+		Value:            true,
+		FlagKey:          "flagA",
+		FlagType:         openfeature.Boolean,
+		ResolutionDetail: openfeature.ResolutionDetail{},
 	}
 
 	hookContext := hookContext()
@@ -296,14 +290,12 @@ func TestMetricHook_MetadataExtractionOptions(t *testing.T) {
 	manualReader := metric.NewManualReader()
 	ctx := t.Context()
 
-	evalDetails := openfeature.InterfaceEvaluationDetails{
-		Value: true,
-		EvaluationDetails: openfeature.EvaluationDetails{
-			FlagKey:  "flagA",
-			FlagType: openfeature.Boolean,
-			ResolutionDetail: openfeature.ResolutionDetail{
-				FlagMetadata: evalMetadata,
-			},
+	evalDetails := openfeature.EvaluationDetails[openfeature.FlagTypes]{
+		Value:    true,
+		FlagKey:  "flagA",
+		FlagType: openfeature.Boolean,
+		ResolutionDetail: openfeature.ResolutionDetail{
+			FlagMetadata: evalMetadata,
 		},
 	}
 	hookHints := openfeature.NewHookHints(map[string]any{})

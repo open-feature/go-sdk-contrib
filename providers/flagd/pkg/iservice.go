@@ -3,7 +3,7 @@ package flagd
 import (
 	"context"
 
-	of "github.com/open-feature/go-sdk/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 // IService abstract the service implementation for flagd provider
@@ -19,6 +19,6 @@ type IService interface {
 	ResolveInt(ctx context.Context, key string, defaultValue int64,
 		evalCtx map[string]interface{}) of.IntResolutionDetail
 	ResolveObject(ctx context.Context, key string, defaultValue interface{},
-		evalCtx map[string]interface{}) of.InterfaceResolutionDetail
+		evalCtx map[string]interface{}) of.ObjectResolutionDetail
 	EventChannel() <-chan of.Event
 }

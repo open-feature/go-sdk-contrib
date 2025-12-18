@@ -1,7 +1,7 @@
-package from_env
+package envvar
 
 import (
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 type StoredFlag struct {

@@ -11,7 +11,7 @@ import (
 	"github.com/launchdarkly/go-sdk-common/v3/ldcontext"
 	"github.com/launchdarkly/go-sdk-common/v3/ldreason"
 	"github.com/launchdarkly/go-sdk-common/v3/ldvalue"
-	"github.com/open-feature/go-sdk/openfeature"
+	"go.openfeature.dev/openfeature/v2"
 )
 
 var errKeyMissing = errors.New("key and targetingKey attributes are missing, at least 1 required")
@@ -246,13 +246,13 @@ func (p *Provider) toProviderResolutionDetail(detail ldreason.EvaluationDetail) 
 // ldCtx if an error is not returned. When an error is returned, a non-empty OpenFeature
 // ResolutionDetail is returned as well with additional details.
 // This function also handles context cancellations.
-func (p *Provider) transformContext(ctx context.Context, evalCtx openfeature.FlattenedContext) (ldcontext.Context, openfeature.InterfaceResolutionDetail, error) {
+func (p *Provider) transformContext(ctx context.Context, evalCtx openfeature.FlattenedContext) (ldcontext.Context, openfeature.ObjectResolutionDetail, error) {
 	ldCtx, err := p.toLDContext(evalCtx)
-	emptyDetail := openfeature.InterfaceResolutionDetail{}
+	emptyDetail := openfeature.ObjectResolutionDetail{}
 
 	if err != nil {
 		errMsg := err.Error()
-		detail := openfeature.InterfaceResolutionDetail{
+		detail := openfeature.ObjectResolutionDetail{
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.NewInvalidContextResolutionError(errMsg),
 				Reason:          openfeature.ErrorReason,
@@ -266,7 +266,7 @@ func (p *Provider) transformContext(ctx context.Context, evalCtx openfeature.Fla
 
 	// handle context cancellation before issuing any network calls.
 	if err := ctx.Err(); err != nil {
-		return ldCtx, openfeature.InterfaceResolutionDetail{
+		return ldCtx, openfeature.ObjectResolutionDetail{
 			ProviderResolutionDetail: openfeature.ProviderResolutionDetail{
 				ResolutionError: openfeature.NewGeneralResolutionError(err.Error()),
 				Reason:          openfeature.ErrorReason,
@@ -361,10 +361,10 @@ func (p *Provider) IntEvaluation(ctx context.Context, flagKey string, defaultVal
 }
 
 // ObjectEvaluation evaluates an object feature flag and returns the result.
-func (p *Provider) ObjectEvaluation(ctx context.Context, flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flagKey string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.ObjectResolutionDetail {
 	ldCtx, errDetail, err := p.transformContext(ctx, evalCtx)
 	if err != nil {
-		return openfeature.InterfaceResolutionDetail{
+		return openfeature.ObjectResolutionDetail{
 			Value:                    defaultValue,
 			ProviderResolutionDetail: errDetail.ProviderResolutionDetail,
 		}
@@ -375,7 +375,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flagKey string, default
 		p.l.Error("object evaluation: %s", err)
 	}
 
-	return openfeature.InterfaceResolutionDetail{
+	return openfeature.ObjectResolutionDetail{
 		Value:                    value.AsArbitraryValue(),
 		ProviderResolutionDetail: p.toProviderResolutionDetail(detail),
 	}
@@ -386,14 +386,16 @@ func (p *Provider) Hooks() []openfeature.Hook {
 	return []openfeature.Hook{}
 }
 
-func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
+func (p *Provider) Init(context.Context) error {
 	return nil
 }
 
-func (p *Provider) Shutdown() {
+func (p *Provider) Shutdown(context.Context) error {
 	if p.closeOnShutdown {
 		if err := p.client.Close(); err != nil {
 			p.l.Error("error during LaunchDarkly client shutdown: %s", err)
+			return err
 		}
 	}
+	return nil
 }

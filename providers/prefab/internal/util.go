@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	of "github.com/open-feature/go-sdk/openfeature"
 	prefab "github.com/prefab-cloud/prefab-cloud-go/pkg"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 func ToPrefabContext(evalCtx of.FlattenedContext) (prefab.ContextSet, error) {
