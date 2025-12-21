@@ -5,7 +5,7 @@ OpenFeature Go provider implementation that integrates with AWS Systems Manager 
 ## Installation
 
 ```shell
-go get go.openfeature.dev/v2
+go get go.openfeature.dev/openfeature/v2
 go get go.openfeature.dev/contrib/providers/aws-ssm/v2
 ```
 
@@ -67,4 +67,3 @@ The provider uses the default AWS credential chain, which means it will look for
 ## Security
 
 The provider supports secure parameters in SSM Parameter Store, which are encrypted at rest using AWS KMS. When using secure parameters, make sure your AWS credentials have the necessary permissions to decrypt the parameters.
-

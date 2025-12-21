@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"testing"
 
-	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	mock "github.com/stretchr/testify/mock"
+	of "go.openfeature.dev/openfeature/v2"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 
-	offlipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
+	offlipt "go.openfeature.dev/contrib/providers/flipt/v2/pkg/service"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

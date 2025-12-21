@@ -114,7 +114,7 @@ func TestWiringE2E(t *testing.T) {
 		Timeout: 1 * time.Second,
 	}
 
-	provider := NewProvider(server.URL, WithClient(customClient))
+	provider := NewProvider(WithBaseURI(server.URL), WithClient(customClient))
 	booleanEvaluation := provider.BooleanEvaluation(context.Background(), "flag", false, nil)
 
 	if booleanEvaluation.Value != true {

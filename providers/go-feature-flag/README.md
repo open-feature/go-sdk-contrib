@@ -56,7 +56,7 @@ options := gofeatureflag.ProviderOptions{
 }
 provider, err := gofeatureflag.NewProviderWithContext(ctx, options)
 of.SetProvider(context.TODO(), provider)
-client := of.NewClient("my-app")
+client := of.NewDefaultClient()
 ```
 
 ## Evaluate your flag
@@ -70,7 +70,7 @@ This code block explain how you can create an `EvaluationContext` and use it to 
 ```go
 evaluationCtx := of.NewEvaluationContext(
  "1d1b9238-2591-4a47-94cf-d2bc080892f1",
- map[string]interface{}{
+ map[string]any{
   "firstname": "john",
   "lastname":  "doe",
   "email":     "john.doe@gofeatureflag.org",

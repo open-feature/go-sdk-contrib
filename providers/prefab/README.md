@@ -37,14 +37,9 @@ if err != nil {
   fmt.Printf("Error during new provider: %v\n", err)
   os.Exit(1)
 }
-err = provider.Init(of.EvaluationContext{})
-if err != nil {
-  fmt.Printf("Error during provider init: %v\n", err)
-  os.Exit(1)
-}
 
 of.SetProvider(context.TODO(), provider)
-ofClient = of.NewClient("my-app")
+ofClient = of.NewDefaultClient()
 
 evalCtx := of.NewEvaluationContext(
   "",

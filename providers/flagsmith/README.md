@@ -8,7 +8,7 @@ Install the OpenFeature Go SDK, [Flagsmith Go client](https://github.com/Flagsmi
 
 ```shell
 go get github.com/Flagsmith/flagsmith-go-client/v4
-go get go.openfeature.dev/v2
+go get go.openfeature.dev/openfeature/v2
 go get go.openfeature.dev/contrib/providers/flagsmith/v2
 ```
 

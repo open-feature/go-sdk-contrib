@@ -7,7 +7,7 @@ import (
 	harness "github.com/harness/ff-golang-server-sdk/client"
 	"github.com/harness/ff-golang-server-sdk/evaluation"
 	"github.com/harness/ff-golang-server-sdk/types"
-	of "go.openfeature.dev/v2/openfeature"
+	of "go.openfeature.dev/openfeature/v2"
 )
 
 const (

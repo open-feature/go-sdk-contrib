@@ -9,7 +9,7 @@ OpenFeature Go provider implementation for [ConfigCat](https://configcat.com) th
 go get github.com/configcat/go-sdk/v9
 
 # OpenFeature SDK
-go get go.openfeature.dev/v2
+go get go.openfeature.dev/openfeature/v2
 go get go.openfeature.dev/contrib/providers/configcat/v2
 ```
 

@@ -49,7 +49,8 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	if err := options.Validation(); err != nil {
 		return nil, err
 	}
-	ofrepOptions := make([]ofrep.Option, 0)
+	ofrepOptions := make([]ofrep.Option, 0, 2)
+	ofrepOptions = append(ofrepOptions, ofrep.WithBaseURI(options.Endpoint))
 	if options.APIKey != "" {
 		ofrepOptions = append(ofrepOptions, ofrep.WithBearerToken(options.APIKey))
 	}
@@ -59,7 +60,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (key string, value string) {
 		return controller.ContentTypeHeader, controller.ApplicationJson
 	}))
-	ofrepProvider := ofrep.NewProvider(options.Endpoint, ofrepOptions...)
+	ofrepProvider := ofrep.NewProvider(ofrepOptions...)
 	cacheCtrl := controller.NewCache(options.FlagCacheSize, options.FlagCacheTTL, options.DisableCache)
 
 	// Adding metadata to the GO Feature Flag provider to be sent to the exporter

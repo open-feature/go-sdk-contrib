@@ -86,7 +86,7 @@ A `context.Context` containing a `span` must be passed to the client evaluation 
 
 // Register traces hook
 openfeature.AddHooks(hooks.NewTracesHook())
-client := openfeature.NewClient("methodA")
+client := openfeature.NewDefaultClient()
 
 // Initialize otel span
 spanCtx, span := tracer.Start(context.Background(), "myBoolFlag")

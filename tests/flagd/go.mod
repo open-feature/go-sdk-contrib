@@ -8,7 +8,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.40.0
 	github.com/testcontainers/testcontainers-go/modules/compose v0.40.0
 	go.openfeature.dev/contrib/providers/flagd/v2 v2.0.0-20251220001818-cbab32b7d749
-	go.openfeature.dev/v2 v2.0.0-20251220140021-a1cf80705d33
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
 )
 
 require (

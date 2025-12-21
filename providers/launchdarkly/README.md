@@ -11,7 +11,7 @@ go get github.com/launchdarkly/go-server-sdk/v7/...
 
 # Open Feature SDK
 go get go.openfeature.dev/openfeature/v2
-go get go.openfeature.dev/contrib/providers/launchdarkly/v2/pkg
+go get go.openfeature.dev/contrib/providers/launchdarkly/v2
 ```
 
 ## Usage

@@ -49,15 +49,11 @@ provider, err := harnessProvider.NewProvider(providerConfig)
 if err != nil {
     t.Fail()
 }
-err = provider.Init(of.EvaluationContext{})
-if err != nil {
-    t.Fail()
-}
 
 ctx := context.Background()
 
 of.SetProvider(ctx, provider)
-ofClient := of.NewClient("my-app")
+ofClient := of.NewDefaultClient()
 
 evalCtx := of.NewEvaluationContext(
     "john",

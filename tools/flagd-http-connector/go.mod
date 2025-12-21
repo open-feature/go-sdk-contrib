@@ -9,8 +9,8 @@ require (
 
 require (
 	github.com/open-feature/flagd/core v0.12.1
-	go.openfeature.dev/contrib/providers/flagd/v2 v2.0.0-20251220001818-cbab32b7d749
-	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
+	go.openfeature.dev/contrib/providers/flagd/v2 v2.0.0-20251220180842-a2b884df9829
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
 )
 
 require (
@@ -34,7 +34,6 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	go.openfeature.dev/v2 v2.0.0-20251220140021-a1cf80705d33 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect

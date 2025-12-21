@@ -35,12 +35,17 @@ import (
   statsig "github.com/statsig-io/go-sdk"
 )
 
+provider, err := statsigProvider.NewProvider(/*...*/)
+if err != nil {
+  //...
+}
+
 of.SetProvider(context.TODO(), provider)
-ofClient := of.NewClient("my-app")
+ofClient := of.NewDefaultClient()
 
 evalCtx := of.NewEvaluationContext(
   "",
-  map[string]interface{}{
+  map[string]any{
     "UserID": "123",
   },
 )
@@ -53,7 +58,7 @@ featureConfig := statsigProvider.FeatureConfig{
 
 evalCtx := of.NewEvaluationContext(
   "",
-  map[string]interface{}{
+  map[string]any{
     "UserID":         "123", // can use "UserID" or of.TargetingKey ("targetingKey")
     "Email":          "testuser1@statsig.com",
     "feature_config": featureConfig,

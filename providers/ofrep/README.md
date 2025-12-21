@@ -8,7 +8,7 @@ The provider works by evaluating flags against OFREP single flag evaluation endp
 Use OFREP provider with the latest OpenFeature Go SDK
 
 ```sh
-go get github.com/open-feature/go-sdk-contrib/providers/ofrep
+go get go.openfeature.dev/contrib/providers/ofrep/v2
 ```
 
 ## Usage
@@ -16,13 +16,13 @@ go get github.com/open-feature/go-sdk-contrib/providers/ofrep
 Initialize the provider with the URL of the OFREP implementing service,
 
 ```go
-ofrepProvider := ofrep.NewProvider("http://localhost:8016")
+ofrepProvider := ofrep.NewProvider(of.WithBaseURI("http://localhost:8016"))
 ```
 
 Then, register the provider with the OpenFeature Go SDK and use derived clients for flag evaluations,
 
 ```go
-openfeature.SetProvider(ofrepProvider)
+openfeature.SetProvider(context.TODO(), ofrepProvider)
 ```
 
 ## Configuration
@@ -43,7 +43,7 @@ For example, consider below example which sets bearer token and provides a custo
 
 ```go
 provider := ofrep.NewProvider(
-    "http://localhost:8016",
+    ofrep.WithBaseURI("http://localhost:8016"),
     ofrep.WithBearerToken("TOKEN"),
     ofrep.WithClient(&http.Client{
         Timeout: 1 * time.Second,

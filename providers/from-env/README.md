@@ -9,37 +9,37 @@ Flag configurations are stored as JSON strings, with one configuration per flag 
 
 ```json
 {
-	"defaultVariant": "not-yellow",
-	"variants": [
-		{
-			"name": "yellow-with-key",
-			"targetingKey": "user",
-			"criteria": [
-				{
-					"key": "color",
-					"value": "yellow"
-				}
-			],
-			"value": true
-		},
-		{
-			"name": "yellow",
-			"targetingKey": "",
-			"criteria": [
-				{
-					"key": "color",
-					"value": "yellow"
-				}
-			],
-			"value": true
-		},
-		{
-			"name": "not-yellow",
-			"targetingKey": "",
-			"criteria": [],
-			"value": false
-		}
-	]
+  "defaultVariant": "not-yellow",
+  "variants": [
+    {
+      "name": "yellow-with-key",
+      "targetingKey": "user",
+      "criteria": [
+        {
+          "key": "color",
+          "value": "yellow"
+        }
+      ],
+      "value": true
+    },
+    {
+      "name": "yellow",
+      "targetingKey": "",
+      "criteria": [
+        {
+          "key": "color",
+          "value": "yellow"
+        }
+      ],
+      "value": true
+    },
+    {
+      "name": "not-yellow",
+      "targetingKey": "",
+      "criteria": [],
+      "value": false
+    }
+  ]
 }
 ```
 
@@ -55,58 +55,58 @@ export AM_I_YELLOW='{"defaultVariant":"not-yellow","variants":[{"name":"yellow-w
 package main
 
 import (
-	"context"
-	"fmt"
+ "context"
+ "fmt"
 
-	fromEnv "github.com/open-feature/go-sdk-contrib/providers/from-env/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
+ envvar "go.openfeature.dev/contrib/providers/envvar/v2"
+ "go.openfeature.dev/openfeature/v2"
 )
 
 func main() {
-	// register the provider against the go-sdk
-	openfeature.SetProvider(&fromEnv.FromEnvProvider{})
-	// create a client from via the go-sdk
-	client := openfeature.NewClient("am-i-yellow-client")
+ // register the provider against the go-sdk
+ openfeature.SetProvider(&envvar.EnvVarProvider{})
+ // create a client from via the go-sdk
+ client := openfeature.NewClient("am-i-yellow-client")
 
-	// we are now able to evaluate our stored flags
-	resB, err := client.BooleanValueDetails(
-		context.Background(),
-		"AM_I_YELLOW",
-		false,
-		openfeature.NewEvaluationContext(
-			"",
-			map[string]interface{}{
-				"color": "yellow",
-			},
-		),
-	)
-	fmt.Println(resB, err)
+ // we are now able to evaluate our stored flags
+ resB, err := client.BooleanValueDetails(
+  context.Background(),
+  "AM_I_YELLOW",
+  false,
+  openfeature.NewEvaluationContext(
+   "",
+   map[string]interface{}{
+    "color": "yellow",
+   },
+  ),
+ )
+ fmt.Println(resB, err)
 
-	resB, err = client.BooleanValueDetails(
-		context.Background(),
-		"AM_I_YELLOW",
-		false,
-		openfeature.NewEvaluationContext(
-			"user",
-			map[string]interface{}{
-				"color": "yellow",
-			},
-		),
-	)
-	fmt.Println(resB, err)
+ resB, err = client.BooleanValueDetails(
+  context.Background(),
+  "AM_I_YELLOW",
+  false,
+  openfeature.NewEvaluationContext(
+   "user",
+   map[string]interface{}{
+    "color": "yellow",
+   },
+  ),
+ )
+ fmt.Println(resB, err)
 
-	resS, err := client.StringValueDetails(
-		context.Background(),
-		"AM_I_YELLOW",
-		"i am a default value",
-		openfeature.NewEvaluationContext(
-			"",
-			map[string]interface{}{
-				"color": "not yellow",
-			},
-		),
-	)
-	fmt.Println(resS, err)
+ resS, err := client.StringValueDetails(
+  context.Background(),
+  "AM_I_YELLOW",
+  "i am a default value",
+  openfeature.NewEvaluationContext(
+   "",
+   map[string]interface{}{
+    "color": "not yellow",
+   },
+  ),
+ )
+ fmt.Println(resS, err)
 }
 ```
 
@@ -126,7 +126,7 @@ For example:
 
 ```go
 mapper := func(flagKey string) string {
-	return fmt.Sprintf("MY_%s", strings.ToUpper(strings.ReplaceAll(flagKey, "-", "_")))
+ return fmt.Sprintf("MY_%s", strings.ToUpper(strings.ReplaceAll(flagKey, "-", "_")))
 }
 
 p := fromEnv.NewProvider(fromEnv.WithFlagToEnvMapper(mapper))

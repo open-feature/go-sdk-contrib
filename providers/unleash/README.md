@@ -26,6 +26,7 @@ Unleash OpenFeature Provider is using Unleash GO SDK.
 import (
   "github.com/Unleash/unleash-client-go/v4"
   unleashProvider "go.openfeature.dev/contrib/providers/unleash/v2/pkg"
+  of "go.openfeature.dev/openfeature/v2"
 )
 
 providerConfig := unleashProvider.ProviderConfig{
@@ -39,13 +40,12 @@ providerConfig := unleashProvider.ProviderConfig{
   },
 }
 
-provider, err := unleashProvider.NewProvider(providerConfig)
-err = provider.Init(of.EvaluationContext{})
-
 ctx := context.Background()
 
+provider, err := unleashProvider.NewProvider(providerConfig)
+
 of.SetProvider(ctx, provider)
-ofClient := of.NewClient("my-app")
+ofClient := of.NewDefaultClient()
 
 evalCtx := of.NewEvaluationContext(
   "",
@@ -57,7 +57,7 @@ enabled := ofClient.Boolean(ctx, "users-flag", false, evalCtx)
 
 evalCtx := of.NewEvaluationContext(
   "",
-  map[string]interface{}{},
+  map[string]any{},
 )
 value := ofClient.String(ctx, "variant-flag", "", evalCtx)
 
