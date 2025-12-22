@@ -1,5 +1,5 @@
-go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727 h1:I292Rh8Le2gFJBAahMXx7n9P9dfdCcdEIi/zafOq0Ks=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225 h1:Jm8/nNsmysUz1qOVVkA+oV0/GRJyaKjR9P48yBmjjUQ=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
 go.uber.org/mock v0.6.0/go.mod h1:KiVJ4BqZJaMj4svdfmHM0AUx4NJYO8ZNpPnZn1Z+BBU=
 golang.org/x/text v0.31.0 h1:aC8ghyu4JhP8VojJ2lEHBnochRno1sgL6nEi9WGFGMM=

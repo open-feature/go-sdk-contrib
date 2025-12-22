@@ -103,8 +103,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/ugorji/go/codec v1.2.11 h1:BMaWp1Bb6fHwEtbplGBGJ498wD+LKlNSl25MjdZY4dU=
 github.com/ugorji/go/codec v1.2.11/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727 h1:I292Rh8Le2gFJBAahMXx7n9P9dfdCcdEIi/zafOq0Ks=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225 h1:Jm8/nNsmysUz1qOVVkA+oV0/GRJyaKjR9P48yBmjjUQ=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
 go.uber.org/atomic v1.6.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=

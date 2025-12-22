@@ -21,8 +21,8 @@ github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727 h1:I292Rh8Le2gFJBAahMXx7n9P9dfdCcdEIi/zafOq0Ks=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225 h1:Jm8/nNsmysUz1qOVVkA+oV0/GRJyaKjR9P48yBmjjUQ=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
 go.uber.org/mock v0.6.0/go.mod h1:KiVJ4BqZJaMj4svdfmHM0AUx4NJYO8ZNpPnZn1Z+BBU=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=

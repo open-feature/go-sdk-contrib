@@ -1,10 +1,10 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagd/e2e
 
-go 1.24.9
+go 1.25.0
 
 require (
 	github.com/cucumber/godog v0.15.1
-	github.com/open-feature/go-sdk-contrib/tests/flagd v1.6.0
+	github.com/open-feature/go-sdk-contrib/tests/flagd v0.0.0
 )
 
 require (
@@ -97,7 +97,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/go-memdb v1.3.4 // indirect
+	github.com/hashicorp/go-memdb v1.3.5 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
@@ -139,8 +139,6 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/open-feature/flagd-schemas v0.2.9-0.20250707123415-08b4c52d3b86 // indirect
 	github.com/open-feature/flagd/core v0.12.1 // indirect
-	github.com/open-feature/go-sdk v1.17.0 // indirect
-	github.com/open-feature/go-sdk-contrib/providers/flagd v0.3.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
@@ -183,6 +181,8 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zclconf/go-cty v1.17.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
+	go.openfeature.dev/contrib/providers/flagd/v2 v2.0.0-20251221204448-fdb52a41d302 // indirect
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.60.0 // indirect
@@ -235,4 +235,4 @@ require (
 
 replace github.com/open-feature/go-sdk-contrib/tests/flagd => ../../../tests/flagd
 
-replace github.com/open-feature/go-sdk-contrib/providers/flagd => ../
+replace go.openfeature.dev/contrib/providers/flagd/v2 => ../

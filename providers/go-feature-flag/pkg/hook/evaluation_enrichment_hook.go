@@ -30,5 +30,5 @@ func (d *evaluationEnrichmentHook) Before(ctx context.Context, hookCtx openfeatu
 		attributes["gofeatureflag"] = map[string]any{"exporterMetadata": d.exporterMetadata}
 	}
 	newCtx := openfeature.NewEvaluationContext(hookCtx.EvaluationContext().TargetingKey(), attributes)
-	return openfeature.WithTransactionContext(ctx, newCtx), nil
+	return openfeature.ContextWithEvaluationContext(ctx, newCtx), nil
 }

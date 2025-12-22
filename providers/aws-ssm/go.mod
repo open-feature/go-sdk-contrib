@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.39.4
 	github.com/aws/aws-sdk-go-v2/config v1.31.15
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.2
-	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
 )
 
 require (

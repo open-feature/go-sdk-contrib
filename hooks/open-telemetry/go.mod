@@ -3,7 +3,7 @@ module go.openfeature.dev/contrib/hooks/open-telemetry/v2
 go 1.25.0
 
 require (
-	go.openfeature.dev/openfeature/v2 v2.0.0-20251220175012-8c8332bb1727
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
 	go.opentelemetry.io/otel v1.39.0
 	go.opentelemetry.io/otel/metric v1.39.0
 	go.opentelemetry.io/otel/sdk v1.39.0
