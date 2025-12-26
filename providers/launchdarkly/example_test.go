@@ -50,7 +50,7 @@ func Example() {
 	// Get an openfeature client and set the evaluation context to it as example.
 	// For more information about OpenFeature evaluation contexts please refer to
 	// https://openfeature.dev/docs/reference/concepts/evaluation-context/
-	client := openfeature.NewClient("hello-world")
+	client := openfeature.NewClient(openfeature.WithDomain("hello-world"))
 	client.SetEvaluationContext(evalCtx)
 
 	if err := doSomething(context.TODO(), client); err != nil {

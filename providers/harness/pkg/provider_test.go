@@ -126,7 +126,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	err = of.SetProviderAndWait(t.Context(), provider)
 	require.NoError(t, err)
-	ofClient := of.NewClient("my-app")
+	ofClient := of.NewClient(of.WithDomain("my-app"))
 
 	evalCtx := of.NewEvaluationContext(
 		"john",

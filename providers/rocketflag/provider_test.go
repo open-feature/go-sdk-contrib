@@ -31,7 +31,7 @@ func TestBoolean(t *testing.T) {
 		t.Fatalf("error setting up provider %s", err)
 	}
 
-	ofClient := openfeature.NewClient("my-go-app")
+	ofClient := openfeature.NewClient(openfeature.WithDomain("my-go-app"))
 	ctx := context.Background()
 
 	t.Run("Successful evaluation with targeting context", func(t *testing.T) {

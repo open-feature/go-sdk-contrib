@@ -35,8 +35,8 @@ go.flipt.io/flipt/rpc/flipt v1.54.0 h1:AcYMi/j3qa4RpIWWxN88n02JbfxQ4IangVFjjXHlF
 go.flipt.io/flipt/rpc/flipt v1.54.0/go.mod h1:kmJldB90QqXBs1xer4EHxQwpTWP0M6UuX8FiycY6s/w=
 go.flipt.io/flipt/sdk/go v0.13.0 h1:H3tUrp3w5X2kRRgM6gR8TVppds7IoaO4SpQyUjPm1oA=
 go.flipt.io/flipt/sdk/go v0.13.0/go.mod h1:U9nermywP6mg+ahds384S5BW4IUNsYICCqREALweqFA=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225 h1:Jm8/nNsmysUz1qOVVkA+oV0/GRJyaKjR9P48yBmjjUQ=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77 h1:c5INb4nNReY5IxOiC/mpYkWc7rHfG2Kq8msmtA0dOW4=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.56.0 h1:yMkBS9yViCc7U7yeLzJPM2XizlfdVvBRSmsQDWu6qc0=

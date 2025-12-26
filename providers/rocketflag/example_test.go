@@ -15,7 +15,7 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	ofClient := openfeature.NewClient("")
+	ofClient := openfeature.NewClient()
 
 	// If you want to provide a cohort, you can do that here. OpenFeature uses "targetingKey" instead of cohorts.
 	// In this example, the cohort value is "user@example.com"

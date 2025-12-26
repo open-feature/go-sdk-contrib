@@ -26,8 +26,8 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.38.9 h1:Ekml5vGg6sHSZLZJQJagefnVe6Pm
 github.com/aws/aws-sdk-go-v2/service/sts v1.38.9/go.mod h1:/e15V+o1zFHWdH3u7lpI3rVBcxszktIKuHKCY2/py+k=
 github.com/aws/smithy-go v1.23.1 h1:sLvcH6dfAFwGkHLZ7dGiYF7aK6mg4CgKA/iDKjLDt9M=
 github.com/aws/smithy-go v1.23.1/go.mod h1:LEj2LM3rBRQJxPZTB4KuzZkaZYnZPnvgIhb4pu07mx0=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225 h1:Jm8/nNsmysUz1qOVVkA+oV0/GRJyaKjR9P48yBmjjUQ=
-go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77 h1:c5INb4nNReY5IxOiC/mpYkWc7rHfG2Kq8msmtA0dOW4=
+go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77/go.mod h1:a2nCa0ST6NGqKR8aPIlmzF1V0el0cPvh9aXQ08tv4uM=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
 go.uber.org/mock v0.6.0/go.mod h1:KiVJ4BqZJaMj4svdfmHM0AUx4NJYO8ZNpPnZn1Z+BBU=
 golang.org/x/text v0.31.0 h1:aC8ghyu4JhP8VojJ2lEHBnochRno1sgL6nEi9WGFGMM=

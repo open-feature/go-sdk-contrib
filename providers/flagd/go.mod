@@ -12,7 +12,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/open-feature/flagd/core v0.12.1
-	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546

@@ -6,7 +6,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.flipt.io/flipt/rpc/flipt v1.54.0
 	go.flipt.io/flipt/sdk/go v0.13.0
-	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.56.0
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.6

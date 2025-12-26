@@ -163,7 +163,7 @@ func TestContextEvaluation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			evalCtx := openfeature.NewEvaluationContext(test.targetKey, test.evalCtx)
-			client := openfeature.NewClient("tests")
+			client := openfeature.NewClient(openfeature.WithDomain("tests"))
 			mtlsEnabled := client.Boolean(context.Background(), test.flagKey, false, evalCtx)
 			assert.Equals(t, test.expFlagValue, mtlsEnabled)
 		})
@@ -185,7 +185,7 @@ func TestStringEvaluation(t *testing.T) {
 		"cloud-provider":  "aws",
 		"anonymous":       true,
 	})
-	client := openfeature.NewClient("stringEvalTests")
+	client := openfeature.NewClient(openfeature.WithDomain("stringEvalTests"))
 	generation := client.String(t.Context(), "dataplane_generation", "k8s.v1", evalCtx)
 	assert.Equals(t, "metal.v1", generation)
 }
@@ -205,7 +205,7 @@ func TestFloatEvaluation(t *testing.T) {
 		"cloud-provider":  "aws",
 		"anonymous":       true,
 	})
-	client := openfeature.NewClient("floatEvalTests")
+	client := openfeature.NewClient(openfeature.WithDomain("floatEvalTests"))
 	discount := client.Float(t.Context(), "global_discount_pct", 1.5, evalCtx)
 	assert.Equals(t, 5.5, discount)
 }
@@ -225,7 +225,7 @@ func TestIntEvaluation(t *testing.T) {
 		"cloud-provider":  "aws",
 		"anonymous":       true,
 	})
-	client := openfeature.NewClient("intEvalTests")
+	client := openfeature.NewClient(openfeature.WithDomain("intEvalTests"))
 	abuseRiskWeight := client.Int(t.Context(), "abuse_risk_weight", 10, evalCtx)
 	assert.Equals(t, int64(50), abuseRiskWeight)
 }
@@ -245,7 +245,7 @@ func TestObjectEvaluation(t *testing.T) {
 		"cloud-provider":  "aws",
 		"anonymous":       true,
 	})
-	client := openfeature.NewClient("objectEvalTests")
+	client := openfeature.NewClient(openfeature.WithDomain("objectEvalTests"))
 	rateLimits := client.Object(t.Context(), "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, map[string]any{
 		"target_quota_byte_rate":       float64(2147483648), // 2GB per second
@@ -269,7 +269,7 @@ func TestContextCancellation(t *testing.T) {
 		"cloud-provider":  "aws",
 		"anonymous":       true,
 	})
-	client := openfeature.NewClient("objectEvalTests")
+	client := openfeature.NewClient(openfeature.WithDomain("objectEvalTests"))
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	_, err = client.ObjectValueDetails(ctx, "rate_limit_config", nil, evalCtx)

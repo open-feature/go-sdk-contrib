@@ -10,7 +10,7 @@ require (
 require (
 	github.com/open-feature/flagd/core v0.12.1
 	go.openfeature.dev/contrib/providers/flagd/v2 v2.0.0-20251220180842-a2b884df9829
-	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77
 )
 
 require (

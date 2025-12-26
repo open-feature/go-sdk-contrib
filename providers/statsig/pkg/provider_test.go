@@ -23,7 +23,7 @@ func TestBooleanEvaluation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
-	ofClient := of.NewClient("my-app")
+	ofClient := of.NewClient(of.WithDomain("my-app"))
 
 	evalCtx := of.NewEvaluationContext(
 		"",
@@ -42,7 +42,7 @@ func TestStringConfigEvaluation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
-	ofClient := of.NewClient("my-app")
+	ofClient := of.NewClient(of.WithDomain("my-app"))
 
 	featureConfig := statsigProvider.FeatureConfig{
 		FeatureConfigType: statsigProvider.FeatureConfigType("CONFIG"),
@@ -69,7 +69,7 @@ func TestBoolLayerEvaluation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting provider %s", err)
 	}
-	ofClient := of.NewClient("my-app")
+	ofClient := of.NewClient(of.WithDomain("my-app"))
 
 	featureConfig := statsigProvider.FeatureConfig{
 		FeatureConfigType: statsigProvider.FeatureConfigType("LAYER"),

@@ -15,7 +15,7 @@ func Example() {
 		panic(err)
 	}
 
-	client := openfeature.NewClient("my-app")
+	client := openfeature.NewClient(openfeature.WithDomain("my-app"))
 	value := client.Boolean(
 		context.TODO(), "v2_enabled", false, openfeature.NewEvaluationContext("tim@apple.com", map[string]any{
 			"favorite_color": "blue",

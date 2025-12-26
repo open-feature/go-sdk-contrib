@@ -146,7 +146,7 @@ func TestProvider_module_BooleanEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -270,7 +270,7 @@ func TestProvider_module_StringEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -394,7 +394,7 @@ func TestProvider_module_FloatEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -518,7 +518,7 @@ func TestProvider_module_IntEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -627,7 +627,7 @@ func TestProvider_module_ObjectEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {

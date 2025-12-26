@@ -367,7 +367,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	ofClient = of.NewClient("my-app")
+	ofClient = of.NewClient(of.WithDomain("my-app"))
 
 	fmt.Printf("provider: %v\n", provider)
 

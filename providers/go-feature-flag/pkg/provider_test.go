@@ -317,7 +317,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			require.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -437,7 +437,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -558,7 +558,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -679,7 +679,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -786,7 +786,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -822,7 +822,7 @@ func TestProvider_Cache(t *testing.T) {
 
 		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+		client := of.NewClient(of.WithDomain("test-app"))
 		got1, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 		assert.NoError(t, err)
 		assert.Equal(t, got1.Reason, of.TargetingMatchReason)
@@ -857,7 +857,7 @@ func TestProvider_Cache(t *testing.T) {
 
 		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+		client := of.NewClient(of.WithDomain("test-app"))
 		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
 		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]any{})
 		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]any{})
@@ -896,7 +896,7 @@ func TestProvider_Cache(t *testing.T) {
 
 		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+		client := of.NewClient(of.WithDomain("test-app"))
 		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
 		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]any{})
 		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]any{})
@@ -943,7 +943,7 @@ func TestProvider_Cache(t *testing.T) {
 
 		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+		client := of.NewClient(of.WithDomain("test-app"))
 		_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 		assert.NoError(t, err)
 		time.Sleep(700 * time.Millisecond)
@@ -973,7 +973,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 
 		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+		client := of.NewClient(of.WithDomain("test-app"))
 
 		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
@@ -1018,7 +1018,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 		})
 		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+		client := of.NewClient(of.WithDomain("test-app"))
 
 		_ = client.String(context.TODO(), "bool_targeting_match", "false", defaultEvaluationCtx())
 
@@ -1047,7 +1047,7 @@ func TestProvider_FlagChangePolling(t *testing.T) {
 		})
 		err = of.SetProviderAndWait(t.Context(), provider)
 		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+		client := of.NewClient(of.WithDomain("test-app"))
 
 		details, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
 		require.NoError(t, err)
@@ -1112,7 +1112,7 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 			})
 			err = of.SetProviderAndWait(t.Context(), provider)
 			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			client := of.NewClient(of.WithDomain("test-app"))
 
 			_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, tt.evalCtx)
 			assert.NoError(t, err)

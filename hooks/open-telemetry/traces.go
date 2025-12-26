@@ -149,14 +149,6 @@ func eventAttributes(hookContext openfeature.HookContext, details openfeature.Ho
 
 type Options func(*traceHook)
 
-// WithErrorStatusEnabled enable setting span status to codes.Error in case of an error. Default behavior is disabled.
-//
-// Deprecated: this option has no effect. It will be removed in a future release.
-func WithErrorStatusEnabled() Options {
-	return func(h *traceHook) {
-	}
-}
-
 // WithTracesAttributeSetter allows to set a extractionCallback which accept [openfeature.FlagMetadata] and returns
 // []attribute.KeyValue derived from those metadata.
 // If present, returned attributes will be added to successful evaluation traces.

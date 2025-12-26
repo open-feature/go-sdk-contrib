@@ -79,13 +79,13 @@ func (s *TestState) createProviderInstance() error {
 
 	// Set the provider in OpenFeature
 	domain := fmt.Sprintf("flagd-e2e-tests-%d", time.Now().UnixNano())
-	err = openfeature.SetNamedProvider(context.Background(), domain, provider)
+	err = openfeature.SetProvider(context.Background(), provider, openfeature.WithDomain(domain))
 	if err != nil {
 		return fmt.Errorf("failed to set provider: %w", err)
 	}
 
 	// Create client
-	s.Client = openfeature.NewClient(domain)
+	s.Client = openfeature.NewClient(openfeature.WithDomain(domain))
 	return nil
 }
 

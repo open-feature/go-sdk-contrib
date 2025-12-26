@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/stretchr/testify v1.11.1
 	github.com/thomaspoignant/go-feature-flag v1.32.0
-	go.openfeature.dev/openfeature/v2 v2.0.0-20251221193754-bc7c93205225
+	go.openfeature.dev/openfeature/v2 v2.0.0-20251226144241-81ba50856f77
 )
 
 require (
