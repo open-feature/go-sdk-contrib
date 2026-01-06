@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sync"
@@ -317,13 +318,22 @@ func (i *InProcess) runDataSyncListener() {
 // processSyncData handles individual sync data updates
 func (i *InProcess) processSyncData(data isync.DataSync) {
 	// Get current state before update to detect changes
-	oldFlags, _, _ := i.flagStore.GetAll(context.Background(), &store.Selector{})
+	oldFlags, _, err := i.flagStore.GetAll(context.Background(), &store.Selector{})
+	if err != nil {
+		i.logger.Error("failed to get old flags for change detection", zap.Error(err))
+		return
+	}
 	oldFlagMap := make(map[string]string, len(oldFlags))
 	for _, flag := range oldFlags {
-		oldFlagMap[flag.Key] = fmt.Sprintf("%v", flag)
+		flagBytes, err := json.Marshal(flag)
+		if err != nil {
+			i.logger.Error("failed to marshal flag for change detection", zap.String("flagKey", flag.Key), zap.Error(err))
+			continue
+		}
+		oldFlagMap[flag.Key] = string(flagBytes)
 	}
 
-	err := i.evaluator.SetState(data)
+	err = i.evaluator.SetState(data)
 	if err != nil {
 		i.events <- of.Event{
 			ProviderName:         providerName,
@@ -348,8 +358,12 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 	})
 
 	// Compute changed flags by comparing old and new state
-	newFlags, _, _ := i.flagStore.GetAll(context.Background(), &store.Selector{})
-	changedKeys := computeChangedFlags(oldFlagMap, newFlags)
+	newFlags, _, err := i.flagStore.GetAll(context.Background(), &store.Selector{})
+	if err != nil {
+		i.logger.Error("failed to get new flags for change detection", zap.Error(err))
+		return
+	}
+	changedKeys := i.computeChangedFlags(oldFlagMap, newFlags)
 
 	// Send config change event if there are changes
 	if len(changedKeys) > 0 {
@@ -365,13 +379,18 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 }
 
 // computeChangedFlags compares old and new flag states and returns keys that changed
-func computeChangedFlags(oldFlagMap map[string]string, newFlags []model.Flag) []string {
+func (i *InProcess) computeChangedFlags(oldFlagMap map[string]string, newFlags []model.Flag) []string {
 	changedKeys := make([]string, 0)
 	newFlagMap := make(map[string]string, len(newFlags))
 
 	// Check for added or modified flags
 	for _, flag := range newFlags {
-		newFlagMap[flag.Key] = fmt.Sprintf("%v", flag)
+		flagBytes, err := json.Marshal(flag)
+		if err != nil {
+			i.logger.Error("failed to marshal flag for change detection", zap.String("flagKey", flag.Key), zap.Error(err))
+			continue
+		}
+		newFlagMap[flag.Key] = string(flagBytes)
 		oldValue, exists := oldFlagMap[flag.Key]
 		if !exists || oldValue != newFlagMap[flag.Key] {
 			changedKeys = append(changedKeys, flag.Key)
