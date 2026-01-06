@@ -384,18 +384,21 @@ func (i *InProcess) computeChangedFlags(oldFlagMap map[string]string, newFlags [
 
 	// Check for added or modified flags
 	for _, flag := range newFlags {
+		oldValue, exists := oldFlagMap[flag.Key]
+		// Remove from old map to find deleted flags later
+		delete(oldFlagMap, flag.Key)
+
 		flagBytes, err := json.Marshal(flag)
 		if err != nil {
 			i.logger.Error("failed to marshal flag for change detection", zap.String("flagKey", flag.Key), zap.Error(err))
+			// A flag that can't be marshalled is a change (either new and broken, or modified to be broken)
+			changedKeys = append(changedKeys, flag.Key)
 			continue
 		}
 
-		if oldValue, exists := oldFlagMap[flag.Key]; !exists || oldValue != string(flagBytes) {
+		if !exists || oldValue != string(flagBytes) {
 			changedKeys = append(changedKeys, flag.Key)
 		}
-
-		// Remove from old map to find deleted flags later
-		delete(oldFlagMap, flag.Key)
 	}
 
 	// Any remaining keys in oldFlagMap are deleted flags

@@ -68,7 +68,9 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 	server := grpc.NewServer()
 	syncv1grpc.RegisterFlagSyncServiceServer(server, bufServ)
 	go func() {
-		_ = server.Serve(bufServ.listener)
+		if err := server.Serve(bufServ.listener); err != nil && err != grpc.ErrServerStopped {
+			t.Errorf("server.Serve failed: %v", err)
+		}
 	}()
 
 	// Cleanup on test completion
@@ -165,7 +167,9 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 	server := grpc.NewServer()
 	syncv1grpc.RegisterFlagSyncServiceServer(server, bufServ)
 	go func() {
-		_ = server.Serve(bufServ.listener)
+		if err := server.Serve(bufServ.listener); err != nil && err != grpc.ErrServerStopped {
+			t.Errorf("server.Serve failed: %v", err)
+		}
 	}()
 
 	// Cleanup on test completion
