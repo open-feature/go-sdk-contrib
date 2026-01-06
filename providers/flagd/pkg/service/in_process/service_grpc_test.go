@@ -3,7 +3,10 @@ package process
 import (
 	"context"
 	"fmt"
+<<<<<<< HEAD
 	"log"
+=======
+>>>>>>> 11e65db (fix(flagd): adapt to flagd/core v0.13.1 SetState API change)
 	"net"
 	"testing"
 	"time"
@@ -62,9 +65,17 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 	// when
 
 	// start grpc sync server
+	server := grpc.NewServer()
+	syncv1grpc.RegisterFlagSyncServiceServer(server, bufServ)
 	go func() {
-		serve(bufServ)
+		_ = server.Serve(bufServ.listener)
 	}()
+
+	// Cleanup on test completion
+	t.Cleanup(func() {
+		inProcessService.Shutdown()
+		server.GracefulStop()
+	})
 
 	// Initialize service
 	err = inProcessService.Init()
@@ -151,9 +162,17 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 	// when
 
 	// start grpc sync server
+	server := grpc.NewServer()
+	syncv1grpc.RegisterFlagSyncServiceServer(server, bufServ)
 	go func() {
-		serve(bufServ)
+		_ = server.Serve(bufServ.listener)
 	}()
+
+	// Cleanup on test completion
+	t.Cleanup(func() {
+		inProcessService.Shutdown()
+		server.GracefulStop()
+	})
 
 	// Initialize service
 	err = inProcessService.Init()
@@ -235,15 +254,4 @@ func (b *bufferedServer) FetchAllFlags(_ context.Context, _ *v1.FetchAllFlagsReq
 
 func (b *bufferedServer) GetMetadata(_ context.Context, _ *v1.GetMetadataRequest) (*v1.GetMetadataResponse, error) {
 	return &v1.GetMetadataResponse{}, nil
-}
-
-// serve serves a bufferedServer. This is a blocking call
-func serve(bServer *bufferedServer) {
-	server := grpc.NewServer()
-
-	syncv1grpc.RegisterFlagSyncServiceServer(server, bServer)
-
-	if err := server.Serve(bServer.listener); err != nil {
-		log.Fatalf("Server exited with error: %v", err)
-	}
 }
