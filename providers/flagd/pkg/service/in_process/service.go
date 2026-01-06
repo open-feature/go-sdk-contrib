@@ -376,21 +376,23 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 // computeChangedFlags compares old and new flag states and returns keys that changed
 func computeChangedFlags(oldFlagMap map[string]model.Flag, newFlags []model.Flag) []string {
 	changedKeys := make([]string, 0)
+	newKeys := make(map[string]struct{}, len(newFlags))
 
 	// Check for added or modified flags
 	for _, flag := range newFlags {
+		newKeys[flag.Key] = struct{}{}
 		oldFlag, exists := oldFlagMap[flag.Key]
-		// Remove from old map to find deleted flags later
-		delete(oldFlagMap, flag.Key)
 
 		if !exists || !reflect.DeepEqual(oldFlag, flag) {
 			changedKeys = append(changedKeys, flag.Key)
 		}
 	}
 
-	// Any remaining keys in oldFlagMap are deleted flags
+	// Check for deleted flags
 	for key := range oldFlagMap {
-		changedKeys = append(changedKeys, key)
+		if _, exists := newKeys[key]; !exists {
+			changedKeys = append(changedKeys, key)
+		}
 	}
 
 	return changedKeys
