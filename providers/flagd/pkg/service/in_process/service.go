@@ -2,7 +2,7 @@ package process
 
 import (
 	"context"
-	"encoding/json"
+	"reflect"
 	"fmt"
 	"regexp"
 	"sync"
@@ -323,14 +323,9 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 		i.logger.Error("failed to get old flags for change detection", zap.Error(err))
 		return
 	}
-	oldFlagMap := make(map[string]string, len(oldFlags))
+	oldFlagMap := make(map[string]model.Flag, len(oldFlags))
 	for _, flag := range oldFlags {
-		flagBytes, err := json.Marshal(flag)
-		if err != nil {
-			i.logger.Error("failed to marshal flag for change detection", zap.String("flagKey", flag.Key), zap.Error(err))
-			continue
-		}
-		oldFlagMap[flag.Key] = string(flagBytes)
+		oldFlagMap[flag.Key] = flag
 	}
 
 	err = i.evaluator.SetState(data)
@@ -363,7 +358,7 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 		i.logger.Error("failed to get new flags for change detection", zap.Error(err))
 		return
 	}
-	changedKeys := i.computeChangedFlags(oldFlagMap, newFlags)
+	changedKeys := computeChangedFlags(oldFlagMap, newFlags)
 
 	// Send config change event if there are changes
 	if len(changedKeys) > 0 {
@@ -379,24 +374,16 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 }
 
 // computeChangedFlags compares old and new flag states and returns keys that changed
-func (i *InProcess) computeChangedFlags(oldFlagMap map[string]string, newFlags []model.Flag) []string {
+func computeChangedFlags(oldFlagMap map[string]model.Flag, newFlags []model.Flag) []string {
 	changedKeys := make([]string, 0)
 
 	// Check for added or modified flags
 	for _, flag := range newFlags {
-		oldValue, exists := oldFlagMap[flag.Key]
+		oldFlag, exists := oldFlagMap[flag.Key]
 		// Remove from old map to find deleted flags later
 		delete(oldFlagMap, flag.Key)
 
-		flagBytes, err := json.Marshal(flag)
-		if err != nil {
-			i.logger.Error("failed to marshal flag for change detection", zap.String("flagKey", flag.Key), zap.Error(err))
-			// A flag that can't be marshalled is a change (either new and broken, or modified to be broken)
-			changedKeys = append(changedKeys, flag.Key)
-			continue
-		}
-
-		if !exists || oldValue != string(flagBytes) {
+		if !exists || !reflect.DeepEqual(oldFlag, flag) {
 			changedKeys = append(changedKeys, flag.Key)
 		}
 	}
