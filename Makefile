@@ -3,7 +3,7 @@ MODULE_TYPE ?= providers
 FLAGD_TESTBED = flagd-testbed
 FLAGD_SYNC = sync-testbed
 GOLANGCI_LINT_VERSION := v2.7.2
-GOBIN := $(shell go env GOPATH)/bin
+GOBIN := $(or $(shell go env GOBIN),$(shell go env GOPATH | cut -d: -f1)/bin)
 
 workspace-init:
 	go work init
