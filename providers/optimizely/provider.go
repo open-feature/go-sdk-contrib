@@ -31,13 +31,30 @@ type evaluationResult struct {
 }
 
 type Provider struct {
-	client *optimizely.OptimizelyClient
+	client          *optimizely.OptimizelyClient
+	closeOnShutdown bool
 }
 
-func NewProvider(client *optimizely.OptimizelyClient) *Provider {
-	return &Provider{
+type Option func(*Provider)
+
+// WithCloseOnShutdown configures whether the Optimizely client should be closed
+// when the provider's Shutdown method is called. By default, the client is not closed.
+func WithCloseOnShutdown(close bool) Option {
+	return func(p *Provider) {
+		p.closeOnShutdown = close
+	}
+}
+
+func NewProvider(client *optimizely.OptimizelyClient, opts ...Option) *Provider {
+	p := &Provider{
 		client: client,
 	}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+	
+	return p
 }
 
 func (p *Provider) Metadata() openfeature.Metadata {
@@ -271,5 +288,7 @@ func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
 }
 
 func (p *Provider) Shutdown() {
-	p.client.Close()
+	if p.closeOnShutdown {
+		p.client.Close()
+	}
 }
