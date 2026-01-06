@@ -53,7 +53,7 @@ func NewProvider(client *optimizely.OptimizelyClient, opts ...Option) *Provider 
 	for _, opt := range opts {
 		opt(p)
 	}
-	
+
 	return p
 }
 
