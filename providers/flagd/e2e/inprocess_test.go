@@ -5,6 +5,8 @@ package e2e
 import (
 	"testing"
 
+	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
+
 	"github.com/open-feature/go-sdk-contrib/tests/flagd/testframework"
 )
 
@@ -17,6 +19,9 @@ func TestInProcessProviderE2E(t *testing.T) {
 	runner := testframework.NewTestbedRunner(testframework.TestbedConfig{
 		ResolverType:  testframework.InProcess,
 		TestbedConfig: "default",
+		ExtraOptions: []flagd.ProviderOption{
+			flagd.WithRetryBackoffMaxMs(3000),
+		},
 	})
 	defer runner.Cleanup()
 
