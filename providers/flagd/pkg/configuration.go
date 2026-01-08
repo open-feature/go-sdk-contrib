@@ -32,6 +32,8 @@ const (
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
 	defaultGracePeriod                  = 5
+	defaultRetryBackoffMs               = 1000
+	defaultRetryBackoffMaxMs            = 120000
 	defaultFatalStatusCodes             = ""
 
 	rpc       ResolverType = "rpc"
@@ -75,9 +77,9 @@ type ProviderConfiguration struct {
 	CustomSyncProvider               sync.ISync
 	CustomSyncProviderUri            string
 	GrpcDialOptionsOverride          []grpc.DialOption
-	RetryGracePeriod                 time.Duration
-	RetryBackoffMs                   time.Duration
-	RetryBackoffMaxMs                time.Duration
+	RetryGracePeriod                 int
+	RetryBackoffMs                   int
+	RetryBackoffMaxMs                int
 	FatalStatusCodes                 []string
 
 	log logr.Logger
@@ -92,9 +94,9 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
-		RetryGracePeriod:                 time.Duration(defaultGracePeriod) * time.Second,
-		RetryBackoffMs:                   time.Duration(DefaultRetryBackoffMs) * time.Millisecond,
-		RetryBackoffMaxMs:                time.Duration(DefaultRetryBackoffMaxMs) * time.Millisecond,
+		RetryGracePeriod:                 defaultGracePeriod,
+		RetryBackoffMs:                   defaultRetryBackoffMs,
+		RetryBackoffMaxMs:                defaultRetryBackoffMaxMs,
 	}
 
 	p.updateFromEnvVar()
@@ -225,9 +227,9 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 		cfg.TargetUri = targetUri
 	}
 
-	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log) * time.Second
-	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, time.Duration(DefaultRetryBackoffMs)*time.Millisecond, cfg.log)
-	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, time.Duration(DefaultRetryBackoffMaxMs)*time.Millisecond, cfg.log)
+	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
+	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, defaultRetryBackoffMs, cfg.log)
+	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, defaultRetryBackoffMaxMs, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
@@ -461,14 +463,14 @@ func WithRetryGracePeriod(gracePeriod time.Duration) ProviderOption {
 }
 
 // WithRetryBackoffMs sets the initial backoff duration (in milliseconds) for retrying failed connections
-func WithRetryBackoffMs(retryBackoffMs time.Duration) ProviderOption {
+func WithRetryBackoffMs(retryBackoffMs int) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.RetryBackoffMs = retryBackoffMs
 	}
 }
 
 // WithRetryBackoffMaxMs sets the maximum backoff duration (in milliseconds) for retrying failed connections
-func WithRetryBackoffMaxMs(retryBackoffMaxMs time.Duration) ProviderOption {
+func WithRetryBackoffMaxMs(retryBackoffMaxMs int) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.RetryBackoffMaxMs = retryBackoffMaxMs
 	}
