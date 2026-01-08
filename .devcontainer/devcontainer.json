@@ -1,5 +1,5 @@
 {
-    "name": "flagd dev container",
+    "name": "go contrib sdk devcontainer",
     // Image details: https://github.com/devcontainers/images/tree/main/src/go
     "image": "mcr.microsoft.com/devcontainers/go:1.24",
     // Features to add to the dev container. More info: https://containers.dev/features.
