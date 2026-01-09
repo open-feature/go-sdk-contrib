@@ -320,8 +320,8 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 	// Get current state before update to detect changes
 	oldFlags, _, err := i.flagStore.GetAll(i.ctx, &store.Selector{})
 	if err != nil {
-		i.logger.Error("failed to get old flags for change detection", zap.Error(err))
-		return
+		i.logger.Error("failed to get old flags for change detection, treating all flags as new", zap.Error(err))
+		oldFlags = []model.Flag{}
 	}
 	oldFlagMap := make(map[string]model.Flag, len(oldFlags))
 	for _, flag := range oldFlags {
