@@ -79,7 +79,7 @@ Signed-off-by: John Doe <jd@example.org>
 
 This is easy to add by using the -s/--signoff flag to git commit.
 
-More info is available in the **OpenFeature-contrib** community docs.
+More info is available in the **OpenFeature-contrib** [community docs](https://openfeature.dev/docs/reference/sdks/server/go/). 
 
 ## Releases
 
