@@ -92,7 +92,7 @@ func (g *Sync) createConnection() (*grpc.ClientConn, error) {
 
 	if len(g.GrpcDialOptionsOverride) > 0 {
 		g.Logger.Debug("using provided gRPC DialOptions override")
-		dialOptions := make([]grpc.DialOption, len(g.GrpcDialOptionsOverride))
+		dialOptions := make([]grpc.DialOption, 0, len(g.GrpcDialOptionsOverride)+len(grpcInterceptorDialOptions))
 		dialOptions = append(dialOptions, g.GrpcDialOptionsOverride...)
 		dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
 		return grpc.NewClient(g.URI, dialOptions...)

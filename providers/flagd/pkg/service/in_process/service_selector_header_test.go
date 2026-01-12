@@ -147,29 +147,7 @@ func (s *selectorHeaderCapturingServer) SyncFlags(req *v1.SyncFlagsRequest, stre
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Extract and capture the flagd-selector header
-	md, ok := metadata.FromIncomingContext(stream.Context())
-	if ok {
-		if values := md.Get("flagd-selector"); len(values) > 0 {
-			select {
-			case s.headerReceived <- values[0]:
-			default:
-				// Channel full, skip
-			}
-		} else {
-			select {
-			case s.headerReceived <- "":
-			default:
-				// Channel full, skip
-			}
-		}
-	} else {
-		select {
-		case s.headerReceived <- "":
-		default:
-			// Channel full, skip
-		}
-	}
+	s.captureHeader(stream.Context())
 
 	// Send mock response
 	if err := stream.Send(s.mockResponse); err != nil {
@@ -186,28 +164,7 @@ func (s *selectorHeaderCapturingServer) FetchAllFlags(ctx context.Context, req *
 	defer s.mu.Unlock()
 
 	// Extract and capture the flagd-selector header
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		if values := md.Get("flagd-selector"); len(values) > 0 {
-			select {
-			case s.headerReceived <- values[0]:
-			default:
-				// Channel full, skip
-			}
-		} else {
-			select {
-			case s.headerReceived <- "":
-			default:
-				// Channel full, skip
-			}
-		}
-	} else {
-		select {
-		case s.headerReceived <- "":
-		default:
-			// Channel full, skip
-		}
-	}
+	s.captureHeader(ctx)
 
 	return &v1.FetchAllFlagsResponse{
 		FlagConfiguration: flagRsp,
@@ -216,4 +173,17 @@ func (s *selectorHeaderCapturingServer) FetchAllFlags(ctx context.Context, req *
 
 func (s *selectorHeaderCapturingServer) GetMetadata(ctx context.Context, req *v1.GetMetadataRequest) (*v1.GetMetadataResponse, error) {
 	return &v1.GetMetadataResponse{}, nil
+}
+
+func (s *selectorHeaderCapturingServer) captureHeader(ctx context.Context) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	headerValue := ""
+	if values := md.Get("flagd-selector"); len(values) > 0 {
+		headerValue = values[0]
+	}
+	select {
+	case s.headerReceived <- headerValue:
+	default:
+		// Channel is full, which is acceptable in this test.
+	}
 }
