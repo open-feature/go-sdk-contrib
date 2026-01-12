@@ -2,7 +2,7 @@ ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | s
 MODULE_TYPE ?= providers
 FLAGD_TESTBED = flagd-testbed
 FLAGD_SYNC = sync-testbed
-GOLANGCI_LINT_VERSION := v2.7.2
+GOLANGCI_LINT_VERSION := v2.8.0
 GOBIN := $(or $(shell go env GOBIN),$(shell go env GOPATH | cut -d: -f1)/bin)
 
 workspace-init:
