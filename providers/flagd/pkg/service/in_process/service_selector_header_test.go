@@ -180,7 +180,7 @@ func (s *selectorHeaderCapturingServer) GetMetadata(ctx context.Context, req *v1
 func (s *selectorHeaderCapturingServer) captureHeader(ctx context.Context) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	headerValue := ""
-	if values := md.Get("flagd-selector"); len(values) > 0 {
+if values := md.Get(SelectorMetadataKey); len(values) > 0 {
 		headerValue = values[0]
 	}
 	select {
