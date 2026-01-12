@@ -13,8 +13,8 @@ const (
 	defaultKeepaliveTime    = 30 * time.Second
 	defaultKeepaliveTimeout = 5 * time.Second
 	// Default retry intervals per https://flagd.dev/reference/specifications/providers/#configuration
-	DefaultRetryBackoffMs    = 1000  // 1 second
-	DefaultRetryBackoffMaxMs = 12000 // 12 seconds
+	DefaultRetryBackoffMs    = 1000   // 1 second
+	DefaultRetryBackoffMaxMs = 120000 // 120 seconds
 )
 
 type RetryPolicy struct {
@@ -53,8 +53,8 @@ func (g *Sync) buildRetryPolicy() string {
 				},
 				"retryPolicy": RetryPolicy{
 					MaxAttempts:          3,
-					InitialBackoff:       (time.Duration(g.RetryBackOffMs) * time.Millisecond).String(),
-					MaxBackoff:           (time.Duration(g.RetryBackOffMaxMs) * time.Millisecond).String(),
+					InitialBackoff:       initialBackoff,
+					MaxBackoff:           maxBackoff,
 					BackoffMultiplier:    2.0,
 					RetryableStatusCodes: []string{"UNKNOWN", "UNAVAILABLE"},
 				},
