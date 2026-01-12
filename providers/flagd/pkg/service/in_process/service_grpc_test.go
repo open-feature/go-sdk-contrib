@@ -3,10 +3,6 @@ package process
 import (
 	"context"
 	"fmt"
-<<<<<<< HEAD
-	"log"
-=======
->>>>>>> 11e65db (fix(flagd): adapt to flagd/core v0.13.1 SetState API change)
 	"net"
 	"testing"
 	"time"
