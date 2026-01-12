@@ -17,8 +17,9 @@ require (
 	github.com/open-feature/go-sdk-contrib/tests/flagd v0.0.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
+	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
 	golang.org/x/net v0.47.0
-	google.golang.org/grpc v1.75.0
+	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.9
 )
 
