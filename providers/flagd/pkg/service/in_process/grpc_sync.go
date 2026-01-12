@@ -100,10 +100,10 @@ func (g *Sync) createConnection() (*grpc.ClientConn, error) {
 
 	// Build standard dial options
 	dialOptions, err := g.buildDialOptions()
-	dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build dial options: %w", err)
 	}
+	dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
 
 	return grpc.NewClient(g.URI, dialOptions...)
 }
