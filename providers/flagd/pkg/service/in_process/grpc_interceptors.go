@@ -2,19 +2,19 @@ package process
 
 import (
 	"context"
-	googlegrpc "google.golang.org/grpc"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
 // selectorUnaryInterceptor adds the flagd-selector metadata header to unary gRPC calls
-func selectorUnaryInterceptor(selector string) googlegrpc.UnaryClientInterceptor {
+func selectorUnaryInterceptor(selector string) grpc.UnaryClientInterceptor {
 	return func(
 		ctx context.Context,
 		method string,
 		req, reply interface{},
-		cc *googlegrpc.ClientConn,
-		invoker googlegrpc.UnaryInvoker,
-		opts ...googlegrpc.CallOption,
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
 	) error {
 		if selector != "" {
 			ctx = metadata.AppendToOutgoingContext(ctx, "flagd-selector", selector)
@@ -24,15 +24,15 @@ func selectorUnaryInterceptor(selector string) googlegrpc.UnaryClientInterceptor
 }
 
 // selectorStreamInterceptor adds the flagd-selector metadata header to streaming gRPC calls
-func selectorStreamInterceptor(selector string) googlegrpc.StreamClientInterceptor {
+func selectorStreamInterceptor(selector string) grpc.StreamClientInterceptor {
 	return func(
 		ctx context.Context,
-		desc *googlegrpc.StreamDesc,
-		cc *googlegrpc.ClientConn,
+		desc *grpc.StreamDesc,
+		cc *grpc.ClientConn,
 		method string,
-		streamer googlegrpc.Streamer,
-		opts ...googlegrpc.CallOption,
-	) (googlegrpc.ClientStream, error) {
+		streamer grpc.Streamer,
+		opts ...grpc.CallOption,
+	) (grpc.ClientStream, error) {
 		if selector != "" {
 			ctx = metadata.AppendToOutgoingContext(ctx, "flagd-selector", selector)
 		}
