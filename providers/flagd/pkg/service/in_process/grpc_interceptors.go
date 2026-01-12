@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const selectorMetadataKey = "flagd-selector"
+const SelectorMetadataKey = "flagd-selector"
 
 // selectorUnaryInterceptor adds the flagd-selector metadata header to unary gRPC calls
 func selectorUnaryInterceptor(selector string) grpc.UnaryClientInterceptor {
