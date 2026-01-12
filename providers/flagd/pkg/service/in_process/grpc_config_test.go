@@ -39,11 +39,11 @@ func TestBuildRetryPolicy(t *testing.T) {
 	if retryPolicy["MaxAttempts"].(float64) != 3 {
 		t.Errorf("MaxAttempts = %v; want 3", retryPolicy["MaxAttempts"])
 	}
-	if retryPolicy["InitialBackoff"].(string) != "100ms" {
-		t.Errorf("InitialBackoff = %v; want 100ms", retryPolicy["InitialBackoff"])
+	if retryPolicy["InitialBackoff"].(string) != "0.1s" {
+		t.Errorf("InitialBackoff = %v; want 0.1s", retryPolicy["InitialBackoff"])
 	}
-	if retryPolicy["MaxBackoff"].(string) != "500ms" {
-		t.Errorf("MaxBackoff = %v; want 500ms", retryPolicy["MaxBackoff"])
+	if retryPolicy["MaxBackoff"].(string) != "0.5s" {
+		t.Errorf("MaxBackoff = %v; want 0.5s", retryPolicy["MaxBackoff"])
 	}
 	if retryPolicy["BackoffMultiplier"].(float64) != 2.0 {
 		t.Errorf("BackoffMultiplier = %v; want 2.0", retryPolicy["BackoffMultiplier"])
@@ -60,14 +60,84 @@ func TestBuildRetryPolicy(t *testing.T) {
 	if !strings.Contains(result, `"MaxAttempts":3`) {
 		t.Error("Result does not contain MaxAttempts")
 	}
-	if !strings.Contains(result, `"InitialBackoff":"100ms"`) {
+	if !strings.Contains(result, `"InitialBackoff":"0.1s"`) {
 		t.Error("Result does not contain InitialBackoff")
 	}
-	if !strings.Contains(result, `"MaxBackoff":"500ms"`) {
+	if !strings.Contains(result, `"MaxBackoff":"0.5s"`) {
 		t.Error("Result does not contain MaxBackoff")
 	}
 	if !strings.Contains(result, `"RetryableStatusCodes":["UNKNOWN","UNAVAILABLE"]`) {
 		t.Error("Result does not contain RetryableStatusCodes")
+	}
+}
+
+// TestBuildRetryPolicyDefaults verifies that default values are applied per spec
+func TestBuildRetryPolicyDefaults(t *testing.T) {
+	g := &Sync{
+		RetryBackOffMs:    0, // Should use default 1000ms
+		RetryBackOffMaxMs: 0, // Should use default 120000ms
+	}
+
+	result := g.buildRetryPolicy()
+
+	// Unmarshal to check structure
+	var policy map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &policy); err != nil {
+		t.Fatalf("Failed to unmarshal result: %v", err)
+	}
+
+	methodConfig, ok := policy["methodConfig"].([]interface{})
+	if !ok || len(methodConfig) == 0 {
+		t.Fatalf("methodConfig missing or empty")
+	}
+
+	config := methodConfig[0].(map[string]interface{})
+	retryPolicy, ok := config["retryPolicy"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("retryPolicy missing")
+	}
+
+	// time.Duration.String() formats milliseconds as "1s", "120s", etc.
+	if retryPolicy["InitialBackoff"].(string) != "1s" {
+		t.Errorf("InitialBackoff = %v; want 1s (default)", retryPolicy["InitialBackoff"])
+	}
+	if retryPolicy["MaxBackoff"].(string) != "120s" {
+		t.Errorf("MaxBackoff = %v; want 120s (gRPC format for 120000ms)", retryPolicy["MaxBackoff"])
+	}
+}
+
+// TestBuildRetryPolicyFractionalSeconds verifies fractional second durations are formatted correctly
+func TestBuildRetryPolicyFractionalSeconds(t *testing.T) {
+	g := &Sync{
+		RetryBackOffMs:    1500, // 1.5 seconds
+		RetryBackOffMaxMs: 2500, // 2.5 seconds
+	}
+
+	result := g.buildRetryPolicy()
+
+	// Unmarshal to check structure
+	var policy map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &policy); err != nil {
+		t.Fatalf("Failed to unmarshal result: %v", err)
+	}
+
+	methodConfig, ok := policy["methodConfig"].([]interface{})
+	if !ok || len(methodConfig) == 0 {
+		t.Fatalf("methodConfig missing or empty")
+	}
+
+	config := methodConfig[0].(map[string]interface{})
+	retryPolicy, ok := config["retryPolicy"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("retryPolicy missing")
+	}
+
+	// Verify fractional seconds are preserved in gRPC format
+	if retryPolicy["InitialBackoff"].(string) != "1.5s" {
+		t.Errorf("InitialBackoff = %v; want 1.5s", retryPolicy["InitialBackoff"])
+	}
+	if retryPolicy["MaxBackoff"].(string) != "2.5s" {
+		t.Errorf("MaxBackoff = %v; want 2.5s", retryPolicy["MaxBackoff"])
 	}
 }
 

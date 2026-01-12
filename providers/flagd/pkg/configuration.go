@@ -19,6 +19,10 @@ type ResolverType string
 
 // Naming and defaults must comply with flagd environment variables
 const (
+	// DefaultRetryBackoffMs is the default initial backoff duration for stream retry
+	DefaultRetryBackoffMs = 1000
+	// DefaultRetryBackoffMaxMs is the default maximum backoff duration for stream retry
+	DefaultRetryBackoffMaxMs            = 120000
 	defaultMaxCacheSize          int    = 1000
 	defaultRpcPort               uint16 = 8013
 	defaultInProcessPort         uint16 = 8015
@@ -28,8 +32,6 @@ const (
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
 	defaultGracePeriod                  = 5
-	defaultRetryBackoffMs               = 1000
-	defaultRetryBackoffMaxMs            = 120000
 	defaultFatalStatusCodes             = ""
 
 	rpc       ResolverType = "rpc"
@@ -91,8 +93,8 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 time.Duration(defaultGracePeriod) * time.Second,
-		RetryBackoffMs:                   time.Duration(defaultRetryBackoffMs) * time.Millisecond,
-		RetryBackoffMaxMs:                time.Duration(defaultRetryBackoffMaxMs) * time.Millisecond,
+		RetryBackoffMs:                   time.Duration(DefaultRetryBackoffMs) * time.Millisecond,
+		RetryBackoffMaxMs:                time.Duration(DefaultRetryBackoffMaxMs) * time.Millisecond,
 	}
 
 	p.updateFromEnvVar()
@@ -223,8 +225,8 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	}
 
 	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log) * time.Second
-	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, time.Duration(defaultRetryBackoffMs)*time.Millisecond, cfg.log)
-	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, time.Duration(defaultRetryBackoffMaxMs)*time.Millisecond, cfg.log)
+	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, time.Duration(DefaultRetryBackoffMs)*time.Millisecond, cfg.log)
+	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, time.Duration(DefaultRetryBackoffMaxMs)*time.Millisecond, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
