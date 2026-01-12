@@ -361,9 +361,9 @@ func (m MockEvaluator) GetState() (string, error) {
 	return "", nil
 }
 
-func (m MockEvaluator) SetState(payload sync.DataSync) (map[string]interface{}, bool, error) {
+func (m MockEvaluator) SetState(payload sync.DataSync) error {
 	// ignored
-	return make(map[string]interface{}), false, nil
+	return nil
 }
 
 func (m MockEvaluator) ResolveAllValues(ctx context.Context, reqID string, context map[string]any) ([]evaluator.AnyValue, model.Metadata, error) {

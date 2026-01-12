@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"reflect"
 	"fmt"
 	"regexp"
 	"sync"
@@ -19,7 +20,6 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync/grpc"
 	"github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
 	of "github.com/open-feature/go-sdk/openfeature"
-	"golang.org/x/exp/maps"
 )
 
 const (
@@ -36,6 +36,7 @@ const (
 type InProcess struct {
 	// Core components
 	evaluator       evaluator.IEvaluator
+	flagStore       *store.Store
 	syncProvider    isync.ISync
 	logger          *logger.Logger
 	configuration   Configuration
@@ -143,6 +144,7 @@ func NewInProcessService(cfg Configuration) *InProcess {
 
 	return &InProcess{
 		evaluator:           evaluator.NewJSON(log, flagStore),
+		flagStore:           flagStore,
 		syncProvider:        syncProvider,
 		logger:              log,
 		configuration:       cfg,
@@ -315,7 +317,18 @@ func (i *InProcess) runDataSyncListener() {
 
 // processSyncData handles individual sync data updates
 func (i *InProcess) processSyncData(data isync.DataSync) {
-	changes, _, err := i.evaluator.SetState(data)
+	// Get current state before update to detect changes
+	oldFlags, _, err := i.flagStore.GetAll(i.ctx, &store.Selector{})
+	if err != nil {
+		i.logger.Error("failed to get old flags for change detection", zap.Error(err))
+		return
+	}
+	oldFlagMap := make(map[string]model.Flag, len(oldFlags))
+	for _, flag := range oldFlags {
+		oldFlagMap[flag.Key] = flag
+	}
+
+	err = i.evaluator.SetState(data)
 	if err != nil {
 		i.events <- of.Event{
 			ProviderName:         providerName,
@@ -339,17 +352,50 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 		close(i.shutdownChannels.initSuccess)
 	})
 
-	// Send config change event for data updates
-	if len(changes) > 0 {
+	// Compute changed flags by comparing old and new state
+	newFlags, _, err := i.flagStore.GetAll(i.ctx, &store.Selector{})
+	if err != nil {
+		i.logger.Error("failed to get new flags for change detection", zap.Error(err))
+		return
+	}
+	changedKeys := computeChangedFlags(oldFlagMap, newFlags)
+
+	// Send config change event if there are changes
+	if len(changedKeys) > 0 {
 		i.events <- of.Event{
 			ProviderName: providerName,
 			EventType:    of.ProviderConfigChange,
 			ProviderEventDetails: of.ProviderEventDetails{
 				Message:     "New flag sync",
-				FlagChanges: maps.Keys(changes),
+				FlagChanges: changedKeys,
 			},
 		}
 	}
+}
+
+// computeChangedFlags compares old and new flag states and returns keys that changed
+func computeChangedFlags(oldFlagMap map[string]model.Flag, newFlags []model.Flag) []string {
+	changedKeys := make([]string, 0)
+	newKeys := make(map[string]struct{}, len(newFlags))
+
+	// Check for added or modified flags
+	for _, flag := range newFlags {
+		newKeys[flag.Key] = struct{}{}
+		oldFlag, exists := oldFlagMap[flag.Key]
+
+		if !exists || !reflect.DeepEqual(oldFlag, flag) {
+			changedKeys = append(changedKeys, flag.Key)
+		}
+	}
+
+	// Check for deleted flags
+	for key := range oldFlagMap {
+		if _, exists := newKeys[key]; !exists {
+			changedKeys = append(changedKeys, key)
+		}
+	}
+
+	return changedKeys
 }
 
 // shutdownSyncProvider gracefully shuts down the sync provider
