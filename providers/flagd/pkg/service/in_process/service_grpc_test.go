@@ -3,7 +3,6 @@ package process
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"testing"
 	"time"

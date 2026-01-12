@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagd
 
-go 1.24.9
+go 1.24.0
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.18.1-20250529171031-ebdc14163473.1
@@ -17,9 +17,8 @@ require (
 	github.com/open-feature/go-sdk-contrib/tests/flagd v0.0.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
 	golang.org/x/net v0.47.0
-	google.golang.org/grpc v1.74.2
+	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.9
 )
 
@@ -156,7 +155,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.6.0 // indirect
 	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b // indirect
