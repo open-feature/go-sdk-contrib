@@ -79,10 +79,12 @@ func TestSelectorHeader(t *testing.T) {
 			}()
 
 			inProcessService := NewInProcessService(Configuration{
-				Host:       "localhost",
-				Port:       port,
-				Selector:   tt.selector,
-				TLSEnabled: false,
+				Host:              "localhost",
+				Port:              port,
+				Selector:          tt.selector,
+				TLSEnabled:        false,
+				RetryBackOffMaxMs: 2000,
+				RetryBackOffMs:    1000,
 			})
 
 			// when
