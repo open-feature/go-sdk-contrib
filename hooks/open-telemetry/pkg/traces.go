@@ -3,20 +3,26 @@ package otel
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/open-feature/go-sdk/openfeature"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
 // EventName is the name of the span event.
 const EventName = "feature_flag.evaluation"
 
+const (
+	flagMetaContextIDKey string = "contextId"
+	flagMetaFlagSetIDKey string = "flagSetId"
+	flagMetaVersionKey   string = "version"
+)
+
 // traceHook is the hook implementation for OTel traces.
 type traceHook struct {
-	setErrorStatus          bool
 	attributeMapperCallback func(openfeature.FlagMetadata) []attribute.KeyValue
 
 	openfeature.UnimplementedHook
@@ -35,38 +41,108 @@ func NewTracesHook(opts ...Options) *traceHook {
 	return h
 }
 
-// After sets the feature_flag event and associated attributes on the span stored in the context.
-func (h *traceHook) After(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) error {
-	attribs := []attribute.KeyValue{
-		semconv.FeatureFlagKey(hookContext.FlagKey()),
-		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),
-	}
-	if flagEvaluationDetails.Variant != "" {
-		attribs = append(attribs, semconv.FeatureFlagResultVariant(flagEvaluationDetails.Variant))
-	}
-
+// Finally adds the feature_flag event and associated attributes on the span stored in the context.
+func (h *traceHook) Finally(ctx context.Context, hookContext openfeature.HookContext, flagEvaluationDetails openfeature.InterfaceEvaluationDetails, hookHints openfeature.HookHints) {
+	attrs := eventAttributes(hookContext, flagEvaluationDetails)
 	if h.attributeMapperCallback != nil {
-		attribs = append(attribs, h.attributeMapperCallback(flagEvaluationDetails.FlagMetadata)...)
+		attrs = slices.Concat(attrs, h.attributeMapperCallback(flagEvaluationDetails.FlagMetadata))
 	}
-
-	span := trace.SpanFromContext(ctx)
-	span.AddEvent(EventName, trace.WithAttributes(attribs...))
-	return nil
+	trace.SpanFromContext(ctx).AddEvent(EventName, trace.WithAttributes(attrs...))
 }
 
-// Error records the given error against the span and sets the span to an error status.
-func (h *traceHook) Error(ctx context.Context, hookContext openfeature.HookContext, err error, hookHints openfeature.HookHints) {
-	span := trace.SpanFromContext(ctx)
-
-	if h.setErrorStatus {
-		span.SetStatus(codes.Error,
-			fmt.Sprintf("error evaluating flag '%s' of type '%s'", hookContext.FlagKey(), hookContext.FlagType().String()))
-	}
-
-	span.RecordError(err, trace.WithAttributes(
+// eventAttributes returns a slice of OpenTelemetry attributes that can be used to create an event for a feature flag evaluation.
+func eventAttributes(hookContext openfeature.HookContext, details openfeature.InterfaceEvaluationDetails) []attribute.KeyValue {
+	attrs := []attribute.KeyValue{
 		semconv.FeatureFlagKey(hookContext.FlagKey()),
 		semconv.FeatureFlagProviderName(hookContext.ProviderMetadata().Name),
-	))
+	}
+
+	switch v := details.Value.(type) {
+	case bool:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Bool(v))
+	case string:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.String(v))
+	case int64:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Int64(v))
+	case float64:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Float64(v))
+
+	// try to cover common types for object value supported by otel
+	case []bool:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.BoolSlice(v))
+	case []string:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.StringSlice(v))
+	case []int64:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Int64Slice(v))
+	case []float64:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Float64Slice(v))
+	case int:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Int(v))
+	case []int:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.IntSlice(v))
+	case float32:
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Float64(float64(v)))
+	case []float32:
+		vals := make([]float64, len(v))
+		for i, val := range v {
+			vals[i] = float64(val)
+		}
+		attrs = append(attrs, semconv.FeatureFlagResultValueKey.Float64Slice(vals))
+	default:
+		if val, ok := v.(fmt.Stringer); ok {
+			attrs = append(attrs, semconv.FeatureFlagResultValueKey.String(val.String()))
+		}
+	}
+
+	if details.Variant != "" {
+		attrs = append(attrs, semconv.FeatureFlagResultVariant(details.Variant))
+	}
+
+	switch details.Reason {
+	case openfeature.CachedReason:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonCached)
+	case openfeature.DefaultReason:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonDefault)
+	case openfeature.DisabledReason:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonDisabled)
+	case openfeature.ErrorReason:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonError)
+		errorType := openfeature.GeneralCode
+		if details.ErrorCode != "" {
+			errorType = details.ErrorCode
+		}
+		attrs = append(attrs, semconv.ErrorTypeKey.String(
+			strings.ToLower(string(errorType)),
+		))
+
+		if details.ErrorMessage != "" {
+			attrs = append(attrs, semconv.ErrorMessage(details.ErrorMessage))
+		}
+	case openfeature.SplitReason:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonSplit)
+	case openfeature.StaticReason:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonStatic)
+	case openfeature.TargetingMatchReason:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonTargetingMatch)
+	default:
+		attrs = append(attrs, semconv.FeatureFlagResultReasonUnknown)
+	}
+
+	contextID := hookContext.EvaluationContext().TargetingKey()
+	if flagMetaContextID, ok := details.FlagMetadata[flagMetaContextIDKey].(string); ok {
+		contextID = flagMetaContextID
+	}
+	attrs = append(attrs, semconv.FeatureFlagContextID(contextID))
+
+	if setID, ok := details.FlagMetadata[flagMetaFlagSetIDKey].(string); ok {
+		attrs = append(attrs, semconv.FeatureFlagSetID(setID))
+	}
+
+	if version, ok := details.FlagMetadata[flagMetaVersionKey].(string); ok {
+		attrs = append(attrs, semconv.FeatureFlagVersion(version))
+	}
+
+	return attrs
 }
 
 // Options of the hook
@@ -74,9 +150,10 @@ func (h *traceHook) Error(ctx context.Context, hookContext openfeature.HookConte
 type Options func(*traceHook)
 
 // WithErrorStatusEnabled enable setting span status to codes.Error in case of an error. Default behavior is disabled.
+//
+// Deprecated: this option has no effect. It will be removed in a future release.
 func WithErrorStatusEnabled() Options {
 	return func(h *traceHook) {
-		h.setErrorStatus = true
 	}
 }
 

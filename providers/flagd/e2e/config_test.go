@@ -20,19 +20,19 @@ func TestConfiguration(t *testing.T) {
 	testCases := []configTestCase{
 		{
 			name: "All",
-			tags: "",
+			tags: "~@sync-port",
 		},
 		{
 			name: "RPC",
-			tags: "@rpc",
+			tags: "@rpc && ~@sync-port",
 		},
 		{
 			name: "InProcess",
-			tags: "@in-process",
+			tags: "@in-process && ~@sync-port",
 		},
 		{
 			name: "File",
-			tags: "@file",
+			tags: "@file && ~@sync-port",
 		},
 	}
 

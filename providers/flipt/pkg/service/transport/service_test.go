@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"net/http"
 	"testing"
 
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -287,4 +288,10 @@ func TestGRPCToOpenFeatureError(t *testing.T) {
 			assert.EqualError(t, err, tt.expectedErr.Error())
 		})
 	}
+}
+
+func TestWithHTTPClientOption(t *testing.T) {
+	client := &http.Client{}
+	p := New(WithHTTPClient(client))
+	assert.Equal(t, client, p.httpClient)
 }

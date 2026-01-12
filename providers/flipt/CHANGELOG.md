@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.4...providers/flipt/v0.1.5) (2025-11-24)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+* **deps:** update module google.golang.org/protobuf to v1.36.6 ([#707](https://github.com/open-feature/go-sdk-contrib/issues/707)) ([509550b](https://github.com/open-feature/go-sdk-contrib/commit/509550ba1e6ff00dec72d49eaddbcbf6a9b4973c))
+* **security:** update vulnerability-updates [security] ([#724](https://github.com/open-feature/go-sdk-contrib/issues/724)) ([629a535](https://github.com/open-feature/go-sdk-contrib/commit/629a5351c2c4b8fed00522f7453d5545920ceaaf))
+
+
+### ✨ New Features
+
+* **flipt:** add WithHTTPClient option for custom HTTP client configuration ([#784](https://github.com/open-feature/go-sdk-contrib/issues/784)) ([0dc6b5d](https://github.com/open-feature/go-sdk-contrib/commit/0dc6b5d60d5b3c3727872d8078eb85030e30fc89))
+
 ## [0.1.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.3...providers/flipt/v0.1.4) (2025-06-19)
 
 
