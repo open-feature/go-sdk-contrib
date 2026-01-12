@@ -7,6 +7,8 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+const selectorMetadataKey = "flagd-selector"
+
 // selectorUnaryInterceptor adds the flagd-selector metadata header to unary gRPC calls
 func selectorUnaryInterceptor(selector string) grpc.UnaryClientInterceptor {
 	return func(
@@ -18,7 +20,7 @@ func selectorUnaryInterceptor(selector string) grpc.UnaryClientInterceptor {
 		opts ...grpc.CallOption,
 	) error {
 		if selector != "" {
-			ctx = metadata.AppendToOutgoingContext(ctx, "flagd-selector", selector)
+			ctx = metadata.AppendToOutgoingContext(ctx, selectorMetadataKey, selector)
 		}
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
@@ -35,7 +37,7 @@ func selectorStreamInterceptor(selector string) grpc.StreamClientInterceptor {
 		opts ...grpc.CallOption,
 	) (grpc.ClientStream, error) {
 		if selector != "" {
-			ctx = metadata.AppendToOutgoingContext(ctx, "flagd-selector", selector)
+			ctx = metadata.AppendToOutgoingContext(ctx, selectorMetadataKey, selector)
 		}
 		return streamer(ctx, desc, cc, method, opts...)
 	}
