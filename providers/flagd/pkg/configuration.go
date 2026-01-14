@@ -30,8 +30,10 @@ const (
 	defaultCache                        = cache.LRUValue
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
-	defaultGracePeriod                  = 5
-	defaultFatalStatusCodes             = ""
+	// defaultRetryGracePeriod is the default time window (in seconds) for the transition from stale to error state
+	defaultGracePeriod      = 5
+	defaultFatalStatusCodes = ""
+	defaultInitDeadlineMs   = 500
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -55,6 +57,7 @@ const (
 	flagdRetryBackoffMsVariableName                   = "FLAGD_RETRY_BACKOFF_MS"
 	flagdRetryBackoffMaxMsVariableName                = "FLAGD_RETRY_BACKOFF_MAX_MS"
 	flagdFatalStatusCodesVariableName                 = "FLAGD_FATAL_STATUS_CODES"
+	flagdDeadlineMsEnvironmentVariableName            = "FLAGD_DEADLINE_MS"
 )
 
 type ProviderConfiguration struct {
@@ -79,6 +82,7 @@ type ProviderConfiguration struct {
 	RetryBackoffMs                   int
 	RetryBackoffMaxMs                int
 	FatalStatusCodes                 []string
+	DeadlineMs                       int
 
 	log logr.Logger
 }
@@ -95,6 +99,7 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		RetryGracePeriod:                 defaultGracePeriod,
 		RetryBackoffMs:                   DefaultRetryBackoffMs,
 		RetryBackoffMaxMs:                DefaultRetryBackoffMaxMs,
+		DeadlineMs:                       defaultInitDeadlineMs,
 	}
 
 	p.updateFromEnvVar()
@@ -215,6 +220,7 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
 	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, DefaultRetryBackoffMs, cfg.log)
 	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, DefaultRetryBackoffMaxMs, cfg.log)
+	cfg.DeadlineMs = getIntFromEnvVarOrDefault(flagdDeadlineMsEnvironmentVariableName, defaultInitDeadlineMs, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
@@ -482,5 +488,13 @@ func WithRetryBackoffMaxMs(retryBackoffMaxMs int) ProviderOption {
 func WithFatalStatusCodes(fatalStatusCodes []string) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.FatalStatusCodes = fatalStatusCodes
+	}
+}
+
+// WithDeadline sets the initialization deadline in milliseconds. If initialization does not complete within
+// this time, Init will return an error. Defaults to 500ms.
+func WithDeadline(deadlineMs int) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.DeadlineMs = deadlineMs
 	}
 }

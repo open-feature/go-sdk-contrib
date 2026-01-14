@@ -3,6 +3,7 @@ package flagd
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
@@ -485,4 +486,212 @@ func TestInitializeOnlyOnce(t *testing.T) {
 		t.Errorf("expected provider to be not ready, but got ready")
 	}
 
+}
+
+func TestInitDeadlineExceeded(t *testing.T) {
+	// given
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	svcMock := mock.NewMockIService(ctrl)
+	svcMock.EXPECT().Init().Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).MaxTimes(1)
+
+	// Create provider with short deadline
+	provider, err := NewProvider(WithDeadline(100)) // 100ms deadline
+	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	// Do not send any events, let it timeout
+	err = provider.Init(of.EvaluationContext{})
+
+	if err == nil {
+		t.Fatal("expected error from deadline exceeded, but got nil")
+	}
+
+	// Verify error message contains deadline info
+	if err.Error() != "provider initialization deadline exceeded (100ms)" {
+		t.Errorf("expected deadline error message, got: %v", err)
+	}
+}
+
+func TestInitProviderErrorEvent(t *testing.T) {
+	// given
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	svcMock := mock.NewMockIService(ctrl)
+	svcMock.EXPECT().Init().Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).MaxTimes(1)
+
+	provider, err := NewProvider()
+	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	// Send a ProviderError event instead of ProviderReady
+	go func() {
+		eventChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderError,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message: "connection failed",
+			},
+		}
+	}()
+
+	err = provider.Init(of.EvaluationContext{})
+
+	if err == nil {
+		t.Fatal("expected error from provider error event, but got nil")
+	}
+
+	if err.Error() != "provider initialization failed: connection failed" {
+		t.Errorf("expected error message 'provider initialization failed: connection failed', got: %v", err)
+	}
+}
+
+func TestInitProviderStaleEvent(t *testing.T) {
+	// given
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	svcMock := mock.NewMockIService(ctrl)
+	svcMock.EXPECT().Init().Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).MaxTimes(1)
+
+	provider, err := NewProvider()
+	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	// Send a ProviderStale event instead of ProviderReady
+	go func() {
+		eventChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderStale,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message: "connection stale",
+			},
+		}
+	}()
+
+	err = provider.Init(of.EvaluationContext{})
+
+	if err == nil {
+		t.Fatal("expected error from provider stale event, but got nil")
+	}
+
+	if err.Error() != "provider initialization failed: connection stale" {
+		t.Errorf("expected error message 'provider initialization failed: connection stale', got: %v", err)
+	}
+
+	if provider.initialized {
+		t.Errorf("expected provider to not be initialized after error event")
+	}
+}
+
+func TestInitWithCustomDeadline(t *testing.T) {
+	// given
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	svcMock := mock.NewMockIService(ctrl)
+	svcMock.EXPECT().Init().Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().Times(1)
+
+	// Create provider with custom longer deadline
+	provider, err := NewProvider(WithDeadline(500)) // 500ms deadline
+	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	// Send ProviderReady before deadline
+	go func() {
+		eventChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderReady,
+		}
+	}()
+
+	err = provider.Init(of.EvaluationContext{})
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if !provider.initialized {
+		t.Errorf("expected provider to be initialized")
+	}
+
+	// Clean up to avoid affecting other tests
+	provider.Shutdown()
+	close(eventChan)
+}
+
+func TestHandleEventsChannelClose(t *testing.T) {
+	// given
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	svcMock := mock.NewMockIService(ctrl)
+	svcMock.EXPECT().Init().Times(1)
+	// Allow unlimited calls to EventChannel since the event loop will call it after close
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().Times(1)
+
+	provider, err := NewProvider()
+	provider.service = svcMock
+
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	// Send ProviderReady to start event loop
+	go func() {
+		eventChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderReady,
+		}
+		// Give time for handleEvents to start
+		time.Sleep(10 * time.Millisecond)
+		// Close the channel
+		close(eventChan)
+	}()
+
+	err = provider.Init(of.EvaluationContext{})
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	// Give time for event loop to finish
+	time.Sleep(50 * time.Millisecond)
+
+	if !provider.initialized {
+		t.Errorf("expected provider to be initialized")
+	}
+
+	// Clean up to avoid affecting other tests
+	provider.Shutdown()
 }
