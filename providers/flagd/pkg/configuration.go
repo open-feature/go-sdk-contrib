@@ -30,8 +30,8 @@ const (
 	defaultCache                        = cache.LRUValue
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
-	// defaultRetryGracePeriod is the default time window (in seconds) for the transition from stale to error state
-	defaultGracePeriod      = 5
+    // defaultGracePeriod is the default time window (in seconds) for the transition from stale to error state
+    defaultGracePeriod      = 5
 	defaultFatalStatusCodes = ""
 	defaultInitDeadlineMs   = 500
 
