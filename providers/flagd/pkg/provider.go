@@ -117,13 +117,15 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 	}()
 
 	// Wait for service.Init completion and ProviderReady event in a single select loop
+	var initDoneChan <-chan error = initDone
 	for {
 		select {
-		case err := <-initDone:
+		case err := <-initDoneChan:
 			if err != nil {
 				return err
 			}
-			// Init succeeded, continue loop to wait for ProviderReady
+			// Init succeeded, disable this case and continue loop to wait for ProviderReady
+			initDoneChan = nil
 
 		case e := <-serviceEventChan:
 			if e.EventType == of.ProviderReady {

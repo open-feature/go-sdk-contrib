@@ -491,8 +491,8 @@ func WithFatalStatusCodes(fatalStatusCodes []string) ProviderOption {
 	}
 }
 
-// WithDeadline sets the initialization deadline in milliseconds. If initialization does not complete within
-// this time, Init will return an error. Defaults to 500ms.
+// WithDeadline sets the deadline for unary (one-way) RPCs, as well as the initialization deadline.
+// If initialization does not complete within this time, Init will return an error. Defaults to 500ms.
 func WithDeadline(deadlineMs int) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.DeadlineMs = deadlineMs
