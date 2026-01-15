@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/tests/flagd
 
-go 1.24.0
+go 1.24.9
 
 require (
 	github.com/cucumber/godog v0.15.1
