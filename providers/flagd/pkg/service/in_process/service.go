@@ -111,9 +111,9 @@ type Configuration struct {
 	CustomSyncProviderUri   string
 	GrpcDialOptionsOverride []googlegrpc.DialOption
 	CertificatePath         string
-	RetryGracePeriod        int
-	RetryBackOffMs          int
-	RetryBackOffMaxMs       int
+	RetryGracePeriod        time.Duration
+	RetryBackOff            time.Duration
+	RetryBackOffMax         time.Duration
 	FatalStatusCodes        []string
 }
 
@@ -573,8 +573,8 @@ func createSyncProvider(cfg Configuration, log *logger.Logger) (isync.ISync, str
 		Selector:                cfg.Selector,
 		URI:                     uri,
 		FatalStatusCodes:        cfg.FatalStatusCodes,
-		RetryBackOffMaxMs: 		 cfg.RetryBackOffMaxMs,
-		RetryBackOffMs: 		 cfg.RetryBackOffMs,
+		RetryBackOffMax:         cfg.RetryBackOffMax,
+		RetryBackOff:            cfg.RetryBackOff,
 	}, uri
 }
 

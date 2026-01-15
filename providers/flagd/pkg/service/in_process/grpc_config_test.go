@@ -11,8 +11,8 @@ import (
 
 func TestBuildRetryPolicy(t *testing.T) {
 	g := &Sync{
-		RetryBackOffMs:    100,
-		RetryBackOffMaxMs: 500,
+		RetryBackOff:    100,
+		RetryBackOffMax: 500,
 	}
 
 	result := g.buildRetryPolicy()

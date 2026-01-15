@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/open-feature/flagd/core/pkg/sync"
@@ -27,8 +28,8 @@ const (
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
 	defaultGracePeriod                  = 5
-	defaultRetryBackoffMs               = 1000
-	defaultRetryBackoffMaxMs            = 120000
+	defaultRetryBackoff                 = 1000
+	defaultRetryBackoffMax              = 120000
 	defaultFatalStatusCodes             = ""
 
 	rpc       ResolverType = "rpc"
@@ -72,9 +73,9 @@ type ProviderConfiguration struct {
 	CustomSyncProvider               sync.ISync
 	CustomSyncProviderUri            string
 	GrpcDialOptionsOverride          []grpc.DialOption
-	RetryGracePeriod                 int
-	RetryBackoffMs                   int
-	RetryBackoffMaxMs                int
+	RetryGracePeriod                 time.Duration
+	RetryBackoff                     time.Duration
+	RetryBackoffMax                  time.Duration
 	FatalStatusCodes                 []string
 
 	log logr.Logger
@@ -90,8 +91,8 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 defaultGracePeriod,
-		RetryBackoffMs:                   defaultRetryBackoffMs,
-		RetryBackoffMaxMs:                defaultRetryBackoffMaxMs,
+		RetryBackoff:                     defaultRetryBackoff,
+		RetryBackoffMax:                  defaultRetryBackoffMax,
 	}
 
 	p.updateFromEnvVar()
@@ -172,7 +173,7 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 		cfg.CertPath = certificatePath
 	}
 
-	cfg.MaxCacheSize = getIntFromEnvVarOrDefault(flagdMaxCacheSizeEnvironmentVariableName, defaultMaxCacheSize, cfg.log)
+	cfg.MaxCacheSize = getIntFromEnvVarOrDefaultInt(flagdMaxCacheSizeEnvironmentVariableName, defaultMaxCacheSize, cfg.log)
 
 	if cacheValue := os.Getenv(flagdCacheEnvironmentVariableName); cacheValue != "" {
 		switch cache.Type(cacheValue) {
@@ -188,7 +189,7 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 		}
 	}
 
-	cfg.EventStreamConnectionMaxAttempts = getIntFromEnvVarOrDefault(
+	cfg.EventStreamConnectionMaxAttempts = getIntFromEnvVarOrDefaultInt(
 		flagdMaxEventStreamRetriesEnvironmentVariableName, defaultMaxEventStreamRetries, cfg.log)
 
 	if resolver := os.Getenv(flagdResolverEnvironmentVariableName); resolver != "" {
@@ -222,8 +223,8 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	}
 
 	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
-	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, defaultRetryBackoffMs, cfg.log)
-	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, defaultRetryBackoffMaxMs, cfg.log)
+	cfg.RetryBackoff = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, defaultRetryBackoff, cfg.log)
+	cfg.RetryBackoffMax = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, defaultRetryBackoffMax, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
@@ -243,15 +244,34 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 }
 
 // Helper
+func getIntFromEnvVarOrDefault(envVarName string, defaultValue time.Duration, log logr.Logger) time.Duration {
+	if valueFromEnv := os.Getenv(envVarName); valueFromEnv != "" {
+		intValue, err := strconv.Atoi(valueFromEnv)
 
-func getIntFromEnvVarOrDefault(envVarName string, defaultValue int, log logr.Logger) int {
+		if err != nil {
+			log.Error(err,
+				fmt.Sprintf("invalid env config for %s provided, using default value: %s",
+					envVarName, defaultValue,
+				))
+		} else {
+			return time.Duration(intValue) * time.Millisecond
+		}
+	}
+	return defaultValue
+}
+
+// Exclusive to EventStreamConnectionMaxAttempts
+func getIntFromEnvVarOrDefaultInt(envVarName string, defaultValue int, log logr.Logger) int {
 	if valueFromEnv := os.Getenv(envVarName); valueFromEnv != "" {
 		intValue, err := strconv.Atoi(valueFromEnv)
 		if err != nil {
 			log.Error(err,
-				fmt.Sprintf("invalid env config for %s provided, using default value: %d",
-					envVarName, defaultValue,
-				))
+				fmt.Sprintf(
+					"invalid env config for %s provided, using default value: %d",
+					envVarName,
+					defaultValue,
+				),
+			)
 		} else {
 			return intValue
 		}
@@ -431,23 +451,23 @@ func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) Prov
 }
 
 // WithRetryGracePeriod allows to set a time window for the transition from stale to error state
-func WithRetryGracePeriod(gracePeriod int) ProviderOption {
+func WithRetryGracePeriod(gracePeriod time.Duration) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.RetryGracePeriod = gracePeriod
 	}
 }
 
 // WithRetryBackoffMs sets the initial backoff duration (in milliseconds) for retrying failed connections
-func WithRetryBackoffMs(retryBackoffMs int) ProviderOption {
+func WithRetryBackoffMs(retryBackoff time.Duration) ProviderOption {
 	return func(p *ProviderConfiguration) {
-		p.RetryBackoffMs = retryBackoffMs
+		p.RetryBackoff = retryBackoff
 	}
 }
 
 // WithRetryBackoffMaxMs sets the maximum backoff duration (in milliseconds) for retrying failed connections
-func WithRetryBackoffMaxMs(retryBackoffMaxMs int) ProviderOption {
+func WithRetryBackoffMaxMs(retryBackoffMax time.Duration) ProviderOption {
 	return func(p *ProviderConfiguration) {
-		p.RetryBackoffMaxMs = retryBackoffMaxMs
+		p.RetryBackoffMax = retryBackoffMax
 	}
 }
 

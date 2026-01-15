@@ -74,8 +74,8 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
 			RetryGracePeriod:        provider.providerConfiguration.RetryGracePeriod,
-			RetryBackOffMs:          provider.providerConfiguration.RetryBackoffMs,
-			RetryBackOffMaxMs:       provider.providerConfiguration.RetryBackoffMaxMs,
+			RetryBackOff:            provider.providerConfiguration.RetryBackoff,
+			RetryBackOffMax:         provider.providerConfiguration.RetryBackoffMax,
 			FatalStatusCodes:        provider.providerConfiguration.FatalStatusCodes,
 		})
 	default:
@@ -185,7 +185,7 @@ func (p *Provider) IntEvaluation(
 }
 
 func (p *Provider) ObjectEvaluation(
-	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
+	ctx context.Context, flagKey string, defaultValue any, evalCtx of.FlattenedContext,
 ) of.InterfaceResolutionDetail {
 	return p.service.ResolveObject(ctx, flagKey, defaultValue, evalCtx)
 }
