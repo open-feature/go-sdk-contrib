@@ -68,7 +68,6 @@ make e2e
 ```
 
 ## Developer Certificate of Origin
-Developer Certificate of Origin
 The Developer Certificate of Origin (DCO) is a lightweight way for contributors to certify that they wrote or otherwise have the right to submit the code they are contributing to the project. To sign off that they adhere to these requirements, all commits need to have a Signed-off-by line, like:
 
 ```

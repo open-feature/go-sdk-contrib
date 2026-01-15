@@ -54,8 +54,8 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		Port:            port,
 		Selector:        scope,
 		TLSEnabled:      false,
-		RetryBackOffMax: 5000,
-		RetryBackOff:    1000,
+		RetryBackOffMax: 5000 * time.Millisecond,
+		RetryBackOff:    1000 * time.Millisecond,
 	})
 
 	// when
@@ -143,8 +143,8 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 		TargetUri:       "envoy://localhost:9211/foo.service",
 		Selector:        scope,
 		TLSEnabled:      false,
-		RetryBackOffMax: 5000,
-		RetryBackOff:    1000,
+		RetryBackOffMax: 5000 * time.Millisecond,
+		RetryBackOff:    1000 * time.Millisecond,
 	})
 
 	// when

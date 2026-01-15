@@ -2,17 +2,19 @@ package process
 
 import (
 	"encoding/json"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
-	"strings"
-	"testing"
 )
 
 func TestBuildRetryPolicy(t *testing.T) {
 	g := &Sync{
-		RetryBackOff:    100,
-		RetryBackOffMax: 500,
+		RetryBackOff:    100 * time.Millisecond,
+		RetryBackOffMax: 500 * time.Millisecond,
 	}
 
 	result := g.buildRetryPolicy()

@@ -90,9 +90,9 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
-		RetryGracePeriod:                 defaultGracePeriod,
-		RetryBackoff:                     defaultRetryBackoff,
-		RetryBackoffMax:                  defaultRetryBackoffMax,
+		RetryGracePeriod:                 time.Duration(defaultGracePeriod) * time.Second,
+		RetryBackoff:                     time.Duration(defaultRetryBackoff) * time.Millisecond,
+		RetryBackoffMax:                  time.Duration(defaultRetryBackoffMax) * time.Millisecond,
 	}
 
 	p.updateFromEnvVar()
@@ -222,9 +222,9 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 		cfg.TargetUri = targetUri
 	}
 
-	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
-	cfg.RetryBackoff = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, defaultRetryBackoff, cfg.log)
-	cfg.RetryBackoffMax = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, defaultRetryBackoffMax, cfg.log)
+	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log) * time.Second
+	cfg.RetryBackoff = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, time.Duration(defaultRetryBackoff)*time.Millisecond, cfg.log)
+	cfg.RetryBackoffMax = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, time.Duration(defaultRetryBackoffMax)*time.Millisecond, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
