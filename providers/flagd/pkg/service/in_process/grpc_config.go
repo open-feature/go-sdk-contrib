@@ -3,14 +3,18 @@ package process
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc/codes"
 	"time"
+
+	"google.golang.org/grpc/codes"
 )
 
 const (
-	// Default timeouts and retry intervals
+	// Default timeouts for keepalive settings
 	defaultKeepaliveTime    = 30 * time.Second
 	defaultKeepaliveTimeout = 5 * time.Second
+	// Default retry intervals per https://flagd.dev/reference/specifications/providers/#configuration
+	DefaultRetryBackoffMs    = 1000   // 1 second
+	DefaultRetryBackoffMaxMs = 120000 // 120 seconds
 )
 
 type RetryPolicy struct {
@@ -22,6 +26,25 @@ type RetryPolicy struct {
 }
 
 func (g *Sync) buildRetryPolicy() string {
+	// Use default values if not configured (per https://flagd.dev/reference/specifications/providers/#configuration)
+	initialBackoffMs := g.RetryBackOffMs
+	if initialBackoffMs <= 0 {
+		initialBackoffMs = DefaultRetryBackoffMs
+	}
+
+	maxBackoffMs := g.RetryBackOffMaxMs
+	if maxBackoffMs <= 0 {
+		maxBackoffMs = DefaultRetryBackoffMaxMs
+	}
+
+	// Format durations for gRPC service config (requires seconds-only format like "1s", "0.1s", "120s")
+	initialDur := time.Duration(initialBackoffMs) * time.Millisecond
+	maxDur := time.Duration(maxBackoffMs) * time.Millisecond
+
+	// Convert to seconds and format as gRPC expects (no compound formats like "2m0s")
+	initialBackoff := fmt.Sprint(initialDur.Seconds()) + "s"
+	maxBackoff := fmt.Sprint(maxDur.Seconds()) + "s"
+
 	var policy = map[string]interface{}{
 		"methodConfig": []map[string]interface{}{
 			{
@@ -30,8 +53,8 @@ func (g *Sync) buildRetryPolicy() string {
 				},
 				"retryPolicy": RetryPolicy{
 					MaxAttempts:          3,
-					InitialBackoff:       (time.Duration(g.RetryBackOffMs) * time.Millisecond).String(),
-					MaxBackoff:           (time.Duration(g.RetryBackOffMaxMs) * time.Millisecond).String(),
+					InitialBackoff:       initialBackoff,
+					MaxBackoff:           maxBackoff,
 					BackoffMultiplier:    2.0,
 					RetryableStatusCodes: []string{"UNKNOWN", "UNAVAILABLE"},
 				},

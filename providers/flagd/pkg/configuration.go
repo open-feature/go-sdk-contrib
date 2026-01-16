@@ -18,6 +18,10 @@ type ResolverType string
 
 // Naming and defaults must comply with flagd environment variables
 const (
+	// DefaultRetryBackoffMs is the default initial backoff duration for stream retry
+	DefaultRetryBackoffMs = 1000
+	// DefaultRetryBackoffMaxMs is the default maximum backoff duration for stream retry
+	DefaultRetryBackoffMaxMs            = 120000
 	defaultMaxCacheSize          int    = 1000
 	defaultRpcPort               uint16 = 8013
 	defaultInProcessPort         uint16 = 8015
@@ -27,8 +31,6 @@ const (
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
 	defaultGracePeriod                  = 5
-	defaultRetryBackoffMs               = 1000
-	defaultRetryBackoffMaxMs            = 120000
 	defaultFatalStatusCodes             = ""
 
 	rpc       ResolverType = "rpc"
@@ -91,8 +93,8 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 defaultGracePeriod,
-		RetryBackoffMs:                   defaultRetryBackoffMs,
-		RetryBackoffMaxMs:                defaultRetryBackoffMaxMs,
+		RetryBackoffMs:                   DefaultRetryBackoffMs,
+		RetryBackoffMaxMs:                DefaultRetryBackoffMaxMs,
 	}
 
 	p.updateFromEnvVar()
@@ -211,8 +213,8 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	}
 
 	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
-	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, defaultRetryBackoffMs, cfg.log)
-	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, defaultRetryBackoffMaxMs, cfg.log)
+	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, DefaultRetryBackoffMs, cfg.log)
+	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, DefaultRetryBackoffMaxMs, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
