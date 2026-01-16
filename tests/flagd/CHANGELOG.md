@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.7.0...tests/flagd/v1.7.1) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* implement deadline to fix indefinite init ([#823](https://github.com/open-feature/go-sdk-contrib/issues/823)) ([24c1bba](https://github.com/open-feature/go-sdk-contrib/commit/24c1bbad9476b4be632e5dae263b40abc9a1b80d))
+
 ## [1.7.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.6.0...tests/flagd/v1.7.0) (2026-01-16)
 
 
