@@ -23,6 +23,10 @@ lint:
 	go install -v github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	$(foreach module, $(ALL_GO_MOD_DIRS), ${GOBIN}/golangci-lint run $(module)/...;)
 
+vulncheck:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	$(foreach module, $(ALL_GO_MOD_DIRS), cd $(module) && ${GOBIN}/govulncheck ./... && cd - > /dev/null;)
+
 new-provider:
 	mkdir ./providers/$(MODULE_NAME)
 	cd ./providers/$(MODULE_NAME) && go mod init github.com/open-feature/go-sdk-contrib/providers/$(MODULE_NAME) && touch README.md
