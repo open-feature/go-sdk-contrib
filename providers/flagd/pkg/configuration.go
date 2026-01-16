@@ -40,6 +40,7 @@ const (
 
 	flagdHostEnvironmentVariableName                  = "FLAGD_HOST"
 	flagdPortEnvironmentVariableName                  = "FLAGD_PORT"
+	flagdSyncPortEnvironmentVariableName              = "FLAGD_SYNC_PORT"
 	flagdTLSEnvironmentVariableName                   = "FLAGD_TLS"
 	flagdSocketPathEnvironmentVariableName            = "FLAGD_SOCKET_PATH"
 	flagdServerCertPathEnvironmentVariableName        = "FLAGD_SERVER_CERT_PATH"
@@ -113,7 +114,10 @@ func NewProviderConfiguration(opts []ProviderOption) (*ProviderConfiguration, er
 		opt(providerConfiguration)
 	}
 
+	providerConfiguration.updatePortFromEnvVar()
+
 	configureProviderConfiguration(providerConfiguration)
+
 	err := validateProviderConfiguration(providerConfiguration)
 
 	return providerConfiguration, err
@@ -145,21 +149,6 @@ func validateProviderConfiguration(p *ProviderConfiguration) error {
 
 // updateFromEnvVar is a utility to update configurations based on current environment variables
 func (cfg *ProviderConfiguration) updateFromEnvVar() {
-
-	portS := os.Getenv(flagdPortEnvironmentVariableName)
-	if portS != "" {
-		port, err := strconv.Atoi(portS)
-		if err != nil {
-			cfg.log.Error(err,
-				fmt.Sprintf(
-					"invalid env config for %s provided, using default value: %d or %d depending on resolver",
-					flagdPortEnvironmentVariableName, defaultRpcPort, defaultInProcessPort,
-				))
-		} else {
-			cfg.Port = uint16(port)
-		}
-	}
-
 	if host := os.Getenv(flagdHostEnvironmentVariableName); host != "" {
 		cfg.Host = host
 	}
@@ -280,6 +269,41 @@ func getIntFromEnvVarOrDefaultInt(envVarName string, defaultValue int, log logr.
 		}
 	}
 	return defaultValue
+}
+
+// updatePortFromEnvVar updates the port configuration from environment variables.
+// For in-process resolver, FLAGD_SYNC_PORT takes priority over FLAGD_PORT (backwards compatibility).
+// For rpc resolver, only FLAGD_PORT is used.
+func (cfg *ProviderConfiguration) updatePortFromEnvVar() {
+	if cfg.Port != 0 {
+		// Port is already set, no need to update from env var
+		return
+	}
+	var portS string
+	var envVarName string
+
+	if cfg.Resolver == inProcess {
+		portS = os.Getenv(flagdSyncPortEnvironmentVariableName)
+		envVarName = flagdSyncPortEnvironmentVariableName
+	}
+
+	if portS == "" {
+		portS = os.Getenv(flagdPortEnvironmentVariableName)
+		envVarName = flagdPortEnvironmentVariableName
+	}
+
+	if portS != "" {
+		port, err := strconv.Atoi(portS)
+		if err != nil {
+			cfg.log.Error(err,
+				fmt.Sprintf(
+					"invalid env config for %s provided, using default value: %d or %d depending on resolver",
+					envVarName, defaultRpcPort, defaultInProcessPort,
+				))
+		} else {
+			cfg.Port = uint16(port)
+		}
+	}
 }
 
 // ProviderOptions
