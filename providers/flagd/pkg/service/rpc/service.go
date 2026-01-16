@@ -452,7 +452,7 @@ func (s *Service) EventChannel() <-chan of.Event {
 // If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
 	streamReadySignaled := false
-	
+
 	// wraps connection with retry attempts
 	for s.retryCounter.retry() {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
@@ -488,12 +488,12 @@ func (s *Service) startEventStream(ctx context.Context) {
 	// retry attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
 	connErr := fmt.Errorf("grpc connection establishment failed")
-	
+
 	// Signal error if we haven't signaled success yet
 	if !streamReadySignaled {
 		s.signalStreamReady(connErr)
 	}
-	
+
 	s.sendEvent(ctx, of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderError,
@@ -521,7 +521,7 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	s.logger.V(logger.Info).Info("connected to event stream")
-	
+
 	// Signal successful connection to Init() - stream is now ready
 	if !*streamReadySignaled {
 		s.signalStreamReady(nil) // nil means success
