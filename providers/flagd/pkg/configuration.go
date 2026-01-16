@@ -221,6 +221,7 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	}
 
 	if targetUri := os.Getenv(flagdTargetUriEnvironmentVariableName); targetUri != "" {
+
 		cfg.TargetUri = targetUri
 	}
 
