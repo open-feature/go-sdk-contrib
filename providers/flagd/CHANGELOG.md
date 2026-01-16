@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.1...providers/flagd/v0.3.2) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** configurable retry backoff after each sync cycle error ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#806](https://github.com/open-feature/go-sdk-contrib/issues/806)) ([0791fa1](https://github.com/open-feature/go-sdk-contrib/commit/0791fa182c376bfc7c5109403e5f99799a64c87e))
+* **flagd:** do not retry for certain status codes ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#799](https://github.com/open-feature/go-sdk-contrib/issues/799)) ([e01a99e](https://github.com/open-feature/go-sdk-contrib/commit/e01a99ed8a0b54a2c09ed9c2aa4f5cd658769e78))
+* **flagd:** update flagd/core and remove vulnerable dependencies [security] ([#815](https://github.com/open-feature/go-sdk-contrib/issues/815)) ([f4adcf8](https://github.com/open-feature/go-sdk-contrib/commit/f4adcf8ac237f57a41c39765fade17cf512b644e))
+* implement deadline to fix indefinite init ([#823](https://github.com/open-feature/go-sdk-contrib/issues/823)) ([24c1bba](https://github.com/open-feature/go-sdk-contrib/commit/24c1bbad9476b4be632e5dae263b40abc9a1b80d))
+* tests/flagd version to get module correctly ([#813](https://github.com/open-feature/go-sdk-contrib/issues/813)) ([a32c55f](https://github.com/open-feature/go-sdk-contrib/commit/a32c55f9ced9b6b71517c1e53b5654942e41c8b5))
+
+
+### ✨ New Features
+
+* **flagd:** Add flagd-selector gRPC metadata header to in-process service. ([#790](https://github.com/open-feature/go-sdk-contrib/issues/790)) ([a891ba8](https://github.com/open-feature/go-sdk-contrib/commit/a891ba8d89b9b4233a7cb222668ead16b1036807))
+* **flagd:** Configure in-process provider using FLAGD_SYNC_PORT environment variable ([#804](https://github.com/open-feature/go-sdk-contrib/issues/804)) ([6cf3902](https://github.com/open-feature/go-sdk-contrib/commit/6cf3902e31104b0cadd50368fca537b03f390c9c))
+* **go-feature-flag-inprocess:** update go-feature-flag dep to v1.49.0 ([#821](https://github.com/open-feature/go-sdk-contrib/issues/821)) ([6fa5a89](https://github.com/open-feature/go-sdk-contrib/commit/6fa5a8914f838db8507eea4d19d6a07521184afc))
+
 ## [0.3.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.0...providers/flagd/v0.3.1) (2025-11-25)
 
 
