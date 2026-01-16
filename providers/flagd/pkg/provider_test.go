@@ -383,13 +383,15 @@ func TestEventHandling(t *testing.T) {
 	customChan := make(chan of.Event)
 
 	svcMock := mock.NewMockIService(ctrl)
-	svcMock.EXPECT().EventChannel().Return(customChan).AnyTimes()
-	svcMock.EXPECT().Init().Times(1)
 
 	var err error
 
 	provider, err := NewProvider()
 	provider.service = svcMock
+
+	// Set up mock expectations after injecting the mock
+	svcMock.EXPECT().EventChannel().Return(customChan).AnyTimes()
+	svcMock.EXPECT().Init().Times(1)
 
 	if err != nil {
 		t.Fatal("error creating new provider", err)
@@ -400,7 +402,9 @@ func TestEventHandling(t *testing.T) {
 	}
 
 	// push events to local event channel
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		// initial ready event
 		customChan <- of.Event{
 			ProviderName: "flagd",
@@ -430,6 +434,15 @@ func TestEventHandling(t *testing.T) {
 		t.Errorf("expected event %v, got %v", of.ProviderReady, event.EventType)
 	}
 
+	// Wait for status to be updated asynchronously
+	// The status update happens in handleEvents() after sending the event
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if provider.Status() == of.ReadyState {
+			break
+		}
+	}
+
 	if provider.Status() != of.ReadyState {
 		t.Errorf("expected status to be ready, but got %v", provider.Status())
 	}
@@ -439,9 +452,21 @@ func TestEventHandling(t *testing.T) {
 		t.Errorf("expected event %v, got %v", of.ProviderError, event.EventType)
 	}
 
+	// Wait for status to be updated asynchronously
+	// The status update happens in handleEvents() after sending the event
+	deadline2 := time.Now().Add(time.Second)
+	for time.Now().Before(deadline2) {
+		if provider.Status() == of.ErrorState {
+			break
+		}
+	}
+
 	if provider.Status() != of.ErrorState {
 		t.Errorf("expected status to be error, but got %v", provider.Status())
 	}
+
+	// Wait for goroutine to complete
+	<-done
 }
 
 func TestInitializeOnlyOnce(t *testing.T) {
