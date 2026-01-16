@@ -2,7 +2,7 @@
     "hooks/open-telemetry": "0.3.6",
     "hooks/validator": "0.1.7",
     "providers/configcat": "0.2.3",
-    "providers/flagd": "0.3.1",
+    "providers/flagd": "0.3.2",
     "providers/flipt": "0.1.5",
     "providers/from-env": "0.1.6",
     "providers/go-feature-flag": "0.2.7",
