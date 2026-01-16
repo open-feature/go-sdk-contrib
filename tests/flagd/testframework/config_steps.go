@@ -14,7 +14,6 @@ import (
 
 // ignoredOptions a list of options that are currently not supported
 var ignoredOptions = []string{
-	"deadlineMs",
 	"streamDeadlineMs",
 	"keepAliveTime",
 	"offlinePollIntervalMs",
