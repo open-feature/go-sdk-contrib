@@ -338,7 +338,6 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 		return
 	}
 
-	i.logger.Info("staletimer stop")
 	// Stop stale timer - we've successfully received and processed data
 	i.staleTimer.stop()
 

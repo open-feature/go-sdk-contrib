@@ -38,7 +38,7 @@ provider, err := flagd.NewProvider(flagd.WithInProcessResolver())
 openfeature.SetProvider(provider)
 ```
 
-In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8013` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
+In the above example, in-process handlers attempt to connect to a sync service on address `localhost:8015` to obtain [flag definitions](https://github.com/open-feature/schemas/blob/main/json/flagd-definitions.json).
 
 #### Custom sync provider
 
@@ -95,7 +95,7 @@ Configuration can be provided as constructor options or as environment variables
 | Option name                                              | Environment variable name      | Type & supported value      | Default   | Compatible resolver |
 |----------------------------------------------------------|--------------------------------|-----------------------------|-----------|---------------------|
 | WithHost                                                 | FLAGD_HOST                     | string                      | localhost | rpc & in-process    |
-| WithPort                                                 | FLAGD_PORT                     | number                      | 8013      | rpc & in-process    |
+| WithPort                                                 | FLAGD_PORT (rpc), FLAGD_SYNC_PORT or FLAGD_PORT (in-process) | number | 8013 (rpc), 8015 (in-process) | rpc & in-process |
 | WithTargetUri                                            | FLAGD_TARGET_URI               | string                      | ""        | in-process          |
 | WithTLS                                                  | FLAGD_TLS                      | boolean                     | false     | rpc & in-process    |
 | WithSocketPath                                           | FLAGD_SOCKET_PATH              | string                      | ""        | rpc & in-process    |
@@ -105,6 +105,8 @@ Configuration can be provided as constructor options or as environment variables
 | WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | file                |
 | WithProviderID                                           | FLAGD_SOURCE_PROVIDER_ID       | string                      | ""        | in-process          |
 | WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          | 
+
+> **Note:** For the in-process resolver, `FLAGD_SYNC_PORT` takes priority over `FLAGD_PORT`. The `FLAGD_PORT` environment variable is still supported for backwards compatibility. 
 
 ### Overriding behavior
 
