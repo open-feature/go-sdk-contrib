@@ -39,6 +39,7 @@ type Configuration struct {
 	SocketPath      string
 	TLSEnabled      bool
 	OtelInterceptor bool
+	DeadlineMs      int
 }
 
 // Service handles the client side  interface for the flagd server
@@ -48,6 +49,7 @@ type Service struct {
 	events       chan of.Event
 	logger       logr.Logger
 	retryCounter retryCounter
+	deadlineMs   int
 
 	client      schemaConnectV1.ServiceClient
 	cancelHook  context.CancelFunc
@@ -64,6 +66,7 @@ func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, ret
 		logger:       logger,
 		retryCounter: newRetryCounter(retries),
 		streamReady:  make(chan error, 1),
+		deadlineMs:   cfg.DeadlineMs,
 	}
 }
 
@@ -133,7 +136,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveBooleanRequest, schemaV1.ResolveBooleanResponse](
-		ctx, s.logger, s.client.ResolveBoolean, key, evalCtx,
+		ctx, s.logger, s.deadlineMs, s.client.ResolveBoolean, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -192,7 +195,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveStringRequest, schemaV1.ResolveStringResponse](
-		ctx, s.logger, s.client.ResolveString, key, evalCtx,
+		ctx, s.logger, s.deadlineMs, s.client.ResolveString, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -251,7 +254,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveFloatRequest, schemaV1.ResolveFloatResponse](
-		ctx, s.logger, s.client.ResolveFloat, key, evalCtx,
+		ctx, s.logger, s.deadlineMs, s.client.ResolveFloat, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -310,7 +313,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveIntRequest, schemaV1.ResolveIntResponse](
-		ctx, s.logger, s.client.ResolveInt, key, evalCtx,
+		ctx, s.logger, s.deadlineMs, s.client.ResolveInt, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -368,7 +371,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 
 	var e of.ResolutionError
 	resp, err := resolve[schemaV1.ResolveObjectRequest, schemaV1.ResolveObjectResponse](
-		ctx, s.logger, s.client.ResolveObject, key, evalCtx,
+		ctx, s.logger, s.deadlineMs, s.client.ResolveObject, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -406,10 +409,17 @@ func (s *Service) isInitialised() bool {
 }
 
 func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraints](
-	ctx context.Context, logger logr.Logger,
+	ctx context.Context, logger logr.Logger, deadlineMs int,
 	resolver func(context.Context, *connect.Request[req]) (*connect.Response[resp], error),
 	flagKey string, evalCtx map[string]interface{},
 ) (*resp, error) {
+	// Apply deadline to unary call if specified
+	if deadlineMs > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(deadlineMs)*time.Millisecond)
+		defer cancel()
+	}
+
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		logger.Error(err, "struct from evaluation context")
