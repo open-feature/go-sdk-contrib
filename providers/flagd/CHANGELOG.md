@@ -16,7 +16,6 @@
 
 * **flagd:** Add flagd-selector gRPC metadata header to in-process service. ([#790](https://github.com/open-feature/go-sdk-contrib/issues/790)) ([a891ba8](https://github.com/open-feature/go-sdk-contrib/commit/a891ba8d89b9b4233a7cb222668ead16b1036807))
 * **flagd:** Configure in-process provider using FLAGD_SYNC_PORT environment variable ([#804](https://github.com/open-feature/go-sdk-contrib/issues/804)) ([6cf3902](https://github.com/open-feature/go-sdk-contrib/commit/6cf3902e31104b0cadd50368fca537b03f390c9c))
-* **go-feature-flag-inprocess:** update go-feature-flag dep to v1.49.0 ([#821](https://github.com/open-feature/go-sdk-contrib/issues/821)) ([6fa5a89](https://github.com/open-feature/go-sdk-contrib/commit/6fa5a8914f838db8507eea4d19d6a07521184afc))
 
 ## [0.3.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.0...providers/flagd/v0.3.1) (2025-11-25)
 
