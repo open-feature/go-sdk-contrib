@@ -40,8 +40,8 @@ type Sync struct {
 	URI                     string
 	MaxMsgSize              int
 	RetryGracePeriod        time.Duration
-	RetryBackOff            time.Duration
-	RetryBackOffMax         time.Duration
+	RetryBackOffMs          time.Duration
+	RetryBackOffMaxMs       time.Duration
 	FatalStatusCodes        []string
 
 	// Runtime state
@@ -202,9 +202,9 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 
 			// Backoff before retrying.
 			// This is for unusual error scenarios when the normal gRPC retry/backoff policy (which only works on the connection level) is bypassed because the error is only at the stream (application level), and help avoids tight loops in that situation.
-			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying after %d backoff...", err, g.RetryBackOffMax))
+			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying after %d backoff...", err, g.RetryBackOffMaxMs))
 			select {
-			case <-time.After(g.RetryBackOffMax):
+			case <-time.After(g.RetryBackOffMaxMs):
 				// Backoff completed
 			case <-ctx.Done():
 				return ctx.Err()

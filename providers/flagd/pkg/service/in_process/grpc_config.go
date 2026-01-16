@@ -30,8 +30,8 @@ func (g *Sync) buildRetryPolicy() string {
 				},
 				"retryPolicy": RetryPolicy{
 					MaxAttempts:          3,
-					InitialBackoff:       g.RetryBackOff.String(),
-					MaxBackoff:           g.RetryBackOffMax.String(),
+					InitialBackoff:       g.RetryBackOffMs.String(),
+					MaxBackoff:           g.RetryBackOffMaxMs.String(),
 					BackoffMultiplier:    2.0,
 					RetryableStatusCodes: []string{"UNKNOWN", "UNAVAILABLE"},
 				},
