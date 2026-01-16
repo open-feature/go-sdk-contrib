@@ -13,8 +13,8 @@ const (
 	defaultKeepaliveTime    = 30 * time.Second
 	defaultKeepaliveTimeout = 5 * time.Second
 	// Default retry intervals per https://flagd.dev/reference/specifications/providers/#configuration
-	DefaultRetryBackoffMs    = 1000   // 1 second
-	DefaultRetryBackoffMaxMs = 120000 // 120 seconds
+	DefaultRetryBackoffMs    = 1000  // 1 second
+	DefaultRetryBackoffMaxMs = 12000 // 12 seconds
 )
 
 type RetryPolicy struct {

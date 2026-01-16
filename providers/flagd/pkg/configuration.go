@@ -12,6 +12,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
+	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	"google.golang.org/grpc"
 )
 
@@ -20,9 +21,9 @@ type ResolverType string
 // Naming and defaults must comply with flagd environment variables
 const (
 	// DefaultRetryBackoffMs is the default initial backoff duration for stream retry
-	DefaultRetryBackoffMs = 1000
+	DefaultRetryBackoffMs = process.DefaultRetryBackoffMs
 	// DefaultRetryBackoffMaxMs is the default maximum backoff duration for stream retry
-	DefaultRetryBackoffMaxMs            = 120000
+	DefaultRetryBackoffMaxMs            = process.DefaultRetryBackoffMaxMs
 	defaultMaxCacheSize          int    = 1000
 	defaultRpcPort               uint16 = 8013
 	defaultInProcessPort         uint16 = 8015
