@@ -38,6 +38,8 @@ jobs:
           key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
       - name: Run workspace init
         run: make workspace-init
+      - name: Run Vulncheck
+        run: make vulncheck
       - name: Run linter
         run: make lint
 
