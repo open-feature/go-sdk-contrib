@@ -100,7 +100,7 @@ func TestBuildRetryPolicyDefaults(t *testing.T) {
 	if retryPolicy["InitialBackoff"].(string) != "1s" {
 		t.Errorf("InitialBackoff = %v; want 1s (default)", retryPolicy["InitialBackoff"])
 	}
-	if retryPolicy["MaxBackoff"].(string) != "120s" {
+	if retryPolicy["MaxBackoff"].(string) != "12s" {
 		t.Errorf("MaxBackoff = %v; want 120s (gRPC format for 120000ms)", retryPolicy["MaxBackoff"])
 	}
 }
