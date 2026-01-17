@@ -39,9 +39,9 @@ type Sync struct {
 	Selector                string
 	URI                     string
 	MaxMsgSize              int
-	RetryGracePeriod        int
-	RetryBackOffMs          int
-	RetryBackOffMaxMs       int
+	RetryGracePeriod        time.Duration
+	RetryBackOffMs          time.Duration
+	RetryBackOffMaxMs       time.Duration
 	FatalStatusCodes        []string
 
 	// Runtime state
@@ -81,21 +81,9 @@ func (g *Sync) Init(ctx context.Context) error {
 
 // createConnection creates and configures the gRPC connection
 func (g *Sync) createConnection() (*grpc.ClientConn, error) {
-
-	var grpcInterceptorDialOptions []grpc.DialOption
-	if g.Selector != "" {
-		grpcInterceptorDialOptions = append(grpcInterceptorDialOptions,
-			grpc.WithChainUnaryInterceptor(selectorUnaryInterceptor(g.Selector)),
-			grpc.WithChainStreamInterceptor(selectorStreamInterceptor(g.Selector)),
-		)
-	}
-
 	if len(g.GrpcDialOptionsOverride) > 0 {
 		g.Logger.Debug("using provided gRPC DialOptions override")
-		dialOptions := make([]grpc.DialOption, 0, len(g.GrpcDialOptionsOverride)+len(grpcInterceptorDialOptions))
-		dialOptions = append(dialOptions, g.GrpcDialOptionsOverride...)
-		dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
-		return grpc.NewClient(g.URI, dialOptions...)
+		return grpc.NewClient(g.URI, g.GrpcDialOptionsOverride...)
 	}
 
 	// Build standard dial options
@@ -103,7 +91,6 @@ func (g *Sync) createConnection() (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to build dial options: %w", err)
 	}
-	dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
 
 	return grpc.NewClient(g.URI, dialOptions...)
 }
@@ -217,7 +204,7 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 			// This is for unusual error scenarios when the normal gRPC retry/backoff policy (which only works on the connection level) is bypassed because the error is only at the stream (application level), and help avoids tight loops in that situation.
 			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying after %d backoff...", err, g.RetryBackOffMaxMs))
 			select {
-			case <-time.After(time.Duration(g.RetryBackOffMaxMs) * time.Millisecond):
+			case <-time.After(g.RetryBackOffMaxMs):
 				// Backoff completed
 			case <-ctx.Done():
 				return ctx.Err()

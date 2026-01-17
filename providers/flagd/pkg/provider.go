@@ -3,7 +3,6 @@ package flagd
 import (
 	"context"
 	"fmt"
-	"time"
 
 	parallel "sync"
 
@@ -57,7 +56,6 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 				SocketPath:      provider.providerConfiguration.SocketPath,
 				TLSEnabled:      provider.providerConfiguration.Tls,
 				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
-				DeadlineMs:      provider.providerConfiguration.DeadlineMs,
 			},
 			cacheService,
 			provider.providerConfiguration.log,
@@ -79,12 +77,10 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			RetryBackOffMs:          provider.providerConfiguration.RetryBackoffMs,
 			RetryBackOffMaxMs:       provider.providerConfiguration.RetryBackoffMaxMs,
 			FatalStatusCodes:        provider.providerConfiguration.FatalStatusCodes,
-			DeadlineMs:              provider.providerConfiguration.DeadlineMs,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
-			DeadlineMs:        provider.providerConfiguration.DeadlineMs,
 		})
 	}
 
@@ -102,63 +98,36 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 		return nil
 	}
 
-	// Create a timer for the initialization deadline that covers the entire init process
-	deadline := time.Duration(p.providerConfiguration.DeadlineMs) * time.Millisecond
-	timer := time.NewTimer(deadline)
-	defer timer.Stop()
+	err := p.service.Init()
+	if err != nil {
+		return err
+	}
 
-	// Get the event channel before starting goroutine to avoid race with service.Init()
-	serviceEventChan := p.service.EventChannel()
+	// wait for initialization from the service
+	e := <-p.service.EventChannel()
+	if e.EventType != of.ProviderReady {
+		return fmt.Errorf("provider initialization failed: %s", e.ProviderEventDetails.Message)
+	}
 
-	// Run service.Init() in a goroutine so we can timeout if it hangs
-	initDone := make(chan error, 1)
+	p.status = of.ReadyState
+	p.initialized = true
+
+	// start event handling after the first ready event
 	go func() {
-		initDone <- p.service.Init()
+		for {
+			event := <-p.service.EventChannel()
+			p.eventStream <- event
+			switch event.EventType {
+			case of.ProviderReady:
+			case of.ProviderConfigChange:
+				p.setStatus(of.ReadyState)
+			case of.ProviderError:
+				p.setStatus(of.ErrorState)
+			}
+		}
 	}()
 
-	// Wait for service.Init completion and ProviderReady event in a single select loop
-	var initDoneChan <-chan error = initDone
-	for {
-		select {
-		case err := <-initDoneChan:
-			if err != nil {
-				return err
-			}
-			// Init succeeded, disable this case and continue loop to wait for ProviderReady
-			initDoneChan = nil
-
-		case e := <-serviceEventChan:
-			if e.EventType == of.ProviderReady {
-				p.status = of.ReadyState
-				p.initialized = true
-				// start event handling after the first ready event
-				go p.handleEvents()
-				return nil
-			}
-			// If we got a ProviderError or ProviderStale during init, return it as an error
-			if e.EventType == of.ProviderError || e.EventType == of.ProviderStale {
-				return fmt.Errorf("provider initialization failed: %s", e.ProviderEventDetails.Message)
-			}
-			return fmt.Errorf("provider initialization failed: unexpected event type %v", e.EventType)
-
-		case <-timer.C:
-			return fmt.Errorf("provider initialization deadline exceeded (%dms)", p.providerConfiguration.DeadlineMs)
-		}
-	}
-}
-
-// handleEvents runs in a separate goroutine and processes events from the service
-func (p *Provider) handleEvents() {
-	serviceEventChan := p.service.EventChannel()
-	for event := range serviceEventChan {
-		p.eventStream <- event
-		switch event.EventType {
-		case of.ProviderReady, of.ProviderConfigChange:
-			p.setStatus(of.ReadyState)
-		case of.ProviderError:
-			p.setStatus(of.ErrorState)
-		}
-	}
+	return nil
 }
 
 func (p *Provider) Status() of.State {
