@@ -41,6 +41,7 @@ type InProcess struct {
 	logger          *logger.Logger
 	configuration   Configuration
 	serviceMetadata model.Metadata
+	deadlineMs      int
 
 	// Event handling
 	events    chan of.Event
@@ -116,6 +117,7 @@ type Configuration struct {
 	RetryBackOffMs          time.Duration
 	RetryBackOffMaxMs       time.Duration
 	FatalStatusCodes        []string
+	DeadlineMs              int
 }
 
 // EventSync interface for sync providers that support events
@@ -152,6 +154,7 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		events:              make(chan of.Event, eventChannelBuffer),
 		staleTimer:          newStaleTimer(),
 		sendReadyOnNextData: sync.Once{}, // Armed and ready to fire on first data
+		deadlineMs:          cfg.DeadlineMs,
 	}
 }
 
@@ -338,7 +341,6 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 		return
 	}
 
-	i.logger.Info("staletimer stop")
 	// Stop stale timer - we've successfully received and processed data
 	i.staleTimer.stop()
 
@@ -454,8 +456,19 @@ func (i *InProcess) appendMetadata(evalMetadata model.Metadata) {
 	}
 }
 
+// applyDeadlineToContext applies the configured deadline to a context for unary calls
+func (i *InProcess) applyDeadlineToContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if i.deadlineMs > 0 {
+		return context.WithTimeout(ctx, time.Duration(i.deadlineMs)*time.Millisecond)
+	}
+	// Return a no-op cancel function if no deadline
+	return ctx, func() {}
+}
+
 // ResolveBoolean resolves a boolean flag value
 func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue bool, evalCtx map[string]interface{}) of.BoolResolutionDetail {
+	ctx, cancel := i.applyDeadlineToContext(ctx)
+	defer cancel()
 	value, variant, reason, metadata, err := i.evaluator.ResolveBooleanValue(ctx, "", key, evalCtx)
 	i.appendMetadata(metadata)
 
@@ -483,6 +496,8 @@ func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue
 
 // ResolveString resolves a string flag value
 func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue string, evalCtx map[string]interface{}) of.StringResolutionDetail {
+	ctx, cancel := i.applyDeadlineToContext(ctx)
+	defer cancel()
 	value, variant, reason, metadata, err := i.evaluator.ResolveStringValue(ctx, "", key, evalCtx)
 	i.appendMetadata(metadata)
 
@@ -510,6 +525,8 @@ func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue 
 
 // ResolveFloat resolves a float flag value
 func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue float64, evalCtx map[string]interface{}) of.FloatResolutionDetail {
+	ctx, cancel := i.applyDeadlineToContext(ctx)
+	defer cancel()
 	value, variant, reason, metadata, err := i.evaluator.ResolveFloatValue(ctx, "", key, evalCtx)
 	i.appendMetadata(metadata)
 
@@ -535,8 +552,10 @@ func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue f
 	}
 }
 
-// ResolveInt resolves an integer flag value
+// ResolveInt resolves an int flag value
 func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int64, evalCtx map[string]interface{}) of.IntResolutionDetail {
+	ctx, cancel := i.applyDeadlineToContext(ctx)
+	defer cancel()
 	value, variant, reason, metadata, err := i.evaluator.ResolveIntValue(ctx, "", key, evalCtx)
 	i.appendMetadata(metadata)
 
@@ -564,6 +583,8 @@ func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int
 
 // ResolveObject resolves an object flag value
 func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue interface{}, evalCtx map[string]interface{}) of.InterfaceResolutionDetail {
+	ctx, cancel := i.applyDeadlineToContext(ctx)
+	defer cancel()
 	value, variant, reason, metadata, err := i.evaluator.ResolveObjectValue(ctx, "", key, evalCtx)
 	i.appendMetadata(metadata)
 
