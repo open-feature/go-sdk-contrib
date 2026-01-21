@@ -621,17 +621,6 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 	}
 }
 
-func (i *InProcess) EventChannel() <-chan of.Event {
-	return i.events
-}
-
-func (i *InProcess) appendMetadata(evalMetadata model.Metadata) {
-	// For a nil slice, the number of iterations is 0
-	for k, v := range i.serviceMetadata {
-		evalMetadata[k] = v
-	}
-}
-
 func (i *InProcess) ContextValues() map[string]any {
 	i.mtx.RLock()
 	defer i.mtx.RUnlock()
