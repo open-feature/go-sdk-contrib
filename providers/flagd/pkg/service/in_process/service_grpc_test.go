@@ -1,17 +1,16 @@
 package process
 
 import (
-	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
 	"fmt"
-	"github.com/open-feature/go-sdk/openfeature"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/structpb"
-	"log"
 	"net"
 	"testing"
 	"time"
+
+	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
+	"github.com/open-feature/go-sdk/openfeature"
+	"google.golang.org/grpc"
 )
 
 // shared flag for tests
@@ -60,18 +59,30 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 	}
 
 	inProcessService := NewInProcessService(Configuration{
-		Host:       host,
-		Port:       port,
-		Selector:   scope,
-		TLSEnabled: false,
+		Host:              host,
+		Port:              port,
+		Selector:          scope,
+		TLSEnabled:        false,
+		RetryBackOffMaxMs: 5000,
+		RetryBackOffMs:    1000,
 	})
 
 	// when
 
 	// start grpc sync server
+	server := grpc.NewServer()
+	syncv1grpc.RegisterFlagSyncServiceServer(server, bufServ)
 	go func() {
-		serve(bufServ)
+		if err := server.Serve(bufServ.listener); err != nil && err != grpc.ErrServerStopped {
+			t.Errorf("server.Serve failed: %v", err)
+		}
 	}()
+
+	// Cleanup on test completion
+	t.Cleanup(func() {
+		inProcessService.Shutdown()
+		server.GracefulStop()
+	})
 
 	// Initialize service
 	err = inProcessService.Init()
@@ -152,17 +163,29 @@ func TestInProcessProviderEvaluationEnvoy(t *testing.T) {
 	}
 
 	inProcessService := NewInProcessService(Configuration{
-		TargetUri:  "envoy://localhost:9211/foo.service",
-		Selector:   scope,
-		TLSEnabled: false,
+		TargetUri:         "envoy://localhost:9211/foo.service",
+		Selector:          scope,
+		TLSEnabled:        false,
+		RetryBackOffMaxMs: 5000,
+		RetryBackOffMs:    1000,
 	})
 
 	// when
 
 	// start grpc sync server
+	server := grpc.NewServer()
+	syncv1grpc.RegisterFlagSyncServiceServer(server, bufServ)
 	go func() {
-		serve(bufServ)
+		if err := server.Serve(bufServ.listener); err != nil && err != grpc.ErrServerStopped {
+			t.Errorf("server.Serve failed: %v", err)
+		}
 	}()
+
+	// Cleanup on test completion
+	t.Cleanup(func() {
+		inProcessService.Shutdown()
+		server.GracefulStop()
+	})
 
 	// Initialize service
 	err = inProcessService.Init()
@@ -244,15 +267,4 @@ func (b *bufferedServer) FetchAllFlags(_ context.Context, _ *v1.FetchAllFlagsReq
 
 func (b *bufferedServer) GetMetadata(_ context.Context, _ *v1.GetMetadataRequest) (*v1.GetMetadataResponse, error) {
 	return &v1.GetMetadataResponse{}, nil
-}
-
-// serve serves a bufferedServer. This is a blocking call
-func serve(bServer *bufferedServer) {
-	server := grpc.NewServer()
-
-	syncv1grpc.RegisterFlagSyncServiceServer(server, bServer)
-
-	if err := server.Serve(bServer.listener); err != nil {
-		log.Fatalf("Server exited with error: %v", err)
-	}
 }

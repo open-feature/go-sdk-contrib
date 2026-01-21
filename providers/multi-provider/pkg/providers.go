@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
-	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"maps"
 	"slices"
 	"sync"
 	"time"
+
+	"github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/strategies"
+	"golang.org/x/sync/errgroup"
 
 	mperr "github.com/open-feature/go-sdk-contrib/providers/multi-provider/pkg/errors"
 
@@ -36,9 +37,9 @@ type (
 		customStrategy   strategies.Strategy
 		logger           *slog.Logger
 		publishEvents    bool
-		metadata         *of.Metadata
+		metadata         *of.Metadata //nolint unused
 		timeout          time.Duration
-		hooks            []of.Hook // Not implemented yet
+		hooks            []of.Hook //nolint unused - Not implemented yet
 	}
 
 	// EvaluationStrategy Defines a strategy to use for resolving the result from multiple providers
@@ -99,6 +100,8 @@ func (m ProviderMap) buildMetadata() of.Metadata {
 }
 
 // NewMultiProvider returns the unified interface of multiple providers for interaction.
+//
+// Deprecated: Use multi.NewProvider() from github.com/open-feature/go-sdk/openfeature/multi instead.
 func NewMultiProvider(providerMap ProviderMap, evaluationStrategy EvaluationStrategy, options ...Option) (*MultiProvider, error) {
 	if len(providerMap) == 0 {
 		return nil, errors.New("providerMap cannot be nil or empty")

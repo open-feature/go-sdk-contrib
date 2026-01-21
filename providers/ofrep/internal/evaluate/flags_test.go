@@ -13,12 +13,12 @@ type mockResolver struct {
 	err     *of.ResolutionError
 }
 
-func (m mockResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]interface{}) (*successDto, *of.ResolutionError) {
+func (m mockResolver) resolveSingle(ctx context.Context, key string, evalCtx map[string]any) (*successDto, *of.ResolutionError) {
 	return m.success, m.err
 }
 
 type knownTypes interface {
-	int64 | bool | float64 | string | interface{}
+	int64 | bool | float64 | string | any
 }
 
 type testDefinition[T knownTypes] struct {
@@ -96,8 +96,6 @@ var successObject = successDto{
 var parseError = of.NewParseErrorResolutionError("flag parsing error")
 
 func TestBooleanEvaluation(t *testing.T) {
-	ctx := context.Background()
-
 	tests := []testDefinition[bool]{
 		{
 			name: "Success evaluation",
@@ -139,8 +137,8 @@ func TestBooleanEvaluation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flags := Flags{resolver: test.resolver}
-			resolutionDetail := flags.ResolveBoolean(ctx, "booleanFlag", test.defaultValue, nil)
-			genericValidator[bool](test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
+			resolutionDetail := flags.ResolveBoolean(t.Context(), "booleanFlag", test.defaultValue, nil)
+			genericValidator(test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
 		})
 	}
 }
@@ -212,8 +210,6 @@ func TestIntegerEvaluation(t *testing.T) {
 }
 
 func TestFloatEvaluation(t *testing.T) {
-	ctx := context.Background()
-
 	tests := []testDefinition[float64]{
 		{
 			name: "Success evaluation",
@@ -263,15 +259,13 @@ func TestFloatEvaluation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flags := Flags{resolver: test.resolver}
-			resolutionDetail := flags.ResolveFloat(ctx, "floatFlag", test.defaultValue, nil)
-			genericValidator[float64](test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
+			resolutionDetail := flags.ResolveFloat(t.Context(), "floatFlag", test.defaultValue, nil)
+			genericValidator(test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
 		})
 	}
 }
 
 func TestStringEvaluation(t *testing.T) {
-	ctx := context.Background()
-
 	tests := []testDefinition[string]{
 		{
 			name: "Success evaluation",
@@ -313,22 +307,20 @@ func TestStringEvaluation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flags := Flags{resolver: test.resolver}
-			resolutionDetail := flags.ResolveString(ctx, "stringFlag", test.defaultValue, nil)
-			genericValidator[string](test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
+			resolutionDetail := flags.ResolveString(t.Context(), "stringFlag", test.defaultValue, nil)
+			genericValidator(test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
 		})
 	}
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	ctx := context.Background()
-
-	tests := []testDefinition[interface{}]{
+	tests := []testDefinition[any]{
 		{
 			name: "Success evaluation",
 			resolver: mockResolver{
 				success: &successObject,
 			},
-			defaultValue: map[string]interface{}{},
+			defaultValue: map[string]any{},
 			expect:       successObject.Value,
 		},
 		{
@@ -337,16 +329,16 @@ func TestObjectEvaluation(t *testing.T) {
 				err: &parseError,
 			},
 			isError:      true,
-			defaultValue: map[string]interface{}{},
-			expect:       map[string]interface{}{},
+			defaultValue: map[string]any{},
+			expect:       map[string]any{},
 		},
 		{
 			name: "disabled flag",
 			resolver: mockResolver{
 				success: &successDisabled,
 			},
-			defaultValue: map[string]interface{}{},
-			expect:       map[string]interface{}{},
+			defaultValue: map[string]any{},
+			expect:       map[string]any{},
 			isError:      false,
 		},
 	}
@@ -354,8 +346,8 @@ func TestObjectEvaluation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flags := Flags{resolver: test.resolver}
-			resolutionDetail := flags.ResolveObject(ctx, "objectFlag", test.defaultValue, nil)
-			genericValidator[interface{}](test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
+			resolutionDetail := flags.ResolveObject(t.Context(), "objectFlag", test.defaultValue, nil)
+			genericValidator(test, resolutionDetail.Value, resolutionDetail.Reason, resolutionDetail.Error(), t)
 		})
 	}
 }
@@ -367,7 +359,7 @@ func genericValidator[T knownTypes](test testDefinition[T], resolvedValue T, rea
 		}
 
 		if !reflect.DeepEqual(test.defaultValue, resolvedValue) {
-			t.Errorf("expected deafault value %v, but got %v", test.defaultValue, resolvedValue)
+			t.Errorf("expected default value %v, but got %v", test.defaultValue, resolvedValue)
 		}
 
 		if reason != of.ErrorReason {

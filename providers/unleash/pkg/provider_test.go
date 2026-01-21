@@ -1,6 +1,7 @@
 package unleash_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -8,14 +9,18 @@ import (
 	"testing"
 	"time"
 
+	_ "embed"
+
 	"github.com/Unleash/unleash-client-go/v4"
 	unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"
 )
 
-var provider *unleashProvider.Provider
-var ofClient *of.Client
+var (
+	provider *unleashProvider.Provider
+	ofClient *of.Client
+)
 
 func TestBooleanEvaluation(t *testing.T) {
 	resolution := provider.BooleanEvaluation(context.Background(), "variant-flag", false, nil)
@@ -115,7 +120,7 @@ func TestStringEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 	value, _ := ofClient.StringValue(context.Background(), "variant-flag", "", evalCtx)
 	if value == "" {
@@ -124,7 +129,7 @@ func TestStringEvaluation(t *testing.T) {
 }
 
 func TestBooleanEvaluationByUser(t *testing.T) {
-	resolution := provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]interface{}{
+	resolution := provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]any{
 		"UserId": "111",
 	})
 	enabled, _ := resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
@@ -132,7 +137,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 		t.Fatalf("Expected feature to be enabled")
 	}
 
-	resolution = provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]interface{}{
+	resolution = provider.BooleanEvaluation(context.Background(), "users-flag", false, map[string]any{
 		"UserId": "2",
 	})
 	enabled, _ = resolution.ProviderResolutionDetail.FlagMetadata.GetBool("enabled")
@@ -142,7 +147,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{
+		map[string]any{
 			"UserId":        "111",
 			"AppName":       "test-app",
 			"CurrentTime":   "2006-01-02T15:04:05Z",
@@ -158,7 +163,7 @@ func TestBooleanEvaluationByUser(t *testing.T) {
 }
 
 func TestStringEvaluationByCurrentTime(t *testing.T) {
-	resolution := provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]interface{}{
+	resolution := provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]any{
 		"UserId":      "2",
 		"CurrentTime": "2025-01-02T15:04:05Z",
 	})
@@ -174,7 +179,7 @@ func TestStringEvaluationByCurrentTime(t *testing.T) {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
-	resolution = provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]interface{}{
+	resolution = provider.StringEvaluation(context.Background(), "variant-flag-by-date", "fallback", map[string]any{
 		"UserId":      "2",
 		"CurrentTime": "2023-01-02T15:04:05Z",
 	})
@@ -197,12 +202,11 @@ func TestInvalidContextEvaluation(t *testing.T) {
 }
 
 func TestEvaluationMethods(t *testing.T) {
-
 	tests := []struct {
 		flag          string
-		defaultValue  interface{}
+		defaultValue  any
 		evalCtx       of.FlattenedContext
-		expected      interface{}
+		expected      any
 		expectedError string
 	}{
 		{flag: "DateExample", defaultValue: false, evalCtx: of.FlattenedContext{}, expected: true, expectedError: ""},
@@ -218,7 +222,7 @@ func TestEvaluationMethods(t *testing.T) {
 
 		{"float", 1.23, of.FlattenedContext{"UserID": "123"}, 1.23, "flag not found"},
 		{"number", int64(43), of.FlattenedContext{"UserID": "123"}, int64(43), "flag not found"},
-		{"object", map[string]interface{}{"key1": "other-value"}, of.FlattenedContext{"UserID": "123"}, map[string]interface{}{"key1": "other-value"}, "flag not found"},
+		{"object", map[string]any{"key1": "other-value"}, of.FlattenedContext{"UserID": "123"}, map[string]any{"key1": "other-value"}, "flag not found"},
 		{"string", "value2", of.FlattenedContext{"UserID": "123"}, "value2", "flag not found"},
 
 		{"invalid_user_context", false, of.FlattenedContext{"UserID": "123", "invalid": "value"}, false, ""},
@@ -254,18 +258,19 @@ func cleanup() {
 	provider.Shutdown()
 }
 
-func TestMain(m *testing.M) {
+//go:embed demo_app_toggles.json
+var appToggles []byte
 
+func TestMain(m *testing.M) {
 	// global init
-	demoReader, err := os.Open("demo_app_toggles.json")
-	if err != nil {
-		fmt.Printf("Error during features file open: %v\n", err)
-		os.Exit(1)
-	}
-	defer demoReader.Close()
+	demoReader := bytes.NewReader(appToggles)
 
 	appName := "my-application"
-	backupFile := fmt.Sprintf("unleash-repo-schema-v1-%s.json", appName)
+	backupPath, err := os.MkdirTemp("", "unleash-backup")
+	if err != nil {
+		fmt.Printf("Error during creating temporary directory: %v\n", err)
+		os.Exit(1)
+	}
 
 	providerOptions := unleashProvider.ProviderConfig{
 		Options: []unleash.ConfigOption{
@@ -274,13 +279,12 @@ func TestMain(m *testing.M) {
 			unleash.WithRefreshInterval(5 * time.Second),
 			unleash.WithMetricsInterval(5 * time.Second),
 			unleash.WithStorage(&unleash.BootstrapStorage{Reader: demoReader}),
-			unleash.WithBackupPath("./"),
+			unleash.WithBackupPath(backupPath),
 			unleash.WithUrl("https://localhost:4242"),
 		},
 	}
 
 	provider, err = unleashProvider.NewProvider(providerOptions)
-
 	if err != nil {
 		fmt.Printf("Error during provider open: %v\n", err)
 	}
@@ -298,6 +302,9 @@ func TestMain(m *testing.M) {
 
 	cleanup()
 
-	os.Remove(backupFile)
+	err = os.RemoveAll(backupPath)
+	if err != nil {
+		fmt.Printf("Error during removing backup directory: %v\n", err)
+	}
 	os.Exit(exitCode)
 }

@@ -21,6 +21,7 @@ type Configuration struct {
 	BaseURI   string
 	Callbacks []HeaderCallback
 	Client    *http.Client
+	Timeout   time.Duration
 }
 
 type Resolution struct {
@@ -39,7 +40,7 @@ type Outbound struct {
 func NewHttp(cfg Configuration) *Outbound {
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: cfg.Timeout,
 		}
 	}
 
@@ -62,6 +63,8 @@ func (h *Outbound) Single(ctx context.Context, key string, payload []byte) (*Res
 		return nil, &resErr
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for _, callback := range h.headerProvider {
 		req.Header.Set(callback())
 	}
@@ -70,7 +73,9 @@ func (h *Outbound) Single(ctx context.Context, key string, payload []byte) (*Res
 	if err != nil {
 		return nil, err
 	}
-	defer rsp.Body.Close()
+	defer func() {
+		_ = rsp.Body.Close()
+	}()
 
 	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
