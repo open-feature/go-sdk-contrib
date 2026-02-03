@@ -40,9 +40,11 @@ type mockClient struct {
 	flagChangeCallCount int
 	collectorRequests   []string
 	requestBodies       []string
+	lastRequestHeader   http.Header
 }
 
 func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
+	m.lastRequestHeader = req.Header.Clone()
 	//read req body and store it
 	var bodyBytes []byte
 	if req.Body != nil {
@@ -323,9 +325,10 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 		cli := mockClient{}
 		t.Run(tt.name, func(t *testing.T) {
 			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+				Endpoint:      "https://gofeatureflag.org/",
+				HTTPClient:    NewMockClient(cli.roundTripFunc),
+				CustomHeaders: map[string]string{"User-Agent": "goff-sdk-tests"},
+				DisableCache:  true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -343,6 +346,9 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.want, value)
+			if cli.callCount > 0 {
+				assert.Equal(t, "goff-sdk-tests", cli.lastRequestHeader.Get("User-Agent"))
+			}
 		})
 	}
 }

@@ -24,6 +24,9 @@ type ProviderOptions struct {
 	// Default: null
 	APIKey string
 
+	// CustomHeaders (optional) allows setting custom headers for every HTTP request.
+	CustomHeaders map[string]string
+
 	// DisableCache (optional) set to true if you would like that every flag evaluation goes to the GO Feature Flag directly.
 	DisableCache bool
 
