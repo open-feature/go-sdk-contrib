@@ -52,10 +52,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		return controller.ContentTypeHeader, controller.ApplicationJson
 	}))
 	for k, v := range options.CustomHeaders {
-		scopedK, scopedV := k, v
-		ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (key string, value string) {
-			return scopedK, scopedV
-		}))
+		ofrepOptions = append(ofrepOptions, ofrep.WithHeader(k, v))
 	}
 	ofrepProvider := ofrep.NewProvider(options.Endpoint, ofrepOptions...)
 	cacheCtrl := controller.NewCache(options.FlagCacheSize, options.FlagCacheTTL, options.DisableCache)
