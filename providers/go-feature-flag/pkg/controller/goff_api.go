@@ -61,11 +61,9 @@ func (g *GoFeatureFlagAPI) CollectData(events []model.FeatureEvent) error {
 	}
 
 	req.Header.Set(ContentTypeHeader, ApplicationJson)
+	applyHeaders(g.options.CustomHeaders, req)
 	if g.options.APIKey != "" {
 		req.Header.Set(AuthorizationHeader, BearerPrefix+g.options.APIKey)
-	}
-	for k, v := range g.options.CustomHeaders {
-		req.Header.Set(k, v)
 	}
 
 	response, err := g.getHttpClient().Do(req)
@@ -90,11 +88,9 @@ func (g *GoFeatureFlagAPI) ConfigurationHasChanged() (ConfigurationChangeStatus,
 		return ErrorConfigurationChange, err
 	}
 	req.Header.Set(ContentTypeHeader, ApplicationJson)
+	applyHeaders(g.options.CustomHeaders, req)
 	if g.options.APIKey != "" {
 		req.Header.Set(AuthorizationHeader, BearerPrefix+g.options.APIKey)
-	}
-	for k, v := range g.options.CustomHeaders {
-		req.Header.Set(k, v)
 	}
 	if g.configChangeEtag != "" {
 		req.Header.Set(IfNoneMatchHeader, g.configChangeEtag)
@@ -128,4 +124,11 @@ func (g *GoFeatureFlagAPI) getHttpClient() *http.Client {
 		client = DefaultHTTPClient()
 	}
 	return client
+}
+
+// applyHeaders to a request.
+func applyHeaders(headers map[string]string, req *http.Request) {
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 }

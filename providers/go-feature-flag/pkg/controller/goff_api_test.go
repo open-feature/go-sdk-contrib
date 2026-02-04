@@ -3,13 +3,14 @@ package controller_test
 import (
 	"bytes"
 	"errors"
+	"io"
+	"net/http"
+	"testing"
+
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"testing"
 )
 
 func Test_CollectDataAPI(t *testing.T) {
@@ -79,7 +80,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			options: controller.GoFeatureFlagApiOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "my-key",
-				CustomHeaders:    map[string]string{"User-Agent": "goff-sdk-tests"},
+				CustomHeaders:    map[string]string{"Authorization": "foo", "User-Agent": "goff-sdk-tests"},
 				ExporterMetadata: map[string]any{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
