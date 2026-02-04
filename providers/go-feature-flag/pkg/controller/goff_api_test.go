@@ -3,13 +3,14 @@ package controller_test
 import (
 	"bytes"
 	"errors"
+	"io"
+	"net/http"
+	"testing"
+
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"testing"
 )
 
 func Test_CollectDataAPI(t *testing.T) {
@@ -30,6 +31,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			options: controller.GoFeatureFlagApiOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "",
+				CustomHeaders:    map[string]string{"User-Agent": "goff-sdk-tests"},
 				ExporterMetadata: map[string]any{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
@@ -67,6 +69,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			wantHeaders: func() http.Header {
 				headers := http.Header{}
 				headers.Set(controller.ContentTypeHeader, controller.ApplicationJson)
+				headers.Set("User-Agent", "goff-sdk-tests")
 				return headers
 			}(),
 			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
@@ -77,6 +80,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			options: controller.GoFeatureFlagApiOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "my-key",
+				CustomHeaders:    map[string]string{"Authorization": "foo", "User-Agent": "goff-sdk-tests"},
 				ExporterMetadata: map[string]any{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
@@ -115,6 +119,7 @@ func Test_CollectDataAPI(t *testing.T) {
 				headers := http.Header{}
 				headers.Set(controller.ContentTypeHeader, controller.ApplicationJson)
 				headers.Set(controller.AuthorizationHeader, controller.BearerPrefix+"my-key")
+				headers.Set("User-Agent", "goff-sdk-tests")
 				return headers
 			}(),
 			wantReqBody: "{\"events\":[{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"ABCD\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"},{\"kind\":\"feature\",\"contextKind\":\"user\",\"userKey\":\"EFGH\",\"creationDate\":1722266324,\"key\":\"random-key\",\"variation\":\"variationA\",\"value\":\"YO\",\"default\":false,\"version\":\"\",\"source\":\"SERVER\"}],\"meta\":{\"openfeature\":true,\"provider\":\"go\"}}",
@@ -181,13 +186,15 @@ func Test_ConfigurationHasChanged(t *testing.T) {
 		}}
 		client := &http.Client{Transport: &mrt}
 		options := controller.GoFeatureFlagApiOptions{
-			Endpoint:   "http://localhost:1031",
-			HTTPClient: client,
+			Endpoint:      "http://localhost:1031",
+			HTTPClient:    client,
+			CustomHeaders: map[string]string{"User-Agent": "goff-sdk-tests"},
 		}
 		g := controller.NewGoFeatureFlagAPI(options)
 		status, err := g.ConfigurationHasChanged()
 		require.NoError(t, err)
 		assert.Equal(t, controller.FlagConfigurationInitialized, status)
+		assert.Equal(t, "goff-sdk-tests", mrt.GetLastRequest().Header.Get("User-Agent"))
 	})
 
 	t.Run("Change in the configuration", func(t *testing.T) {
