@@ -323,9 +323,10 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 		cli := mockClient{}
 		t.Run(tt.name, func(t *testing.T) {
 			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+				Endpoint:       "https://gofeatureflag.org/",
+				EvaluationType: gofeatureflag.EvaluationTypeRemote,
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				DisableCache:   true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -451,9 +452,10 @@ func TestProvider_StringEvaluation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cli := mockClient{}
 			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+				Endpoint:       "https://gofeatureflag.org/",
+				EvaluationType: gofeatureflag.EvaluationTypeRemote,
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				DisableCache:   true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -580,9 +582,10 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cli := mockClient{}
 			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+				Endpoint:       "https://gofeatureflag.org/",
+				EvaluationType: gofeatureflag.EvaluationTypeRemote,
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				DisableCache:   true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -709,9 +712,10 @@ func TestProvider_IntEvaluation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cli := mockClient{}
 			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+				Endpoint:       "https://gofeatureflag.org/",
+				EvaluationType: gofeatureflag.EvaluationTypeRemote,
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				DisableCache:   true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -822,9 +826,10 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cli := mockClient{}
 			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+				Endpoint:       "https://gofeatureflag.org/",
+				EvaluationType: gofeatureflag.EvaluationTypeRemote,
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				DisableCache:   true,
 			}
 			provider, err := gofeatureflag.NewProvider(options)
 			assert.NoError(t, err)
@@ -851,11 +856,12 @@ func TestProvider_Cache(t *testing.T) {
 	t.Run("Call flag multiple times with the same user", func(t *testing.T) {
 		cli := mockClient{}
 		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(cli.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  5 * time.Minute,
-			FlagCacheSize: 5,
+			Endpoint:       "https://gofeatureflag.org/",
+			EvaluationType: gofeatureflag.EvaluationTypeRemote,
+			HTTPClient:     NewMockClient(cli.roundTripFunc),
+			DisableCache:   false,
+			FlagCacheTTL:   5 * time.Minute,
+			FlagCacheSize:  5,
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
@@ -883,11 +889,12 @@ func TestProvider_Cache(t *testing.T) {
 	t.Run("Call flag multiple times with different evaluation context", func(t *testing.T) {
 		cli := mockClient{}
 		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(cli.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  5 * time.Minute,
-			FlagCacheSize: 5,
+			Endpoint:       "https://gofeatureflag.org/",
+			EvaluationType: gofeatureflag.EvaluationTypeRemote,
+			HTTPClient:     NewMockClient(cli.roundTripFunc),
+			DisableCache:   false,
+			FlagCacheTTL:   5 * time.Minute,
+			FlagCacheSize:  5,
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
@@ -919,11 +926,12 @@ func TestProvider_Cache(t *testing.T) {
 	t.Run("Cache fill all cache", func(t *testing.T) {
 		mockedHttpClient := mockClient{}
 		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(mockedHttpClient.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  5 * time.Minute,
-			FlagCacheSize: 2,
+			Endpoint:       "https://gofeatureflag.org/",
+			EvaluationType: gofeatureflag.EvaluationTypeRemote,
+			HTTPClient:     NewMockClient(mockedHttpClient.roundTripFunc),
+			DisableCache:   false,
+			FlagCacheTTL:   5 * time.Minute,
+			FlagCacheSize:  2,
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
@@ -963,11 +971,12 @@ func TestProvider_Cache(t *testing.T) {
 	t.Run("Cache TTL reached", func(t *testing.T) {
 		mockedHttpClient := mockClient{}
 		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(mockedHttpClient.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  500 * time.Millisecond,
-			FlagCacheSize: 200,
+			Endpoint:       "https://gofeatureflag.org/",
+			EvaluationType: gofeatureflag.EvaluationTypeRemote,
+			HTTPClient:     NewMockClient(mockedHttpClient.roundTripFunc),
+			DisableCache:   false,
+			FlagCacheTTL:   500 * time.Millisecond,
+			FlagCacheSize:  200,
 		}
 
 		provider, err := gofeatureflag.NewProvider(options)
@@ -991,6 +1000,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 		cli := mockClient{}
 		options := gofeatureflag.ProviderOptions{
 			Endpoint:             "https://gofeatureflag.org/",
+			EvaluationType:       gofeatureflag.EvaluationTypeRemote,
 			HTTPClient:           NewMockClient(cli.roundTripFunc),
 			DisableCache:         false,
 			DataFlushInterval:    100 * time.Millisecond,
@@ -1034,6 +1044,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 		cli := mockClient{}
 		options := gofeatureflag.ProviderOptions{
 			Endpoint:             "https://gofeatureflag.org/",
+			EvaluationType:       gofeatureflag.EvaluationTypeRemote,
 			HTTPClient:           NewMockClient(cli.roundTripFunc),
 			DisableCache:         false,
 			DataFlushInterval:    100 * time.Millisecond,
@@ -1059,6 +1070,7 @@ func TestProvider_FlagChangePolling(t *testing.T) {
 		cli := mockClient{}
 		options := gofeatureflag.ProviderOptions{
 			Endpoint:                  "https://gofeatureflag.org/",
+			EvaluationType:            gofeatureflag.EvaluationTypeRemote,
 			HTTPClient:                NewMockClient(cli.roundTripFunc),
 			DisableCache:              false,
 			FlagCacheTTL:              10 * time.Minute,
@@ -1124,6 +1136,7 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 			cli := mockClient{}
 			options := gofeatureflag.ProviderOptions{
 				Endpoint:         "https://gofeatureflag.org/",
+				EvaluationType:   gofeatureflag.EvaluationTypeRemote,
 				HTTPClient:       NewMockClient(cli.roundTripFunc),
 				ExporterMetadata: tt.exporterMetadata,
 			}
