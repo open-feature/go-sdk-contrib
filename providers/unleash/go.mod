@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/unleash
 
-go 1.24.0
+go 1.25.7
 
 require (
 	github.com/Unleash/unleash-client-go/v4 v4.1.4
