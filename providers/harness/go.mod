@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/harness
 
-go 1.24.0
+go 1.25.7
 
 require (
 	github.com/harness/ff-golang-server-sdk v0.1.26
