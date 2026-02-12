@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/launchdarkly
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/hooklift/assert v0.1.0
