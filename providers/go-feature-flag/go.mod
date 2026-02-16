@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
 
-go 1.24.6
+go 1.25.0
 
 require (
 	github.com/open-feature/go-sdk v1.17.0

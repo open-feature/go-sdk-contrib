@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/configcat
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/configcat/go-sdk/v9 v9.0.7
