@@ -1,10 +1,18 @@
 package gofeatureflag
 
 import (
-	"fmt"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/goff_error"
 	"net/http"
 	"time"
+
+	gofferror "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/goff_error"
+	ffclient "github.com/thomaspoignant/go-feature-flag"
+)
+
+type EvaluationType string
+
+const (
+	EvaluationTypeInProcess EvaluationType = "InProcess"
+	EvaluationTypeRemote    EvaluationType = "Remote"
 )
 
 // ProviderOptions is the struct containing the provider options you can
@@ -62,11 +70,39 @@ type ProviderOptions struct {
 	// ‼️Important: If you are using a GO Feature Flag relay proxy before version v1.41.0, the information of this
 	// field will not be added to your feature events.
 	ExporterMetadata map[string]any
+
+	// EvaluationType (optional) specifies how flag evaluations are performed.
+	// - EvaluationTypeInProcess: Flags are evaluated locally using the GO Feature Flag module (default)
+	// - EvaluationTypeRemote: Flags are evaluated via OFREP calls to the relay proxy
+	// Default: EvaluationTypeInProcess
+	EvaluationType EvaluationType
+
+	// GOFeatureFlagConfig (optional) is the configuration for in-process evaluation.
+	// Required when EvaluationType is EvaluationTypeInProcess.
+	GOFeatureFlagConfig *ffclient.Config
+
+	// EvaluationFlagList (optional) is the list of flags to evaluate when using in-process evaluation.
+	// If empty, all flags from the configuration will be evaluated.
+	// This is useful if you want to only evaluate a subset of flags.
+	EvaluationFlagList []string
 }
 
 func (o *ProviderOptions) Validation() error {
-	if o.Endpoint == "" {
-		return goff_error.NewInvalidOption(fmt.Sprintf("invalid option: %s", o.Endpoint))
+	if o.EvaluationType == "" {
+		o.EvaluationType = EvaluationTypeInProcess
 	}
+
+	if o.EvaluationType == EvaluationTypeRemote {
+		if o.Endpoint == "" {
+			return gofferror.NewInvalidOption("invalid option: Endpoint is required for Remote evaluation")
+		}
+	}
+
+	if o.EvaluationType == EvaluationTypeInProcess {
+		if o.GOFeatureFlagConfig == nil {
+			return gofferror.NewInvalidOption("invalid option: GOFeatureFlagConfig is required for InProcess evaluation")
+		}
+	}
+
 	return nil
 }
