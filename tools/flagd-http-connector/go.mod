@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/tools/flagd-http-connector
 
-go 1.24.0
+go 1.25.0
 
 require (
 	// github.com/open-feature/flagd/core v0.11.2
