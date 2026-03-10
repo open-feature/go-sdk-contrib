@@ -484,6 +484,16 @@ func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue
 		}
 	}
 
+	if reason == model.FallbackReason {
+		return of.BoolResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DefaultReason,
+				FlagMetadata: metadata,
+			},
+		}
+	}
+
 	return of.BoolResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -509,6 +519,16 @@ func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue 
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
+			},
+		}
+	}
+
+	if reason == model.FallbackReason {
+		return of.StringResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DefaultReason,
+				FlagMetadata: metadata,
 			},
 		}
 	}
@@ -542,6 +562,16 @@ func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue f
 		}
 	}
 
+	if reason == model.FallbackReason {
+		return of.FloatResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DefaultReason,
+				FlagMetadata: metadata,
+			},
+		}
+	}
+
 	return of.FloatResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -571,6 +601,16 @@ func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int
 		}
 	}
 
+	if reason == model.FallbackReason {
+		return of.IntResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DefaultReason,
+				FlagMetadata: metadata,
+			},
+		}
+	}
+
 	return of.IntResolutionDetail{
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
@@ -596,6 +636,16 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
+			},
+		}
+	}
+
+	if reason == model.FallbackReason {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DefaultReason,
+				FlagMetadata: metadata,
 			},
 		}
 	}
