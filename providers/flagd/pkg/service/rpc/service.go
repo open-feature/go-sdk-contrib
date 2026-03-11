@@ -407,7 +407,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		}
 	}
 
-	var value interface{} = defaultValue
+	var value = defaultValue
 	if resp.Value != nil {
 		value = resp.Value.AsMap()
 	}
