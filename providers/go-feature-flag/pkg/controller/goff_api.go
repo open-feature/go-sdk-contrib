@@ -22,6 +22,9 @@ type GoFeatureFlagApiOptions struct {
 	// (This feature is available only if you are using GO Feature Flag relay proxy v1.7.0 or above)
 	// Default: null
 	APIKey string
+	// CustomHeaders (optional) allows setting custom headers for every HTTP request.
+	// Default: null
+	CustomHeaders map[string]string
 	// ExporterMetadata (optional) If we set metadata, it will be sent with every data collection requests along with the events.
 	ExporterMetadata map[string]any
 }
@@ -58,6 +61,7 @@ func (g *GoFeatureFlagAPI) CollectData(events []model.FeatureEvent) error {
 	}
 
 	req.Header.Set(ContentTypeHeader, ApplicationJson)
+	applyHeaders(g.options.CustomHeaders, req)
 	if g.options.APIKey != "" {
 		req.Header.Set(AuthorizationHeader, BearerPrefix+g.options.APIKey)
 	}
@@ -84,6 +88,7 @@ func (g *GoFeatureFlagAPI) ConfigurationHasChanged() (ConfigurationChangeStatus,
 		return ErrorConfigurationChange, err
 	}
 	req.Header.Set(ContentTypeHeader, ApplicationJson)
+	applyHeaders(g.options.CustomHeaders, req)
 	if g.options.APIKey != "" {
 		req.Header.Set(AuthorizationHeader, BearerPrefix+g.options.APIKey)
 	}
@@ -119,4 +124,11 @@ func (g *GoFeatureFlagAPI) getHttpClient() *http.Client {
 		client = DefaultHTTPClient()
 	}
 	return client
+}
+
+// applyHeaders to a request.
+func applyHeaders(headers map[string]string, req *http.Request) {
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 }
