@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v1/evaluationv1connect"
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
+	schemaConnectV2 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v2/evaluationv2connect"
+	schemaV2 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v2"
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
 	"github.com/go-logr/logr"
@@ -51,7 +51,7 @@ type Service struct {
 	retryCounter retryCounter
 	deadlineMs   int
 
-	client      schemaConnectV1.ServiceClient
+	client      schemaConnectV2.ServiceClient
 	cancelHook  context.CancelFunc
 	wg          sync.WaitGroup
 	streamReady chan error // Channel to signal when event stream is connected
@@ -73,13 +73,13 @@ func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, ret
 const ConnectionError = "connection not made"
 
 type resolutionRequestConstraints interface {
-	schemaV1.ResolveBooleanRequest | schemaV1.ResolveStringRequest | schemaV1.ResolveIntRequest |
-		schemaV1.ResolveFloatRequest | schemaV1.ResolveObjectRequest
+	schemaV2.ResolveBooleanRequest | schemaV2.ResolveStringRequest | schemaV2.ResolveIntRequest |
+		schemaV2.ResolveFloatRequest | schemaV2.ResolveObjectRequest
 }
 
 type resolutionResponseConstraints interface {
-	schemaV1.ResolveBooleanResponse | schemaV1.ResolveStringResponse | schemaV1.ResolveIntResponse |
-		schemaV1.ResolveFloatResponse | schemaV1.ResolveObjectResponse
+	schemaV2.ResolveBooleanResponse | schemaV2.ResolveStringResponse | schemaV2.ResolveIntResponse |
+		schemaV2.ResolveFloatResponse | schemaV2.ResolveObjectResponse
 }
 
 func (s *Service) Init() error {
@@ -135,7 +135,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveBooleanRequest, schemaV1.ResolveBooleanResponse](
+	resp, err := resolve[schemaV2.ResolveBooleanRequest, schemaV2.ResolveBooleanResponse](
 		ctx, s.logger, s.deadlineMs, s.client.ResolveBoolean, key, evalCtx,
 	)
 	if err != nil {
@@ -152,12 +152,17 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.BoolResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -194,7 +199,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveStringRequest, schemaV1.ResolveStringResponse](
+	resp, err := resolve[schemaV2.ResolveStringRequest, schemaV2.ResolveStringResponse](
 		ctx, s.logger, s.deadlineMs, s.client.ResolveString, key, evalCtx,
 	)
 	if err != nil {
@@ -211,12 +216,17 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.StringResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -253,7 +263,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveFloatRequest, schemaV1.ResolveFloatResponse](
+	resp, err := resolve[schemaV2.ResolveFloatRequest, schemaV2.ResolveFloatResponse](
 		ctx, s.logger, s.deadlineMs, s.client.ResolveFloat, key, evalCtx,
 	)
 	if err != nil {
@@ -270,12 +280,17 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.FloatResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -312,7 +327,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveIntRequest, schemaV1.ResolveIntResponse](
+	resp, err := resolve[schemaV2.ResolveIntRequest, schemaV2.ResolveIntResponse](
 		ctx, s.logger, s.deadlineMs, s.client.ResolveInt, key, evalCtx,
 	)
 	if err != nil {
@@ -329,12 +344,17 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.IntResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -370,7 +390,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveObjectRequest, schemaV1.ResolveObjectResponse](
+	resp, err := resolve[schemaV2.ResolveObjectRequest, schemaV2.ResolveObjectResponse](
 		ctx, s.logger, s.deadlineMs, s.client.ResolveObject, key, evalCtx,
 	)
 	if err != nil {
@@ -387,12 +407,17 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		}
 	}
 
+	var value interface{} = defaultValue
+	if resp.Value != nil {
+		value = resp.Value.AsMap()
+	}
+
 	detail := of.InterfaceResolutionDetail{
-		Value: resp.Value.AsMap(),
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -525,7 +550,7 @@ func (s *Service) signalStreamReady(err error) {
 
 // streamClient opens the event stream and distribute streams to appropriate handlers.
 func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) error {
-	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
+	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
 	if err != nil {
 		return err
 	}
@@ -570,7 +595,7 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	return nil
 }
 
-func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *schemaV1.EventStreamResponse) {
+func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *schemaV2.EventStreamResponse) {
 	if !s.cache.IsEnabled() {
 		return
 	}
@@ -627,8 +652,16 @@ func (s *Service) sendEvent(ctx context.Context, event of.Event) {
 	}
 }
 
-// newClient is a helper to derive schemaConnectV1.ServiceClient
-func newClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
+// derefString safely dereferences a string pointer, returning empty string if nil
+func derefString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+// newClient is a helper to derive schemaConnectV2.ServiceClient
+func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
 	var tlsConfig *tls.Config
 	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
@@ -667,7 +700,7 @@ func newClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
 		options = append(options, connect.WithInterceptors(interceptor))
 	}
 
-	return schemaConnectV1.NewServiceClient(
+	return schemaConnectV2.NewServiceClient(
 		&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: tlsConfig,
