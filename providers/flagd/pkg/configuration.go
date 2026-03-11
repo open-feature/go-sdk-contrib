@@ -469,7 +469,7 @@ func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) Prov
 	}
 }
 
-// WithContextEnricher allows to add a custom context enricher (BeforeHook)
+// WithContextEnricher allows adding a custom context enricher for the in-process provider.
 func WithContextEnricher(contextEnricher ContextEnricher) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.ContextEnricher = contextEnricher

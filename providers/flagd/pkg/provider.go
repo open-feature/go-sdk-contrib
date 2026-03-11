@@ -184,7 +184,7 @@ func (p *Provider) EventChannel() <-chan of.Event {
 	return p.eventStream
 }
 
-// Hooks flagd provider does not have any hooks, returns empty slice
+// Hooks returns the hooks for the flagd provider.
 func (p *Provider) Hooks() []of.Hook {
 	return p.hooks
 }
