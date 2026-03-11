@@ -349,9 +349,11 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 	// Apply context enricher at sync time if configured
 	if data.SyncContext != nil && i.configuration.ContextEnricher != nil {
 		enriched := i.configuration.ContextEnricher(data.SyncContext.AsMap())
-		i.mtx.Lock()
-		i.enrichedContext = enriched
-		i.mtx.Unlock()
+		func() {
+			i.mtx.Lock()
+			defer i.mtx.Unlock()
+			i.enrichedContext = enriched
+		}()
 	}
 
 	// Stop stale timer - we've successfully received and processed data
