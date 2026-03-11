@@ -3,10 +3,12 @@ package testframework
 import (
 	"context"
 	"fmt"
-	"github.com/docker/go-connections/nat"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/docker/go-connections/nat"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
@@ -30,6 +32,16 @@ type FlagdTestContainer struct {
 
 // NewFlagdContainer creates a new flagd testbed container
 func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*FlagdTestContainer, error) {
+	// Suppress testcontainers output by redirecting stderr to Discard
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	defer func() {
+		os.Stderr = oldStderr
+		w.Close()
+		r.Close()
+	}()
+
 	// Create compose stack
 	composeStack, err := compose.NewDockerCompose(filepath.Join(config.TestbedDir, "docker-compose.yaml"))
 	if err != nil {
