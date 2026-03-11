@@ -478,7 +478,7 @@ func handleError(err error) of.ResolutionError {
 	return of.NewGeneralResolutionError(err.Error())
 }
 
-func (s *Service) ContextValues() map[string]any {
+func (s *Service) ContextValues() *of.EvaluationContext {
 	return nil
 }
 

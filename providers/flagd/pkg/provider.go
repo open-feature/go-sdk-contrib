@@ -81,6 +81,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			RetryBackOffMaxMs:       provider.providerConfiguration.RetryBackoffMaxMs,
 			FatalStatusCodes:        provider.providerConfiguration.FatalStatusCodes,
 			DeadlineMs:              provider.providerConfiguration.DeadlineMs,
+			ContextEnricher:         provider.providerConfiguration.ContextEnricher,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
@@ -90,9 +91,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	}
 
 	if provider.providerConfiguration.Resolver == inProcess {
-		provider.hooks = append(provider.hooks, NewSyncContextHook(func() *of.EvaluationContext {
-			return provider.providerConfiguration.ContextEnricher(service.ContextValues())
-		}))
+		provider.hooks = append(provider.hooks, NewSyncContextHook(service.ContextValues))
 	}
 	provider.service = service
 

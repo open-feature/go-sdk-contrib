@@ -149,6 +149,6 @@ func (mr *MockIServiceMockRecorder) Shutdown() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockIService)(nil).Shutdown))
 }
 
-func (m *MockIService) ContextValues() map[string]any {
+func (m *MockIService) ContextValues() *openfeature.EvaluationContext {
 	return nil
 }

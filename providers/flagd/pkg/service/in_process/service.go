@@ -44,8 +44,8 @@ type InProcess struct {
 	deadlineMs      int
 
 	// Context enrichment
-	contextValues map[string]any
-	mtx           sync.RWMutex
+	enrichedContext *of.EvaluationContext
+	mtx             sync.RWMutex
 
 	// Event handling
 	events    chan of.Event
@@ -121,6 +121,7 @@ type Configuration struct {
 	RetryBackOffMs          int
 	RetryBackOffMaxMs       int
 	FatalStatusCodes        []string
+	ContextEnricher          func(map[string]any) *of.EvaluationContext
 	DeadlineMs              int
 }
 
@@ -345,10 +346,11 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 		return
 	}
 
-	// Store SyncContext values if present
-	if data.SyncContext != nil {
+	// Apply context enricher at sync time if configured
+	if data.SyncContext != nil && i.configuration.ContextEnricher != nil {
+		enriched := i.configuration.ContextEnricher(data.SyncContext.AsMap())
 		i.mtx.Lock()
-		i.contextValues = data.SyncContext.AsMap()
+		i.enrichedContext = enriched
 		i.mtx.Unlock()
 	}
 
@@ -671,20 +673,10 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 	}
 }
 
-func (i *InProcess) ContextValues() map[string]any {
+func (i *InProcess) ContextValues() *of.EvaluationContext {
 	i.mtx.RLock()
 	defer i.mtx.RUnlock()
-
-	if i.contextValues == nil {
-		return nil
-	}
-
-	// Return a copy to prevent mutation of internal state
-	contextValuesCopy := make(map[string]any, len(i.contextValues))
-	for k, v := range i.contextValues {
-		contextValuesCopy[k] = v
-	}
-	return contextValuesCopy
+	return i.enrichedContext
 }
 
 // createSyncProvider creates the appropriate sync provider based on configuration

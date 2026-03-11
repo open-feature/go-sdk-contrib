@@ -66,6 +66,10 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		TLSEnabled:        false,
 		RetryBackOffMaxMs: 5000,
 		RetryBackOffMs:    1000,
+		ContextEnricher: func(m map[string]any) *openfeature.EvaluationContext {
+			ctx := openfeature.NewTargetlessEvaluationContext(m)
+			return &ctx
+		},
 	})
 
 	// when
@@ -135,7 +139,7 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
 
-	if len(inProcessService.contextValues) == 0 {
+	if inProcessService.ContextValues() == nil {
 		t.Fatal("Expected context_values to be present, but got none")
 	}
 }
