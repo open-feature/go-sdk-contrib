@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.2...providers/flagd/v0.4.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* add graceful defaulting to code defaults ([#841](https://github.com/open-feature/go-sdk-contrib/issues/841))
+
+### 🐛 Bug Fixes
+
+* **security:** update module go.opentelemetry.io/otel/sdk to v1.40.0 [security] ([#835](https://github.com/open-feature/go-sdk-contrib/issues/835)) ([55ccbce](https://github.com/open-feature/go-sdk-contrib/commit/55ccbcee82ddcc87fa1099cc31006615570fda3c))
+
+
+### ✨ New Features
+
+* add graceful defaulting to code defaults ([#841](https://github.com/open-feature/go-sdk-contrib/issues/841)) ([b4269b7](https://github.com/open-feature/go-sdk-contrib/commit/b4269b7cfabab90ec6223df34561ff1473208166))
+
 ## [0.3.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.1...providers/flagd/v0.3.2) (2026-01-16)
 
 
