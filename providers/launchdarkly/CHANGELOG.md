@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.5...providers/launchdarkly/v0.1.6) (2025-11-25)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** bump open-feature/go-sdk from v1.11 to v1.15 ([#686](https://github.com/open-feature/go-sdk-contrib/issues/686)) ([ce87102](https://github.com/open-feature/go-sdk-contrib/commit/ce871021d0c45d3c992bb00b33c8b7a8e337e9a3))
+* **deps:** update golang.org/x/exp digest to 7e4ce0a ([#515](https://github.com/open-feature/go-sdk-contrib/issues/515)) ([4a04445](https://github.com/open-feature/go-sdk-contrib/commit/4a04445ee4e327bc0cfe497f0d7bab64697b8b61))
+* **deps:** update golang.org/x/exp digest to b7579e2 ([#679](https://github.com/open-feature/go-sdk-contrib/issues/679)) ([a6372f9](https://github.com/open-feature/go-sdk-contrib/commit/a6372f91b262d2f81b90bfa9e76d722ad480378b))
+* **deps:** update module github.com/launchdarkly/go-server-sdk/v7 to v7.11.0 ([#709](https://github.com/open-feature/go-sdk-contrib/issues/709)) ([ee56e7d](https://github.com/open-feature/go-sdk-contrib/commit/ee56e7d52eaef4901cc39083dd244fd476707899))
+* **deps:** update module github.com/open-feature/go-sdk to v1.15.1 ([#681](https://github.com/open-feature/go-sdk-contrib/issues/681)) ([8fd544f](https://github.com/open-feature/go-sdk-contrib/commit/8fd544ff81fd25eed655a214aa1ae1906a436f0d))
+
+
+### ✨ New Features
+
+* **launchdarkly:** Implement openfeature.StateHandler interface for clean shutdowns ([#758](https://github.com/open-feature/go-sdk-contrib/issues/758)) ([4a38849](https://github.com/open-feature/go-sdk-contrib/commit/4a3884988ed292f4d564dc6754ea97bd4efcd274))
+
 ## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.4...providers/launchdarkly/v0.1.5) (2024-09-10)
 
 

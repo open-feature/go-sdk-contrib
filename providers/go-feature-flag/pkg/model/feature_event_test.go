@@ -13,7 +13,7 @@ func TestNewFeatureEvent(t *testing.T) {
 	type args struct {
 		user      of.EvaluationContext
 		flagKey   string
-		value     interface{}
+		value     any
 		variation string
 		failed    bool
 		version   string
@@ -27,7 +27,7 @@ func TestNewFeatureEvent(t *testing.T) {
 		{
 			name: "anonymous user",
 			args: args{
-				user:      of.NewEvaluationContext("ABCD", map[string]interface{}{"anonymous": true}),
+				user:      of.NewEvaluationContext("ABCD", map[string]any{"anonymous": true}),
 				flagKey:   "random-key",
 				value:     "YO",
 				variation: "Default",
@@ -64,7 +64,7 @@ func TestFeatureEvent_MarshalInterface(t *testing.T) {
 				CreationDate: 1617970547,
 				Key:          "random-key",
 				Variation:    "Default",
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"string": "string",
 					"bool":   true,
 					"float":  1.23,

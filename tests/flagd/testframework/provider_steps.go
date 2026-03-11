@@ -27,6 +27,9 @@ func InitializeProviderSteps(ctx *godog.ScenarioContext) {
 	// Generic provider step definition - accepts any provider type including "stable"
 	ctx.Step(`^a (\w+) flagd provider$`,
 		withState1Arg((*TestState).createSpecializedFlagdProvider))
+
+	ctx.Step(`^the client should be in (\w+) state$`,
+		withState1Arg((*TestState).assertClientState))
 }
 
 // State methods - these now expect context as first parameter after state
@@ -40,6 +43,11 @@ func (s *TestState) createProviderInstance() error {
 	var provider openfeature.FeatureProvider
 	var err error
 
+	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+		Option:    "RetryGracePeriod",
+		ValueType: "Integer",
+		Value:     "1",
+	})
 	switch s.ProviderType {
 	case RPC:
 		if RPCProviderSupplier == nil {
@@ -82,13 +90,13 @@ func (s *TestState) createProviderInstance() error {
 }
 
 // waitForProviderReady waits for the provider to be in READY state
-func (s *TestState) waitForProviderReady(timeout time.Duration) error {
+func (s *TestState) waitForProviderReady(ctx context.Context, timeout time.Duration) error {
 	if s.Client == nil {
 		return fmt.Errorf("no client available to wait for provider ready")
 	}
 
 	// Use generic event handler infrastructure
-	if err := s.addGenericEventHandler(context.Background(), "ready"); err != nil {
+	if err := s.addGenericEventHandler(ctx, "ready"); err != nil {
 		return fmt.Errorf("failed to add ready event handler: %w", err)
 	}
 
@@ -104,6 +112,13 @@ func (s *TestState) simulateConnectionLoss(ctx context.Context, seconds int) err
 
 	// Use testbed launchpad to restart flagd after delay
 	return s.Container.Restart(seconds)
+}
+
+func (s *TestState) assertClientState(ctx context.Context, state string) error {
+	if string(s.Client.State()) == strings.ToUpper(state) {
+		return nil
+	}
+	return fmt.Errorf("expected client state %s but got %s", state, s.Client.State())
 }
 
 // createSpecializedFlagdProvider creates specialized flagd providers based on type
@@ -123,14 +138,14 @@ func (s *TestState) createSpecializedFlagdProvider(ctx context.Context, provider
 		return fmt.Errorf("failed to create instance for %s provider: %w", providerType, err)
 	}
 
-	if providerType != "unavailable" {
+	if providerType != "unavailable" && providerType != "forbidden" {
 		if s.ProviderType == RPC {
 			// Small delay to allow flagd server to fully load flags after connection
 			time.Sleep(50 * time.Millisecond)
 		}
 
 		// Wait for provider to be ready
-		return s.waitForProviderReady(15 * time.Second)
+		return s.waitForProviderReady(ctx, 15*time.Second)
 	}
 	return nil
 }
@@ -145,6 +160,8 @@ func (s *TestState) applySpecializedConfig(providerType string) error {
 		return nil
 	case "unavailable":
 		return s.configureUnavailableProvider()
+	case "forbidden":
+		return s.configureForbiddenProvider()
 	case "socket":
 		return s.configureSocketProvider()
 	case "ssl", "tls":
@@ -165,6 +182,12 @@ func (s *TestState) configureUnavailableProvider() error {
 	s.addProviderOption("host", "String", "127.0.0.1")
 	s.addProviderOption("deadlineMs", "Integer", "1000") // Short timeout for faster failure
 	s.addProviderOption("offlineFlagSourcePath", "String", "not-existing")
+	return nil
+}
+
+func (s *TestState) configureForbiddenProvider() error {
+	// Set an Envoy port which always responds with forbidden
+	s.addProviderOption("port", "Integer", "9212")
 	return nil
 }
 

@@ -10,18 +10,18 @@ type StoredFlag struct {
 }
 
 type Variant struct {
-	Criteria     []Criteria  `json:"criteria"`
-	TargetingKey string      `json:"targetingKey"`
-	Value        interface{} `json:"value"`
-	Name         string      `json:"name"`
+	Criteria     []Criteria `json:"criteria"`
+	TargetingKey string     `json:"targetingKey"`
+	Value        any        `json:"value"`
+	Name         string     `json:"name"`
 }
 
 type Criteria struct {
-	Key   string      `json:"key"`
-	Value interface{} `json:"value"`
+	Key   string `json:"key"`
+	Value any    `json:"value"`
 }
 
-func (f *StoredFlag) evaluate(evalCtx map[string]interface{}) (string, openfeature.Reason, interface{}, error) {
+func (f *StoredFlag) evaluate(evalCtx map[string]any) (string, openfeature.Reason, any, error) {
 	var defaultVariant *Variant
 	for _, variant := range f.Variants {
 		if variant.Name == f.DefaultVariant {

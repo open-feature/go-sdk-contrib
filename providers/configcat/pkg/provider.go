@@ -20,7 +20,7 @@ const (
 )
 
 type userAttributes struct {
-	attributes map[string]interface{}
+	attributes map[string]any
 }
 
 type Client interface {
@@ -86,7 +86,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 }
 
 // ObjectEvaluation attempts to parse a string feature flag value as JSON.
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	evaluation := p.client.GetStringValueDetails(flag, "", toUserData(evalCtx))
 	if evaluation.Data.IsDefaultValue || evaluation.Data.Error != nil {
 		// we evaluated with a fake default value, so we
@@ -98,7 +98,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 
 	// Attempt to unmarshal the string value as if it's JSON
-	var object map[string]interface{}
+	var object map[string]any
 	err := json.Unmarshal([]byte(evaluation.Value), &object)
 	if err != nil {
 		return openfeature.InterfaceResolutionDetail{
@@ -118,7 +118,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func (u *userAttributes) GetAttribute(key string) interface{} {
+func (u *userAttributes) GetAttribute(key string) any {
 	return u.attributes[key]
 }
 
@@ -127,7 +127,7 @@ func toUserData(evalCtx openfeature.FlattenedContext) sdk.User {
 		return nil
 	}
 
-	attributes := make(map[string]interface{}, len(evalCtx))
+	attributes := make(map[string]any, len(evalCtx))
 	for key, val := range evalCtx {
 		switch key {
 		case IdentifierKey:

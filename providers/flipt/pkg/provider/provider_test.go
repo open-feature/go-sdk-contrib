@@ -1,9 +1,9 @@
 package flipt
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"testing"
 
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -58,7 +58,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
 
-			actual := p.BooleanEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
+			actual := p.BooleanEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected, actual)
 		})
@@ -186,7 +186,7 @@ func TestStringEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc))
 
-			actual := p.StringEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
+			actual := p.StringEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected, actual)
 		})
@@ -319,7 +319,7 @@ func TestFloatEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
 
-			actual := p.FloatEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
+			actual := p.FloatEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 			assert.Equal(t, tt.expected, actual)
 		})
 	}
@@ -465,7 +465,7 @@ func TestIntEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc))
 
-			actual := p.IntEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
+			actual := p.IntEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected, actual)
 		})
@@ -667,9 +667,15 @@ func TestObjectEvaluation(t *testing.T) {
 
 			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
 
-			actual := p.ObjectEvaluation(context.Background(), tt.flagKey, tt.defaultValue, map[string]any{})
+			actual := p.ObjectEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 
 			assert.Equal(t, tt.expected.Value, actual.Value)
 		})
 	}
+}
+
+func TestWithHTTPClientOption(t *testing.T) {
+	client := &http.Client{}
+	p := NewProvider(WithHTTPClient(client))
+	assert.Equal(t, client, p.config.httpClient)
 }

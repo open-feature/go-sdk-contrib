@@ -30,7 +30,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			options: controller.GoFeatureFlagApiOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "",
-				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
+				ExporterMetadata: map[string]any{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
 				{
@@ -77,7 +77,7 @@ func Test_CollectDataAPI(t *testing.T) {
 			options: controller.GoFeatureFlagApiOptions{
 				Endpoint:         "http://localhost:1031",
 				APIKey:           "my-key",
-				ExporterMetadata: map[string]interface{}{"openfeature": true, "provider": "go"},
+				ExporterMetadata: map[string]any{"openfeature": true, "provider": "go"},
 			},
 			events: []model.FeatureEvent{
 				{

@@ -23,7 +23,7 @@ type GoFeatureFlagApiOptions struct {
 	// Default: null
 	APIKey string
 	// ExporterMetadata (optional) If we set metadata, it will be sent with every data collection requests along with the events.
-	ExporterMetadata map[string]interface{}
+	ExporterMetadata map[string]any
 }
 
 type GoFeatureFlagAPI struct {

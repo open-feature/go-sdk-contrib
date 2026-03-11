@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
+	schemaV2 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v2"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -71,7 +71,7 @@ func TestConfigChange(t *testing.T) {
 		// when
 		go func() {
 			ctx := context.Background()
-			service.handleConfigurationChangeEvent(ctx, &schemaV1.EventStreamResponse{
+			service.handleConfigurationChangeEvent(ctx, &schemaV2.EventStreamResponse{
 				Data: stData,
 			})
 		}()
@@ -96,7 +96,7 @@ func TestConfigChange(t *testing.T) {
 		// when
 		go func() {
 			ctx := context.Background()
-			service.handleConfigurationChangeEvent(ctx, &schemaV1.EventStreamResponse{
+			service.handleConfigurationChangeEvent(ctx, &schemaV2.EventStreamResponse{
 				Data: stData,
 			})
 		}()

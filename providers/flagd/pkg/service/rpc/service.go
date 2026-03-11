@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v1/evaluationv1connect"
-	schemaV1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
+	schemaConnectV2 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v2/evaluationv2connect"
+	schemaV2 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v2"
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
 	"github.com/go-logr/logr"
@@ -20,7 +20,6 @@ import (
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
-	"github.com/open-feature/go-sdk/openfeature"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -40,6 +39,7 @@ type Configuration struct {
 	SocketPath      string
 	TLSEnabled      bool
 	OtelInterceptor bool
+	DeadlineMs      int
 }
 
 // Service handles the client side  interface for the flagd server
@@ -49,8 +49,9 @@ type Service struct {
 	events       chan of.Event
 	logger       logr.Logger
 	retryCounter retryCounter
+	deadlineMs   int
 
-	client      schemaConnectV1.ServiceClient
+	client      schemaConnectV2.ServiceClient
 	cancelHook  context.CancelFunc
 	wg          sync.WaitGroup
 	streamReady chan error // Channel to signal when event stream is connected
@@ -65,19 +66,20 @@ func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, ret
 		logger:       logger,
 		retryCounter: newRetryCounter(retries),
 		streamReady:  make(chan error, 1),
+		deadlineMs:   cfg.DeadlineMs,
 	}
 }
 
 const ConnectionError = "connection not made"
 
 type resolutionRequestConstraints interface {
-	schemaV1.ResolveBooleanRequest | schemaV1.ResolveStringRequest | schemaV1.ResolveIntRequest |
-		schemaV1.ResolveFloatRequest | schemaV1.ResolveObjectRequest
+	schemaV2.ResolveBooleanRequest | schemaV2.ResolveStringRequest | schemaV2.ResolveIntRequest |
+		schemaV2.ResolveFloatRequest | schemaV2.ResolveObjectRequest
 }
 
 type resolutionResponseConstraints interface {
-	schemaV1.ResolveBooleanResponse | schemaV1.ResolveStringResponse | schemaV1.ResolveIntResponse |
-		schemaV1.ResolveFloatResponse | schemaV1.ResolveObjectResponse
+	schemaV2.ResolveBooleanResponse | schemaV2.ResolveStringResponse | schemaV2.ResolveIntResponse |
+		schemaV2.ResolveFloatResponse | schemaV2.ResolveObjectResponse
 }
 
 func (s *Service) Init() error {
@@ -115,7 +117,7 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.BoolResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.BoolResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -133,8 +135,8 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveBooleanRequest, schemaV1.ResolveBooleanResponse](
-		ctx, s.logger, s.client.ResolveBoolean, key, evalCtx,
+	resp, err := resolve[schemaV2.ResolveBooleanRequest, schemaV2.ResolveBooleanResponse](
+		ctx, s.logger, s.deadlineMs, s.client.ResolveBoolean, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -150,12 +152,17 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.BoolResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -174,7 +181,7 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.StringResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.StringResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -192,8 +199,8 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveStringRequest, schemaV1.ResolveStringResponse](
-		ctx, s.logger, s.client.ResolveString, key, evalCtx,
+	resp, err := resolve[schemaV2.ResolveStringRequest, schemaV2.ResolveStringResponse](
+		ctx, s.logger, s.deadlineMs, s.client.ResolveString, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -209,12 +216,17 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.StringResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -233,7 +245,7 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.FloatResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.FloatResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -251,8 +263,8 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveFloatRequest, schemaV1.ResolveFloatResponse](
-		ctx, s.logger, s.client.ResolveFloat, key, evalCtx,
+	resp, err := resolve[schemaV2.ResolveFloatRequest, schemaV2.ResolveFloatResponse](
+		ctx, s.logger, s.deadlineMs, s.client.ResolveFloat, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -268,12 +280,17 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.FloatResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -292,7 +309,7 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.IntResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.IntResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -310,8 +327,8 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveIntRequest, schemaV1.ResolveIntResponse](
-		ctx, s.logger, s.client.ResolveInt, key, evalCtx,
+	resp, err := resolve[schemaV2.ResolveIntRequest, schemaV2.ResolveIntResponse](
+		ctx, s.logger, s.deadlineMs, s.client.ResolveInt, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -327,12 +344,17 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 		}
 	}
 
+	value := defaultValue
+	if resp.Value != nil {
+		value = *resp.Value
+	}
+
 	detail := of.IntResolutionDetail{
-		Value: resp.Value,
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -350,7 +372,7 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	if s.cache.IsEnabled() {
 		fromCache, ok := s.cache.GetCache().Get(key)
 		if ok {
-			fromCacheResDetail, ok := fromCache.(openfeature.InterfaceResolutionDetail)
+			fromCacheResDetail, ok := fromCache.(of.InterfaceResolutionDetail)
 			if ok {
 				fromCacheResDetail.Reason = ReasonCached
 				return fromCacheResDetail
@@ -368,8 +390,8 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	}
 
 	var e of.ResolutionError
-	resp, err := resolve[schemaV1.ResolveObjectRequest, schemaV1.ResolveObjectResponse](
-		ctx, s.logger, s.client.ResolveObject, key, evalCtx,
+	resp, err := resolve[schemaV2.ResolveObjectRequest, schemaV2.ResolveObjectResponse](
+		ctx, s.logger, s.deadlineMs, s.client.ResolveObject, key, evalCtx,
 	)
 	if err != nil {
 		if !errors.As(err, &e) {
@@ -385,12 +407,17 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		}
 	}
 
+	var value = defaultValue
+	if resp.Value != nil {
+		value = resp.Value.AsMap()
+	}
+
 	detail := of.InterfaceResolutionDetail{
-		Value: resp.Value.AsMap(),
+		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
 			Reason:          of.Reason(resp.Reason),
-			Variant:         resp.Variant,
+			Variant:         derefString(resp.Variant),
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -407,14 +434,21 @@ func (s *Service) isInitialised() bool {
 }
 
 func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraints](
-	ctx context.Context, logger logr.Logger,
+	ctx context.Context, logger logr.Logger, deadlineMs int,
 	resolver func(context.Context, *connect.Request[req]) (*connect.Response[resp], error),
 	flagKey string, evalCtx map[string]interface{},
 ) (*resp, error) {
+	// Apply deadline to unary call if specified
+	if deadlineMs > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(deadlineMs)*time.Millisecond)
+		defer cancel()
+	}
+
 	evalCtxF, err := structpb.NewStruct(evalCtx)
 	if err != nil {
 		logger.Error(err, "struct from evaluation context")
-		return nil, openfeature.NewParseErrorResolutionError(err.Error())
+		return nil, of.NewParseErrorResolutionError(err.Error())
 	}
 
 	res, err := resolver(ctx, connect.NewRequest(&req{
@@ -428,20 +462,20 @@ func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraint
 	return res.Msg, nil
 }
 
-func handleError(err error) openfeature.ResolutionError {
+func handleError(err error) of.ResolutionError {
 	connectErr := &connect.Error{}
 	errors.As(err, &connectErr)
 	switch connectErr.Code() {
 	case connect.CodeUnavailable:
-		return openfeature.NewProviderNotReadyResolutionError(ConnectionError)
+		return of.NewProviderNotReadyResolutionError(ConnectionError)
 	case connect.CodeNotFound:
-		return openfeature.NewFlagNotFoundResolutionError(err.Error())
+		return of.NewFlagNotFoundResolutionError(err.Error())
 	case connect.CodeInvalidArgument:
-		return openfeature.NewTypeMismatchResolutionError(err.Error())
+		return of.NewTypeMismatchResolutionError(err.Error())
 	case connect.CodeDataLoss:
-		return openfeature.NewParseErrorResolutionError(err.Error())
+		return of.NewParseErrorResolutionError(err.Error())
 	}
-	return openfeature.NewGeneralResolutionError(err.Error())
+	return of.NewGeneralResolutionError(err.Error())
 }
 
 func (s *Service) ContextValues() map[string]any {
@@ -457,7 +491,7 @@ func (s *Service) EventChannel() <-chan of.Event {
 // If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
 	streamReadySignaled := false
-	
+
 	// wraps connection with retry attempts
 	for s.retryCounter.retry() {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
@@ -493,12 +527,12 @@ func (s *Service) startEventStream(ctx context.Context) {
 	// retry attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
 	connErr := fmt.Errorf("grpc connection establishment failed")
-	
+
 	// Signal error if we haven't signaled success yet
 	if !streamReadySignaled {
 		s.signalStreamReady(connErr)
 	}
-	
+
 	s.sendEvent(ctx, of.Event{
 		ProviderName: "flagd",
 		EventType:    of.ProviderError,
@@ -520,13 +554,13 @@ func (s *Service) signalStreamReady(err error) {
 
 // streamClient opens the event stream and distribute streams to appropriate handlers.
 func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) error {
-	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV1.EventStreamRequest{}))
+	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
 	if err != nil {
 		return err
 	}
 
 	s.logger.V(logger.Info).Info("connected to event stream")
-	
+
 	// Signal successful connection to Init() - stream is now ready
 	if !*streamReadySignaled {
 		s.signalStreamReady(nil) // nil means success
@@ -552,13 +586,20 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	if err := stream.Err(); err != nil {
+		s.sendEvent(ctx, of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderError,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message: fmt.Sprintf("stream error: %s", err.Error()),
+			},
+		})
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *schemaV1.EventStreamResponse) {
+func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *schemaV2.EventStreamResponse) {
 	if !s.cache.IsEnabled() {
 		return
 	}
@@ -615,8 +656,16 @@ func (s *Service) sendEvent(ctx context.Context, event of.Event) {
 	}
 }
 
-// newClient is a helper to derive schemaConnectV1.ServiceClient
-func newClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
+// derefString safely dereferences a string pointer, returning empty string if nil
+func derefString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+// newClient is a helper to derive schemaConnectV2.ServiceClient
+func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
 	var tlsConfig *tls.Config
 	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
@@ -655,7 +704,7 @@ func newClient(cfg Configuration) (schemaConnectV1.ServiceClient, error) {
 		options = append(options, connect.WithInterceptors(interceptor))
 	}
 
-	return schemaConnectV1.NewServiceClient(
+	return schemaConnectV2.NewServiceClient(
 		&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: tlsConfig,

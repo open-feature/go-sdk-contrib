@@ -3,10 +3,12 @@ package testframework
 import (
 	"context"
 	"fmt"
-	"github.com/docker/go-connections/nat"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/docker/go-connections/nat"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
@@ -23,12 +25,23 @@ type FlagdTestContainer struct {
 	launchpadPort int
 	healthPort    int
 	envoyPort     int
+	forbiddenPort int
 }
 
 // Container config type moved to types.go
 
 // NewFlagdContainer creates a new flagd testbed container
 func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*FlagdTestContainer, error) {
+	// Suppress testcontainers output by redirecting stderr to Discard
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	defer func() {
+		os.Stderr = oldStderr
+		w.Close()
+		r.Close()
+	}()
+
 	// Create compose stack
 	composeStack, err := compose.NewDockerCompose(filepath.Join(config.TestbedDir, "docker-compose.yaml"))
 	if err != nil {
@@ -87,6 +100,10 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 	if err != nil {
 		return nil, err
 	}
+	forbiddenPort, err := getMappedPort(ctx, composeStack, envoy, "9212")
+	if err != nil {
+		return nil, err
+	}
 
 	flagdContainer := &FlagdTestContainer{
 		container:     composeStack,
@@ -96,6 +113,7 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 		healthPort:    healthPort,
 		envoyPort:     envoyPort,
 		launchpadURL:  fmt.Sprintf("http://%s:%d", host, launchpadPort),
+		forbiddenPort: forbiddenPort,
 	}
 
 	// Additional wait time if configured

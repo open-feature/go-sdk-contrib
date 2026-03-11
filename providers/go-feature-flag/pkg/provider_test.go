@@ -79,7 +79,7 @@ func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 
 	m.callCount++
 	mockPath := "../testutils/mock_responses/%s.json"
-	flagName := strings.Replace(req.URL.Path, "/ofrep/v1/evaluate/flags/", "", -1)
+	flagName := strings.ReplaceAll(req.URL.Path, "/ofrep/v1/evaluate/flags/", "")
 
 	if flagName == "unauthorized" {
 		return &http.Response{
@@ -111,7 +111,7 @@ func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 func defaultEvaluationCtx() of.EvaluationContext {
 	return of.NewEvaluationContext(
 		"d45e303a-38c2-11ed-a261-0242ac120002",
-		map[string]interface{}{
+		map[string]any{
 			"email":        "john.doe@gofeatureflag.org",
 			"firstname":    "john",
 			"lastname":     "doe",
@@ -120,7 +120,7 @@ func defaultEvaluationCtx() of.EvaluationContext {
 			"rate":         3.14,
 			"age":          30,
 			"admin":        true,
-			"company_info": map[string]interface{}{
+			"company_info": map[string]any{
 				"name": "my_company",
 				"size": 120,
 			},
@@ -159,7 +159,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.GeneralCode,
 						ErrorMessage: "authentication/authorization error",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -181,7 +181,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       of.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{
+						FlagMetadata: map[string]any{
 							"gofeatureflag_cacheable": true,
 						},
 					},
@@ -205,7 +205,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -227,7 +227,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.TypeMismatchCode,
 						ErrorMessage: "resolved value CC0000 is not of boolean type",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -249,7 +249,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -271,7 +271,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       "CUSTOM_REASON",
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -292,7 +292,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.TargetingKeyMissingCode,
 						ErrorMessage: "no targetingKey provided in the evaluation context",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -313,7 +313,7 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.ParseErrorCode,
 						ErrorMessage: "error parsing the response: unexpected end of JSON input",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -375,7 +375,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 						Reason:       of.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -397,7 +397,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -419,7 +419,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.TypeMismatchCode,
 						ErrorMessage: "resolved value true is not of string type",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -441,7 +441,7 @@ func TestProvider_StringEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -504,7 +504,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 						Reason:       of.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -526,7 +526,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -548,7 +548,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.TypeMismatchCode,
 						ErrorMessage: "resolved value true is not of float type",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -570,7 +570,7 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -633,7 +633,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 						Reason:       of.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -655,7 +655,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -677,7 +677,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.TypeMismatchCode,
 						ErrorMessage: "resolved value true is not of integer type",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -699,7 +699,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -737,7 +737,7 @@ func TestProvider_IntEvaluation(t *testing.T) {
 func TestProvider_ObjectEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
-		defaultValue interface{}
+		defaultValue any
 		evalCtx      of.EvaluationContext
 	}
 	tests := []struct {
@@ -753,7 +753,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				evalCtx:      defaultEvaluationCtx(),
 			},
 			want: of.InterfaceEvaluationDetails{
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"test":  "test1",
 					"test2": false,
 					"test3": 123.3,
@@ -768,7 +768,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 						Reason:       of.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -790,7 +790,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 						Reason:       of.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -812,7 +812,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 						Reason:       of.ErrorReason,
 						ErrorCode:    of.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
-						FlagMetadata: map[string]interface{}{},
+						FlagMetadata: map[string]any{},
 					},
 				},
 			},
@@ -897,10 +897,10 @@ func TestProvider_Cache(t *testing.T) {
 		err = of.SetProviderAndWait(provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
-		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
-		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
-		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]interface{}{})
-		ctx4 := of.NewEvaluationContext("5d1d5245-23fd-466e-96a1-101e5088396e", map[string]interface{}{})
+		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
+		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]any{})
+		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]any{})
+		ctx4 := of.NewEvaluationContext("5d1d5245-23fd-466e-96a1-101e5088396e", map[string]any{})
 		got1, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
 		assert.NoError(t, err)
 		assert.NotEqual(t, got1.Reason, of.CachedReason)
@@ -933,9 +933,9 @@ func TestProvider_Cache(t *testing.T) {
 		err = of.SetProviderAndWait(provider)
 		assert.NoError(t, err)
 		client := of.NewClient("test-app")
-		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]interface{}{})
-		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]interface{}{})
-		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]interface{}{})
+		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
+		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]any{})
+		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]any{})
 		r, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
 		assert.NoError(t, err)
 		assert.Equal(t, of.TargetingMatchReason, r.Reason)
@@ -995,7 +995,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 			DisableCache:         false,
 			DataFlushInterval:    100 * time.Millisecond,
 			DisableDataCollector: false,
-			ExporterMetadata:     map[string]interface{}{"toto": 123, "tata": "titi"},
+			ExporterMetadata:     map[string]any{"toto": 123, "tata": "titi"},
 		}
 		provider, err := gofeatureflag.NewProvider(options)
 		defer provider.Shutdown()
@@ -1022,7 +1022,7 @@ func TestProvider_DataCollectorHook(t *testing.T) {
 		var dataCollectorRequest model.DataCollectorRequest
 		err = json.Unmarshal([]byte(cli.collectorRequests[0]), &dataCollectorRequest)
 		assert.NoError(t, err)
-		assert.Equal(t, map[string]interface{}{
+		assert.Equal(t, map[string]any{
 			"openfeature": true,
 			"provider":    "go",
 			"tata":        "titi",
@@ -1097,11 +1097,11 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 		name             string
 		want             string
 		evalCtx          of.EvaluationContext
-		exporterMetadata map[string]interface{}
+		exporterMetadata map[string]any
 	}{
 		{
 			name:             "should add the metadata to the evaluation context",
-			exporterMetadata: map[string]interface{}{"toto": 123, "tata": "titi"},
+			exporterMetadata: map[string]any{"toto": 123, "tata": "titi"},
 			evalCtx:          defaultEvaluationCtx(),
 			want:             `{"context":{"admin":true,"age":30,"anonymous":false,"company_info":{"name":"my_company","size":120},"email":"john.doe@gofeatureflag.org","firstname":"john","gofeatureflag":{"exporterMetadata":{"openfeature":true,"provider":"go","tata":"titi","toto":123}},"labels":["pro","beta"],"lastname":"doe","professional":true,"rate":3.14,"targetingKey":"d45e303a-38c2-11ed-a261-0242ac120002"}}`,
 		},
@@ -1113,8 +1113,8 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 		},
 		{
 			name:             "should not remove other gofeatureflag specific metadata",
-			exporterMetadata: map[string]interface{}{"toto": 123, "tata": "titi"},
-			evalCtx:          of.NewEvaluationContext("d45e303a-38c2-11ed-a261-0242ac120002", map[string]interface{}{"age": 30, "gofeatureflag": map[string]interface{}{"flags": []string{"flag1", "flag2"}}}),
+			exporterMetadata: map[string]any{"toto": 123, "tata": "titi"},
+			evalCtx:          of.NewEvaluationContext("d45e303a-38c2-11ed-a261-0242ac120002", map[string]any{"age": 30, "gofeatureflag": map[string]any{"flags": []string{"flag1", "flag2"}}}),
 			want:             `{"context":{"age":30,"gofeatureflag":{"flags":["flag1","flag2"], "exporterMetadata":{"openfeature":true,"provider":"go","tata":"titi","toto":123}}, "targetingKey":"d45e303a-38c2-11ed-a261-0242ac120002"}}`,
 		},
 	}

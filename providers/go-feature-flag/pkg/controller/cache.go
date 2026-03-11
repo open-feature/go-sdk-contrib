@@ -113,7 +113,7 @@ func (c *Cache) GetInterface(flag string, evalCtx of.FlattenedContext) (*of.Inte
 }
 
 // Set sets the value of the flag in the cache.
-func (c *Cache) Set(flag string, evalCtx of.FlattenedContext, value interface{}) error {
+func (c *Cache) Set(flag string, evalCtx of.FlattenedContext, value any) error {
 	if c.disabled || c.internalCache == nil {
 		return nil
 	}

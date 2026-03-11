@@ -183,7 +183,7 @@ func (s *TestState) waitForEvents(eventType string, maxWait time.Duration) error
 	}
 }
 
-// assertEventOccurred checks if a specific event occurred (with immediate timeout)
+// assertEventOccurred checks if a specific event occurred
 func (s *TestState) assertEventOccurred(eventType string) error {
 	return s.waitForEvents(eventType, 10*time.Second)
 }

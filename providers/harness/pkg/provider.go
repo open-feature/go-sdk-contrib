@@ -43,11 +43,11 @@ func (p *Provider) Status() of.State {
 }
 
 func (p *Provider) Shutdown() {
-	p.harnessClient.Close()
+	_ = p.harnessClient.Close()
 	p.status = of.NotReadyState
 }
 
-// provider does not have any hooks, returns empty slice
+// Hooks returns empty slices as provider does not have any
 func (p *Provider) Hooks() []of.Hook {
 	return []of.Hook{}
 }
@@ -248,7 +248,7 @@ func verifyStateString(p *Provider, defaultValue string) (bool, of.StringResolut
 	return false, of.StringResolutionDetail{}
 }
 
-func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue interface{}, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
+func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
 	shouldReturn, returnValue := verifyStateObject(p, defaultValue)
 	if shouldReturn {
 		return returnValue
@@ -283,7 +283,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 	}
 }
 
-func verifyStateObject(p *Provider, defaultValue interface{}) (bool, of.InterfaceResolutionDetail) {
+func verifyStateObject(p *Provider, defaultValue any) (bool, of.InterfaceResolutionDetail) {
 	if p.status != of.ReadyState {
 		if p.status == of.NotReadyState {
 			return true, of.InterfaceResolutionDetail{
@@ -313,7 +313,7 @@ func toHarnessTarget(evalCtx of.FlattenedContext) (*evaluation.Target, error) {
 
 	harnessTarget := &evaluation.Target{}
 
-	custom := make(map[string]interface{})
+	custom := make(map[string]any)
 	for key, origVal := range evalCtx {
 		val, ok := toStr(origVal)
 		if !ok {
@@ -334,7 +334,7 @@ func toHarnessTarget(evalCtx of.FlattenedContext) (*evaluation.Target, error) {
 	return harnessTarget, nil
 }
 
-func toStr(val interface{}) (string, bool) {
+func toStr(val any) (string, bool) {
 	switch v := val.(type) {
 	case string:
 		return v, true

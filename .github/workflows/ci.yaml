@@ -10,7 +10,7 @@ on:
       - main
 
 env:
-  GO_VERSION: '1.24'
+  GO_VERSION: '1.25.8'
 
 jobs:
   lint:
@@ -38,6 +38,8 @@ jobs:
           key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
       - name: Run workspace init
         run: make workspace-init
+      - name: Run Vulncheck
+        run: make vulncheck
       - name: Run linter
         run: make lint
 

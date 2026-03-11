@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.7.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.6.0...tests/flagd/v1.7.0) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** configurable retry backoff after each sync cycle error ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#806](https://github.com/open-feature/go-sdk-contrib/issues/806)) ([0791fa1](https://github.com/open-feature/go-sdk-contrib/commit/0791fa182c376bfc7c5109403e5f99799a64c87e))
+* **flagd:** do not retry for certain status codes ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#799](https://github.com/open-feature/go-sdk-contrib/issues/799)) ([e01a99e](https://github.com/open-feature/go-sdk-contrib/commit/e01a99ed8a0b54a2c09ed9c2aa4f5cd658769e78))
+
+
+### ✨ New Features
+
+* **go-feature-flag-inprocess:** update go-feature-flag dep to v1.49.0 ([#821](https://github.com/open-feature/go-sdk-contrib/issues/821)) ([6fa5a89](https://github.com/open-feature/go-sdk-contrib/commit/6fa5a8914f838db8507eea4d19d6a07521184afc))
+
+## [1.6.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.5.1...tests/flagd/v1.6.0) (2025-11-27)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/docker/compose/v2 to v2.40.2 [security] ([#785](https://github.com/open-feature/go-sdk-contrib/issues/785)) ([805823f](https://github.com/open-feature/go-sdk-contrib/commit/805823f5ded2d81359fd7663804beb50f30d52f7))
+
+
+### ✨ New Features
+
+* **flagd:** add eventing with graceperiod for inprocess resolver ([#744](https://github.com/open-feature/go-sdk-contrib/issues/744)) ([a9fabb6](https://github.com/open-feature/go-sdk-contrib/commit/a9fabb623d22b6a1ef888722ffe68686031309b8))
+
+## [1.5.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.5.0...tests/flagd/v1.5.1) (2025-10-30)
+
+
+### 🐛 Bug Fixes
+
+* add missing configuration for tests ([#738](https://github.com/open-feature/go-sdk-contrib/issues/738)) ([8f21b1f](https://github.com/open-feature/go-sdk-contrib/commit/8f21b1fc1452649149a493caeb100f01bdca7cd9))
+* remove custom tag (leftover) ([#740](https://github.com/open-feature/go-sdk-contrib/issues/740)) ([49ba246](https://github.com/open-feature/go-sdk-contrib/commit/49ba246cac6a13ff76a7cda4a6346982064c380e))
+
 ## [1.5.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.4.2...tests/flagd/v1.5.0) (2025-09-05)
 
 

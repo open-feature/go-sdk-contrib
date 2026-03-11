@@ -275,7 +275,7 @@ func TestIntEvaluation(t *testing.T) {
 		expectederrorString string
 		reason              of.Reason
 		expectedErrorCode   of.ErrorCode
-		evalCtx             map[string]interface{}
+		evalCtx             map[string]any
 	}{
 		{
 			name:                "Should resolve a valid flag with Static reason",
@@ -316,7 +316,7 @@ func TestIntEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 			},
 		},
@@ -327,8 +327,8 @@ func TestIntEvaluation(t *testing.T) {
 			expectederrorString: "flagsmith: targeting key is not a string",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: map[string]interface{}{},
+			evalCtx: map[string]any{
+				of.TargetingKey: map[string]any{},
 			},
 		},
 		{
@@ -338,7 +338,7 @@ func TestIntEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 				TraitKey:        TraitValue,
 			},
@@ -384,7 +384,7 @@ func TestFloatEvaluation(t *testing.T) {
 		expectederrorString string
 		reason              of.Reason
 		expectedErrorCode   of.ErrorCode
-		evalCtx             map[string]interface{}
+		evalCtx             map[string]any
 	}{
 		{
 			name:                "Should resolve a valid flag with Static reason",
@@ -425,7 +425,7 @@ func TestFloatEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 			},
 		},
@@ -436,8 +436,8 @@ func TestFloatEvaluation(t *testing.T) {
 			expectederrorString: "flagsmith: targeting key is not a string",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: map[string]interface{}{},
+			evalCtx: map[string]any{
+				of.TargetingKey: map[string]any{},
 			},
 		},
 
@@ -448,7 +448,7 @@ func TestFloatEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 				TraitKey:        TraitValue,
 			},
@@ -494,7 +494,7 @@ func TestStringEvaluation(t *testing.T) {
 		expectederrorString string
 		reason              of.Reason
 		expectedErrorCode   of.ErrorCode
-		evalCtx             map[string]interface{}
+		evalCtx             map[string]any
 	}{
 		{
 			name:                "Should resolve a valid flag with Static reason",
@@ -535,7 +535,7 @@ func TestStringEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 			},
 		},
@@ -546,8 +546,8 @@ func TestStringEvaluation(t *testing.T) {
 			expectederrorString: "flagsmith: targeting key is not a string",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: map[string]interface{}{},
+			evalCtx: map[string]any{
+				of.TargetingKey: map[string]any{},
 			},
 		},
 		{
@@ -557,7 +557,7 @@ func TestStringEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 				TraitKey:        TraitValue,
 			},
@@ -604,7 +604,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		expectederrorString         string
 		reason                      of.Reason
 		expectedErrorCode           of.ErrorCode
-		evalCtx                     map[string]interface{}
+		evalCtx                     map[string]any
 		WithUsingBooleanConfigValue bool
 	}{
 		{
@@ -655,7 +655,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 			},
 		},
@@ -666,8 +666,8 @@ func TestBooleanEvaluation(t *testing.T) {
 			expectederrorString: "flagsmith: targeting key is not a string",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: map[string]interface{}{},
+			evalCtx: map[string]any{
+				of.TargetingKey: map[string]any{},
 			},
 		},
 		{
@@ -677,7 +677,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 				TraitKey:        TraitValue,
 			},
@@ -714,19 +714,19 @@ func TestBooleanEvaluation(t *testing.T) {
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	defaultValue := map[string]interface{}{"key1": "value1"}
-	expectedFlagValue := map[string]interface{}{"key": "value"}
+	defaultValue := map[string]any{"key1": "value1"}
+	expectedFlagValue := map[string]any{"key": "value"}
 
-	expectedValueIdentityOverride := map[string]interface{}{"key": "value_override"}
+	expectedValueIdentityOverride := map[string]any{"key": "value_override"}
 
 	tests := []struct {
 		name                string
 		flagKey             string
-		expectedValue       interface{}
+		expectedValue       any
 		expectederrorString string
 		reason              of.Reason
 		expectedErrorCode   of.ErrorCode
-		evalCtx             map[string]interface{}
+		evalCtx             map[string]any
 	}{
 		{
 			name:                "Should resolve a valid flag with Static reason",
@@ -767,7 +767,7 @@ func TestObjectEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.FlagNotFoundCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 			},
 		},
@@ -778,8 +778,8 @@ func TestObjectEvaluation(t *testing.T) {
 			expectederrorString: "flagsmith: targeting key is not a string",
 			reason:              of.ErrorReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
-				of.TargetingKey: map[string]interface{}{},
+			evalCtx: map[string]any{
+				of.TargetingKey: map[string]any{},
 			},
 		},
 		{
@@ -789,7 +789,7 @@ func TestObjectEvaluation(t *testing.T) {
 			expectederrorString: "",
 			reason:              of.TargetingMatchReason,
 			expectedErrorCode:   of.InvalidContextCode,
-			evalCtx: map[string]interface{}{
+			evalCtx: map[string]any{
 				of.TargetingKey: Identifier,
 				TraitKey:        TraitValue,
 			},

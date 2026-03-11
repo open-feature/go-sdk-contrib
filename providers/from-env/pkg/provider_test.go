@@ -1,7 +1,6 @@
 package from_env_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -57,7 +56,7 @@ func TestWithFlagToEnvMapper(t *testing.T) {
 			},
 		},
 	}
-	evalCtx := map[string]interface{}{
+	evalCtx := map[string]any{
 		"color":                  "yellow",
 		openfeature.TargetingKey: "user1",
 	}
@@ -66,7 +65,7 @@ func TestWithFlagToEnvMapper(t *testing.T) {
 
 	t.Setenv(mapper(testFlag), string(flagM))
 
-	res := p.BooleanEvaluation(context.Background(), testFlag, false, evalCtx)
+	res := p.BooleanEvaluation(t.Context(), testFlag, false, evalCtx)
 
 	if res.Error() != nil {
 		t.Fatalf("expected no error, got %s", res.Error())
@@ -89,7 +88,7 @@ func TestBoolFromEnv(t *testing.T) {
 		expectedReason          openfeature.Reason
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
-		EvaluationContext       map[string]interface{}
+		EvaluationContext       map[string]any
 		flagValue               fromEnv.StoredFlag
 	}{
 		"bool happy path": {
@@ -99,9 +98,10 @@ func TestBoolFromEnv(t *testing.T) {
 			expectedReason:          openfeature.TargetingMatchReason,
 			expectedVariant:         "yellow",
 			expectedResolutionError: openfeature.ResolutionError{},
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color":                  "yellow",
-				openfeature.TargetingKey: "user1"},
+				openfeature.TargetingKey: "user1",
+			},
 			flagValue: fromEnv.StoredFlag{
 				DefaultVariant: "not-yellow",
 				Variants: []fromEnv.Variant{
@@ -152,7 +152,7 @@ func TestBoolFromEnv(t *testing.T) {
 			expectedReason:          openfeature.ErrorReason,
 			expectedVariant:         "",
 			expectedResolutionError: openfeature.NewTypeMismatchResolutionError(""),
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -174,7 +174,7 @@ func TestBoolFromEnv(t *testing.T) {
 			expectedReason:          openfeature.ErrorReason,
 			expectedVariant:         "",
 			expectedResolutionError: openfeature.NewParseErrorResolutionError(""),
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -201,7 +201,7 @@ func TestBoolFromEnv(t *testing.T) {
 			expectedReason:          openfeature.DefaultReason,
 			expectedVariant:         "default",
 			expectedResolutionError: openfeature.ResolutionError{},
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -228,7 +228,7 @@ func TestBoolFromEnv(t *testing.T) {
 			expectedReason:          openfeature.TargetingMatchReason,
 			expectedVariant:         "targeting_key",
 			expectedResolutionError: openfeature.ResolutionError{},
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color":                  "yellow",
 				openfeature.TargetingKey: "user1",
 			},
@@ -278,7 +278,7 @@ func TestBoolFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.BooleanEvaluation(context.Background(), test.flagKey, test.defaultValue, test.EvaluationContext)
+			res := p.BooleanEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
 			if res.Value != test.expectedValue {
 				t.Fatalf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 			}
@@ -305,7 +305,7 @@ func TestStringFromEnv(t *testing.T) {
 		expectedReason          openfeature.Reason
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
-		EvaluationContext       map[string]interface{}
+		EvaluationContext       map[string]any
 		flagValue               fromEnv.StoredFlag
 	}{
 		"string happy path": {
@@ -315,7 +315,7 @@ func TestStringFromEnv(t *testing.T) {
 			expectedReason:          openfeature.TargetingMatchReason,
 			expectedVariant:         "yellow",
 			expectedResolutionError: openfeature.ResolutionError{},
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -368,7 +368,7 @@ func TestStringFromEnv(t *testing.T) {
 			expectedReason:          openfeature.ErrorReason,
 			expectedVariant:         "",
 			expectedResolutionError: openfeature.NewTypeMismatchResolutionError(""),
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -390,7 +390,7 @@ func TestStringFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.StringEvaluation(context.Background(), test.flagKey, test.defaultValue, test.EvaluationContext)
+			res := p.StringEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
 			if res.Value != test.expectedValue {
 				t.Fatalf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 			}
@@ -418,7 +418,7 @@ func TestFloatFromEnv(t *testing.T) {
 		expectedReason          openfeature.Reason
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
-		EvaluationContext       map[string]interface{}
+		EvaluationContext       map[string]any
 		flagValue               fromEnv.StoredFlag
 	}{
 		"string happy path": {
@@ -428,7 +428,7 @@ func TestFloatFromEnv(t *testing.T) {
 			expectedReason:          openfeature.TargetingMatchReason,
 			expectedVariant:         "yellow",
 			expectedResolutionError: openfeature.ResolutionError{},
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -481,7 +481,7 @@ func TestFloatFromEnv(t *testing.T) {
 			expectedReason:          openfeature.ErrorReason,
 			expectedVariant:         "",
 			expectedResolutionError: openfeature.NewTypeMismatchResolutionError(""),
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -503,7 +503,7 @@ func TestFloatFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.FloatEvaluation(context.Background(), test.flagKey, test.defaultValue, test.EvaluationContext)
+			res := p.FloatEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
 			if res.Value != test.expectedValue {
 				t.Fatalf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 			}
@@ -531,7 +531,7 @@ func TestIntFromEnv(t *testing.T) {
 		expectedReason          openfeature.Reason
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
-		EvaluationContext       map[string]interface{}
+		EvaluationContext       map[string]any
 		flagValue               fromEnv.StoredFlag
 	}{
 		"int happy path": {
@@ -541,7 +541,7 @@ func TestIntFromEnv(t *testing.T) {
 			expectedReason:          openfeature.TargetingMatchReason,
 			expectedVariant:         "yellow",
 			expectedResolutionError: openfeature.ResolutionError{},
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -594,7 +594,7 @@ func TestIntFromEnv(t *testing.T) {
 			expectedReason:          openfeature.ErrorReason,
 			expectedVariant:         "",
 			expectedResolutionError: openfeature.NewTypeMismatchResolutionError(""),
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -616,7 +616,7 @@ func TestIntFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.IntEvaluation(context.Background(), test.flagKey, test.defaultValue, test.EvaluationContext)
+			res := p.IntEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
 			if res.Value != test.expectedValue {
 				t.Fatalf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 			}
@@ -639,26 +639,26 @@ func TestIntFromEnv(t *testing.T) {
 func TestObjectFromEnv(t *testing.T) {
 	tests := map[string]struct {
 		flagKey                 string
-		defaultValue            interface{}
-		expectedValue           interface{}
+		defaultValue            any
+		expectedValue           any
 		expectedReason          openfeature.Reason
 		expectedVariant         string
 		expectedResolutionError openfeature.ResolutionError
-		EvaluationContext       map[string]interface{}
+		EvaluationContext       map[string]any
 		flagValue               fromEnv.StoredFlag
 	}{
 		"object happy path": {
 			flagKey: "MY_OBJECT_FLAG",
-			defaultValue: map[string]interface{}{
+			defaultValue: map[string]any{
 				"key": "value",
 			},
-			expectedValue: map[string]interface{}{
+			expectedValue: map[string]any{
 				"key": "value2",
 			},
 			expectedReason:          openfeature.TargetingMatchReason,
 			expectedVariant:         "yellow",
 			expectedResolutionError: openfeature.ResolutionError{},
-			EvaluationContext: map[string]interface{}{
+			EvaluationContext: map[string]any{
 				"color": "yellow",
 			},
 			flagValue: fromEnv.StoredFlag{
@@ -667,7 +667,7 @@ func TestObjectFromEnv(t *testing.T) {
 					{
 						Name:         "yellow-with-extras",
 						TargetingKey: "",
-						Value: map[string]interface{}{
+						Value: map[string]any{
 							"key": "value3",
 						},
 						Criteria: []fromEnv.Criteria{
@@ -684,7 +684,7 @@ func TestObjectFromEnv(t *testing.T) {
 					{
 						Name:         "yellow",
 						TargetingKey: "",
-						Value: map[string]interface{}{
+						Value: map[string]any{
 							"key": "value2",
 						},
 						Criteria: []fromEnv.Criteria{
@@ -715,7 +715,7 @@ func TestObjectFromEnv(t *testing.T) {
 			p := fromEnv.FromEnvProvider{}
 			flagM, _ := json.Marshal(test.flagValue)
 			t.Setenv(test.flagKey, string(flagM))
-			res := p.ObjectEvaluation(context.Background(), test.flagKey, test.defaultValue, test.EvaluationContext)
+			res := p.ObjectEvaluation(t.Context(), test.flagKey, test.defaultValue, test.EvaluationContext)
 			if !reflect.DeepEqual(res.Value, test.expectedValue) {
 				t.Fatalf("unexpected Value received, expected %v, got %v", test.expectedValue, res.Value)
 			}

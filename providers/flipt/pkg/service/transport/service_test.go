@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"context"
+	"net/http"
 	"testing"
 
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -112,7 +112,7 @@ func TestGetFlag(t *testing.T) {
 				client: mockClient,
 			}
 
-			actual, err := s.GetFlag(context.Background(), "foo-namespace", "foo")
+			actual, err := s.GetFlag(t.Context(), "foo-namespace", "foo")
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())
 			} else {
@@ -168,12 +168,12 @@ func TestEvaluate_NonBoolean(t *testing.T) {
 				client: mockClient,
 			}
 
-			evalCtx := map[string]interface{}{
+			evalCtx := map[string]any{
 				"requestID":     reqID,
 				of.TargetingKey: entityID,
 			}
 
-			actual, err := s.Evaluate(context.Background(), "foo-namespace", "foo", evalCtx)
+			actual, err := s.Evaluate(t.Context(), "foo-namespace", "foo", evalCtx)
 			if tt.expectedErr != nil {
 				assert.ErrorContains(t, err, tt.expectedErr.Error())
 			} else {
@@ -207,12 +207,12 @@ func TestEvaluate_Boolean(t *testing.T) {
 		client: mockClient,
 	}
 
-	evalCtx := map[string]interface{}{
+	evalCtx := map[string]any{
 		"requestID":     reqID,
 		of.TargetingKey: entityID,
 	}
 
-	actual, err := s.Boolean(context.Background(), "foo-namespace", "foo", evalCtx)
+	actual, err := s.Boolean(t.Context(), "foo-namespace", "foo", evalCtx)
 	assert.NoError(t, err)
 	assert.False(t, actual.Enabled, "match value should be false")
 }
@@ -220,10 +220,10 @@ func TestEvaluate_Boolean(t *testing.T) {
 func TestEvaluateInvalidContext(t *testing.T) {
 	s := &Service{}
 
-	_, err := s.Evaluate(context.Background(), "foo-namespace", "foo", nil)
+	_, err := s.Evaluate(t.Context(), "foo-namespace", "foo", nil)
 	assert.EqualError(t, err, of.NewInvalidContextResolutionError("evalCtx is nil").Error())
 
-	_, err = s.Evaluate(context.Background(), "foo-namespace", "foo", map[string]interface{}{})
+	_, err = s.Evaluate(t.Context(), "foo-namespace", "foo", map[string]any{})
 	assert.EqualError(t, err, of.NewTargetingKeyMissingResolutionError("targetingKey is missing").Error())
 }
 
@@ -288,4 +288,10 @@ func TestGRPCToOpenFeatureError(t *testing.T) {
 			assert.EqualError(t, err, tt.expectedErr.Error())
 		})
 	}
+}
+
+func TestWithHTTPClientOption(t *testing.T) {
+	client := &http.Client{}
+	p := New(WithHTTPClient(client))
+	assert.Equal(t, client, p.httpClient)
 }

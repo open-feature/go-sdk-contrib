@@ -42,7 +42,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		errMsg     string
 		errCode    openfeature.ErrorCode
 		reason     openfeature.Reason
-		evalCtx    map[string]interface{}
+		evalCtx    map[string]any
 		flag       configcattest.Flag
 	}{
 		{
@@ -196,7 +196,7 @@ func TestStringEvaluation(t *testing.T) {
 		errMsg     string
 		errCode    openfeature.ErrorCode
 		reason     openfeature.Reason
-		evalCtx    map[string]interface{}
+		evalCtx    map[string]any
 		flag       configcattest.Flag
 	}{
 		{
@@ -350,7 +350,7 @@ func TestFloatEvaluation(t *testing.T) {
 		errMsg     string
 		errCode    openfeature.ErrorCode
 		reason     openfeature.Reason
-		evalCtx    map[string]interface{}
+		evalCtx    map[string]any
 		flag       configcattest.Flag
 	}{
 		{
@@ -504,7 +504,7 @@ func TestIntEvaluation(t *testing.T) {
 		errMsg     string
 		errCode    openfeature.ErrorCode
 		reason     openfeature.Reason
-		evalCtx    map[string]interface{}
+		evalCtx    map[string]any
 		flag       configcattest.Flag
 	}{
 		{
@@ -652,20 +652,20 @@ func TestObjectEvaluation(t *testing.T) {
 	tests := []struct {
 		name       string
 		key        string
-		defaultVal interface{}
-		expVal     interface{}
+		defaultVal any
+		expVal     any
 		expVariant string
 		errMsg     string
 		errCode    openfeature.ErrorCode
 		reason     openfeature.Reason
-		evalCtx    map[string]interface{}
+		evalCtx    map[string]any
 		flag       configcattest.Flag
 	}{
 		{
 			name:       "evalCtx empty",
 			key:        "flag",
 			defaultVal: nil,
-			expVal:     map[string]interface{}{"name": "test"},
+			expVal:     map[string]any{"name": "test"},
 			expVariant: "v_flag",
 			errMsg:     "",
 			errCode:    "",
@@ -733,7 +733,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:       "matched evaluation rule",
 			key:        "flag",
 			defaultVal: nil,
-			expVal:     map[string]interface{}{"domain": "example.org"},
+			expVal:     map[string]any{"domain": "example.org"},
 			expVariant: "v0_flag",
 			errMsg:     "",
 			errCode:    "",
@@ -753,7 +753,7 @@ func TestObjectEvaluation(t *testing.T) {
 			name:       "matched percentage rule",
 			key:        "flag",
 			defaultVal: nil,
-			expVal:     map[string]interface{}{"domain": "example.org"},
+			expVal:     map[string]any{"domain": "example.org"},
 			expVariant: "v0_flag",
 			errMsg:     "",
 			errCode:    "",
@@ -817,7 +817,7 @@ func testEvalCtxUserData(t *testing.T, cb func(evalCtx openfeature.FlattenedCont
 	expectedCountry := "AQ"
 	expectedSomeKey := "some-value"
 
-	details := cb(map[string]interface{}{
+	details := cb(map[string]any{
 		openfeature.TargetingKey: expectedIdentifier,
 		configcat.EmailKey:       expectedEmail,
 		configcat.CountryKey:     expectedCountry,

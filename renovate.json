@@ -1,11 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>open-feature/community-tooling"],
+  "extends": [
+    "github>open-feature/community-tooling"
+  ],
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^Makefile$"
+      "managerFilePatterns": [
+        "/^Makefile$/"
       ],
       "matchStrings": [
         "ghcr\\.io\\/open-feature\\/flagd-testbed:(?<currentValue>.*?)\\n",

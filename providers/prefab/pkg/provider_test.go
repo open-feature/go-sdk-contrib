@@ -21,7 +21,7 @@ var (
 )
 
 func TestBooleanEvaluation(t *testing.T) {
-	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]any{}
 
 	resolution := provider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
 	if resolution.Value != true {
@@ -35,7 +35,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 	enabled, err := ofClient.BooleanValue(context.Background(), "sample_bool", false, evalCtx)
 	require.Nil(t, err)
@@ -78,7 +78,7 @@ func TestBooleanEvaluation(t *testing.T) {
 // }
 
 func TestFloatEvaluation(t *testing.T) {
-	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]any{}
 
 	resolution := provider.FloatEvaluation(context.Background(), "sample_double", 1.2, flattenedContext)
 	if resolution.Value != 12.12 {
@@ -92,7 +92,7 @@ func TestFloatEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 	value, err := ofClient.FloatValue(context.Background(), "sample_double", 1.2, evalCtx)
 	require.Nil(t, err)
@@ -100,7 +100,7 @@ func TestFloatEvaluation(t *testing.T) {
 }
 
 func TestIntEvaluation(t *testing.T) {
-	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]any{}
 
 	resolution := provider.IntEvaluation(context.Background(), "sample_int", 1, flattenedContext)
 	if resolution.Value != 123 {
@@ -114,7 +114,7 @@ func TestIntEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 	value, err := ofClient.IntValue(context.Background(), "sample_int", 1, evalCtx)
 	require.Nil(t, err)
@@ -122,7 +122,7 @@ func TestIntEvaluation(t *testing.T) {
 }
 
 func TestStringEvaluation(t *testing.T) {
-	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]any{}
 
 	resolution := provider.StringEvaluation(context.Background(), "sample", "default", flattenedContext)
 	if resolution.Value != "test sample value" {
@@ -136,7 +136,7 @@ func TestStringEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 	value, err := ofClient.StringValue(context.Background(), "sample", "default", evalCtx)
 	require.Nil(t, err)
@@ -145,7 +145,7 @@ func TestStringEvaluation(t *testing.T) {
 
 // TODO test and enable when json/yaml parsing is implemented
 func TestObjectEvaluation(t *testing.T) {
-	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]any{}
 
 	t.Run("example.nested.path", func(t *testing.T) {
 		resolution := provider.ObjectEvaluation(context.Background(), "example.nested.path", "default", flattenedContext)
@@ -154,7 +154,7 @@ func TestObjectEvaluation(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{},
+		map[string]any{},
 	)
 
 	t.Run("example.nested.path", func(t *testing.T) {
@@ -187,11 +187,11 @@ func TestConvertsNonEmptyFlattenedContextToContextSet(t *testing.T) {
 		"device.type": "mobile",
 	}
 	expected := prefab.NewContextSet()
-	expected.WithNamedContextValues("user", map[string]interface{}{
+	expected.WithNamedContextValues("user", map[string]any{
 		"name": "John",
 		"age":  30,
 	})
-	expected.WithNamedContextValues("device", map[string]interface{}{
+	expected.WithNamedContextValues("device", map[string]any{
 		"type": "mobile",
 	})
 
@@ -204,7 +204,7 @@ func TestConvertsNonEmptyFlattenedContextToContextSet(t *testing.T) {
 }
 
 func TestUninitializedProviderStates(t *testing.T) {
-	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]any{}
 
 	providerConfig := prefabProvider.ProviderConfig{
 		Sources: []string{"datafile://enabled.yaml"},
@@ -228,13 +228,14 @@ func TestUninitializedProviderStates(t *testing.T) {
 }
 
 func TestErrorProviderStates(t *testing.T) {
-	flattenedContext := map[string]interface{}{}
+	flattenedContext := map[string]any{}
 
 	providerConfig := prefabProvider.ProviderConfig{
 		Sources: []string{"datafile://non-existing.yaml"},
 	}
 	errorProvider, _ := prefabProvider.NewProvider(providerConfig)
-	errorProvider.Init(of.EvaluationContext{})
+	err := errorProvider.Init(of.EvaluationContext{})
+	require.Error(t, err)
 
 	boolRes := errorProvider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
 	require.Equal(t, of.GeneralCode, boolRes.ResolutionDetail().ErrorCode)
@@ -253,7 +254,8 @@ func TestErrorProviderStates(t *testing.T) {
 
 	providerConfig = prefabProvider.ProviderConfig{}
 	errorProvider, _ = prefabProvider.NewProvider(providerConfig)
-	errorProvider.Init(of.EvaluationContext{})
+	err = errorProvider.Init(of.EvaluationContext{})
+	require.Error(t, err)
 }
 
 func TestEvaluationMethods(t *testing.T) {
@@ -262,16 +264,16 @@ func TestEvaluationMethods(t *testing.T) {
 
 	evalCtx := of.NewEvaluationContext(
 		"",
-		map[string]interface{}{
+		map[string]any{
 			"user.id": "123",
 		},
 	)
 
 	tests := []struct {
 		flag              string
-		defaultValue      interface{}
+		defaultValue      any
 		evalCtx           of.EvaluationContext
-		expected          interface{}
+		expected          any
 		expectedErrorCode of.ErrorCode
 	}{
 		{"sample_bool", false, evalCtx, true, ""},
@@ -283,25 +285,25 @@ func TestEvaluationMethods(t *testing.T) {
 		{"sample_list", []string{"fallback1", "fallback2"}, evalCtx, []string{"a", "b"}, ""},
 		{"invalid_user_context_bool", false, of.NewEvaluationContext(
 			"",
-			map[string]interface{}{
+			map[string]any{
 				"invalid": "123",
 			},
 		), false, of.InvalidContextCode},
 		{"invalid_user_context_int", int64(43), of.NewEvaluationContext(
 			"",
-			map[string]interface{}{
+			map[string]any{
 				"invalid": "123",
 			},
 		), int64(43), of.InvalidContextCode},
 		{"invalid_user_context_float", 1.2, of.NewEvaluationContext(
 			"",
-			map[string]interface{}{
+			map[string]any{
 				"invalid": "123",
 			},
 		), 1.2, of.InvalidContextCode},
 		{"invalid_user_context_string", "a", of.NewEvaluationContext(
 			"",
-			map[string]interface{}{
+			map[string]any{
 				"invalid": "123",
 			},
 		), "a", of.InvalidContextCode},
@@ -363,7 +365,12 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	of.SetProviderAndWait(provider)
+	err = of.SetProviderAndWait(provider)
+	if err != nil {
+		fmt.Printf("Error during provider set: %v\n", err)
+		os.Exit(1)
+	}
+
 	ofClient = of.NewClient("my-app")
 
 	fmt.Printf("provider: %v\n", provider)

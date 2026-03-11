@@ -1,19 +1,22 @@
-OpenFeature Multi-Provider
-------------
+## OpenFeature Multi-Provider
 
-The Multi-Provider allows you to use multiple underlying providers as sources of flag data for the OpenFeature server SDK. 
-When a flag is being evaluated, the Multi-Provider will consult each underlying provider it is managing in order to 
-determine the final result. Different evaluation strategies can be defined to control which providers get evaluated and 
+> [!WARNING]
+> This package is deprecated.
+> Use [github.com/open-feature/go-sdk/openfeature/multi](https://github.com/open-feature/go-sdk/tree/main/openfeature/multi) instead.
+
+The Multi-Provider allows you to use multiple underlying providers as sources of flag data for the OpenFeature server SDK.
+When a flag is being evaluated, the Multi-Provider will consult each underlying provider it is managing in order to
+determine the final result. Different evaluation strategies can be defined to control which providers get evaluated and
 which result is used.
 
-The Multi-Provider is a powerful tool for performing migrations between flag providers, or combining multiple providers 
+The Multi-Provider is a powerful tool for performing migrations between flag providers, or combining multiple providers
 into a single feature flagging interface. For example:
 
-- **Migration**: When migrating between two providers, you can run both in parallel under a unified flagging interface. 
-As flags are added to the new provider, the Multi-Provider will automatically find and return them, falling back to the old provider 
-if the new provider does not have
-- **Multiple Data Sources**: The Multi-Provider allows you to seamlessly combine many sources of flagging data, such as 
-environment variables, local files, database values and SaaS hosted feature management systems.
+- **Migration**: When migrating between two providers, you can run both in parallel under a unified flagging interface.
+  As flags are added to the new provider, the Multi-Provider will automatically find and return them, falling back to the old provider
+  if the new provider does not have
+- **Multiple Data Sources**: The Multi-Provider allows you to seamlessly combine many sources of flagging data, such as
+  environment variables, local files, database values and SaaS hosted feature management systems.
 
 # Installation
 
@@ -26,8 +29,8 @@ go get github.com/open-feature/go-sdk
 
 ```go
 import (
-	"github.com/open-feature/go-sdk/openfeature"
-	mp "github.com/open-feature/go-sdk-contrib/providers/multi-provider"
+ "github.com/open-feature/go-sdk/openfeature"
+ mp "github.com/open-feature/go-sdk-contrib/providers/multi-provider"
 )
 
 providers := make(mp.ProviderMap)
@@ -39,8 +42,8 @@ openfeature.SetProvider(provider)
 
 # Options
 
-- `WithTimeout` - the duration is used for the total timeout across parallel operations. If none is set it will default 
-to 5 seconds. This is not supported for `FirstMatch` yet, which executes sequentially
+- `WithTimeout` - the duration is used for the total timeout across parallel operations. If none is set it will default
+  to 5 seconds. This is not supported for `FirstMatch` yet, which executes sequentially
 - `WithFallbackProvider` - Used for setting a fallback provider for the `Comparison` strategy
 - `WithLogger` - Provides slog support
 
@@ -57,7 +60,7 @@ There are 3 strategies available currently:
 
 ## First Match Strategy
 
-The first match strategy works by **sequentially**  calling each provider in the order that they are provided to the mutli-provider.
+The first match strategy works by **sequentially** calling each provider in the order that they are provided to the mutli-provider.
 The first provider that returns a result. It will try calling the next provider whenever it encounters a `FLAG_NOT_FOUND`
 error. However, if a provider returns an error other than `FLAG_NOT_FOUND` the provider will stop and return the default
 value along with setting the error details if a detailed request is issued. (allow changing this behavior?)
@@ -72,7 +75,7 @@ value will be returned to the caller.
 
 The Comparison strategy works by calling each provider in **parallel**. All results are collected from each provider and
 then the resolved results are compared to each other. If they all agree then that value is returned. If not and a fallback
-provider is specified then the fallback will be executed. If no fallback is configured then the default value will be 
+provider is specified then the fallback will be executed. If no fallback is configured then the default value will be
 returned. If a provider returns `FLAG_NOT_FOUND` that is not included in the comparison. If all providers
 return not found then the default value is returned. Finally, if any provider returns an error other than `FLAG_NOT_FOUND`
 the evaluation immediately stops and that error result is returned. This strategy does NOT support `ObjectEvaluation`

@@ -6,11 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	schemaConnectV1 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v1/evaluationv1connect"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
+	schemaConnectV2 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v2/evaluationv2connect"
+	v2 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v2"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	flagdModels "github.com/open-feature/flagd/core/pkg/model"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -30,7 +31,7 @@ type responseType interface {
 type testStruct[T responseType] struct {
 	name           string
 	getCache       func() *cache.Service
-	getMockClient  func() schemaConnectV1.ServiceClient
+	getMockClient  func() schemaConnectV2.ServiceClient
 	expectResponse T
 	isCached       bool
 	errorText      string
@@ -48,6 +49,11 @@ func init() {
 	}
 }
 
+func ptrBool(v bool) *bool       { return &v }
+func ptrString(v string) *string { return &v }
+func ptrFloat(v float64) *float64 { return &v }
+func ptrInt(v int64) *int64       { return &v }
+
 func TestBooleanEvaluation(t *testing.T) {
 	defaultValue := false
 
@@ -55,15 +61,14 @@ func TestBooleanEvaluation(t *testing.T) {
 		{
 			name: "happy path - simple uncached evaluation",
 			getCache: func() *cache.Service {
-				// disable cache
 				return cache.NewCacheService(cache.DisabledValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					booleanResponse: v1.ResolveBooleanResponse{
-						Value:    true,
+					booleanResponse: v2.ResolveBooleanResponse{
+						Value:    ptrBool(true),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -73,6 +78,31 @@ func TestBooleanEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.StaticReason,
 					Variant:      "on",
+					FlagMetadata: metadata,
+				},
+			},
+			isCached: false,
+		},
+		{
+			name: "code default - nil value returns defaultValue with DEFAULT reason",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 10, log)
+			},
+			getMockClient: func() schemaConnectV2.ServiceClient {
+				return &MockClient{
+					booleanResponse: v2.ResolveBooleanResponse{
+						Value:    nil,
+						Reason:   flagdModels.DefaultReason,
+						Variant:  nil,
+						Metadata: metadataStruct,
+					},
+				}
+			},
+			expectResponse: of.BoolResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:       of.DefaultReason,
+					Variant:      "",
 					FlagMetadata: metadata,
 				},
 			},
@@ -94,8 +124,7 @@ func TestBooleanEvaluation(t *testing.T) {
 
 				return cacheService
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
-				// empty mock
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{}
 			},
 			expectResponse: of.BoolResolutionDetail{
@@ -113,12 +142,12 @@ func TestBooleanEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.InMemValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					booleanResponse: v1.ResolveBooleanResponse{
-						Value:    true,
+					booleanResponse: v2.ResolveBooleanResponse{
+						Value:    ptrBool(true),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -138,7 +167,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
 					error: of.NewFlagNotFoundResolutionError("requested flag not found"),
 				}
@@ -158,7 +187,7 @@ func TestBooleanEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return nil
 			},
 			expectResponse: of.BoolResolutionDetail{
@@ -173,7 +202,7 @@ func TestBooleanEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -191,15 +220,14 @@ func TestStringEvaluation(t *testing.T) {
 		{
 			name: "happy path - simple uncached evaluation",
 			getCache: func() *cache.Service {
-				// disable cache
 				return cache.NewCacheService(cache.DisabledValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					stringResponse: v1.ResolveStringResponse{
-						Value:    "valid",
+					stringResponse: v2.ResolveStringResponse{
+						Value:    ptrString("valid"),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -209,6 +237,31 @@ func TestStringEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.StaticReason,
 					Variant:      "on",
+					FlagMetadata: metadata,
+				},
+			},
+			isCached: false,
+		},
+		{
+			name: "code default - nil value returns defaultValue with DEFAULT reason",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 10, log)
+			},
+			getMockClient: func() schemaConnectV2.ServiceClient {
+				return &MockClient{
+					stringResponse: v2.ResolveStringResponse{
+						Value:    nil,
+						Reason:   flagdModels.DefaultReason,
+						Variant:  nil,
+						Metadata: metadataStruct,
+					},
+				}
+			},
+			expectResponse: of.StringResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:       of.DefaultReason,
+					Variant:      "",
 					FlagMetadata: metadata,
 				},
 			},
@@ -230,8 +283,7 @@ func TestStringEvaluation(t *testing.T) {
 
 				return cacheService
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
-				// empty mock
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{}
 			},
 			expectResponse: of.StringResolutionDetail{
@@ -249,12 +301,12 @@ func TestStringEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.InMemValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					stringResponse: v1.ResolveStringResponse{
-						Value:    "valid",
+					stringResponse: v2.ResolveStringResponse{
+						Value:    ptrString("valid"),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -274,7 +326,7 @@ func TestStringEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
 					error: of.NewFlagNotFoundResolutionError("requested flag not found"),
 				}
@@ -294,7 +346,7 @@ func TestStringEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return nil
 			},
 			expectResponse: of.StringResolutionDetail{
@@ -309,7 +361,7 @@ func TestStringEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -327,15 +379,14 @@ func TestFloatEvaluation(t *testing.T) {
 		{
 			name: "happy path - simple uncached evaluation",
 			getCache: func() *cache.Service {
-				// disable cache
 				return cache.NewCacheService(cache.DisabledValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					floatResponse: v1.ResolveFloatResponse{
-						Value:    1.005,
+					floatResponse: v2.ResolveFloatResponse{
+						Value:    ptrFloat(1.005),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -345,6 +396,31 @@ func TestFloatEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.StaticReason,
 					Variant:      "on",
+					FlagMetadata: metadata,
+				},
+			},
+			isCached: false,
+		},
+		{
+			name: "code default - nil value returns defaultValue with DEFAULT reason",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 10, log)
+			},
+			getMockClient: func() schemaConnectV2.ServiceClient {
+				return &MockClient{
+					floatResponse: v2.ResolveFloatResponse{
+						Value:    nil,
+						Reason:   flagdModels.DefaultReason,
+						Variant:  nil,
+						Metadata: metadataStruct,
+					},
+				}
+			},
+			expectResponse: of.FloatResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:       of.DefaultReason,
+					Variant:      "",
 					FlagMetadata: metadata,
 				},
 			},
@@ -366,8 +442,7 @@ func TestFloatEvaluation(t *testing.T) {
 
 				return cacheService
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
-				// empty mock
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{}
 			},
 			expectResponse: of.FloatResolutionDetail{
@@ -385,12 +460,12 @@ func TestFloatEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.InMemValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					floatResponse: v1.ResolveFloatResponse{
-						Value:    1.005,
+					floatResponse: v2.ResolveFloatResponse{
+						Value:    ptrFloat(1.005),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -410,7 +485,7 @@ func TestFloatEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
 					error: of.NewFlagNotFoundResolutionError("requested flag not found"),
 				}
@@ -430,7 +505,7 @@ func TestFloatEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return nil
 			},
 			expectResponse: of.FloatResolutionDetail{
@@ -445,7 +520,7 @@ func TestFloatEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -463,15 +538,14 @@ func TestIntEvaluation(t *testing.T) {
 		{
 			name: "happy path - simple uncached evaluation",
 			getCache: func() *cache.Service {
-				// disable cache
 				return cache.NewCacheService(cache.DisabledValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					intResponse: v1.ResolveIntResponse{
-						Value:    2,
+					intResponse: v2.ResolveIntResponse{
+						Value:    ptrInt(2),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -481,6 +555,31 @@ func TestIntEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.StaticReason,
 					Variant:      "on",
+					FlagMetadata: metadata,
+				},
+			},
+			isCached: false,
+		},
+		{
+			name: "code default - nil value returns defaultValue with DEFAULT reason",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 10, log)
+			},
+			getMockClient: func() schemaConnectV2.ServiceClient {
+				return &MockClient{
+					intResponse: v2.ResolveIntResponse{
+						Value:    nil,
+						Reason:   flagdModels.DefaultReason,
+						Variant:  nil,
+						Metadata: metadataStruct,
+					},
+				}
+			},
+			expectResponse: of.IntResolutionDetail{
+				Value: int64(defaultValue),
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:       of.DefaultReason,
+					Variant:      "",
 					FlagMetadata: metadata,
 				},
 			},
@@ -502,8 +601,7 @@ func TestIntEvaluation(t *testing.T) {
 
 				return cacheService
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
-				// empty mock
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{}
 			},
 			expectResponse: of.IntResolutionDetail{
@@ -521,12 +619,12 @@ func TestIntEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.InMemValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					intResponse: v1.ResolveIntResponse{
-						Value:    2,
+					intResponse: v2.ResolveIntResponse{
+						Value:    ptrInt(2),
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -546,7 +644,7 @@ func TestIntEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
 					error: of.NewFlagNotFoundResolutionError("requested flag not found"),
 				}
@@ -566,7 +664,7 @@ func TestIntEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return nil
 			},
 			expectResponse: of.IntResolutionDetail{
@@ -581,7 +679,7 @@ func TestIntEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -612,15 +710,14 @@ func TestObjectEvaluation(t *testing.T) {
 		{
 			name: "happy path - simple uncached evaluation",
 			getCache: func() *cache.Service {
-				// disable cache
 				return cache.NewCacheService(cache.DisabledValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					objResponse: v1.ResolveObjectResponse{
+					objResponse: v2.ResolveObjectResponse{
 						Value:    expectedValueAsStruct,
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -630,6 +727,31 @@ func TestObjectEvaluation(t *testing.T) {
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
 					Reason:       of.StaticReason,
 					Variant:      "on",
+					FlagMetadata: metadata,
+				},
+			},
+			isCached: false,
+		},
+		{
+			name: "code default - nil value returns defaultValue with DEFAULT reason",
+			getCache: func() *cache.Service {
+				return cache.NewCacheService(cache.DisabledValue, 10, log)
+			},
+			getMockClient: func() schemaConnectV2.ServiceClient {
+				return &MockClient{
+					objResponse: v2.ResolveObjectResponse{
+						Value:    nil,
+						Reason:   flagdModels.DefaultReason,
+						Variant:  nil,
+						Metadata: metadataStruct,
+					},
+				}
+			},
+			expectResponse: of.InterfaceResolutionDetail{
+				Value: defaultValue,
+				ProviderResolutionDetail: of.ProviderResolutionDetail{
+					Reason:       of.DefaultReason,
+					Variant:      "",
 					FlagMetadata: metadata,
 				},
 			},
@@ -651,8 +773,7 @@ func TestObjectEvaluation(t *testing.T) {
 
 				return cacheService
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
-				// empty mock
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{}
 			},
 			expectResponse: of.InterfaceResolutionDetail{
@@ -670,12 +791,12 @@ func TestObjectEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.InMemValue, 10, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
-					objResponse: v1.ResolveObjectResponse{
+					objResponse: v2.ResolveObjectResponse{
 						Value:    expectedValueAsStruct,
 						Reason:   string(of.StaticReason),
-						Variant:  "on",
+						Variant:  ptrString("on"),
 						Metadata: metadataStruct,
 					},
 				}
@@ -695,7 +816,7 @@ func TestObjectEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return &MockClient{
 					error: of.NewFlagNotFoundResolutionError("requested flag not found"),
 				}
@@ -715,7 +836,7 @@ func TestObjectEvaluation(t *testing.T) {
 			getCache: func() *cache.Service {
 				return cache.NewCacheService(cache.DisabledValue, 0, log)
 			},
-			getMockClient: func() schemaConnectV1.ServiceClient {
+			getMockClient: func() schemaConnectV2.ServiceClient {
 				return nil
 			},
 			expectResponse: of.InterfaceResolutionDetail{
@@ -730,7 +851,7 @@ func TestObjectEvaluation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := Service{
+		service := &Service{
 			cache:  test.getCache(),
 			logger: log,
 			client: test.getMockClient(),
@@ -742,7 +863,7 @@ func TestObjectEvaluation(t *testing.T) {
 }
 
 // validate is a generic validator
-func validate[T responseType](t *testing.T, test testStruct[T], resolutionDetail T, error of.ResolutionError, service Service) {
+func validate[T responseType](t *testing.T, test testStruct[T], resolutionDetail T, error of.ResolutionError, service *Service) {
 	if diff := cmp.Diff(
 		test.expectResponse, resolutionDetail,
 		cmpopts.IgnoreFields(of.ProviderResolutionDetail{}, "ResolutionError"),
@@ -750,7 +871,6 @@ func validate[T responseType](t *testing.T, test testStruct[T], resolutionDetail
 		t.Errorf("test %s: mismatch (-expected +got):\n%s", test.name, diff)
 	}
 
-	// check cache for stored key
 	if test.isCached {
 		_, ok := service.cache.GetCache().Get(flagKey)
 		if !ok {
@@ -766,7 +886,7 @@ func validate[T responseType](t *testing.T, test testStruct[T], resolutionDetail
 
 func TestService_isInitialised(t *testing.T) {
 	type fields struct {
-		client schemaConnectV1.ServiceClient
+		client schemaConnectV2.ServiceClient
 	}
 	tests := []struct {
 		name   string
@@ -783,7 +903,7 @@ func TestService_isInitialised(t *testing.T) {
 		{
 			name: "initialised",
 			fields: fields{
-				client: schemaConnectV1.NewServiceClient(http.DefaultClient, ""),
+				client: schemaConnectV2.NewServiceClient(http.DefaultClient, ""),
 			},
 			want: true,
 		},

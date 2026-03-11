@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -57,11 +58,31 @@ func TestBooleanEvaluation(t *testing.T) {
 			},
 			isError: true,
 		},
+		{
+			name: "Boolean Fallback - no default variant returns code default",
+			evaluator: MockEvaluator{
+				value:    false,
+				variant:  "",
+				reason:   model.FallbackReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: true,
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DefaultReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
-		booleanEval := inProcessService.ResolveBoolean(context.Background(), "any", false, make(map[string]interface{}))
+		defaultValue := false
+		if test.evaluator.reason == model.FallbackReason {
+			defaultValue = true
+		}
+		booleanEval := inProcessService.ResolveBoolean(context.Background(), "any", defaultValue, make(map[string]interface{}))
 		commonValidator(t, test, booleanEval.Value, booleanEval.ProviderResolutionDetail)
 	}
 }
@@ -101,11 +122,31 @@ func TestStringEvaluation(t *testing.T) {
 			},
 			isError: true,
 		},
+		{
+			name: "String Fallback - no default variant returns code default",
+			evaluator: MockEvaluator{
+				value:    "",
+				variant:  "",
+				reason:   model.FallbackReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: "my-default",
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DefaultReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
-		stringEval := inProcessService.ResolveString(context.Background(), "any", "", make(map[string]interface{}))
+		defaultValue := ""
+		if test.evaluator.reason == model.FallbackReason {
+			defaultValue = "my-default"
+		}
+		stringEval := inProcessService.ResolveString(context.Background(), "any", defaultValue, make(map[string]interface{}))
 		commonValidator(t, test, stringEval.Value, stringEval.ProviderResolutionDetail)
 	}
 }
@@ -145,11 +186,31 @@ func TestFloatEvaluation(t *testing.T) {
 			},
 			isError: true,
 		},
+		{
+			name: "Float Fallback - no default variant returns code default",
+			evaluator: MockEvaluator{
+				value:    0.0,
+				variant:  "",
+				reason:   model.FallbackReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: 42.5,
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DefaultReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
-		floatEval := inProcessService.ResolveFloat(context.Background(), "any", 0.0, make(map[string]interface{}))
+		defaultValue := 0.0
+		if test.evaluator.reason == model.FallbackReason {
+			defaultValue = 42.5
+		}
+		floatEval := inProcessService.ResolveFloat(context.Background(), "any", defaultValue, make(map[string]interface{}))
 		commonValidator(t, test, floatEval.Value, floatEval.ProviderResolutionDetail)
 	}
 }
@@ -189,11 +250,31 @@ func TestIntEvaluation(t *testing.T) {
 			},
 			isError: true,
 		},
+		{
+			name: "Integer Fallback - no default variant returns code default",
+			evaluator: MockEvaluator{
+				value:    int64(0),
+				variant:  "",
+				reason:   model.FallbackReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: int64(99),
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DefaultReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
-		intEval := inProcessService.ResolveInt(context.Background(), "any", 0, make(map[string]interface{}))
+		defaultValue := int64(0)
+		if test.evaluator.reason == model.FallbackReason {
+			defaultValue = 99
+		}
+		intEval := inProcessService.ResolveInt(context.Background(), "any", defaultValue, make(map[string]interface{}))
 		commonValidator(t, test, intEval.Value, intEval.ProviderResolutionDetail)
 	}
 }
@@ -237,11 +318,38 @@ func TestObjectEvaluation(t *testing.T) {
 			},
 			isError: true,
 		},
+		{
+			name: "Object Fallback - no default variant returns code default",
+			evaluator: MockEvaluator{
+				value:    make(map[string]interface{}),
+				variant:  "",
+				reason:   model.FallbackReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: map[string]interface{}{"default": true},
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DefaultReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
+
+	defaultObj := map[string]interface{}{"default": true}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
-		objEval := inProcessService.ResolveObject(context.Background(), "any", make(map[string]interface{}), make(map[string]interface{}))
+		defaultValue := make(map[string]interface{})
+		if test.evaluator.reason == model.FallbackReason {
+			defaultValue = defaultObj
+		}
+		objEval := inProcessService.ResolveObject(context.Background(), "any", defaultValue, make(map[string]interface{}))
+
+		if !reflect.DeepEqual(test.value, objEval.Value) {
+			t.Logf("Test failed:  %s", test.name)
+			t.Fatalf("Expected value %v, but got %v", test.value, objEval.Value)
+		}
 
 		if test.resDetail.Variant != objEval.Variant {
 			t.Logf("Test failed:  %s", test.name)
@@ -361,9 +469,9 @@ func (m MockEvaluator) GetState() (string, error) {
 	return "", nil
 }
 
-func (m MockEvaluator) SetState(payload sync.DataSync) (map[string]interface{}, bool, error) {
+func (m MockEvaluator) SetState(payload sync.DataSync) error {
 	// ignored
-	return make(map[string]interface{}), false, nil
+	return nil
 }
 
 func (m MockEvaluator) ResolveAllValues(ctx context.Context, reqID string, context map[string]any) ([]evaluator.AnyValue, model.Metadata, error) {
