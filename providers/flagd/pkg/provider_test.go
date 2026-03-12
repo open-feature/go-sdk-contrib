@@ -719,3 +719,55 @@ func TestHandleEventsChannelClose(t *testing.T) {
 	// Clean up to avoid affecting other tests
 	provider.Shutdown()
 }
+
+// TestShutdownUnblocksBlockedSend verifies that Shutdown() returns promptly even when
+// handleEvents is blocked trying to send an event to the unbuffered eventStream channel
+// (i.e. no consumer is reading from provider.EventChannel()).
+func TestShutdownUnblocksBlockedSend(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().Init().DoAndReturn(func() error {
+		go func() {
+			// Send the ready event so Init() completes and handleEvents starts
+			eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+			// Send a second event that handleEvents will try to forward to the
+			// unbuffered p.eventStream — nobody is reading, so it will block.
+			eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderConfigChange}
+		}()
+		return nil
+	}).Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().Times(1)
+
+	if err := provider.Init(of.EvaluationContext{}); err != nil {
+		t.Fatalf("unexpected init error: %v", err)
+	}
+
+	// Give handleEvents time to receive the config-change event and block on the send.
+	time.Sleep(50 * time.Millisecond)
+
+	// Shutdown must complete quickly; if shutdownChan doesn't unblock the send
+	// this will hang and the test timeout will fire.
+	done := make(chan struct{})
+	go func() {
+		provider.Shutdown()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// success
+	case <-time.After(2 * time.Second):
+		t.Fatal("Shutdown() blocked: handleEvents goroutine was not unblocked by shutdownChan")
+	}
+}
