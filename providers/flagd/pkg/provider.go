@@ -24,7 +24,9 @@ type Provider struct {
 	status                of.State
 	mtx                   parallel.RWMutex
 
-	eventStream chan of.Event
+	shutdownChan chan struct{}
+	shutdownOnce parallel.Once
+	eventStream  chan of.Event
 }
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
@@ -36,6 +38,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 
 	provider := &Provider{
 		initialized:           false,
+		shutdownChan:          make(chan struct{}),
 		eventStream:           make(chan of.Event),
 		providerConfiguration: providerConfiguration,
 		status:                of.NotReadyState,
@@ -147,16 +150,30 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 	}
 }
 
-// handleEvents runs in a separate goroutine and processes events from the service
+// handleEvents runs in a separate goroutine and processes events from the service.
+// It exits when the service event channel closes (on Shutdown) or the shutdownChan
+// is closed, ensuring the goroutine is never leaked.
 func (p *Provider) handleEvents() {
 	serviceEventChan := p.service.EventChannel()
-	for event := range serviceEventChan {
-		p.eventStream <- event
-		switch event.EventType {
-		case of.ProviderReady, of.ProviderConfigChange:
-			p.setStatus(of.ReadyState)
-		case of.ProviderError:
-			p.setStatus(of.ErrorState)
+	for {
+		select {
+		case event, ok := <-serviceEventChan:
+			if !ok {
+				return
+			}
+			select {
+			case p.eventStream <- event:
+			case <-p.shutdownChan:
+				return
+			}
+			switch event.EventType {
+			case of.ProviderReady, of.ProviderConfigChange:
+				p.setStatus(of.ReadyState)
+			case of.ProviderError:
+				p.setStatus(of.ErrorState)
+			}
+		case <-p.shutdownChan:
+			return
 		}
 	}
 }
@@ -172,6 +189,9 @@ func (p *Provider) Shutdown() {
 	defer p.mtx.Unlock()
 
 	p.initialized = false
+	p.shutdownOnce.Do(func() {
+		close(p.shutdownChan)
+	})
 	p.service.Shutdown()
 }
 
