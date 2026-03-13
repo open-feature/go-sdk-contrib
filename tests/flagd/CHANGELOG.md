@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.6.0...tests/flagd/v1.7.0) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** configurable retry backoff after each sync cycle error ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#806](https://github.com/open-feature/go-sdk-contrib/issues/806)) ([0791fa1](https://github.com/open-feature/go-sdk-contrib/commit/0791fa182c376bfc7c5109403e5f99799a64c87e))
+* **flagd:** do not retry for certain status codes ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#799](https://github.com/open-feature/go-sdk-contrib/issues/799)) ([e01a99e](https://github.com/open-feature/go-sdk-contrib/commit/e01a99ed8a0b54a2c09ed9c2aa4f5cd658769e78))
+
+
+### ✨ New Features
+
+* **go-feature-flag-inprocess:** update go-feature-flag dep to v1.49.0 ([#821](https://github.com/open-feature/go-sdk-contrib/issues/821)) ([6fa5a89](https://github.com/open-feature/go-sdk-contrib/commit/6fa5a8914f838db8507eea4d19d6a07521184afc))
+
 ## [1.6.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.5.1...tests/flagd/v1.6.0) (2025-11-27)
 
 

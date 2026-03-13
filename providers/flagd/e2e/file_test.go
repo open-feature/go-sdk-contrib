@@ -41,7 +41,7 @@ func TestFileProviderE2E(t *testing.T) {
 
 	// Run tests with file-specific tags, focusing on core evaluation scenarios
 	// Skip complex connection-related and synchronization scenarios for file provider
-	tags := "@file && ~@reconnect && ~@sync && ~@grace && ~@events && ~@unixsocket && ~@metadata"
+	tags := "@file && ~@reconnect && ~@sync && ~@grace && ~@events && ~@unixsocket && ~@metadata && ~@deprecated"
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v1/evaluationv1connect"
-	evaluation "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v1"
+	"buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v2/evaluationv2connect"
+	evaluation "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v2"
 	"connectrpc.com/connect"
 	"github.com/go-logr/logr"
 	flagdService "github.com/open-feature/flagd/core/pkg/service"
@@ -220,7 +220,7 @@ func checkGoroutineLeaks(t *testing.T) {
 }
 
 type testServer struct {
-	evaluationv1connect.UnimplementedServiceHandler
+	evaluationv2connect.UnimplementedServiceHandler
 	eventStreamErrors    chan error
 	eventStreamResponses chan *evaluation.EventStreamResponse
 }
@@ -245,13 +245,12 @@ func runTestServer(t *testing.T) (*testServer, Configuration) {
 		eventStreamResponses: make(chan *evaluation.EventStreamResponse, 100),
 		eventStreamErrors:    make(chan error, 1),
 	}
-	mountPath, handler := evaluationv1connect.NewServiceHandler(ts)
+	mountPath, handler := evaluationv2connect.NewServiceHandler(ts)
 	mux := http.NewServeMux()
 	mux.Handle(mountPath, handler)
 	server := httptest.NewServer(mux)
 	t.Cleanup(func() {
 		server.Close()
-		// time.Sleep(1 * time.Millisecond)
 	})
 	hostPort, ok := strings.CutPrefix(server.URL, "http://")
 	if !ok {

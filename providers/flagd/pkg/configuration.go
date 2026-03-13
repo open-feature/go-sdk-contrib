@@ -11,6 +11,7 @@ import (
 	"github.com/open-feature/flagd/core/pkg/sync"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
+	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	"google.golang.org/grpc"
 )
 
@@ -18,6 +19,10 @@ type ResolverType string
 
 // Naming and defaults must comply with flagd environment variables
 const (
+	// DefaultRetryBackoffMs is the default initial backoff duration for stream retry
+	DefaultRetryBackoffMs = process.DefaultRetryBackoffMs
+	// DefaultRetryBackoffMaxMs is the default maximum backoff duration for stream retry
+	DefaultRetryBackoffMaxMs            = process.DefaultRetryBackoffMaxMs
 	defaultMaxCacheSize          int    = 1000
 	defaultRpcPort               uint16 = 8013
 	defaultInProcessPort         uint16 = 8015
@@ -26,10 +31,10 @@ const (
 	defaultCache                        = cache.LRUValue
 	defaultHost                         = "localhost"
 	defaultResolver                     = rpc
-	defaultGracePeriod                  = 5
-	defaultRetryBackoffMs               = 1000
-	defaultRetryBackoffMaxMs            = 120000
-	defaultFatalStatusCodes             = ""
+    // defaultGracePeriod is the default time window (in seconds) for the transition from stale to error state
+    defaultGracePeriod      = 5
+	defaultFatalStatusCodes = ""
+	defaultInitDeadlineMs   = 500
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -37,6 +42,7 @@ const (
 
 	flagdHostEnvironmentVariableName                  = "FLAGD_HOST"
 	flagdPortEnvironmentVariableName                  = "FLAGD_PORT"
+	flagdSyncPortEnvironmentVariableName              = "FLAGD_SYNC_PORT"
 	flagdTLSEnvironmentVariableName                   = "FLAGD_TLS"
 	flagdSocketPathEnvironmentVariableName            = "FLAGD_SOCKET_PATH"
 	flagdServerCertPathEnvironmentVariableName        = "FLAGD_SERVER_CERT_PATH"
@@ -52,6 +58,7 @@ const (
 	flagdRetryBackoffMsVariableName                   = "FLAGD_RETRY_BACKOFF_MS"
 	flagdRetryBackoffMaxMsVariableName                = "FLAGD_RETRY_BACKOFF_MAX_MS"
 	flagdFatalStatusCodesVariableName                 = "FLAGD_FATAL_STATUS_CODES"
+	flagdDeadlineMsEnvironmentVariableName            = "FLAGD_DEADLINE_MS"
 )
 
 type ProviderConfiguration struct {
@@ -76,6 +83,7 @@ type ProviderConfiguration struct {
 	RetryBackoffMs                   int
 	RetryBackoffMaxMs                int
 	FatalStatusCodes                 []string
+	DeadlineMs                       int
 
 	log logr.Logger
 }
@@ -90,8 +98,9 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 defaultGracePeriod,
-		RetryBackoffMs:                   defaultRetryBackoffMs,
-		RetryBackoffMaxMs:                defaultRetryBackoffMaxMs,
+		RetryBackoffMs:                   DefaultRetryBackoffMs,
+		RetryBackoffMaxMs:                DefaultRetryBackoffMaxMs,
+		DeadlineMs:                       defaultInitDeadlineMs,
 	}
 
 	p.updateFromEnvVar()
@@ -110,7 +119,10 @@ func NewProviderConfiguration(opts []ProviderOption) (*ProviderConfiguration, er
 		opt(providerConfiguration)
 	}
 
+	providerConfiguration.updatePortFromEnvVar()
+
 	configureProviderConfiguration(providerConfiguration)
+
 	err := validateProviderConfiguration(providerConfiguration)
 
 	return providerConfiguration, err
@@ -142,21 +154,6 @@ func validateProviderConfiguration(p *ProviderConfiguration) error {
 
 // updateFromEnvVar is a utility to update configurations based on current environment variables
 func (cfg *ProviderConfiguration) updateFromEnvVar() {
-
-	portS := os.Getenv(flagdPortEnvironmentVariableName)
-	if portS != "" {
-		port, err := strconv.Atoi(portS)
-		if err != nil {
-			cfg.log.Error(err,
-				fmt.Sprintf(
-					"invalid env config for %s provided, using default value: %d or %d depending on resolver",
-					flagdPortEnvironmentVariableName, defaultRpcPort, defaultInProcessPort,
-				))
-		} else {
-			cfg.Port = uint16(port)
-		}
-	}
-
 	if host := os.Getenv(flagdHostEnvironmentVariableName); host != "" {
 		cfg.Host = host
 	}
@@ -222,8 +219,9 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	}
 
 	cfg.RetryGracePeriod = getIntFromEnvVarOrDefault(flagdGracePeriodVariableName, defaultGracePeriod, cfg.log)
-	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, defaultRetryBackoffMs, cfg.log)
-	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, defaultRetryBackoffMaxMs, cfg.log)
+	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, DefaultRetryBackoffMs, cfg.log)
+	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, DefaultRetryBackoffMaxMs, cfg.log)
+	cfg.DeadlineMs = getIntFromEnvVarOrDefault(flagdDeadlineMsEnvironmentVariableName, defaultInitDeadlineMs, cfg.log)
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
@@ -257,6 +255,41 @@ func getIntFromEnvVarOrDefault(envVarName string, defaultValue int, log logr.Log
 		}
 	}
 	return defaultValue
+}
+
+// updatePortFromEnvVar updates the port configuration from environment variables.
+// For in-process resolver, FLAGD_SYNC_PORT takes priority over FLAGD_PORT (backwards compatibility).
+// For rpc resolver, only FLAGD_PORT is used.
+func (cfg *ProviderConfiguration) updatePortFromEnvVar() {
+	if cfg.Port != 0 {
+		// Port is already set, no need to update from env var
+		return
+	}
+	var portS string
+	var envVarName string
+
+	if cfg.Resolver == inProcess {
+		portS = os.Getenv(flagdSyncPortEnvironmentVariableName)
+		envVarName = flagdSyncPortEnvironmentVariableName
+	}
+
+	if portS == "" {
+		portS = os.Getenv(flagdPortEnvironmentVariableName)
+		envVarName = flagdPortEnvironmentVariableName
+	}
+
+	if portS != "" {
+		port, err := strconv.Atoi(portS)
+		if err != nil {
+			cfg.log.Error(err,
+				fmt.Sprintf(
+					"invalid env config for %s provided, using default value: %d or %d depending on resolver",
+					envVarName, defaultRpcPort, defaultInProcessPort,
+				))
+		} else {
+			cfg.Port = uint16(port)
+		}
+	}
 }
 
 // ProviderOptions
@@ -456,5 +489,13 @@ func WithRetryBackoffMaxMs(retryBackoffMaxMs int) ProviderOption {
 func WithFatalStatusCodes(fatalStatusCodes []string) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.FatalStatusCodes = fatalStatusCodes
+	}
+}
+
+// WithDeadline sets the deadline for unary (one-way) RPCs, as well as the initialization deadline.
+// If initialization does not complete within this time, Init will return an error. Defaults to 500ms.
+func WithDeadline(deadlineMs int) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.DeadlineMs = deadlineMs
 	}
 }
