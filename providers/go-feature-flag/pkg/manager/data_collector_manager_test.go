@@ -1,13 +1,28 @@
-package controller_test
+package manager_test
 
 import (
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/controller"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/manager"
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+type MockRoundTripper struct {
+	RoundTripFunc func(req *http.Request) *http.Response
+	Err           error
+	NumberCall    int
+}
+
+func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	m.NumberCall++
+	return m.RoundTripFunc(req), m.Err
+}
 
 func Test_DataCollectorManager(t *testing.T) {
 	eventExample := model.FeatureEvent{
@@ -22,6 +37,15 @@ func Test_DataCollectorManager(t *testing.T) {
 		Version:      "",
 		Source:       "SERVER",
 	}
+	trackingEventExample := model.TrackingEvent{
+		Kind:              "tracking",
+		ContextKind:       "user",
+		UserKey:           "EFGH",
+		CreationDate:      1722266324,
+		Key:               "clicked-checkout",
+		EvaluationContext: map[string]any{"targetingKey": "EFGH"},
+		TrackingDetails:   map[string]any{"value": 99.99},
+	}
 	t.Run("Should collect only once if there is no event in queue", func(t *testing.T) {
 		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{
@@ -29,11 +53,12 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.GoFeatureFlagAPI{
+			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		})
+		}
 
-		collector := controller.NewDataCollectorManager(g, 100, 100*time.Millisecond)
+		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		_ = collector.AddEvent(eventExample)
@@ -49,11 +74,12 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.GoFeatureFlagAPI{
+			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		})
+		}
 
-		collector := controller.NewDataCollectorManager(g, 100, 100*time.Millisecond)
+		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		_ = collector.AddEvent(eventExample)
@@ -74,11 +100,12 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.GoFeatureFlagAPI{
+			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		})
+		}
 
-		collector := controller.NewDataCollectorManager(g, 5, 10*time.Minute)
+		collector := manager.NewDataCollectorManager(g, 5, 10*time.Minute)
 		collector.Start()
 		defer collector.Stop()
 		err := collector.AddEvent(eventExample)
@@ -108,16 +135,17 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := controller.NewGoFeatureFlagAPI(controller.GoFeatureFlagApiOptions{
+		g := api.GoFeatureFlagAPI{
+			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		})
+		}
 
-		collector := controller.NewDataCollectorManager(g, 5, 100*time.Millisecond)
+		collector := manager.NewDataCollectorManager(g, 5, 100*time.Millisecond)
 		collector.Start()
 		defer collector.Stop()
 		err := collector.AddEvent(eventExample)
 		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
+		err = collector.AddEvent(trackingEventExample)
 		assert.NoError(t, err)
 		err = collector.AddEvent(eventExample)
 		assert.NoError(t, err)
@@ -133,6 +161,55 @@ func Test_DataCollectorManager(t *testing.T) {
 		assert.Error(t, err)
 
 		// Should have tried only once to call the API
+		assert.Equal(t, 1, mrt.NumberCall)
+	})
+
+	t.Run("Should collect tracking events", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+			}
+		}, Err: nil}
+		client := &http.Client{Transport: &mrt}
+		g := api.GoFeatureFlagAPI{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		}
+
+		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
+		collector.Start()
+		defer collector.Stop()
+		err := collector.AddEvent(trackingEventExample)
+		require.NoError(t, err)
+
+		err = collector.SendData()
+		require.NoError(t, err)
+		assert.Equal(t, 1, mrt.NumberCall)
+	})
+
+	t.Run("Should collect mixed feature and tracking events", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+			}
+		}, Err: nil}
+		client := &http.Client{Transport: &mrt}
+		g := api.GoFeatureFlagAPI{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		}
+
+		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
+		collector.Start()
+		defer collector.Stop()
+		err := collector.AddEvent(eventExample)
+		require.NoError(t, err)
+		err = collector.AddEvent(trackingEventExample)
+		require.NoError(t, err)
+
+		time.Sleep(50 * time.Millisecond)
+		err = collector.SendData()
+		require.NoError(t, err)
 		assert.Equal(t, 1, mrt.NumberCall)
 	})
 }
