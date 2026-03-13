@@ -1,10 +1,12 @@
 package model
 
 import (
-	"encoding/json"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"time"
+
+	of "github.com/open-feature/go-sdk/openfeature"
 )
+
+var _ CollectableEvent = (*FeatureEvent)(nil)
 
 func NewFeatureEvent(
 	evalCtx of.EvaluationContext,
@@ -76,15 +78,4 @@ type FeatureEvent struct {
 	Source string `json:"source" example:"SERVER" parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"`
 }
 
-// MarshalInterface marshals all interface type fields in FeatureEvent into JSON-encoded string.
-func (f *FeatureEvent) MarshalInterface() error {
-	if f == nil {
-		return nil
-	}
-	b, err := json.Marshal(f.Value)
-	if err != nil {
-		return err
-	}
-	f.Value = string(b)
-	return nil
-}
+func (FeatureEvent) collectableEvent() {}
