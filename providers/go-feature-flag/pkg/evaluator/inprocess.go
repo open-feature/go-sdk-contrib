@@ -17,6 +17,7 @@ import (
 var _ Evaluator = &InProcess{}
 
 const inProcessProviderName = "go-feature-flag"
+const pollingIntervalDefault = 2 * time.Minute
 
 type configurationRefreshStatus int
 
@@ -168,7 +169,7 @@ func (i *InProcess) Init(ctx context.Context) error {
 	i.handleRefreshResult(status, nil)
 	interval := i.flagChangePollingInterval
 	if interval == 0 {
-		interval = 120 * time.Second
+		interval = pollingIntervalDefault
 	}
 	go func() {
 		defer close(i.pollingDone)
@@ -236,7 +237,12 @@ func (i *InProcess) checkFlagExists(flagName string) (*flag.InternalFlag, *openf
 
 // toFFContext converts an openfeature FlattenedContext to an ffcontext.Context.
 func toFFContext(flatCtx openfeature.FlattenedContext) ffcontext.Context {
-	key, _ := flatCtx["targetingKey"].(string)
+	var key string
+	if targetingKey, ok := flatCtx["targetingKey"]; ok {
+		if keyStr, isString := targetingKey.(string); isString {
+			key = keyStr
+		}
+	}
 	b := ffcontext.NewEvaluationContextBuilder(key)
 	for k, v := range flatCtx {
 		if k == "targetingKey" {
