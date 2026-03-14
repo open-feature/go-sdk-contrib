@@ -405,6 +405,7 @@ func Test_CollectDataAPI(t *testing.T) {
 	type test struct {
 		name          string
 		wantErr       assert.ErrorAssertionFunc
+		wantErrMsg    string
 		options       collectDataOptions
 		roundtripFunc func(req *http.Request) *http.Response
 		roundtripErr  error
@@ -678,6 +679,22 @@ func Test_CollectDataAPI(t *testing.T) {
 			wantHost:    "collector:9000",
 		},
 		{
+			name:    "returns error when data collector base URL is invalid",
+			wantErr: assert.Error,
+			options: collectDataOptions{
+				Endpoint:             "http://localhost:1031",
+				DataCollectorBaseURL: "%",
+			},
+			events: []model.CollectableEvent{},
+			roundtripFunc: func(req *http.Request) *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(bytes.NewReader([]byte(`{"ingestedContentCount":0}`))),
+				}
+			},
+			wantErrMsg: "CollectData: invalid endpoint",
+		},
+		{
 			name:    "Request failed",
 			wantErr: assert.Error,
 			options: collectDataOptions{
@@ -762,6 +779,9 @@ func Test_CollectDataAPI(t *testing.T) {
 			})
 			err := a.CollectData(tt.events)
 			tt.wantErr(t, err)
+			if tt.wantErrMsg != "" {
+				require.ErrorContains(t, err, tt.wantErrMsg)
+			}
 
 			if err != nil {
 				return
