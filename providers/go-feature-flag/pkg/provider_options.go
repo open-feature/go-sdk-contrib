@@ -71,7 +71,7 @@ type ProviderOptions struct {
 
 func (o *ProviderOptions) Validation() error {
 	if o.Endpoint == "" {
-		return fmt.Errorf("invalid option: %s", o.Endpoint)
+		return fmt.Errorf("invalid option: Endpoint is required")
 	}
 	return nil
 }
