@@ -119,3 +119,44 @@ func Test_DataCollectorHook_Error_CollectsSdkDefaultEvent(t *testing.T) {
 	assert.Equal(t, "PROVIDER_CACHE", event.Source)
 	assert.Greater(t, event.CreationDate, int64(0))
 }
+
+func Test_DataCollectorHook_After_AnonymousUser_SetsContextKind(t *testing.T) {
+	h, collector, mrt := newDataCollectorHookForTest()
+	hookCtx := newHookContext("anon-456", map[string]any{"anonymous": true})
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value: "some-value",
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:  "test-flag",
+			FlagType: openfeature.String,
+		},
+	}
+	evalDetails.Variant = "variant-B"
+
+	err := h.After(context.Background(), hookCtx, evalDetails, openfeature.HookHints{})
+	require.NoError(t, err)
+	require.NoError(t, collector.SendData())
+
+	var payload capturedCollectorRequest
+	require.NoError(t, json.Unmarshal(mrt.lastBody, &payload))
+	require.Len(t, payload.Events, 1)
+
+	var event model.FeatureEvent
+	require.NoError(t, json.Unmarshal(payload.Events[0], &event))
+	assert.Equal(t, "anonymousUser", event.ContextKind)
+}
+
+func Test_DataCollectorHook_Error_AnonymousUser_SetsContextKind(t *testing.T) {
+	h, collector, mrt := newDataCollectorHookForTest()
+	hookCtx := newHookContext("anon-789", map[string]any{"anonymous": true})
+
+	h.Error(context.Background(), hookCtx, errors.New("boom"), openfeature.HookHints{})
+	require.NoError(t, collector.SendData())
+
+	var payload capturedCollectorRequest
+	require.NoError(t, json.Unmarshal(mrt.lastBody, &payload))
+	require.Len(t, payload.Events, 1)
+
+	var event model.FeatureEvent
+	require.NoError(t, json.Unmarshal(payload.Events[0], &event))
+	assert.Equal(t, "anonymousUser", event.ContextKind)
+}
