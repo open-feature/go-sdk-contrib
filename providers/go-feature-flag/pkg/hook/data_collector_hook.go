@@ -2,7 +2,6 @@ package hook
 
 import (
 	"context"
-	"time"
 
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/manager"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
@@ -20,33 +19,29 @@ type dataCollectorHook struct {
 
 func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookContext,
 	evalDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) error {
-	event := model.FeatureEvent{
-		Kind:         "feature",
-		ContextKind:  "user",
-		UserKey:      hookCtx.EvaluationContext().TargetingKey(),
-		CreationDate: time.Now().Unix(),
-		Key:          hookCtx.FlagKey(),
-		Variation:    evalDetails.Variant,
-		Value:        evalDetails.Value,
-		Default:      false,
-		Source:       "PROVIDER_CACHE",
-	}
+	event := model.NewFeatureEvent(
+		hookCtx.EvaluationContext(),
+		hookCtx.FlagKey(),
+		evalDetails.Value,
+		evalDetails.Variant,
+		false,
+		"",
+		"PROVIDER_CACHE",
+	)
 	_ = d.dataCollectorManager.AddEvent(event)
 	return nil
 }
 
 func (d *dataCollectorHook) Error(_ context.Context, hookCtx openfeature.HookContext,
 	err error, hint openfeature.HookHints) {
-	event := model.FeatureEvent{
-		Kind:         "feature",
-		ContextKind:  "user",
-		UserKey:      hookCtx.EvaluationContext().TargetingKey(),
-		CreationDate: time.Now().Unix(),
-		Key:          hookCtx.FlagKey(),
-		Variation:    "SdkDefault",
-		Value:        hookCtx.DefaultValue(),
-		Default:      true,
-		Source:       "PROVIDER_CACHE",
-	}
+	event := model.NewFeatureEvent(
+		hookCtx.EvaluationContext(),
+		hookCtx.FlagKey(),
+		hookCtx.DefaultValue(),
+		"SdkDefault",
+		true,
+		"",
+		"PROVIDER_CACHE",
+	)
 	_ = d.dataCollectorManager.AddEvent(event)
 }
