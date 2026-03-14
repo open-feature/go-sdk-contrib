@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -40,38 +41,44 @@ func NewDataCollectorManager(
 		events:                      make([]model.CollectableEvent, 0),
 		dataCollectorMaxEventStored: dataCollectorMaxEventStored,
 		collectInterval:             collectInterval,
-		collectChannel:              make(chan bool),
+		collectChannel:              make(chan bool, 1),
 	}
 }
 
 func (d *DataCollectorManager) Start() {
 	d.ticker = time.NewTicker(d.collectInterval)
+	tickerC := d.ticker.C
 	go func() {
 		for {
 			select {
 			case <-d.collectChannel:
 				return
-			case <-d.ticker.C:
-				_ = d.SendData()
+			case <-tickerC:
+				_ = d.SendData(context.Background())
 			}
 		}
 	}()
 }
 
-func (d *DataCollectorManager) Stop() {
-	d.collectChannel <- true
-	d.ticker.Stop()
-	_ = d.SendData()
+func (d *DataCollectorManager) Stop(ctx context.Context) {
+	select {
+	case d.collectChannel <- true:
+	default:
+	}
+	if d.ticker != nil {
+		d.ticker.Stop()
+	}
+	_ = d.SendData(ctx)
 }
 
 // sendDataLocked flushes events to the API. Caller must hold d.mutex.
-func (d *DataCollectorManager) sendDataLocked() error {
+func (d *DataCollectorManager) sendDataLocked(ctx context.Context) error {
 	if len(d.events) == 0 {
 		return nil
 	}
 	copySend := make([]model.CollectableEvent, len(d.events))
 	copy(copySend, d.events)
-	if err := d.goffAPI.CollectData(copySend); err != nil {
+	if err := d.goffAPI.CollectData(ctx, copySend); err != nil {
 		return err
 	}
 	d.events = make([]model.CollectableEvent, 0)
@@ -79,21 +86,20 @@ func (d *DataCollectorManager) sendDataLocked() error {
 }
 
 // SendData sends the data to the data collector
-func (d *DataCollectorManager) SendData() error {
+func (d *DataCollectorManager) SendData(ctx context.Context) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	return d.sendDataLocked()
+	return d.sendDataLocked(ctx)
 }
 
 // AddEvent adds an event (FeatureEvent or TrackingEvent) to the data collector manager.
-// If the queue is full, it flushes existing events first. If the flush fails and the queue
-// is still full, the event is dropped and an error is returned.
+// If the queue is full, we flush first. If the flush fails, the new event is not added and the error is returned.
 func (d *DataCollectorManager) AddEvent(event model.CollectableEvent) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
 	if int64(len(d.events)) >= d.dataCollectorMaxEventStored {
-		if err := d.sendDataLocked(); err != nil {
+		if err := d.sendDataLocked(context.Background()); err != nil {
 			return err
 		}
 	}

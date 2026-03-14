@@ -1,6 +1,7 @@
 package manager_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -60,7 +61,7 @@ func Test_DataCollectorManager(t *testing.T) {
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
-		defer collector.Stop()
+		defer collector.Stop(context.Background())
 		_ = collector.AddEvent(eventExample)
 
 		time.Sleep(300 * time.Millisecond)
@@ -81,7 +82,7 @@ func Test_DataCollectorManager(t *testing.T) {
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
-		defer collector.Stop()
+		defer collector.Stop(context.Background())
 		_ = collector.AddEvent(eventExample)
 		_ = collector.AddEvent(eventExample)
 		_ = collector.AddEvent(eventExample)
@@ -107,7 +108,7 @@ func Test_DataCollectorManager(t *testing.T) {
 
 		collector := manager.NewDataCollectorManager(g, 3, 10*time.Minute)
 		collector.Start()
-		defer collector.Stop()
+		defer collector.Stop(context.Background())
 
 		// Fill the queue to max
 		err := collector.AddEvent(eventExample)
@@ -124,7 +125,7 @@ func Test_DataCollectorManager(t *testing.T) {
 		assert.Equal(t, 1, mrt.NumberCall)
 
 		// Flush the remaining 1 event
-		err = collector.SendData()
+		err = collector.SendData(context.Background())
 		assert.NoError(t, err)
 		assert.Equal(t, 2, mrt.NumberCall)
 	})
@@ -143,7 +144,7 @@ func Test_DataCollectorManager(t *testing.T) {
 
 		collector := manager.NewDataCollectorManager(g, 5, 100*time.Millisecond)
 		collector.Start()
-		defer collector.Stop()
+		defer collector.Stop(context.Background())
 		err := collector.AddEvent(eventExample)
 		assert.NoError(t, err)
 		err = collector.AddEvent(trackingEventExample)
@@ -179,11 +180,11 @@ func Test_DataCollectorManager(t *testing.T) {
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
-		defer collector.Stop()
+		defer collector.Stop(context.Background())
 		err := collector.AddEvent(trackingEventExample)
 		require.NoError(t, err)
 
-		err = collector.SendData()
+		err = collector.SendData(context.Background())
 		require.NoError(t, err)
 		assert.Equal(t, 1, mrt.NumberCall)
 	})
@@ -202,7 +203,7 @@ func Test_DataCollectorManager(t *testing.T) {
 		collector.Start()
 		_ = collector.AddEvent(eventExample)
 		_ = collector.AddEvent(eventExample)
-		collector.Stop() // must flush the 2 buffered events
+		collector.Stop(context.Background()) // must flush the 2 buffered events
 		assert.Equal(t, 1, mrt.NumberCall)
 	})
 
@@ -220,14 +221,14 @@ func Test_DataCollectorManager(t *testing.T) {
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
-		defer collector.Stop()
+		defer collector.Stop(context.Background())
 		err := collector.AddEvent(eventExample)
 		require.NoError(t, err)
 		err = collector.AddEvent(trackingEventExample)
 		require.NoError(t, err)
 
 		time.Sleep(50 * time.Millisecond)
-		err = collector.SendData()
+		err = collector.SendData(context.Background())
 		require.NoError(t, err)
 		assert.Equal(t, 1, mrt.NumberCall)
 	})

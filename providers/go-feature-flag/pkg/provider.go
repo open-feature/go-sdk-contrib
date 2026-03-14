@@ -95,7 +95,7 @@ func (p *Provider) InitWithContext(ctx context.Context, evaluationContext openfe
 // ShutdownWithContext implements [openfeature.ContextAwareStateHandler].
 func (p *Provider) ShutdownWithContext(ctx context.Context) error {
 	if !p.options.DataCollectorDisabled {
-		p.dataCollectorMgr.Stop()
+		p.dataCollectorMgr.Stop(ctx)
 	}
 	return p.evaluator.Shutdown(ctx)
 }

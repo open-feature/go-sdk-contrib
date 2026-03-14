@@ -278,7 +278,7 @@ func TestProvider_Track(t *testing.T) {
 
 			p.Track(context.Background(), tc.trackingName, tc.evalCtx, tc.details)
 
-			err := p.dataCollectorMgr.SendData()
+			err := p.dataCollectorMgr.SendData(context.Background())
 			require.NoError(t, err)
 
 			require.NotNil(t, mrt.lastBody, "expected HTTP request to be made")
@@ -329,7 +329,7 @@ func TestProvider_DataCollectorHookUsesProviderManager(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	err := p.dataCollectorMgr.SendData()
+	err := p.dataCollectorMgr.SendData(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, mrt.lastBody, "expected provider manager flush to send hook-collected event")
 
