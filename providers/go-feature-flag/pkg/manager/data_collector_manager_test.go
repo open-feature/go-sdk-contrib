@@ -53,10 +53,10 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.GoFeatureFlagAPI{
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		}
+		})
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
@@ -74,10 +74,10 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.GoFeatureFlagAPI{
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		}
+		})
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
@@ -100,10 +100,10 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.GoFeatureFlagAPI{
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		}
+		})
 
 		collector := manager.NewDataCollectorManager(g, 5, 10*time.Minute)
 		collector.Start()
@@ -135,10 +135,10 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.GoFeatureFlagAPI{
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		}
+		})
 
 		collector := manager.NewDataCollectorManager(g, 5, 100*time.Millisecond)
 		collector.Start()
@@ -171,10 +171,10 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.GoFeatureFlagAPI{
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		}
+		})
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()
@@ -194,10 +194,10 @@ func Test_DataCollectorManager(t *testing.T) {
 			}
 		}, Err: nil}
 		client := &http.Client{Transport: &mrt}
-		g := api.GoFeatureFlagAPI{
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 			Endpoint:   "http://localhost:1031",
 			HTTPClient: client,
-		}
+		})
 
 		collector := manager.NewDataCollectorManager(g, 100, 100*time.Millisecond)
 		collector.Start()

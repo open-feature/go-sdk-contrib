@@ -58,6 +58,12 @@ type ProviderOptions struct {
 	// default: false
 	DataCollectorDisabled bool
 
+	// DataCollectorBaseURL (optional) overrides the endpoint used for the data collector only.
+	// When set, events are sent to this URL instead of {Endpoint}/v1/data/collector.
+	// Useful when the collector service runs at a different host than the relay proxy.
+	// default: empty (uses Endpoint)
+	DataCollectorBaseURL string
+
 	// Logger (optional) is the logger to be used by the provider.
 	// default: slog.Default()
 	Logger *slog.Logger

@@ -48,13 +48,14 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	options.ExporterMetadata["provider"] = "go"
 	options.ExporterMetadata["openfeature"] = true
 
-	goffAPI := &api.GoFeatureFlagAPI{
-		Endpoint:         options.Endpoint,
-		HTTPClient:       options.HTTPClient,
-		APIKey:           options.APIKey,
-		Headers:          options.Headers,
-		ExporterMetadata: options.ExporterMetadata,
-	}
+	goffAPI := api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+		Endpoint:             options.Endpoint,
+		DataCollectorBaseURL: options.DataCollectorBaseURL,
+		HTTPClient:           options.HTTPClient,
+		APIKey:               options.APIKey,
+		Headers:              options.Headers,
+		ExporterMetadata:     options.ExporterMetadata,
+	})
 
 	if options.Logger == nil {
 		options.Logger = slog.Default()

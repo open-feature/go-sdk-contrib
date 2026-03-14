@@ -69,7 +69,12 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 	}{
 		{
 			name: "calls configuration endpoint with POST",
-			api:  func(c *http.Client) api.GoFeatureFlagAPI { return api.GoFeatureFlagAPI{Endpoint: "http://localhost:1031", HTTPClient: c} },
+			api: func(c *http.Client) api.GoFeatureFlagAPI {
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+					Endpoint:   "http://localhost:1031",
+					HTTPClient: c,
+				})
+			},
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
 				assert.Equal(t, http.MethodPost, req.Method)
@@ -78,7 +83,13 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 		},
 		{
 			name: "has API key when set",
-			api:  func(c *http.Client) api.GoFeatureFlagAPI { return api.GoFeatureFlagAPI{Endpoint: "http://localhost:1031", HTTPClient: c, APIKey: "my-api-key"} },
+			api: func(c *http.Client) api.GoFeatureFlagAPI {
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+					Endpoint:   "http://localhost:1031",
+					HTTPClient: c,
+					APIKey:     "my-api-key",
+				})
+			},
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
 				assert.Equal(t, "my-api-key", req.Header.Get("X-API-Key"))
@@ -86,7 +97,13 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 		},
 		{
 			name: "does not set API key when empty",
-			api:  func(c *http.Client) api.GoFeatureFlagAPI { return api.GoFeatureFlagAPI{Endpoint: "http://localhost:1031", HTTPClient: c, APIKey: ""} },
+			api: func(c *http.Client) api.GoFeatureFlagAPI {
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+					Endpoint:   "http://localhost:1031",
+					HTTPClient: c,
+					APIKey:     "",
+				})
+			},
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
 				assert.Empty(t, req.Header.Get("X-API-Key"))
@@ -94,7 +111,12 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 		},
 		{
 			name: "has default Content-Type header",
-			api:  func(c *http.Client) api.GoFeatureFlagAPI { return api.GoFeatureFlagAPI{Endpoint: "http://localhost:1031", HTTPClient: c} },
+			api: func(c *http.Client) api.GoFeatureFlagAPI {
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+					Endpoint:   "http://localhost:1031",
+					HTTPClient: c,
+				})
+			},
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
 				assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
@@ -103,11 +125,11 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 		{
 			name: "has custom headers",
 			api: func(c *http.Client) api.GoFeatureFlagAPI {
-				return api.GoFeatureFlagAPI{
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 					Endpoint:   "http://localhost:1031",
 					HTTPClient: c,
 					Headers:    map[string]string{"X-Custom-Header": "custom-value"},
-				}
+				})
 			},
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
@@ -116,7 +138,12 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 		},
 		{
 			name: "has If-None-Match header when etag provided",
-			api:  func(c *http.Client) api.GoFeatureFlagAPI { return api.GoFeatureFlagAPI{Endpoint: "http://localhost:1031", HTTPClient: c} },
+			api: func(c *http.Client) api.GoFeatureFlagAPI {
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+					Endpoint:   "http://localhost:1031",
+					HTTPClient: c,
+				})
+			},
 			etag: "xxxx",
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
@@ -124,8 +151,13 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 			},
 		},
 		{
-			name:  "has flags in body when flags provided",
-			api:   func(c *http.Client) api.GoFeatureFlagAPI { return api.GoFeatureFlagAPI{Endpoint: "http://localhost:1031", HTTPClient: c} },
+			name: "has flags in body when flags provided",
+			api: func(c *http.Client) api.GoFeatureFlagAPI {
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+					Endpoint:   "http://localhost:1031",
+					HTTPClient: c,
+				})
+			},
 			flags: []string{"flag1", "flag2"},
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
@@ -136,7 +168,12 @@ func Test_GetConfiguration_RequestBehaviour(t *testing.T) {
 		},
 		{
 			name: "body is empty object when no flags provided",
-			api:  func(c *http.Client) api.GoFeatureFlagAPI { return api.GoFeatureFlagAPI{Endpoint: "http://localhost:1031", HTTPClient: c} },
+			api: func(c *http.Client) api.GoFeatureFlagAPI {
+				return *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+					Endpoint:   "http://localhost:1031",
+					HTTPClient: c,
+				})
+			},
 			assert: func(t *testing.T, req *http.Request) {
 				require.NotNil(t, req)
 				bodyBytes, err := io.ReadAll(req.Body)
@@ -237,10 +274,10 @@ func Test_GetConfiguration_ResponseParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fixture := readFixture(t, tt.fixture)
-			a := api.GoFeatureFlagAPI{
+			a := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 				Endpoint:   "http://localhost:1031",
 				HTTPClient: newMockClient(okResponse(fixture, tt.headers), nil),
-			}
+			})
 
 			got, err := a.GetConfiguration(context.Background(), nil, "")
 			require.NoError(t, err)
@@ -253,16 +290,16 @@ func Test_GetConfiguration_ResponseParsing(t *testing.T) {
 
 func Test_GetConfiguration_ErrorCases(t *testing.T) {
 	tests := []struct {
-		name             string
-		api              api.GoFeatureFlagAPI
-		flags            []string
-		etag             string
-		wantErrIs        error
-		wantErrContains  string
+		name            string
+		api             api.GoFeatureFlagAPI
+		flags           []string
+		etag            string
+		wantErrIs       error
+		wantErrContains string
 	}{
 		{
 			name: "returns ErrNotModified when 304 received",
-			api: api.GoFeatureFlagAPI{
+			api: *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 				Endpoint: "http://localhost:1031",
 				HTTPClient: newMockClient(func(_ *http.Request) *http.Response {
 					return &http.Response{
@@ -270,13 +307,13 @@ func Test_GetConfiguration_ErrorCases(t *testing.T) {
 						Body:       io.NopCloser(strings.NewReader("")),
 					}
 				}, nil),
-			},
+			}),
 			etag:      "my-etag",
 			wantErrIs: api.ErrNotModified,
 		},
 		{
 			name: "returns error when 500 received",
-			api: api.GoFeatureFlagAPI{
+			api: *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 				Endpoint: "http://localhost:1031",
 				HTTPClient: newMockClient(func(_ *http.Request) *http.Response {
 					return &http.Response{
@@ -285,12 +322,12 @@ func Test_GetConfiguration_ErrorCases(t *testing.T) {
 						Body:       io.NopCloser(strings.NewReader("internal server error")),
 					}
 				}, nil),
-			},
+			}),
 			wantErrContains: "500",
 		},
 		{
 			name: "returns error when 401 received",
-			api: api.GoFeatureFlagAPI{
+			api: *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 				Endpoint: "http://localhost:1031",
 				HTTPClient: newMockClient(func(_ *http.Request) *http.Response {
 					return &http.Response{
@@ -299,12 +336,12 @@ func Test_GetConfiguration_ErrorCases(t *testing.T) {
 						Body:       io.NopCloser(strings.NewReader("unauthorized")),
 					}
 				}, nil),
-			},
+			}),
 			wantErrContains: "401",
 		},
 		{
 			name: "returns error when 403 received",
-			api: api.GoFeatureFlagAPI{
+			api: *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 				Endpoint: "http://localhost:1031",
 				APIKey:   "invalid-api-key",
 				HTTPClient: newMockClient(func(_ *http.Request) *http.Response {
@@ -314,12 +351,12 @@ func Test_GetConfiguration_ErrorCases(t *testing.T) {
 						Body:       io.NopCloser(strings.NewReader("forbidden")),
 					}
 				}, nil),
-			},
+			}),
 			wantErrContains: "403",
 		},
 		{
 			name: "returns error when 400 received",
-			api: api.GoFeatureFlagAPI{
+			api: *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 				Endpoint: "http://localhost:1031",
 				HTTPClient: newMockClient(func(_ *http.Request) *http.Response {
 					return &http.Response{
@@ -328,15 +365,15 @@ func Test_GetConfiguration_ErrorCases(t *testing.T) {
 						Body:       io.NopCloser(strings.NewReader("bad request")),
 					}
 				}, nil),
-			},
+			}),
 			wantErrContains: "400",
 		},
 		{
 			name: "returns error when transport fails",
-			api: api.GoFeatureFlagAPI{
+			api: *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 				Endpoint:   "http://localhost:1031",
 				HTTPClient: newMockClient(nil, errors.New("connection refused")),
-			},
+			}),
 			wantErrContains: "connection refused",
 		},
 	}
@@ -360,9 +397,10 @@ func Test_GetConfiguration_ErrorCases(t *testing.T) {
 
 func Test_CollectDataAPI(t *testing.T) {
 	type collectDataOptions struct {
-		Endpoint         string
-		APIKey           string
-		ExporterMetadata map[string]any
+		Endpoint             string
+		APIKey               string
+		ExporterMetadata     map[string]any
+		DataCollectorBaseURL string
 	}
 	type test struct {
 		name          string
@@ -374,6 +412,7 @@ func Test_CollectDataAPI(t *testing.T) {
 		wantReqBody   string
 		events        []model.CollectableEvent
 		wantPath      string // optional: assert request URL path when non-empty
+		wantHost      string // optional: assert request URL host when non-empty
 	}
 	eventsFixture := []model.CollectableEvent{
 		model.FeatureEvent{
@@ -549,12 +588,12 @@ func Test_CollectDataAPI(t *testing.T) {
 			},
 			events: []model.CollectableEvent{
 				model.TrackingEvent{
-					Kind:              "tracking",
-					CreationDate:      1750406145,
-					ContextKind:       "user",
-					Key:               "TEST2",
-					UserKey:           "642e135a-1df9-4419-a3d3-3c42e0e67509",
-					TrackingDetails:   map[string]any{"action": "click", "label": "button1", "value": float64(1)},
+					Kind:            "tracking",
+					CreationDate:    1750406145,
+					ContextKind:     "user",
+					Key:             "TEST2",
+					UserKey:         "642e135a-1df9-4419-a3d3-3c42e0e67509",
+					TrackingDetails: map[string]any{"action": "click", "label": "button1", "value": float64(1)},
 				},
 			},
 			roundtripFunc: func(req *http.Request) *http.Response {
@@ -613,6 +652,30 @@ func Test_CollectDataAPI(t *testing.T) {
 				return headers
 			}(),
 			wantReqBody: `{"events":[{"kind":"feature","contextKind":"user","userKey":"ABCD","creationDate":1722266324,"key":"random-key","variation":"variationA","value":"YO","default":false,"version":"","source":"SERVER"},{"kind":"tracking","contextKind":"user","userKey":"ABCD","creationDate":1722266324,"key":"clicked-checkout","evaluationContext":{"targetingKey":"ABCD"},"trackingEventDetails":{"value":99.99}}],"meta":{"openfeature":true,"provider":"go"}}`,
+		},
+		{
+			name:    "uses DataCollectorBaseURL when set",
+			wantErr: assert.NoError,
+			options: collectDataOptions{
+				Endpoint:             "http://relay-proxy:1031",
+				DataCollectorBaseURL: "http://collector:9000",
+				ExporterMetadata:     map[string]any{},
+			},
+			events: []model.CollectableEvent{},
+			roundtripFunc: func(req *http.Request) *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(bytes.NewReader([]byte(`{"ingestedContentCount":0}`))),
+				}
+			},
+			wantHeaders: func() http.Header {
+				headers := http.Header{}
+				headers.Set("Content-Type", "application/json")
+				return headers
+			}(),
+			wantReqBody: `{"events":[],"meta":{}}`,
+			wantPath:    "/v1/data/collector",
+			wantHost:    "collector:9000",
 		},
 		{
 			name:    "Request failed",
@@ -690,12 +753,13 @@ func Test_CollectDataAPI(t *testing.T) {
 			mrt := &mockRoundTripper{roundTripFunc: tt.roundtripFunc, err: tt.roundtripErr}
 			client := &http.Client{Transport: mrt}
 
-			a := api.GoFeatureFlagAPI{
-				Endpoint:         tt.options.Endpoint,
-				HTTPClient:       client,
-				APIKey:           tt.options.APIKey,
-				ExporterMetadata: tt.options.ExporterMetadata,
-			}
+			a := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+				Endpoint:             tt.options.Endpoint,
+				HTTPClient:           client,
+				APIKey:               tt.options.APIKey,
+				ExporterMetadata:     tt.options.ExporterMetadata,
+				DataCollectorBaseURL: tt.options.DataCollectorBaseURL,
+			})
 			err := a.CollectData(tt.events)
 			tt.wantErr(t, err)
 
@@ -706,6 +770,9 @@ func Test_CollectDataAPI(t *testing.T) {
 			if tt.wantPath != "" {
 				assert.Equal(t, tt.wantPath, mrt.lastRequest.URL.Path)
 			}
+			if tt.wantHost != "" {
+				assert.Equal(t, tt.wantHost, mrt.lastRequest.URL.Host)
+			}
 			assert.Equal(t, tt.wantHeaders, mrt.lastRequest.Header)
 
 			bodyBytes, err := io.ReadAll(mrt.lastRequest.Body)
@@ -714,5 +781,3 @@ func Test_CollectDataAPI(t *testing.T) {
 		})
 	}
 }
-
-
