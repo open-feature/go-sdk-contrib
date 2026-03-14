@@ -93,7 +93,7 @@ func Test_DataCollectorManager(t *testing.T) {
 		assert.Equal(t, 3, mrt.NumberCall)
 	})
 
-	t.Run("Should stop adding events if max items reached", func(t *testing.T) {
+	t.Run("Should flush and continue adding when max items reached", func(t *testing.T) {
 		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{
 				StatusCode: http.StatusOK,
@@ -105,27 +105,28 @@ func Test_DataCollectorManager(t *testing.T) {
 			HTTPClient: client,
 		})
 
-		collector := manager.NewDataCollectorManager(g, 5, 10*time.Minute)
+		collector := manager.NewDataCollectorManager(g, 3, 10*time.Minute)
 		collector.Start()
 		defer collector.Stop()
+
+		// Fill the queue to max
 		err := collector.AddEvent(eventExample)
 		assert.NoError(t, err)
 		err = collector.AddEvent(eventExample)
 		assert.NoError(t, err)
 		err = collector.AddEvent(eventExample)
 		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.Error(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.Error(t, err)
+		assert.Equal(t, 0, mrt.NumberCall)
 
-		_ = collector.SendData()
+		// 4th event triggers a flush, then gets appended
 		err = collector.AddEvent(eventExample)
 		assert.NoError(t, err)
+		assert.Equal(t, 1, mrt.NumberCall)
+
+		// Flush the remaining 1 event
+		err = collector.SendData()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, mrt.NumberCall)
 	})
 
 	t.Run("Should not remove items if saveData failed", func(t *testing.T) {
@@ -156,12 +157,12 @@ func Test_DataCollectorManager(t *testing.T) {
 		// Wait until the data collector sends the data (and failed)
 		time.Sleep(180 * time.Millisecond)
 
-		// Should error because the data collector is full
+		// Queue is still full after failed flush; AddEvent attempts another flush which also fails
 		err = collector.AddEvent(eventExample)
 		assert.Error(t, err)
 
-		// Should have tried only once to call the API
-		assert.Equal(t, 1, mrt.NumberCall)
+		// The background ticker called once, then AddEvent attempted a flush once more
+		assert.Equal(t, 2, mrt.NumberCall)
 	})
 
 	t.Run("Should collect tracking events", func(t *testing.T) {
