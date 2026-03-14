@@ -18,7 +18,7 @@ func NewFeatureEvent(
 	source string,
 ) FeatureEvent {
 	contextKind := "user"
-	if evalCtx.Attribute("anonymous") == true {
+	if isAnonymous, ok := evalCtx.Attribute("anonymous").(bool); ok && isAnonymous {
 		contextKind = "anonymousUser"
 	}
 
