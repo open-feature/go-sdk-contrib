@@ -39,8 +39,8 @@ type GoFeatureFlagAPI struct {
 	// When nil, http.DefaultClient is used.
 	httpClient *http.Client
 
-	// APIKey is an optional bearer token for relay proxy authentication.
-	// When set it is sent as "Authorization: Bearer <APIKey>".
+	// APIKey is an optional API key for relay proxy authentication.
+	// When set it is sent as "X-API-Key: <APIKey>".
 	apiKey string
 
 	// Headers holds additional HTTP headers to include in every request.
@@ -107,7 +107,10 @@ func (a *GoFeatureFlagAPI) GetConfiguration(ctx context.Context, flags []string,
 	case http.StatusNotModified:
 		return nil, ErrNotModified
 	default:
-		rawBody, _ := io.ReadAll(resp.Body)
+		rawBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("GetConfiguration: request failed with status %s, and could not read body: %w", resp.Status, readErr)
+		}
 		return nil, fmt.Errorf("GetConfiguration: request failed with status %s: %s", resp.Status, rawBody)
 	}
 }
