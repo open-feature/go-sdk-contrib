@@ -142,7 +142,7 @@ func (p *Provider) Track(ctx context.Context, trackingEventName string, evaluati
 	}
 
 	contextKind := "user"
-	if evaluationContext.Attribute("anonymous") == true {
+	if isAnonymous, ok := evaluationContext.Attribute("anonymous").(bool); ok && isAnonymous {
 		contextKind = "anonymousUser"
 	}
 	userKey := evaluationContext.TargetingKey()
