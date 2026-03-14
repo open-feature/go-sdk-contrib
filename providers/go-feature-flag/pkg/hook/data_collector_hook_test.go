@@ -47,10 +47,10 @@ type capturedCollectorRequest struct {
 func newDataCollectorHookForTest() (openfeature.Hook, *manager.DataCollectorManager, *hookMockRoundTripper) {
 	mrt := &hookMockRoundTripper{status: http.StatusOK}
 	client := &http.Client{Transport: mrt}
-	goffAPI := api.GoFeatureFlagAPI{
+	goffAPI := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 		Endpoint:   "http://localhost:1031",
 		HTTPClient: client,
-	}
+	})
 	collector := manager.NewDataCollectorManager(goffAPI, 100, 0)
 	return hook.NewDataCollectorHook(&collector), &collector, mrt
 }

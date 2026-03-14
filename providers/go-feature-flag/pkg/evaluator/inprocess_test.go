@@ -172,10 +172,10 @@ func TestInProcess_DuplicatePollFailuresDoNotEmitDuplicateStaleEvents(t *testing
 }
 
 func newInProcessEvaluatorForTest(interval time.Duration, rt http.RoundTripper, eventStream chan openfeature.Event) *InProcess {
-	return NewInprocessEvaluator(interval, &api.GoFeatureFlagAPI{
+	return NewInprocessEvaluator(interval, api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
 		Endpoint:   "http://localhost:1031",
 		HTTPClient: &http.Client{Transport: rt},
-	}, eventStream)
+	}), eventStream)
 }
 
 func successResponse(body, etag string) roundTripResponse {

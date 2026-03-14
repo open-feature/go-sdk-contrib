@@ -21,32 +21,49 @@ const (
 	applicationJSON   = "application/json"
 )
 
+type GoFeatureFlagAPIOptions struct {
+	Endpoint             string
+	DataCollectorBaseURL string
+	HTTPClient           *http.Client
+	APIKey               string
+	Headers              map[string]string
+	ExporterMetadata     map[string]any
+}
+
 // GoFeatureFlagAPI is a low-level HTTP client for the GO Feature Flag relay proxy.
 type GoFeatureFlagAPI struct {
 	// Endpoint is the base URL of the relay proxy (e.g. "http://localhost:1031").
-	Endpoint string
+	endpoint string
 
 	// HTTPClient is the HTTP client used for requests.
 	// When nil, http.DefaultClient is used.
-	HTTPClient *http.Client
+	httpClient *http.Client
 
 	// APIKey is an optional bearer token for relay proxy authentication.
 	// When set it is sent as "Authorization: Bearer <APIKey>".
-	APIKey string
+	apiKey string
 
 	// Headers holds additional HTTP headers to include in every request.
-	Headers map[string]string
+	headers map[string]string
 
 	// ExporterMetadata is metadata to be sent with every data collection request.
-	ExporterMetadata map[string]any
+	exporterMetadata map[string]any
+
+	// DataCollectorBaseURL (optional) overrides the base URL used for data collection.
+	// When empty, Endpoint is used.
+	dataCollectorBaseURL string
 }
 
 // NewGoFeatureFlagAPI creates a new GoFeatureFlagAPI with the given endpoint and HTTP client.
 // Pass nil for httpClient to use http.DefaultClient.
-func NewGoFeatureFlagAPI(endpoint string, ExporterMetadata map[string]any, httpClient *http.Client) *GoFeatureFlagAPI {
+func NewGoFeatureFlagAPI(options GoFeatureFlagAPIOptions) *GoFeatureFlagAPI {
 	return &GoFeatureFlagAPI{
-		Endpoint:   endpoint,
-		HTTPClient: httpClient,
+		endpoint:             options.Endpoint,
+		httpClient:           options.HTTPClient,
+		apiKey:               options.APIKey,
+		headers:              options.Headers,
+		exporterMetadata:     options.ExporterMetadata,
+		dataCollectorBaseURL: options.DataCollectorBaseURL,
 	}
 }
 
@@ -60,9 +77,9 @@ func NewGoFeatureFlagAPI(endpoint string, ExporterMetadata map[string]any, httpC
 // conditional requests: when the configuration has not changed the relay proxy responds with
 // HTTP 304 and this method returns (nil, ErrNotModified).
 func (a *GoFeatureFlagAPI) GetConfiguration(ctx context.Context, flags []string, etag string) (*FlagConfigResponse, error) {
-	u, err := url.Parse(a.Endpoint)
+	u, err := url.Parse(a.endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("GetConfiguration: invalid endpoint %q: %w", a.Endpoint, err)
+		return nil, fmt.Errorf("GetConfiguration: invalid endpoint %q: %w", a.endpoint, err)
 	}
 	u.Path = path.Join(u.Path, "v1", "flag", "configuration")
 
@@ -101,12 +118,16 @@ func (a *GoFeatureFlagAPI) GetConfiguration(ctx context.Context, flags []string,
 // sends an HTTP POST request, and checks for a successful response.
 // Returns an error if marshalling, request creation, the HTTP call, or the status code indicate a failure.
 func (a *GoFeatureFlagAPI) CollectData(events []model.CollectableEvent) error {
-	u, _ := url.Parse(a.Endpoint)
+	effectiveEndpoint := a.endpoint
+	if a.dataCollectorBaseURL != "" {
+		effectiveEndpoint = a.dataCollectorBaseURL
+	}
+	u, _ := url.Parse(effectiveEndpoint)
 	u.Path = path.Join(u.Path, "v1", "data", "collector")
 
 	reqBody := model.DataCollectorRequest{
 		Events: events,
-		Meta:   a.ExporterMetadata,
+		Meta:   a.exporterMetadata,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -137,13 +158,13 @@ func (a *GoFeatureFlagAPI) CollectData(events []model.CollectableEvent) error {
 // adds the API key and If-None-Match headers, and then applies any caller-supplied headers.
 func (a *GoFeatureFlagAPI) setHeaders(req *http.Request, etag string) {
 	req.Header.Set(contentTypeHeader, applicationJSON)
-	if a.APIKey != "" {
-		req.Header.Set(apiKeyHeader, a.APIKey)
+	if a.apiKey != "" {
+		req.Header.Set(apiKeyHeader, a.apiKey)
 	}
 	if etag != "" {
 		req.Header.Set(ifNoneMatchHeader, etag)
 	}
-	for k, v := range a.Headers {
+	for k, v := range a.headers {
 		req.Header.Set(k, v)
 	}
 }
@@ -171,7 +192,7 @@ func parseConfigurationSuccessResponse(resp *http.Response) (*FlagConfigResponse
 
 // getHttpClient returns the HTTP Client to use for the request.
 func (a *GoFeatureFlagAPI) getHttpClient() *http.Client {
-	client := a.HTTPClient
+	client := a.httpClient
 	if client == nil {
 		client = DefaultHTTPClient()
 	}
