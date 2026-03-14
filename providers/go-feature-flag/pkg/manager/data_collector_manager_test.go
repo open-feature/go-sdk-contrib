@@ -188,6 +188,24 @@ func Test_DataCollectorManager(t *testing.T) {
 		assert.Equal(t, 1, mrt.NumberCall)
 	})
 
+	t.Run("Should flush buffered events on Stop", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusOK}
+		}}
+		client := &http.Client{Transport: &mrt}
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		})
+
+		collector := manager.NewDataCollectorManager(g, 100, 10*time.Minute) // long interval, won't tick
+		collector.Start()
+		_ = collector.AddEvent(eventExample)
+		_ = collector.AddEvent(eventExample)
+		collector.Stop() // must flush the 2 buffered events
+		assert.Equal(t, 1, mrt.NumberCall)
+	})
+
 	t.Run("Should collect mixed feature and tracking events", func(t *testing.T) {
 		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{

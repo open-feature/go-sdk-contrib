@@ -17,6 +17,7 @@ type DataCollectorManager struct {
 	goffAPI                     api.GoFeatureFlagAPI
 	events                      []model.CollectableEvent
 	dataCollectorMaxEventStored int64
+	collectInterval             time.Duration
 
 	ticker         *time.Ticker
 	collectChannel chan bool
@@ -38,12 +39,13 @@ func NewDataCollectorManager(
 		goffAPI:                     goffAPI,
 		events:                      make([]model.CollectableEvent, 0),
 		dataCollectorMaxEventStored: dataCollectorMaxEventStored,
-		ticker:                      time.NewTicker(collectInterval),
+		collectInterval:             collectInterval,
 		collectChannel:              make(chan bool),
 	}
 }
 
 func (d *DataCollectorManager) Start() {
+	d.ticker = time.NewTicker(d.collectInterval)
 	go func() {
 		for {
 			select {
@@ -59,6 +61,7 @@ func (d *DataCollectorManager) Start() {
 func (d *DataCollectorManager) Stop() {
 	d.collectChannel <- true
 	d.ticker.Stop()
+	_ = d.SendData()
 }
 
 // sendDataLocked flushes events to the API. Caller must hold d.mutex.

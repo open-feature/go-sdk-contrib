@@ -200,6 +200,20 @@ func errorResponse(err error) roundTripResponse {
 	}
 }
 
+func TestInProcess_getEvaluationContextEnrichment_returnsCopy(t *testing.T) {
+	t.Run("getEvaluationContextEnrichment returns a copy, not the internal map", func(t *testing.T) {
+		i := &InProcess{
+			evaluationContextEnrichment: map[string]any{"env": "production"},
+		}
+		got := i.getEvaluationContextEnrichment()
+		assert.Equal(t, map[string]any{"env": "production"}, got)
+
+		// mutating the returned copy must not affect internal state
+		got["env"] = "mutated"
+		assert.Equal(t, "production", i.evaluationContextEnrichment["env"])
+	})
+}
+
 func httpResponse(status int, body string, headers http.Header) *http.Response {
 	return &http.Response{
 		Status:     fmt.Sprintf("%d %s", status, http.StatusText(status)),
