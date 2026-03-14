@@ -1,13 +1,15 @@
 package manager
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/api"
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 )
+
+const dataCollectorMaxEventStoredDefault = 100000
+const collectIntervalDefault = 2 * time.Minute
 
 // DataCollectorManager is a manager for the GO Feature Flag data collector
 type DataCollectorManager struct {
@@ -26,10 +28,10 @@ func NewDataCollectorManager(
 	dataCollectorMaxEventStored int64,
 	collectInterval time.Duration) DataCollectorManager {
 	if dataCollectorMaxEventStored <= 0 {
-		dataCollectorMaxEventStored = 100000
+		dataCollectorMaxEventStored = dataCollectorMaxEventStoredDefault
 	}
 	if collectInterval <= 0 {
-		collectInterval = 1 * time.Minute
+		collectInterval = collectIntervalDefault
 	}
 	return DataCollectorManager{
 		mutex:                       &sync.Mutex{},
@@ -59,33 +61,38 @@ func (d *DataCollectorManager) Stop() {
 	d.ticker.Stop()
 }
 
-// SendData sends the data to the data collector
-func (d *DataCollectorManager) SendData() error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	if len(d.events) <= 0 {
+// sendDataLocked flushes events to the API. Caller must hold d.mutex.
+func (d *DataCollectorManager) sendDataLocked() error {
+	if len(d.events) == 0 {
 		return nil
 	}
-
 	copySend := make([]model.CollectableEvent, len(d.events))
 	copy(copySend, d.events)
-	err := d.goffAPI.CollectData(copySend)
-	if err != nil {
+	if err := d.goffAPI.CollectData(copySend); err != nil {
 		return err
 	}
 	d.events = make([]model.CollectableEvent, 0)
 	return nil
 }
 
-// AddCollectableEvent adds an event (FeatureEvent or TrackingEvent) to the data collector manager.
-// If the number of events in the queue is greater than the maxItem, the event will be skipped
+// SendData sends the data to the data collector
+func (d *DataCollectorManager) SendData() error {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.sendDataLocked()
+}
+
+// AddEvent adds an event (FeatureEvent or TrackingEvent) to the data collector manager.
+// If the queue is full, it flushes existing events first. If the flush fails and the queue
+// is still full, the event is dropped and an error is returned.
 func (d *DataCollectorManager) AddEvent(event model.CollectableEvent) error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if nbItem := int64(len(d.events)); nbItem >= d.dataCollectorMaxEventStored {
-		return fmt.Errorf("too many events in the queue, this event will be skipped: %d", nbItem)
+	if int64(len(d.events)) >= d.dataCollectorMaxEventStored {
+		if err := d.sendDataLocked(); err != nil {
+			return err
+		}
 	}
 
 	d.events = append(d.events, event)
