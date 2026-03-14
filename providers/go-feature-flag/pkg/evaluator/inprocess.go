@@ -3,6 +3,7 @@ package evaluator
 import (
 	"context"
 	"errors"
+	"maps"
 	"sync"
 	"time"
 
@@ -40,11 +41,13 @@ type InProcess struct {
 }
 
 func NewInprocessEvaluator(flagChangePollingInterval time.Duration, goffAPI *api.GoFeatureFlagAPI, eventStream chan openfeature.Event) *InProcess {
+	pollingDone := make(chan struct{})
+	close(pollingDone) // pre-closed so Shutdown() doesn't block if Init() was never called or failed
 	return &InProcess{
 		flagChangePollingInterval: flagChangePollingInterval,
 		goffAPI:                   goffAPI,
 		stopPolling:               make(chan struct{}),
-		pollingDone:               make(chan struct{}),
+		pollingDone:               pollingDone,
 		eventStream:               eventStream,
 	}
 }
@@ -114,12 +117,16 @@ func (i *InProcess) loadConfiguration(ctx context.Context) (configurationRefresh
 }
 
 func (i *InProcess) emitEvent(eventType openfeature.EventType, message string) {
-	i.eventStream <- openfeature.Event{
+	select {
+	case i.eventStream <- openfeature.Event{
 		ProviderName: inProcessProviderName,
 		EventType:    eventType,
 		ProviderEventDetails: openfeature.ProviderEventDetails{
 			Message: message,
 		},
+	}:
+	default:
+		// event stream full; drop event to avoid blocking the polling goroutine
 	}
 }
 
@@ -171,6 +178,7 @@ func (i *InProcess) Init(ctx context.Context) error {
 	if interval == 0 {
 		interval = pollingIntervalDefault
 	}
+	i.pollingDone = make(chan struct{}) // replace pre-closed channel with a fresh one for this goroutine
 	go func() {
 		defer close(i.pollingDone)
 		ticker := time.NewTicker(interval)
@@ -216,9 +224,8 @@ func (i *InProcess) StringEvaluation(_ context.Context, flagName string, default
 // getEvaluationContextEnrichment returns a copy of the current evaluation context enrichment (thread-safe).
 func (i *InProcess) getEvaluationContextEnrichment() map[string]any {
 	i.mu.RLock()
-	enrichment := i.evaluationContextEnrichment
-	i.mu.RUnlock()
-	return enrichment
+	defer i.mu.RUnlock()
+	return maps.Clone(i.evaluationContextEnrichment)
 }
 
 // checkFlagExists checks if the flag exists in the flag config.
