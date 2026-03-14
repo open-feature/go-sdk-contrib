@@ -75,7 +75,7 @@ func Test_DataCollectorHook_After_CollectsFeatureEvent(t *testing.T) {
 
 	err := h.After(context.Background(), hookCtx, evalDetails, openfeature.HookHints{})
 	require.NoError(t, err)
-	require.NoError(t, collector.SendData())
+	require.NoError(t, collector.SendData(context.Background()))
 	assert.Equal(t, 1, mrt.numberCall)
 
 	var payload capturedCollectorRequest
@@ -100,7 +100,7 @@ func Test_DataCollectorHook_Error_CollectsSdkDefaultEvent(t *testing.T) {
 	hookCtx := newHookContext("user-789", map[string]any{})
 
 	h.Error(context.Background(), hookCtx, errors.New("boom"), openfeature.HookHints{})
-	require.NoError(t, collector.SendData())
+	require.NoError(t, collector.SendData(context.Background()))
 	assert.Equal(t, 1, mrt.numberCall)
 
 	var payload capturedCollectorRequest
@@ -134,7 +134,7 @@ func Test_DataCollectorHook_After_AnonymousUser_SetsContextKind(t *testing.T) {
 
 	err := h.After(context.Background(), hookCtx, evalDetails, openfeature.HookHints{})
 	require.NoError(t, err)
-	require.NoError(t, collector.SendData())
+	require.NoError(t, collector.SendData(context.Background()))
 
 	var payload capturedCollectorRequest
 	require.NoError(t, json.Unmarshal(mrt.lastBody, &payload))
@@ -150,7 +150,7 @@ func Test_DataCollectorHook_Error_AnonymousUser_SetsContextKind(t *testing.T) {
 	hookCtx := newHookContext("anon-789", map[string]any{"anonymous": true})
 
 	h.Error(context.Background(), hookCtx, errors.New("boom"), openfeature.HookHints{})
-	require.NoError(t, collector.SendData())
+	require.NoError(t, collector.SendData(context.Background()))
 
 	var payload capturedCollectorRequest
 	require.NoError(t, json.Unmarshal(mrt.lastBody, &payload))
