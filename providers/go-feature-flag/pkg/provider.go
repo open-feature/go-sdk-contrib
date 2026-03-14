@@ -73,6 +73,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		dataCollectorMgr: dcm,
 		eventStream:      eventStream,
 		evaluator:        ev,
+		logger:           options.Logger,
 	}
 	p.hooks = buildHooks(options, &p.dataCollectorMgr)
 	return p, nil
@@ -164,7 +165,9 @@ func (p *Provider) Track(ctx context.Context, trackingEventName string, evaluati
 		EvaluationContext: evalCtxMap,
 		TrackingDetails:   details.Attributes(),
 	}
-	_ = p.dataCollectorMgr.AddEvent(event)
+	if err := p.dataCollectorMgr.AddEvent(event); err != nil {
+		p.logger.Error("Failed to add tracking event to data collector", "error", err)
+	}
 }
 
 // selectEvaluator selects the evaluator based on the evaluation type
