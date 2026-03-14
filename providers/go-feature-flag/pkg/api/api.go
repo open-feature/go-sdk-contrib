@@ -120,7 +120,7 @@ func (a *GoFeatureFlagAPI) GetConfiguration(ctx context.Context, flags []string,
 // It serializes the provided events and associated exporter metadata into a JSON payload,
 // sends an HTTP POST request, and checks for a successful response.
 // Returns an error if marshalling, request creation, the HTTP call, or the status code indicate a failure.
-func (a *GoFeatureFlagAPI) CollectData(events []model.CollectableEvent) error {
+func (a *GoFeatureFlagAPI) CollectData(ctx context.Context, events []model.CollectableEvent) error {
 	effectiveEndpoint := a.endpoint
 	if a.dataCollectorBaseURL != "" {
 		effectiveEndpoint = a.dataCollectorBaseURL
@@ -138,19 +138,19 @@ func (a *GoFeatureFlagAPI) CollectData(events []model.CollectableEvent) error {
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
-		return err
+		return fmt.Errorf("CollectData: marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err
+		return fmt.Errorf("CollectData: create request: %w", err)
 	}
 
 	a.setHeaders(req, "")
 
 	response, err := a.getHttpClient().Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("CollectData: request failed: %w", err)
 	}
 	defer func() { _ = response.Body.Close() }()
 

@@ -777,7 +777,7 @@ func Test_CollectDataAPI(t *testing.T) {
 				ExporterMetadata:     tt.options.ExporterMetadata,
 				DataCollectorBaseURL: tt.options.DataCollectorBaseURL,
 			})
-			err := a.CollectData(tt.events)
+			err := a.CollectData(context.Background(), tt.events)
 			tt.wantErr(t, err)
 			if tt.wantErrMsg != "" {
 				require.ErrorContains(t, err, tt.wantErrMsg)
