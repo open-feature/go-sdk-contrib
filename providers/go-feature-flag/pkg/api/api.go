@@ -125,7 +125,10 @@ func (a *GoFeatureFlagAPI) CollectData(events []model.CollectableEvent) error {
 	if a.dataCollectorBaseURL != "" {
 		effectiveEndpoint = a.dataCollectorBaseURL
 	}
-	u, _ := url.Parse(effectiveEndpoint)
+	u, err := url.Parse(effectiveEndpoint)
+	if err != nil {
+		return fmt.Errorf("CollectData: invalid endpoint %q: %w", effectiveEndpoint, err)
+	}
 	u.Path = path.Join(u.Path, "v1", "data", "collector")
 
 	reqBody := model.DataCollectorRequest{
