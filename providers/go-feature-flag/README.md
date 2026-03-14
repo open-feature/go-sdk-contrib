@@ -47,7 +47,7 @@ provider, err := gofeatureflag.NewProviderWithContext(ctx, gofeatureflag.Provide
 	},
 })
 if err != nil {
-	panic(err)
+	// handle the error
 }
 ```
 
@@ -70,7 +70,7 @@ provider, err := gofeatureflag.NewProviderWithContext(ctx, gofeatureflag.Provide
 	APIKey:         "my-api-key",
 })
 if err != nil {
-	panic(err)
+	// handle the error
 }
 ```
 
@@ -124,7 +124,7 @@ evaluationCtx := of.NewEvaluationContext(
 
 adminFlag, err := client.BooleanValue(context.TODO(), "flag-only-for-admin", false, evaluationCtx)
 if err != nil {
-	panic(err)
+	// handle the error
 }
 
 if adminFlag {
