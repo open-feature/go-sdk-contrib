@@ -1,24 +1,72 @@
-package gofeatureflag_test
+package gofeatureflag
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	gofeatureflag "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg"
-	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
-	of "github.com/open-feature/go-sdk/openfeature"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
+	"github.com/open-feature/go-sdk/openfeature"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// MockRoundTripper is a mock implementation of http.RoundTripper.
+// mockRoundTripper captures the last request body for inspection.
+type mockRoundTripper struct {
+	lastBody []byte
+	status   int
+	err      error
+}
+
+func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.Body != nil {
+		m.lastBody, _ = io.ReadAll(req.Body)
+	}
+	if m.err != nil {
+		return nil, m.err
+	}
+	return &http.Response{
+		StatusCode: m.status,
+		Body:       io.NopCloser(strings.NewReader("{}")),
+	}, nil
+}
+
+// capturedRequest is used to unmarshal the raw events array before asserting on
+// individual event types (CollectableEvent is an interface and cannot be unmarshalled
+// directly).
+type capturedRequest struct {
+	Events []json.RawMessage `json:"events"`
+	Meta   map[string]any    `json:"meta"`
+}
+
+func newTestProvider(t *testing.T, mrt *mockRoundTripper) *Provider {
+	t.Helper()
+	p, err := NewProviderWithContext(context.Background(), ProviderOptions{
+		Endpoint:   "http://localhost:1031",
+		HTTPClient: &http.Client{Transport: mrt},
+	})
+	require.NoError(t, err)
+	return p
+}
+
+func newProviderHookContext(targetingKey string, attributes map[string]any) openfeature.HookContext {
+	return openfeature.NewHookContext(
+		"test-flag",
+		openfeature.Boolean,
+		false,
+		openfeature.NewClientMetadata(""),
+		openfeature.Metadata{Name: "test-provider"},
+		openfeature.NewEvaluationContext(targetingKey, attributes),
+	)
+}
+
+// MockRoundTripper is a mock implementation of http.RoundTripper used by evaluation tests.
 type MockRoundTripper struct {
 	RoundTripFunc func(req *http.Request) *http.Response
 }
@@ -34,16 +82,14 @@ func NewMockClient(roundTripFunc func(req *http.Request) *http.Response) *http.C
 	}
 }
 
-type mockClient struct {
-	callCount           int
-	collectorCallCount  int
-	flagChangeCallCount int
-	collectorRequests   []string
-	requestBodies       []string
+// evalMockClient records HTTP calls and serves flag responses from testdata files.
+type evalMockClient struct {
+	callCount         int
+	collectorRequests []string
+	requestBodies     []string
 }
 
-func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
-	//read req body and store it
+func (m *evalMockClient) roundTripFunc(req *http.Request) *http.Response {
 	var bodyBytes []byte
 	if req.Body != nil {
 		bodyBytes, _ = io.ReadAll(req.Body)
@@ -52,33 +98,14 @@ func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 	}
 
 	if req.URL.Path == "/v1/data/collector" {
-		m.collectorCallCount++
 		m.collectorRequests = append(m.collectorRequests, string(bodyBytes))
 		return &http.Response{
 			StatusCode: http.StatusOK,
 		}
 	}
 
-	if req.URL.Path == "/v1/flag/change" {
-		m.flagChangeCallCount++
-		if req.Header.Get("If-None-Match") == "123456" {
-			resp := &http.Response{
-				StatusCode: http.StatusOK,
-				Header:     map[string][]string{},
-			}
-			resp.Header.Set("ETag", "78910")
-			return resp
-		}
-		resp := &http.Response{
-			StatusCode: http.StatusOK,
-			Header:     map[string][]string{},
-		}
-		resp.Header.Set("ETag", "123456")
-		return resp
-	}
-
 	m.callCount++
-	mockPath := "../testutils/mock_responses/%s.json"
+	mockPath := "./testdata/mock_responses/%s.json"
 	flagName := strings.ReplaceAll(req.URL.Path, "/ofrep/v1/evaluate/flags/", "")
 
 	if flagName == "unauthorized" {
@@ -93,7 +120,6 @@ func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 		content, _ = os.ReadFile(fmt.Sprintf(mockPath, "flag_not_found"))
 	}
 	statusCode := http.StatusOK
-
 	if strings.Contains(string(content), "errorCode") {
 		statusCode = http.StatusBadRequest
 	}
@@ -101,15 +127,14 @@ func (m *mockClient) roundTripFunc(req *http.Request) *http.Response {
 		statusCode = http.StatusNotFound
 	}
 
-	body := io.NopCloser(bytes.NewReader(content))
 	return &http.Response{
 		StatusCode: statusCode,
-		Body:       body,
+		Body:       io.NopCloser(bytes.NewReader(content)),
 	}
 }
 
-func defaultEvaluationCtx() of.EvaluationContext {
-	return of.NewEvaluationContext(
+func defaultEvaluationCtx() openfeature.EvaluationContext {
+	return openfeature.NewEvaluationContext(
 		"d45e303a-38c2-11ed-a261-0242ac120002",
 		map[string]any{
 			"email":        "john.doe@gofeatureflag.org",
@@ -131,16 +156,218 @@ func defaultEvaluationCtx() of.EvaluationContext {
 	)
 }
 
+func TestNewProviderWithContext(t *testing.T) {
+	tests := []struct {
+		name    string
+		options ProviderOptions
+		wantErr bool
+	}{
+		{
+			name:    "valid options",
+			options: ProviderOptions{Endpoint: "http://localhost:1031"},
+			wantErr: false,
+		},
+		{
+			name:    "missing endpoint",
+			options: ProviderOptions{Endpoint: ""},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p, err := NewProviderWithContext(context.Background(), tc.options)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, p)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, p)
+			}
+		})
+	}
+}
+
+func TestProvider_Track(t *testing.T) {
+	tests := []struct {
+		name             string
+		trackingName     string
+		evalCtx          openfeature.EvaluationContext
+		details          openfeature.TrackingEventDetails
+		wantContextKind  string
+		wantUserKey      string
+		wantEvalCtxKey   string
+		wantEvalCtxValue any
+		wantDetailKey    string
+		wantDetailValue  any
+	}{
+		{
+			name:            "regular user",
+			trackingName:    "checkout",
+			evalCtx:         openfeature.NewEvaluationContext("user-123", map[string]any{"anonymous": false}),
+			details:         openfeature.NewTrackingEventDetails(0),
+			wantContextKind: "user",
+			wantUserKey:     "user-123",
+		},
+		{
+			name:            "anonymous user",
+			trackingName:    "checkout",
+			evalCtx:         openfeature.NewEvaluationContext("anon-key", map[string]any{"anonymous": true}),
+			details:         openfeature.NewTrackingEventDetails(0),
+			wantContextKind: "anonymousUser",
+			wantUserKey:     "anon-key",
+		},
+		{
+			name:            "empty targeting key defaults to undefined",
+			trackingName:    "checkout",
+			evalCtx:         openfeature.NewEvaluationContext("", nil),
+			details:         openfeature.NewTrackingEventDetails(0),
+			wantContextKind: "user",
+			wantUserKey:     "undefined",
+		},
+		{
+			name:            "custom targeting key",
+			trackingName:    "checkout",
+			evalCtx:         openfeature.NewEvaluationContext("my-key", nil),
+			details:         openfeature.NewTrackingEventDetails(0),
+			wantContextKind: "user",
+			wantUserKey:     "my-key",
+		},
+		{
+			name:             "eval context attributes are preserved",
+			trackingName:     "checkout",
+			evalCtx:          openfeature.NewEvaluationContext("u1", map[string]any{"env": "prod"}),
+			details:          openfeature.NewTrackingEventDetails(0),
+			wantContextKind:  "user",
+			wantUserKey:      "u1",
+			wantEvalCtxKey:   "env",
+			wantEvalCtxValue: "prod",
+		},
+		{
+			name:            "tracking details are preserved",
+			trackingName:    "purchase",
+			evalCtx:         openfeature.NewEvaluationContext("u2", nil),
+			details:         openfeature.NewTrackingEventDetails(0).Add("price", 9.99),
+			wantContextKind: "user",
+			wantUserKey:     "u2",
+			wantDetailKey:   "price",
+			wantDetailValue: 9.99,
+		},
+		{
+			name:            "event name matches tracking event name",
+			trackingName:    "my-event",
+			evalCtx:         openfeature.NewEvaluationContext("u3", nil),
+			details:         openfeature.NewTrackingEventDetails(0),
+			wantContextKind: "user",
+			wantUserKey:     "u3",
+		},
+		{
+			name:            "kind is always tracking",
+			trackingName:    "any-event",
+			evalCtx:         openfeature.NewEvaluationContext("u4", nil),
+			details:         openfeature.NewTrackingEventDetails(0),
+			wantContextKind: "user",
+			wantUserKey:     "u4",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mrt := &mockRoundTripper{status: http.StatusOK}
+			p := newTestProvider(t, mrt)
+
+			p.Track(context.Background(), tc.trackingName, tc.evalCtx, tc.details)
+
+			err := p.dataCollectorMgr.SendData(context.Background())
+			require.NoError(t, err)
+
+			require.NotNil(t, mrt.lastBody, "expected HTTP request to be made")
+
+			var captured capturedRequest
+			require.NoError(t, json.Unmarshal(mrt.lastBody, &captured))
+			require.Len(t, captured.Events, 1)
+
+			var event model.TrackingEvent
+			require.NoError(t, json.Unmarshal(captured.Events[0], &event))
+
+			assert.Equal(t, "tracking", event.Kind)
+			assert.Equal(t, tc.wantContextKind, event.ContextKind)
+			assert.Equal(t, tc.wantUserKey, event.UserKey)
+			assert.Equal(t, tc.trackingName, event.Key)
+			assert.NotZero(t, event.CreationDate)
+
+			if tc.wantEvalCtxKey != "" {
+				assert.Equal(t, tc.wantEvalCtxValue, event.EvaluationContext[tc.wantEvalCtxKey])
+			}
+			if tc.wantDetailKey != "" {
+				assert.InDelta(t, tc.wantDetailValue, event.TrackingDetails[tc.wantDetailKey], 0.001)
+			}
+		})
+	}
+}
+
+func TestProvider_DataCollectorHookUsesProviderManager(t *testing.T) {
+	mrt := &mockRoundTripper{status: http.StatusOK}
+	p := newTestProvider(t, mrt)
+
+	hooks := p.Hooks()
+	require.Len(t, hooks, 2)
+
+	hookCtx := newProviderHookContext("user-123", map[string]any{})
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value: "enabled-value",
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:  "test-flag",
+			FlagType: openfeature.Object,
+		},
+	}
+	evalDetails.Variant = "variant-A"
+	evalDetails.Reason = openfeature.TargetingMatchReason
+
+	for _, hook := range hooks {
+		err := hook.After(context.Background(), hookCtx, evalDetails, openfeature.HookHints{})
+		require.NoError(t, err)
+	}
+
+	err := p.dataCollectorMgr.SendData(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, mrt.lastBody, "expected provider manager flush to send hook-collected event")
+
+	var captured capturedRequest
+	require.NoError(t, json.Unmarshal(mrt.lastBody, &captured))
+	require.Len(t, captured.Events, 1)
+
+	var event model.FeatureEvent
+	require.NoError(t, json.Unmarshal(captured.Events[0], &event))
+	assert.Equal(t, "feature", event.Kind)
+	assert.Equal(t, "user", event.ContextKind)
+	assert.Equal(t, "user-123", event.UserKey)
+	assert.Equal(t, "test-flag", event.Key)
+	assert.Equal(t, "variant-A", event.Variation)
+	assert.Equal(t, "enabled-value", event.Value)
+	assert.False(t, event.Default)
+	assert.Equal(t, "INPROCESS", event.Source)
+	assert.Greater(t, event.CreationDate, int64(0))
+}
+
+func TestProvider_InitShutdown(t *testing.T) {
+	mrt := &mockRoundTripper{status: http.StatusOK}
+	p := newTestProvider(t, mrt)
+
+	require.NoError(t, p.Init(openfeature.NewEvaluationContext("", nil)))
+	p.Shutdown() // must not block
+}
+
 func TestProvider_BooleanEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue bool
-		evalCtx      of.EvaluationContext
+		evalCtx      openfeature.EvaluationContext
 	}
 	tests := []struct {
 		name string
 		args args
-		want of.BooleanEvaluationDetails
+		want openfeature.BooleanEvaluationDetails
 	}{
 		{
 			name: "unauthorized flag",
@@ -149,15 +376,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				defaultValue: false,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.BooleanEvaluationDetails{
+			want: openfeature.BooleanEvaluationDetails{
 				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "unauthorized",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.GeneralCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.GeneralCode,
 						ErrorMessage: "authentication/authorization error",
 						FlagMetadata: map[string]any{},
 					},
@@ -171,14 +398,14 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				defaultValue: false,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.BooleanEvaluationDetails{
+			want: openfeature.BooleanEvaluationDetails{
 				Value: true,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "bool_targeting_match",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
+						Reason:       openfeature.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{
@@ -195,14 +422,14 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				defaultValue: false,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.BooleanEvaluationDetails{
+			want: openfeature.BooleanEvaluationDetails{
 				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "disabled_bool",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
+						Reason:       openfeature.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -217,15 +444,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				defaultValue: false,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.BooleanEvaluationDetails{
+			want: openfeature.BooleanEvaluationDetails{
 				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "string_key",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
 						ErrorMessage: "resolved value CC0000 is not of boolean type",
 						FlagMetadata: map[string]any{},
 					},
@@ -239,15 +466,15 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				defaultValue: false,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.BooleanEvaluationDetails{
+			want: openfeature.BooleanEvaluationDetails{
 				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "does_not_exists",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
 						FlagMetadata: map[string]any{},
 					},
@@ -261,37 +488,16 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				defaultValue: false,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.BooleanEvaluationDetails{
+			want: openfeature.BooleanEvaluationDetails{
 				Value: true,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "unknown_reason",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "True",
 						Reason:       "CUSTOM_REASON",
 						ErrorCode:    "",
 						ErrorMessage: "",
-						FlagMetadata: map[string]any{},
-					},
-				},
-			},
-		},
-		{
-			name: "should return error if no targeting key",
-			args: args{
-				flag:         "bool_targeting_match",
-				defaultValue: false,
-				evalCtx:      of.EvaluationContext{},
-			},
-			want: of.BooleanEvaluationDetails{
-				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
-					FlagKey:  "bool_targeting_match",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TargetingKeyMissingCode,
-						ErrorMessage: "no targetingKey provided in the evaluation context",
 						FlagMetadata: map[string]any{},
 					},
 				},
@@ -304,14 +510,14 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 				defaultValue: false,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.BooleanEvaluationDetails{
+			want: openfeature.BooleanEvaluationDetails{
 				Value: false,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "invalid_json_body",
-					FlagType: of.Boolean,
-					ResolutionDetail: of.ResolutionDetail{
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.ParseErrorCode,
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.ParseErrorCode,
 						ErrorMessage: "error parsing the response: unexpected end of JSON input",
 						FlagMetadata: map[string]any{},
 					},
@@ -320,19 +526,19 @@ func TestProvider_BooleanEvaluation(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		cli := mockClient{}
 		t.Run(tt.name, func(t *testing.T) {
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+			cli := evalMockClient{}
+			options := ProviderOptions{
+				Endpoint:       "https://gofeatureflag.org/",
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				EvaluationType: EvaluationTypeRemote,
 			}
-			provider, err := gofeatureflag.NewProvider(options)
-			assert.NoError(t, err)
-
-			err = of.SetProviderAndWait(provider)
+			provider, err := NewProvider(options)
 			require.NoError(t, err)
-			client := of.NewClient("test-app")
+
+			err = openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
 			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -351,12 +557,12 @@ func TestProvider_StringEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue string
-		evalCtx      of.EvaluationContext
+		evalCtx      openfeature.EvaluationContext
 	}
 	tests := []struct {
 		name string
 		args args
-		want of.StringEvaluationDetails
+		want openfeature.StringEvaluationDetails
 	}{
 		{
 			name: "should resolve a valid string flag with TARGETING_MATCH reason",
@@ -365,14 +571,14 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				defaultValue: "default",
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.StringEvaluationDetails{
+			want: openfeature.StringEvaluationDetails{
 				Value: "CC0000",
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "string_key",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
+						Reason:       openfeature.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -387,14 +593,14 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				defaultValue: "default",
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.StringEvaluationDetails{
+			want: openfeature.StringEvaluationDetails{
 				Value: "default",
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "disabled_string",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
+						Reason:       openfeature.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -409,15 +615,15 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				defaultValue: "default",
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.StringEvaluationDetails{
+			want: openfeature.StringEvaluationDetails{
 				Value: "default",
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "bool_targeting_match",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
 						ErrorMessage: "resolved value true is not of string type",
 						FlagMetadata: map[string]any{},
 					},
@@ -431,15 +637,15 @@ func TestProvider_StringEvaluation(t *testing.T) {
 				defaultValue: "default",
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.StringEvaluationDetails{
+			want: openfeature.StringEvaluationDetails{
 				Value: "default",
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "does_not_exists",
-					FlagType: of.String,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
 						FlagMetadata: map[string]any{},
 					},
@@ -449,28 +655,27 @@ func TestProvider_StringEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli := mockClient{}
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+			cli := evalMockClient{}
+			options := ProviderOptions{
+				Endpoint:       "https://gofeatureflag.org/",
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				EvaluationType: EvaluationTypeRemote,
 			}
-			provider, err := gofeatureflag.NewProvider(options)
-			assert.NoError(t, err)
+			provider, err := NewProvider(options)
+			require.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
-			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
 			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
-				assert.Error(t, err)
+				require.Error(t, err)
 				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
 				assert.Equal(t, want, err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-
 			assert.Equal(t, tt.want, value)
 		})
 	}
@@ -480,12 +685,12 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue float64
-		evalCtx      of.EvaluationContext
+		evalCtx      openfeature.EvaluationContext
 	}
 	tests := []struct {
 		name string
 		args args
-		want of.FloatEvaluationDetails
+		want openfeature.FloatEvaluationDetails
 	}{
 		{
 			name: "should resolve a valid float flag with TARGETING_MATCH reason",
@@ -494,14 +699,14 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				defaultValue: 123.45,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.FloatEvaluationDetails{
+			want: openfeature.FloatEvaluationDetails{
 				Value: 100.25,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "double_key",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
+						Reason:       openfeature.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -516,14 +721,14 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				defaultValue: 123.45,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.FloatEvaluationDetails{
+			want: openfeature.FloatEvaluationDetails{
 				Value: 123.45,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "disabled_float",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
+						Reason:       openfeature.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -532,21 +737,21 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "should error if we expect a string and got another type",
+			name: "should error if we expect a float and got another type",
 			args: args{
 				flag:         "bool_targeting_match",
 				defaultValue: 123.45,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.FloatEvaluationDetails{
+			want: openfeature.FloatEvaluationDetails{
 				Value: 123.45,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "bool_targeting_match",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
 						ErrorMessage: "resolved value true is not of float type",
 						FlagMetadata: map[string]any{},
 					},
@@ -560,15 +765,15 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 				defaultValue: 123.45,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.FloatEvaluationDetails{
+			want: openfeature.FloatEvaluationDetails{
 				Value: 123.45,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "does_not_exists",
-					FlagType: of.Float,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
 						FlagMetadata: map[string]any{},
 					},
@@ -578,28 +783,27 @@ func TestProvider_FloatEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli := mockClient{}
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+			cli := evalMockClient{}
+			options := ProviderOptions{
+				Endpoint:       "https://gofeatureflag.org/",
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				EvaluationType: EvaluationTypeRemote,
 			}
-			provider, err := gofeatureflag.NewProvider(options)
-			assert.NoError(t, err)
+			provider, err := NewProvider(options)
+			require.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
-			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
 			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
-				assert.Error(t, err)
+				require.Error(t, err)
 				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
 				assert.Equal(t, want, err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-
 			assert.Equal(t, tt.want, value)
 		})
 	}
@@ -609,28 +813,28 @@ func TestProvider_IntEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue int64
-		evalCtx      of.EvaluationContext
+		evalCtx      openfeature.EvaluationContext
 	}
 	tests := []struct {
 		name string
 		args args
-		want of.IntEvaluationDetails
+		want openfeature.IntEvaluationDetails
 	}{
 		{
-			name: "should resolve a valid float flag with TARGETING_MATCH reason",
+			name: "should resolve a valid int flag with TARGETING_MATCH reason",
 			args: args{
 				flag:         "integer_key",
 				defaultValue: 123,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.IntEvaluationDetails{
+			want: openfeature.IntEvaluationDetails{
 				Value: 100,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "integer_key",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
+						Reason:       openfeature.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -639,20 +843,20 @@ func TestProvider_IntEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "should use float default value if the flag is disabled",
+			name: "should use int default value if the flag is disabled",
 			args: args{
 				flag:         "disabled_int",
 				defaultValue: 123,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.IntEvaluationDetails{
+			want: openfeature.IntEvaluationDetails{
 				Value: 123,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "disabled_int",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
+						Reason:       openfeature.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -661,21 +865,21 @@ func TestProvider_IntEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "should error if we expect a string and got another type",
+			name: "should error if we expect an int and got another type",
 			args: args{
 				flag:         "bool_targeting_match",
 				defaultValue: 123,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.IntEvaluationDetails{
+			want: openfeature.IntEvaluationDetails{
 				Value: 123,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "bool_targeting_match",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.TypeMismatchCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
 						ErrorMessage: "resolved value true is not of integer type",
 						FlagMetadata: map[string]any{},
 					},
@@ -689,15 +893,15 @@ func TestProvider_IntEvaluation(t *testing.T) {
 				defaultValue: 123,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.IntEvaluationDetails{
+			want: openfeature.IntEvaluationDetails{
 				Value: 123,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "does_not_exists",
-					FlagType: of.Int,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
 						FlagMetadata: map[string]any{},
 					},
@@ -707,28 +911,27 @@ func TestProvider_IntEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli := mockClient{}
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+			cli := evalMockClient{}
+			options := ProviderOptions{
+				Endpoint:       "https://gofeatureflag.org/",
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				EvaluationType: EvaluationTypeRemote,
 			}
-			provider, err := gofeatureflag.NewProvider(options)
-			assert.NoError(t, err)
+			provider, err := NewProvider(options)
+			require.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
-			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
 			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
-				assert.Error(t, err)
+				require.Error(t, err)
 				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
 				assert.Equal(t, want, err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-
 			assert.Equal(t, tt.want, value)
 		})
 	}
@@ -738,12 +941,12 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 	type args struct {
 		flag         string
 		defaultValue any
-		evalCtx      of.EvaluationContext
+		evalCtx      openfeature.EvaluationContext
 	}
 	tests := []struct {
 		name string
 		args args
-		want of.InterfaceEvaluationDetails
+		want openfeature.InterfaceEvaluationDetails
 	}{
 		{
 			name: "should resolve a valid interface flag with TARGETING_MATCH reason",
@@ -752,7 +955,7 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				defaultValue: nil,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.InterfaceEvaluationDetails{
+			want: openfeature.InterfaceEvaluationDetails{
 				Value: map[string]any{
 					"test":  "test1",
 					"test2": false,
@@ -760,12 +963,12 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 					"test4": float64(1),
 					"test5": nil,
 				},
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "object_key",
-					FlagType: of.Object,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Object,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "True",
-						Reason:       of.TargetingMatchReason,
+						Reason:       openfeature.TargetingMatchReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -780,14 +983,14 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				defaultValue: nil,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.InterfaceEvaluationDetails{
+			want: openfeature.InterfaceEvaluationDetails{
 				Value: nil,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "disabled_int",
-					FlagType: of.Object,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Object,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "SdkDefault",
-						Reason:       of.DisabledReason,
+						Reason:       openfeature.DisabledReason,
 						ErrorCode:    "",
 						ErrorMessage: "",
 						FlagMetadata: map[string]any{},
@@ -802,15 +1005,15 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 				defaultValue: nil,
 				evalCtx:      defaultEvaluationCtx(),
 			},
-			want: of.InterfaceEvaluationDetails{
+			want: openfeature.InterfaceEvaluationDetails{
 				Value: nil,
-				EvaluationDetails: of.EvaluationDetails{
+				EvaluationDetails: openfeature.EvaluationDetails{
 					FlagKey:  "does_not_exists",
-					FlagType: of.Object,
-					ResolutionDetail: of.ResolutionDetail{
+					FlagType: openfeature.Object,
+					ResolutionDetail: openfeature.ResolutionDetail{
 						Variant:      "",
-						Reason:       of.ErrorReason,
-						ErrorCode:    of.FlagNotFoundCode,
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
 						ErrorMessage: "flag for key 'does_not_exists' does not exist",
 						FlagMetadata: map[string]any{},
 					},
@@ -820,18 +1023,18 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli := mockClient{}
-			options := gofeatureflag.ProviderOptions{
-				Endpoint:     "https://gofeatureflag.org/",
-				HTTPClient:   NewMockClient(cli.roundTripFunc),
-				DisableCache: true,
+			cli := evalMockClient{}
+			options := ProviderOptions{
+				Endpoint:       "https://gofeatureflag.org/",
+				HTTPClient:     NewMockClient(cli.roundTripFunc),
+				EvaluationType: EvaluationTypeRemote,
 			}
-			provider, err := gofeatureflag.NewProvider(options)
-			assert.NoError(t, err)
+			provider, err := NewProvider(options)
+			require.NoError(t, err)
 
-			err = of.SetProviderAndWait(provider)
-			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			err = openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
 			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
 			if tt.want.ErrorCode != "" {
@@ -841,262 +1044,674 @@ func TestProvider_ObjectEvaluation(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-
 			assert.Equal(t, tt.want, value)
 		})
 	}
 }
 
-func TestProvider_Cache(t *testing.T) {
-	t.Run("Call flag multiple times with the same user", func(t *testing.T) {
-		cli := mockClient{}
-		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(cli.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  5 * time.Minute,
-			FlagCacheSize: 5,
+// inprocessMockClient serves flag configuration for in-process evaluation tests.
+type inprocessMockClient struct{}
+
+func (m *inprocessMockClient) roundTripFunc(req *http.Request) *http.Response {
+	if strings.HasSuffix(req.URL.Path, "/v1/data/collector") {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader([]byte("{}"))),
 		}
-
-		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
-		assert.NoError(t, err)
-
-		err = of.SetProviderAndWait(provider)
-		assert.NoError(t, err)
-		client := of.NewClient("test-app")
-		got1, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		assert.NoError(t, err)
-		assert.Equal(t, got1.Reason, of.TargetingMatchReason)
-		got2, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		assert.NoError(t, err)
-		assert.Equal(t, got2.Reason, of.CachedReason)
-		got3, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		assert.NoError(t, err)
-		assert.Equal(t, got3.Reason, of.CachedReason)
-		got4, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		assert.NoError(t, err)
-		assert.Equal(t, got4.Reason, of.CachedReason)
-		assert.Equal(t, 1, cli.callCount)
-	})
-
-	t.Run("Call flag multiple times with different evaluation context", func(t *testing.T) {
-		cli := mockClient{}
-		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(cli.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  5 * time.Minute,
-			FlagCacheSize: 5,
+	}
+	if strings.HasSuffix(req.URL.Path, "/v1/flag/configuration") {
+		content, err := os.ReadFile("./testdata/flag_config_responses/valid-all-types.json")
+		if err != nil {
+			return &http.Response{
+				StatusCode: http.StatusInternalServerError,
+				Body:       io.NopCloser(bytes.NewReader([]byte(err.Error()))),
+			}
 		}
-
-		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
-		assert.NoError(t, err)
-
-		err = of.SetProviderAndWait(provider)
-		assert.NoError(t, err)
-		client := of.NewClient("test-app")
-		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
-		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]any{})
-		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]any{})
-		ctx4 := of.NewEvaluationContext("5d1d5245-23fd-466e-96a1-101e5088396e", map[string]any{})
-		got1, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
-		assert.NoError(t, err)
-		assert.NotEqual(t, got1.Reason, of.CachedReason)
-		got2, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx2)
-		assert.NoError(t, err)
-		assert.NotEqual(t, got2.Reason, of.CachedReason)
-		got3, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx3)
-		assert.NoError(t, err)
-		assert.NotEqual(t, got3.Reason, of.CachedReason)
-		got4, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx4)
-		assert.NotEqual(t, got4.Reason, of.CachedReason)
-		assert.NoError(t, err)
-		assert.Equal(t, 4, cli.callCount)
-	})
-
-	t.Run("Cache fill all cache", func(t *testing.T) {
-		mockedHttpClient := mockClient{}
-		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(mockedHttpClient.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  5 * time.Minute,
-			FlagCacheSize: 2,
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader(content)),
 		}
-
-		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
-		assert.NoError(t, err)
-
-		err = of.SetProviderAndWait(provider)
-		assert.NoError(t, err)
-		client := of.NewClient("test-app")
-		ctx1 := of.NewEvaluationContext("ffbe55ca-2150-4f15-a842-af6efb3a1391", map[string]any{})
-		ctx2 := of.NewEvaluationContext("316d4ac7-6072-472d-8a33-e35ed1702337", map[string]any{})
-		ctx3 := of.NewEvaluationContext("2b31904a-bfb0-46b8-8923-6bf32925de05", map[string]any{})
-		r, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
-		assert.NoError(t, err)
-		assert.Equal(t, of.TargetingMatchReason, r.Reason)
-		r, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
-		assert.NoError(t, err)
-		assert.Equal(t, of.CachedReason, r.Reason)
-		r, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx2)
-		assert.NoError(t, err)
-		assert.Equal(t, of.TargetingMatchReason, r.Reason)
-		r, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx2)
-		assert.NoError(t, err)
-		assert.Equal(t, of.CachedReason, r.Reason)
-		r, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx3)
-		assert.NoError(t, err)
-		assert.Equal(t, of.TargetingMatchReason, r.Reason)
-		r, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx3)
-		assert.NoError(t, err)
-		assert.Equal(t, of.CachedReason, r.Reason)
-		r, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, ctx1)
-		assert.NoError(t, err)
-		assert.Equal(t, of.TargetingMatchReason, r.Reason)
-		assert.Equal(t, 4, mockedHttpClient.callCount)
-	})
-
-	t.Run("Cache TTL reached", func(t *testing.T) {
-		mockedHttpClient := mockClient{}
-		options := gofeatureflag.ProviderOptions{
-			Endpoint:      "https://gofeatureflag.org/",
-			HTTPClient:    NewMockClient(mockedHttpClient.roundTripFunc),
-			DisableCache:  false,
-			FlagCacheTTL:  500 * time.Millisecond,
-			FlagCacheSize: 200,
-		}
-
-		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
-		assert.NoError(t, err)
-
-		err = of.SetProviderAndWait(provider)
-		assert.NoError(t, err)
-		client := of.NewClient("test-app")
-		_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		assert.NoError(t, err)
-		time.Sleep(700 * time.Millisecond)
-		_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		assert.NoError(t, err)
-		assert.Equal(t, 2, mockedHttpClient.callCount)
-	})
+	}
+	return &http.Response{
+		StatusCode: http.StatusNotFound,
+		Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+	}
 }
 
-func TestProvider_DataCollectorHook(t *testing.T) {
-	t.Run("DataCollectorHook is called for success and call API", func(t *testing.T) {
-		cli := mockClient{}
-		options := gofeatureflag.ProviderOptions{
-			Endpoint:             "https://gofeatureflag.org/",
-			HTTPClient:           NewMockClient(cli.roundTripFunc),
-			DisableCache:         false,
-			DataFlushInterval:    100 * time.Millisecond,
-			DisableDataCollector: false,
-			ExporterMetadata:     map[string]any{"toto": 123, "tata": "titi"},
-		}
-		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
-		assert.NoError(t, err)
-		err = of.SetProviderAndWait(provider)
-		assert.NoError(t, err)
-		client := of.NewClient("test-app")
-
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		_ = client.Boolean(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-
-		time.Sleep(500 * time.Millisecond)
-		assert.Equal(t, 1, cli.callCount)
-		assert.Equal(t, 1, cli.collectorCallCount)
-
-		// convert cli.collectorRequests[0] to  DataCollectorRequest
-		var dataCollectorRequest model.DataCollectorRequest
-		err = json.Unmarshal([]byte(cli.collectorRequests[0]), &dataCollectorRequest)
-		assert.NoError(t, err)
-		assert.Equal(t, map[string]any{
-			"openfeature": true,
-			"provider":    "go",
-			"tata":        "titi",
-			"toto":        float64(123),
-		}, dataCollectorRequest.Meta)
-	})
-
-	t.Run("DataCollectorHook is called for errors and call API", func(t *testing.T) {
-		cli := mockClient{}
-		options := gofeatureflag.ProviderOptions{
-			Endpoint:             "https://gofeatureflag.org/",
-			HTTPClient:           NewMockClient(cli.roundTripFunc),
-			DisableCache:         false,
-			DataFlushInterval:    100 * time.Millisecond,
-			DisableDataCollector: false,
-		}
-		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
-		assert.NoError(t, err)
-		err = of.SetProviderAndWait(provider)
-		assert.NoError(t, err)
-		client := of.NewClient("test-app")
-
-		_ = client.String(context.TODO(), "bool_targeting_match", "false", defaultEvaluationCtx())
-
-		time.Sleep(1000 * time.Millisecond)
-		assert.Equal(t, 1, cli.callCount)
-		assert.Equal(t, 1, cli.collectorCallCount)
-	})
+func newInprocessProvider(t *testing.T, cli *inprocessMockClient) *Provider {
+	t.Helper()
+	options := ProviderOptions{
+		Endpoint:       "https://gofeatureflag.org/",
+		HTTPClient:     NewMockClient(cli.roundTripFunc),
+		EvaluationType: EvaluationTypeInProcess,
+	}
+	provider, err := NewProvider(options)
+	require.NoError(t, err)
+	return provider
 }
 
-func TestProvider_FlagChangePolling(t *testing.T) {
-	t.Run("Should purge the cache if configuration has changed", func(t *testing.T) {
-		cli := mockClient{}
-		options := gofeatureflag.ProviderOptions{
-			Endpoint:                  "https://gofeatureflag.org/",
-			HTTPClient:                NewMockClient(cli.roundTripFunc),
-			DisableCache:              false,
-			FlagCacheTTL:              10 * time.Minute,
-			DisableDataCollector:      true,
-			FlagChangePollingInterval: 100 * time.Millisecond,
-		}
-		provider, err := gofeatureflag.NewProvider(options)
-		defer provider.Shutdown()
-		assert.NoError(t, err)
-		err = of.SetProviderAndWait(provider)
-		assert.NoError(t, err)
-		client := of.NewClient("test-app")
+func TestProvider_BooleanEvaluation_InProcess(t *testing.T) {
+	type args struct {
+		flag         string
+		defaultValue bool
+		evalCtx      openfeature.EvaluationContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want openfeature.BooleanEvaluationDetails
+	}{
+		{
+			name: "should resolve a valid boolean flag with TARGETING_MATCH reason",
+			args: args{
+				flag:         "bool_targeting_match",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.BooleanEvaluationDetails{
+				Value: true,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "bool_targeting_match",
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "enabled",
+						Reason:       openfeature.TargetingMatchReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test flag",
+							"defaultValue": false,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should use boolean default value if the flag is disabled",
+			args: args{
+				flag:         "disabled_bool",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "disabled_bool",
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "SdkDefault",
+						Reason:       openfeature.DisabledReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test flag",
+							"defaultValue": false,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if we expect a boolean and got another type",
+			args: args{
+				flag:         "string_key",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "string_key",
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
+						ErrorMessage: "wrong variation used for flag string_key",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if flag does not exist",
+			args: args{
+				flag:         "does_not_exists",
+				defaultValue: false,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.BooleanEvaluationDetails{
+				Value: false,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "does_not_exists",
+					FlagType: openfeature.Boolean,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
+						ErrorMessage: "does_not_exists",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := inprocessMockClient{}
+			provider := newInprocessProvider(t, &cli)
 
-		details, err := client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		require.NoError(t, err)
-		assert.Equal(t, of.TargetingMatchReason, details.Reason)
+			err := openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
+			value, err := client.BooleanValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
-		details, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		require.NoError(t, err)
-		assert.Equal(t, of.CachedReason, details.Reason)
+			if tt.want.ErrorCode != "" {
+				require.Error(t, err)
+				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
+				assert.Equal(t, want, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, value)
+		})
+	}
+}
 
-		details, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		require.NoError(t, err)
-		assert.Equal(t, of.CachedReason, details.Reason)
+func TestProvider_StringEvaluation_InProcess(t *testing.T) {
+	type args struct {
+		flag         string
+		defaultValue string
+		evalCtx      openfeature.EvaluationContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want openfeature.StringEvaluationDetails
+	}{
+		{
+			name: "should resolve a valid string flag with STATIC reason",
+			args: args{
+				flag:         "string_key",
+				defaultValue: "default",
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.StringEvaluationDetails{
+				Value: "CC0002",
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "string_key",
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "color1",
+						Reason:       openfeature.Reason("STATIC"),
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test flag",
+							"defaultValue": "CC0000",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should use string default value if the flag is disabled",
+			args: args{
+				flag:         "disabled_string",
+				defaultValue: "default",
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.StringEvaluationDetails{
+				Value: "default",
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "disabled_string",
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "SdkDefault",
+						Reason:       openfeature.DisabledReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test",
+							"defaultValue": "CC0000",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if we expect a string and got another type",
+			args: args{
+				flag:         "bool_targeting_match",
+				defaultValue: "default",
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.StringEvaluationDetails{
+				Value: "default",
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "bool_targeting_match",
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
+						ErrorMessage: "wrong variation used for flag bool_targeting_match",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if flag does not exist",
+			args: args{
+				flag:         "does_not_exists",
+				defaultValue: "default",
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.StringEvaluationDetails{
+				Value: "default",
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "does_not_exists",
+					FlagType: openfeature.String,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
+						ErrorMessage: "does_not_exists",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := inprocessMockClient{}
+			provider := newInprocessProvider(t, &cli)
 
-		time.Sleep(220 * time.Millisecond) // Waiting > 200ms to trigger the polling in the mock
+			err := openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
+			value, err := client.StringValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
 
-		details, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
-		require.NoError(t, err)
-		assert.Equal(t, of.TargetingMatchReason, details.Reason)
-	})
+			if tt.want.ErrorCode != "" {
+				require.Error(t, err)
+				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
+				assert.Equal(t, want, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, value)
+		})
+	}
+}
+
+func TestProvider_FloatEvaluation_InProcess(t *testing.T) {
+	type args struct {
+		flag         string
+		defaultValue float64
+		evalCtx      openfeature.EvaluationContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want openfeature.FloatEvaluationDetails
+	}{
+		{
+			name: "should resolve a valid float flag with TARGETING_MATCH reason",
+			args: args{
+				flag:         "double_key",
+				defaultValue: 123.45,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.FloatEvaluationDetails{
+				Value: 101.25,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "double_key",
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "medium",
+						Reason:       openfeature.TargetingMatchReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test flag",
+							"defaultValue": 100.25,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should use float default value if the flag is disabled",
+			args: args{
+				flag:         "disabled_float",
+				defaultValue: 123.45,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.FloatEvaluationDetails{
+				Value: 123.45,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "disabled_float",
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "SdkDefault",
+						Reason:       openfeature.DisabledReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test",
+							"defaultValue": 100.25,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if we expect a float and got another type",
+			args: args{
+				flag:         "bool_targeting_match",
+				defaultValue: 123.45,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.FloatEvaluationDetails{
+				Value: 123.45,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "bool_targeting_match",
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
+						ErrorMessage: "wrong variation used for flag bool_targeting_match",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if flag does not exist",
+			args: args{
+				flag:         "does_not_exists",
+				defaultValue: 123.45,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.FloatEvaluationDetails{
+				Value: 123.45,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "does_not_exists",
+					FlagType: openfeature.Float,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
+						ErrorMessage: "does_not_exists",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := inprocessMockClient{}
+			provider := newInprocessProvider(t, &cli)
+
+			err := openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
+			value, err := client.FloatValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
+
+			if tt.want.ErrorCode != "" {
+				require.Error(t, err)
+				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
+				assert.Equal(t, want, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, value)
+		})
+	}
+}
+
+func TestProvider_IntEvaluation_InProcess(t *testing.T) {
+	type args struct {
+		flag         string
+		defaultValue int64
+		evalCtx      openfeature.EvaluationContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want openfeature.IntEvaluationDetails
+	}{
+		{
+			name: "should resolve a valid int flag with TARGETING_MATCH reason",
+			args: args{
+				flag:         "integer_key",
+				defaultValue: 123,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.IntEvaluationDetails{
+				Value: 101,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "integer_key",
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "medium",
+						Reason:       openfeature.TargetingMatchReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"defaultValue": float64(1000),
+							"description":  "this is a test flag",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should use int default value if the flag is disabled",
+			args: args{
+				flag:         "disabled_int",
+				defaultValue: 123,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.IntEvaluationDetails{
+				Value: 123,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "disabled_int",
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "SdkDefault",
+						Reason:       openfeature.DisabledReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test",
+							"defaultValue": float64(100),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if we expect an int and got another type",
+			args: args{
+				flag:         "bool_targeting_match",
+				defaultValue: 123,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.IntEvaluationDetails{
+				Value: 123,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "bool_targeting_match",
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.TypeMismatchCode,
+						ErrorMessage: "wrong variation used for flag bool_targeting_match",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if flag does not exist",
+			args: args{
+				flag:         "does_not_exists",
+				defaultValue: 123,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.IntEvaluationDetails{
+				Value: 123,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "does_not_exists",
+					FlagType: openfeature.Int,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
+						ErrorMessage: "does_not_exists",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := inprocessMockClient{}
+			provider := newInprocessProvider(t, &cli)
+
+			err := openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
+			value, err := client.IntValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
+
+			if tt.want.ErrorCode != "" {
+				require.Error(t, err)
+				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
+				assert.Equal(t, want, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, value)
+		})
+	}
+}
+
+func TestProvider_ObjectEvaluation_InProcess(t *testing.T) {
+	type args struct {
+		flag         string
+		defaultValue any
+		evalCtx      openfeature.EvaluationContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want openfeature.InterfaceEvaluationDetails
+	}{
+		{
+			name: "should resolve a valid object flag with TARGETING_MATCH reason",
+			args: args{
+				flag:         "object_key",
+				defaultValue: nil,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.InterfaceEvaluationDetails{
+				Value: map[string]any{
+					"test": "false",
+				},
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "object_key",
+					FlagType: openfeature.Object,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "varB",
+						Reason:       openfeature.TargetingMatchReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+		{
+			name: "should use interface default value if the flag is disabled",
+			args: args{
+				flag:         "disabled_int",
+				defaultValue: nil,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.InterfaceEvaluationDetails{
+				Value: nil,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "disabled_int",
+					FlagType: openfeature.Object,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "SdkDefault",
+						Reason:       openfeature.DisabledReason,
+						ErrorCode:    "",
+						ErrorMessage: "",
+						FlagMetadata: map[string]any{
+							"description":  "this is a test",
+							"defaultValue": float64(100),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should error if flag does not exist",
+			args: args{
+				flag:         "does_not_exists",
+				defaultValue: nil,
+				evalCtx:      defaultEvaluationCtx(),
+			},
+			want: openfeature.InterfaceEvaluationDetails{
+				Value: nil,
+				EvaluationDetails: openfeature.EvaluationDetails{
+					FlagKey:  "does_not_exists",
+					FlagType: openfeature.Object,
+					ResolutionDetail: openfeature.ResolutionDetail{
+						Variant:      "",
+						Reason:       openfeature.ErrorReason,
+						ErrorCode:    openfeature.FlagNotFoundCode,
+						ErrorMessage: "does_not_exists",
+						FlagMetadata: map[string]any{},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := inprocessMockClient{}
+			provider := newInprocessProvider(t, &cli)
+
+			err := openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
+			value, err := client.ObjectValueDetails(context.TODO(), tt.args.flag, tt.args.defaultValue, tt.args.evalCtx)
+
+			if tt.want.ErrorCode != "" {
+				require.Error(t, err)
+				want := fmt.Sprintf("error code: %s: %s", tt.want.ErrorCode, tt.want.ErrorMessage)
+				assert.Equal(t, want, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, value)
+		})
+	}
 }
 
 func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 	tests := []struct {
 		name             string
 		want             string
-		evalCtx          of.EvaluationContext
+		evalCtx          openfeature.EvaluationContext
 		exporterMetadata map[string]any
 	}{
 		{
@@ -1114,32 +1729,31 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 		{
 			name:             "should not remove other gofeatureflag specific metadata",
 			exporterMetadata: map[string]any{"toto": 123, "tata": "titi"},
-			evalCtx:          of.NewEvaluationContext("d45e303a-38c2-11ed-a261-0242ac120002", map[string]any{"age": 30, "gofeatureflag": map[string]any{"flags": []string{"flag1", "flag2"}}}),
+			evalCtx:          openfeature.NewEvaluationContext("d45e303a-38c2-11ed-a261-0242ac120002", map[string]any{"age": 30, "gofeatureflag": map[string]any{"flags": []string{"flag1", "flag2"}}}),
 			want:             `{"context":{"age":30,"gofeatureflag":{"flags":["flag1","flag2"], "exporterMetadata":{"openfeature":true,"provider":"go","tata":"titi","toto":123}}, "targetingKey":"d45e303a-38c2-11ed-a261-0242ac120002"}}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli := mockClient{}
-			options := gofeatureflag.ProviderOptions{
+			cli := evalMockClient{}
+			options := ProviderOptions{
 				Endpoint:         "https://gofeatureflag.org/",
 				HTTPClient:       NewMockClient(cli.roundTripFunc),
+				EvaluationType:   EvaluationTypeRemote,
 				ExporterMetadata: tt.exporterMetadata,
 			}
-			provider, err := gofeatureflag.NewProvider(options)
-			defer provider.Shutdown()
-			assert.NoError(t, err)
-			err = of.SetProviderAndWait(provider)
-			assert.NoError(t, err)
-			client := of.NewClient("test-app")
+			provider, err := NewProvider(options)
+			require.NoError(t, err)
+
+			err = openfeature.SetProviderAndWait(provider)
+			require.NoError(t, err)
+			client := openfeature.NewClient("test-app")
 
 			_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, tt.evalCtx)
 			assert.NoError(t, err)
 
-			want := tt.want
-			got := cli.requestBodies[0]
-			assert.JSONEq(t, want, got)
+			assert.JSONEq(t, tt.want, cli.requestBodies[0])
 		})
 	}
 }
