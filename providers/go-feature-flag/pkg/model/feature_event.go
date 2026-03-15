@@ -74,7 +74,7 @@ type FeatureEvent struct {
 	Version string `json:"version" example:"v1.0.0" parquet:"name=version, type=BYTE_ARRAY, convertedtype=UTF8"`
 
 	// Source indicates where the event was generated.
-	// This is set to SERVER when the event was evaluated in the relay-proxy and PROVIDER_CACHE when it is evaluated from the cache.
+	// This is set to SERVER when the event was evaluated in the relay-proxy and INPROCESS when it is evaluated locally.
 	Source string `json:"source" example:"SERVER" parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"`
 }
 

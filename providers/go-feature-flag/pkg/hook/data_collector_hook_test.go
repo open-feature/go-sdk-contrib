@@ -91,7 +91,7 @@ func Test_DataCollectorHook_After_CollectsFeatureEvent(t *testing.T) {
 	assert.Equal(t, "variant-A", event.Variation)
 	assert.Equal(t, "enabled-value", event.Value)
 	assert.False(t, event.Default)
-	assert.Equal(t, "PROVIDER_CACHE", event.Source)
+	assert.Equal(t, "INPROCESS", event.Source)
 	assert.Greater(t, event.CreationDate, int64(0))
 }
 
@@ -116,7 +116,7 @@ func Test_DataCollectorHook_Error_CollectsSdkDefaultEvent(t *testing.T) {
 	assert.Equal(t, "SdkDefault", event.Variation)
 	assert.Equal(t, false, event.Value)
 	assert.True(t, event.Default)
-	assert.Equal(t, "PROVIDER_CACHE", event.Source)
+	assert.Equal(t, "INPROCESS", event.Source)
 	assert.Greater(t, event.CreationDate, int64(0))
 }
 

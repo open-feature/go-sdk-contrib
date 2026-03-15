@@ -346,7 +346,7 @@ func TestProvider_DataCollectorHookUsesProviderManager(t *testing.T) {
 	assert.Equal(t, "variant-A", event.Variation)
 	assert.Equal(t, "enabled-value", event.Value)
 	assert.False(t, event.Default)
-	assert.Equal(t, "PROVIDER_CACHE", event.Source)
+	assert.Equal(t, "INPROCESS", event.Source)
 	assert.Greater(t, event.CreationDate, int64(0))
 }
 

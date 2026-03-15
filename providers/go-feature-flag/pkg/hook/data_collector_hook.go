@@ -26,7 +26,7 @@ func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookCon
 		evalDetails.Variant,
 		false,
 		"",
-		"PROVIDER_CACHE",
+		"INPROCESS",
 	)
 	_ = d.dataCollectorManager.AddEvent(event)
 	return nil
@@ -41,7 +41,7 @@ func (d *dataCollectorHook) Error(_ context.Context, hookCtx openfeature.HookCon
 		"SdkDefault",
 		true,
 		"",
-		"PROVIDER_CACHE",
+		"INPROCESS",
 	)
 	_ = d.dataCollectorManager.AddEvent(event)
 }
