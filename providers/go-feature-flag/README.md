@@ -1,5 +1,9 @@
 # GO Feature Flag Provider
 
+> [!NOTE]  
+> 🚀 **GO Feature Flag is a simple, complete and lightweight self-hosted feature flag solution 100% Open Source. 🎛️**  
+> 👀 **Check https://gofeatureflag.org to know more about this simple feature flag management system.**
+
 The GO Feature Flag provider connects the OpenFeature Go SDK to a GO Feature Flag relay-proxy.
 
 It supports two evaluation modes:
