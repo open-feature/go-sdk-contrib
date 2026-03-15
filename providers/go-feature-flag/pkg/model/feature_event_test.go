@@ -82,11 +82,11 @@ func TestNewFeatureEvent(t *testing.T) {
 				variation: "Default",
 				failed:    false,
 				version:   "v1.2.3",
-				source:    "PROVIDER_CACHE",
+				source:    "INPROCESS",
 			},
 			want: model.FeatureEvent{
 				Kind: "feature", ContextKind: "user", UserKey: "USER-3", CreationDate: time.Now().Unix(), Key: "versioned-flag",
-				Variation: "Default", Value: 42, Default: false, Version: "v1.2.3", Source: "PROVIDER_CACHE",
+				Variation: "Default", Value: 42, Default: false, Version: "v1.2.3", Source: "INPROCESS",
 			},
 		},
 		{
