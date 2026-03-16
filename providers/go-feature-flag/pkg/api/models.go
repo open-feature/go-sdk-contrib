@@ -35,7 +35,8 @@ type FlagConfigResponse struct {
 	Etag string `json:"-"`
 
 	// LastUpdated is the time when the flag configuration was last changed.
-	LastUpdated *time.Time `json:"lastUpdated,omitempty"`
+	// It is populated from the Last-Updated HTTP response header, not the body.
+	LastUpdated *time.Time `json:"-"`
 
 	// ErrorCode optionally contains an error code returned in the response body.
 	ErrorCode string `json:"errorCode,omitempty"`
