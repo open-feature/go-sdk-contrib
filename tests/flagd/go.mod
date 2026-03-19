@@ -1,4 +1,4 @@
-module github.com/open-feature/go-sdk-contrib/tests/flagd
+module github.com/open-feature/go-sdk-contrib/tests/flagd/v2
 
 go 1.25.0
 
