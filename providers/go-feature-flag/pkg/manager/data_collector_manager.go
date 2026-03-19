@@ -22,6 +22,7 @@ type DataCollectorManager struct {
 
 	ticker         *time.Ticker
 	collectChannel chan bool
+	goroutineDone  chan struct{}
 }
 
 // NewDataCollectorManager creates a new data collector manager
@@ -46,9 +47,11 @@ func NewDataCollectorManager(
 }
 
 func (d *DataCollectorManager) Start() {
+	d.goroutineDone = make(chan struct{})
 	d.ticker = time.NewTicker(d.collectInterval)
 	tickerC := d.ticker.C
 	go func() {
+		defer close(d.goroutineDone)
 		for {
 			select {
 			case <-d.collectChannel:
@@ -67,6 +70,9 @@ func (d *DataCollectorManager) Stop(ctx context.Context) {
 	}
 	if d.ticker != nil {
 		d.ticker.Stop()
+	}
+	if d.goroutineDone != nil {
+		<-d.goroutineDone
 	}
 	_ = d.SendData(ctx)
 }
