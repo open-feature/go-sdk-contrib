@@ -101,7 +101,10 @@ func (i *InProcess) FloatEvaluation(_ context.Context, flagName string, defaultV
 
 // loadConfiguration fetches flag config from the relay proxy and updates state.
 func (i *InProcess) loadConfiguration(ctx context.Context) (configurationRefreshStatus, error) {
-	resp, err := i.goffAPI.GetConfiguration(ctx, nil, i.etag)
+	i.mu.RLock()
+	etag := i.etag
+	i.mu.RUnlock()
+	resp, err := i.goffAPI.GetConfiguration(ctx, nil, etag)
 	if errors.Is(err, api.ErrNotModified) {
 		return configurationRefreshNotModified, nil
 	}
