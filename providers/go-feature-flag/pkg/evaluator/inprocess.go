@@ -178,6 +178,7 @@ func (i *InProcess) Init(ctx context.Context) error {
 	if interval <= 0 {
 		interval = pollingIntervalDefault
 	}
+	i.stopPolling = make(chan struct{})
 	i.pollingDone = make(chan struct{}) // replace pre-closed channel with a fresh one for this goroutine
 	go func() {
 		defer close(i.pollingDone)
