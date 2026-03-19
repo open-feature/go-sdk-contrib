@@ -75,7 +75,9 @@ func evaluate[T model.JSONType](
 		errCode := varResult.ErrorCode
 		msg := varResult.ErrorDetails
 		if err != nil {
-			errCode = flag.ErrorCodeGeneral
+			if errCode == "" {
+				errCode = flag.ErrorCodeGeneral
+			}
 			msg = err.Error()
 		}
 		return defaultValue, openfeature.ProviderResolutionDetail{
