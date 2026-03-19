@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.0...tests/flagd/v2.0.1) (2026-03-19)
+
+
+### 🐛 Bug Fixes
+
+* update test module for v2 ([4673c19](https://github.com/open-feature/go-sdk-contrib/commit/4673c19f2d331a9ec38a0a6fcd392ddde768a9fd))
+
 ## [2.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.7.0...tests/flagd/v2.0.0) (2026-03-11)
 
 
