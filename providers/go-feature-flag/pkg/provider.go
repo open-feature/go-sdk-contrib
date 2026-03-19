@@ -51,6 +51,9 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 	ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (key string, value string) {
 		return controller.ContentTypeHeader, controller.ApplicationJson
 	}))
+	for k, v := range options.CustomHeaders {
+		ofrepOptions = append(ofrepOptions, ofrep.WithHeader(k, v))
+	}
 	ofrepProvider := ofrep.NewProvider(options.Endpoint, ofrepOptions...)
 	cacheCtrl := controller.NewCache(options.FlagCacheSize, options.FlagCacheTTL, options.DisableCache)
 
@@ -65,6 +68,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		Endpoint:         options.Endpoint,
 		HTTPClient:       options.HTTPClient,
 		APIKey:           options.APIKey,
+		CustomHeaders:    options.CustomHeaders,
 		ExporterMetadata: options.ExporterMetadata,
 	})
 	dataCollectorManager := controller.NewDataCollectorManager(
