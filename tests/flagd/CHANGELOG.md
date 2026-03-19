@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.1...tests/flagd/v2.0.2) (2026-03-19)
+
+
+### 🐛 Bug Fixes
+
+* suppress noisy test log output ([559ab31](https://github.com/open-feature/go-sdk-contrib/commit/559ab31d8c7092674a17a28dc8b7b5552ac71b6a))
+
 ## [2.0.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.0...tests/flagd/v2.0.1) (2026-03-19)
 
 
