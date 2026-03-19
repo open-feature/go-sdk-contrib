@@ -72,12 +72,14 @@ func evaluate[T model.JSONType](
 		typeStr, defaultValue,
 	)
 	if err != nil || varResult.Failed {
+		errCode := varResult.ErrorCode
 		msg := varResult.ErrorDetails
 		if err != nil {
+			errCode = flag.ErrorCodeGeneral
 			msg = err.Error()
 		}
 		return defaultValue, openfeature.ProviderResolutionDetail{
-			ResolutionError: toResolutionError(varResult.ErrorCode, msg),
+			ResolutionError: toResolutionError(errCode, msg),
 			Reason:          openfeature.ErrorReason,
 		}
 	}
