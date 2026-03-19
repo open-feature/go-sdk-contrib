@@ -36,6 +36,7 @@ type InProcess struct {
 	mu                          sync.RWMutex
 	stopPolling                 chan struct{}
 	pollingDone                 chan struct{}
+	shutdownOnce                sync.Once
 	eventStream                 chan openfeature.Event
 	stale                       bool
 }
@@ -183,6 +184,7 @@ func (i *InProcess) Init(ctx context.Context) error {
 	}
 	i.stopPolling = make(chan struct{})
 	i.pollingDone = make(chan struct{}) // replace pre-closed channel with a fresh one for this goroutine
+	i.shutdownOnce = sync.Once{}
 	go func() {
 		defer close(i.pollingDone)
 		ticker := time.NewTicker(interval)
@@ -214,7 +216,7 @@ func (i *InProcess) ObjectEvaluation(_ context.Context, flagName string, default
 
 // Shutdown implements [Evaluator].
 func (i *InProcess) Shutdown(ctx context.Context) error {
-	close(i.stopPolling)
+	i.shutdownOnce.Do(func() { close(i.stopPolling) })
 	<-i.pollingDone
 	return nil
 }
