@@ -41,6 +41,15 @@ type TestbedConfig struct {
 
 // NewTestbedRunner creates a new testbed-based test runner
 func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
+	// Suppress testcontainers output by redirecting stderr to Discard
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	defer func() {
+		os.Stderr = oldStderr
+		w.Close()
+		r.Close()
+	}()
 
 	testbedDir := config.TestbedDir
 	if testbedDir == "" {
