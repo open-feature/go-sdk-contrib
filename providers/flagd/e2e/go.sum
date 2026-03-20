@@ -315,6 +315,7 @@ github.com/open-feature/flagd/core v0.14.0 h1:eGjPKONDjGa0+Pkxi6XiTdusFUCN3EuF7b
 github.com/open-feature/flagd/core v0.14.0/go.mod h1:G1KZQoSD0gi6JMVwcZxHhzOhs/WnhoyPjZneqej1neI=
 github.com/open-feature/go-sdk v1.17.0 h1:/OUBBw5d9D61JaNZZxb2Nnr5/EJrEpjtKCTY3rspJQk=
 github.com/open-feature/go-sdk v1.17.0/go.mod h1:lPxPSu1UnZ4E3dCxZi5gV3et2ACi8O8P+zsTGVsDZUw=
+github.com/open-feature/go-sdk-contrib/tests/flagd/v2 v2.0.2/go.mod h1:oRuJpK7H5Alg8D3xGU2f/xJK/UqUqODIwhLMol6yo1Q=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
