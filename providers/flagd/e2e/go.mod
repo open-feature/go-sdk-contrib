@@ -5,7 +5,8 @@ go 1.25.0
 require (
 	github.com/cucumber/godog v0.15.1
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.3.0
-	github.com/open-feature/go-sdk-contrib/tests/flagd v1.6.0
+	github.com/open-feature/go-sdk-contrib/tests/flagd v1.7.0
+	github.com/open-feature/go-sdk-contrib/tests/flagd/v2 v2.0.2
 )
 
 require (
