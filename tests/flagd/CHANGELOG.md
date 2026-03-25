@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.0.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.1...tests/flagd/v2.0.2) (2026-03-19)
+
+
+### 🐛 Bug Fixes
+
+* suppress noisy test log output ([559ab31](https://github.com/open-feature/go-sdk-contrib/commit/559ab31d8c7092674a17a28dc8b7b5552ac71b6a))
+
+## [2.0.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.0...tests/flagd/v2.0.1) (2026-03-19)
+
+
+### 🐛 Bug Fixes
+
+* update test module for v2 ([4673c19](https://github.com/open-feature/go-sdk-contrib/commit/4673c19f2d331a9ec38a0a6fcd392ddde768a9fd))
+
+## [2.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.7.0...tests/flagd/v2.0.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* add graceful defaulting to code defaults ([#841](https://github.com/open-feature/go-sdk-contrib/issues/841))
+
+### 🐛 Bug Fixes
+
+* implement deadline to fix indefinite init ([#823](https://github.com/open-feature/go-sdk-contrib/issues/823)) ([24c1bba](https://github.com/open-feature/go-sdk-contrib/commit/24c1bbad9476b4be632e5dae263b40abc9a1b80d))
+
+
+### ✨ New Features
+
+* add graceful defaulting to code defaults ([#841](https://github.com/open-feature/go-sdk-contrib/issues/841)) ([b4269b7](https://github.com/open-feature/go-sdk-contrib/commit/b4269b7cfabab90ec6223df34561ff1473208166))
+
+## [1.7.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.6.0...tests/flagd/v1.7.0) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** configurable retry backoff after each sync cycle error ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#806](https://github.com/open-feature/go-sdk-contrib/issues/806)) ([0791fa1](https://github.com/open-feature/go-sdk-contrib/commit/0791fa182c376bfc7c5109403e5f99799a64c87e))
+* **flagd:** do not retry for certain status codes ([#756](https://github.com/open-feature/go-sdk-contrib/issues/756)) ([#799](https://github.com/open-feature/go-sdk-contrib/issues/799)) ([e01a99e](https://github.com/open-feature/go-sdk-contrib/commit/e01a99ed8a0b54a2c09ed9c2aa4f5cd658769e78))
+
+
+### ✨ New Features
+
+* **go-feature-flag-inprocess:** update go-feature-flag dep to v1.49.0 ([#821](https://github.com/open-feature/go-sdk-contrib/issues/821)) ([6fa5a89](https://github.com/open-feature/go-sdk-contrib/commit/6fa5a8914f838db8507eea4d19d6a07521184afc))
+
 ## [1.6.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.5.1...tests/flagd/v1.6.0) (2025-11-27)
 
 

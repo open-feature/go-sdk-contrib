@@ -1,10 +1,13 @@
 package process
 
 import (
-	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
-	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"context"
 	"fmt"
+	msync "sync"
+	"time"
+
+	"buf.build/gen/go/open-feature/flagd/grpc/go/flagd/sync/v1/syncv1grpc"
+	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"github.com/open-feature/flagd/core/pkg/sync"
 	grpccredential "github.com/open-feature/flagd/core/pkg/sync/grpc/credentials"
@@ -13,8 +16,6 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
-	msync "sync"
-	"time"
 )
 
 // FlagSyncServiceClient Type aliases for interfaces required by this component - needed for mock generation with gomock
@@ -38,6 +39,9 @@ type Sync struct {
 	Selector                string
 	URI                     string
 	MaxMsgSize              int
+	RetryGracePeriod        int
+	RetryBackOffMs          int
+	RetryBackOffMaxMs       int
 	FatalStatusCodes        []string
 
 	// Runtime state
@@ -77,9 +81,21 @@ func (g *Sync) Init(ctx context.Context) error {
 
 // createConnection creates and configures the gRPC connection
 func (g *Sync) createConnection() (*grpc.ClientConn, error) {
+
+	var grpcInterceptorDialOptions []grpc.DialOption
+	if g.Selector != "" {
+		grpcInterceptorDialOptions = append(grpcInterceptorDialOptions,
+			grpc.WithChainUnaryInterceptor(selectorUnaryInterceptor(g.Selector)),
+			grpc.WithChainStreamInterceptor(selectorStreamInterceptor(g.Selector)),
+		)
+	}
+
 	if len(g.GrpcDialOptionsOverride) > 0 {
 		g.Logger.Debug("using provided gRPC DialOptions override")
-		return grpc.NewClient(g.URI, g.GrpcDialOptionsOverride...)
+		dialOptions := make([]grpc.DialOption, 0, len(g.GrpcDialOptionsOverride)+len(grpcInterceptorDialOptions))
+		dialOptions = append(dialOptions, g.GrpcDialOptionsOverride...)
+		dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
+		return grpc.NewClient(g.URI, dialOptions...)
 	}
 
 	// Build standard dial options
@@ -87,6 +103,7 @@ func (g *Sync) createConnection() (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to build dial options: %w", err)
 	}
+	dialOptions = append(dialOptions, grpcInterceptorDialOptions...)
 
 	return grpc.NewClient(g.URI, dialOptions...)
 }
@@ -190,11 +207,19 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 					}
 				}
 			}
-
-			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying...", err))
 			g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
 
 			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+
+			// Backoff before retrying.
+			// This is for unusual error scenarios when the normal gRPC retry/backoff policy (which only works on the connection level) is bypassed because the error is only at the stream (application level), and help avoids tight loops in that situation.
+			g.Logger.Warn(fmt.Sprintf("sync cycle failed: %v, retrying after %d backoff...", err, g.RetryBackOffMaxMs))
+			select {
+			case <-time.After(time.Duration(g.RetryBackOffMaxMs) * time.Millisecond):
+				// Backoff completed
+			case <-ctx.Done():
 				return ctx.Err()
 			}
 		}

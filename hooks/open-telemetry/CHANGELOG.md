@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.7](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.6...hooks/open-telemetry/v0.3.7) (2026-03-05)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module go.opentelemetry.io/otel/sdk to v1.40.0 [security] ([#835](https://github.com/open-feature/go-sdk-contrib/issues/835)) ([55ccbce](https://github.com/open-feature/go-sdk-contrib/commit/55ccbcee82ddcc87fa1099cc31006615570fda3c))
+
 ## [0.3.6](https://github.com/open-feature/go-sdk-contrib/compare/hooks/open-telemetry/v0.3.5...hooks/open-telemetry/v0.3.6) (2025-06-25)
 
 
