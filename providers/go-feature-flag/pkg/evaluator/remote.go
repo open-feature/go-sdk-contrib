@@ -23,8 +23,9 @@ func NewRemoteEvaluator(baseUri string, httpClient *http.Client, apiKey string, 
 		ofrepOptions = append(ofrepOptions, ofrep.WithApiKeyAuth(apiKey))
 	}
 	for k, v := range headers {
-		ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (name string, value string) {
-			return k, v
+		key, value := k, v
+		ofrepOptions = append(ofrepOptions, ofrep.WithHeaderProvider(func() (string, string) {
+			return key, value
 		}))
 	}
 	return &Remote{
