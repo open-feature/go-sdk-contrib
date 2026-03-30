@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.0.0...providers/go-feature-flag/v1.0.1) (2026-03-30)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** Bump OFREP to fix the issue with `withHeader`. ([#862](https://github.com/open-feature/go-sdk-contrib/issues/862)) ([e9404be](https://github.com/open-feature/go-sdk-contrib/commit/e9404be014f3f6ae7fadc678cbd17c156d9328d0))
+
 ## [1.0.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.7...providers/go-feature-flag/v1.0.0) (2026-03-30)
 
 
