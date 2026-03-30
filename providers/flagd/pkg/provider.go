@@ -24,9 +24,10 @@ type Provider struct {
 	status                of.State
 	mtx                   parallel.RWMutex
 
-	shutdownChan chan struct{}
-	shutdownOnce parallel.Once
-	eventStream  chan of.Event
+	shutdownChan    chan struct{}
+	shutdownOnce    parallel.Once
+	handleEventsWg  parallel.WaitGroup
+	eventStream     chan of.Event
 }
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
@@ -105,6 +106,10 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 		return nil
 	}
 
+	// Reset shutdown state so this instance can be re-initialized after a prior Shutdown().
+	p.shutdownChan = make(chan struct{})
+	p.shutdownOnce = parallel.Once{}
+
 	// Create a timer for the initialization deadline that covers the entire init process
 	deadline := time.Duration(p.providerConfiguration.DeadlineMs) * time.Millisecond
 	timer := time.NewTimer(deadline)
@@ -135,6 +140,7 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 				p.status = of.ReadyState
 				p.initialized = true
 				// start event handling after the first ready event
+				p.handleEventsWg.Add(1)
 				go p.handleEvents()
 				return nil
 			}
@@ -154,6 +160,7 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 // It exits when the service event channel closes (on Shutdown) or the shutdownChan
 // is closed, ensuring the goroutine is never leaked.
 func (p *Provider) handleEvents() {
+	defer p.handleEventsWg.Done()
 	serviceEventChan := p.service.EventChannel()
 	for {
 		select {
@@ -186,13 +193,16 @@ func (p *Provider) Status() of.State {
 
 func (p *Provider) Shutdown() {
 	p.mtx.Lock()
-	defer p.mtx.Unlock()
-
 	p.initialized = false
 	p.shutdownOnce.Do(func() {
 		close(p.shutdownChan)
 	})
 	p.service.Shutdown()
+	p.mtx.Unlock()
+
+	// Wait outside the lock so handleEvents can finish any in-progress setStatus call
+	// (which also acquires mtx) without deadlocking.
+	p.handleEventsWg.Wait()
 }
 
 func (p *Provider) EventChannel() <-chan of.Event {

@@ -771,3 +771,67 @@ func TestShutdownUnblocksBlockedSend(t *testing.T) {
 		t.Fatal("Shutdown() blocked: handleEvents goroutine was not unblocked by shutdownChan")
 	}
 }
+
+// TestReinitAfterShutdown verifies that calling Init() on a provider that has already been
+// shut down works correctly. Before the fix, shutdownChan was already closed so the new
+// handleEvents goroutine would exit immediately, silently breaking event forwarding.
+func TestReinitAfterShutdown(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+
+	eventChan := make(chan of.Event)
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+
+	gomock.InOrder(
+		svcMock.EXPECT().Init().DoAndReturn(func() error {
+			go func() { eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady} }()
+			return nil
+		}),
+		svcMock.EXPECT().Init().DoAndReturn(func() error {
+			go func() { eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady} }()
+			return nil
+		}),
+	)
+	svcMock.EXPECT().Shutdown().Times(1)
+
+	// First cycle
+	if err := provider.Init(of.EvaluationContext{}); err != nil {
+		t.Fatalf("first Init() failed: %v", err)
+	}
+	provider.Shutdown()
+
+	// Second Init — must succeed and not hang.
+	done := make(chan error, 1)
+	go func() { done <- provider.Init(of.EvaluationContext{}) }()
+	select {
+	case initErr := <-done:
+		if initErr != nil {
+			t.Fatalf("second Init() returned error: %v", initErr)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("second Init() hung; shutdownChan was not reset after Shutdown()")
+	}
+
+	// Verify handleEvents is alive by confirming a post-init event is forwarded.
+	// Without the fix, shutdownChan is already closed and handleEvents exits immediately,
+	// so this send would block forever and the test would time out.
+	received := make(chan of.Event, 1)
+	go func() { received <- <-provider.EventChannel() }()
+	eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderConfigChange}
+	select {
+	case e := <-received:
+		if e.EventType != of.ProviderConfigChange {
+			t.Fatalf("unexpected event type after re-init: %v", e.EventType)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("event not forwarded after re-init; handleEvents goroutine exited prematurely")
+	}
+}
