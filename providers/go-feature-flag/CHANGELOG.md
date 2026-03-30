@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.7...providers/go-feature-flag/v1.0.0) (2026-03-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** add in-process flag evaluation support + tracking ([#851](https://github.com/open-feature/go-sdk-contrib/issues/851))
+
+### ✨ New Features
+
+* **go-feature-flag:** add in-process flag evaluation support + tracking ([#851](https://github.com/open-feature/go-sdk-contrib/issues/851)) ([0b44677](https://github.com/open-feature/go-sdk-contrib/commit/0b44677ab580af9bf740da494ebb037e6beb7ecf))
+
 ## [0.2.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.6...providers/go-feature-flag/v0.2.7) (2025-11-28)
 
 
