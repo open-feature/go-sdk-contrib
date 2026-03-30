@@ -50,7 +50,8 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
-      "extra-files": []
+      "extra-files": [],
+      "release-as": "1.0.0"
     },
     "tests/flagd": {
       "release-type": "go",
