@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/open-feature/go-sdk v1.17.0
-	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.6
+	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.7
 	github.com/stretchr/testify v1.11.1
 	github.com/thomaspoignant/go-feature-flag/modules/core v0.6.1
 )
