@@ -719,3 +719,119 @@ func TestHandleEventsChannelClose(t *testing.T) {
 	// Clean up to avoid affecting other tests
 	provider.Shutdown()
 }
+
+// TestShutdownUnblocksBlockedSend verifies that Shutdown() returns promptly even when
+// handleEvents is blocked trying to send an event to the unbuffered eventStream channel
+// (i.e. no consumer is reading from provider.EventChannel()).
+func TestShutdownUnblocksBlockedSend(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event)
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().Init().DoAndReturn(func() error {
+		go func() {
+			// Send the ready event so Init() completes and handleEvents starts
+			eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+			// Send a second event that handleEvents will try to forward to the
+			// unbuffered p.eventStream — nobody is reading, so it will block.
+			eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderConfigChange}
+		}()
+		return nil
+	}).Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().Times(1)
+
+	if err := provider.Init(of.EvaluationContext{}); err != nil {
+		t.Fatalf("unexpected init error: %v", err)
+	}
+
+	// Give handleEvents time to receive the config-change event and block on the send.
+	time.Sleep(50 * time.Millisecond)
+
+	// Shutdown must complete quickly; if shutdownChan doesn't unblock the send
+	// this will hang and the test timeout will fire.
+	done := make(chan struct{})
+	go func() {
+		provider.Shutdown()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// success
+	case <-time.After(2 * time.Second):
+		t.Fatal("Shutdown() blocked: handleEvents goroutine was not unblocked by shutdownChan")
+	}
+}
+
+// TestReinitAfterShutdown verifies that calling Init() on a provider that has already been
+// shut down works correctly. Before the fix, shutdownChan was already closed so the new
+// handleEvents goroutine would exit immediately, silently breaking event forwarding.
+func TestReinitAfterShutdown(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+
+	eventChan := make(chan of.Event)
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+
+	gomock.InOrder(
+		svcMock.EXPECT().Init().DoAndReturn(func() error {
+			go func() { eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady} }()
+			return nil
+		}),
+		svcMock.EXPECT().Init().DoAndReturn(func() error {
+			go func() { eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady} }()
+			return nil
+		}),
+	)
+	svcMock.EXPECT().Shutdown().Times(1)
+
+	// First cycle
+	if err := provider.Init(of.EvaluationContext{}); err != nil {
+		t.Fatalf("first Init() failed: %v", err)
+	}
+	provider.Shutdown()
+
+	// Second Init — must succeed and not hang.
+	done := make(chan error, 1)
+	go func() { done <- provider.Init(of.EvaluationContext{}) }()
+	select {
+	case initErr := <-done:
+		if initErr != nil {
+			t.Fatalf("second Init() returned error: %v", initErr)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("second Init() hung; shutdownChan was not reset after Shutdown()")
+	}
+
+	// Verify handleEvents is alive by confirming a post-init event is forwarded.
+	// Without the fix, shutdownChan is already closed and handleEvents exits immediately,
+	// so this send would block forever and the test would time out.
+	received := make(chan of.Event, 1)
+	go func() { received <- <-provider.EventChannel() }()
+	eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderConfigChange}
+	select {
+	case e := <-received:
+		if e.EventType != of.ProviderConfigChange {
+			t.Fatalf("unexpected event type after re-init: %v", e.EventType)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("event not forwarded after re-init; handleEvents goroutine exited prematurely")
+	}
+}
