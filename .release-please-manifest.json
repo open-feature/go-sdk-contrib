@@ -19,5 +19,6 @@
     "providers/multi-provider": "0.0.5",
     "tools/flagd-http-connector": "0.0.2",
     "providers/rocketflag": "0.0.2",
-    "providers/aws-ssm": "1.0.0"
+    "providers/aws-ssm": "1.0.0",
+    "providers/optimizely": "0.0.1"
 }
