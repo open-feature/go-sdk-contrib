@@ -130,6 +130,11 @@ func (c *Cache) Purge() {
 	}
 }
 
+// IsEnabled reports whether the cache is active (not disabled and successfully initialised).
+func (c *Cache) IsEnabled() bool {
+	return !c.disabled && c.internalCache != nil
+}
+
 // buildCacheKey builds a cache key from the flag and evaluation context.
 func (c *Cache) buildCacheKey(flag string, evalCtx of.FlattenedContext) uint32 {
 	key := fmt.Sprintf("%s-%+v", flag, evalCtx)

@@ -34,7 +34,7 @@ func TestNewRemoteEvaluator_WithAPIKey(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	evaluator := NewRemoteEvaluator(srv.URL, nil, "my-secret-key", nil)
+	evaluator := NewRemoteEvaluator(srv.URL, nil, "my-secret-key", nil, 0, 0, true, 0, nil)
 	result := evaluator.BooleanEvaluation(context.Background(), "test-flag", false, openfeature.FlattenedContext{})
 
 	require.NotEqual(t, openfeature.ErrorReason, result.Reason)
@@ -55,7 +55,7 @@ func TestNewRemoteEvaluator_WithCustomHeaders(t *testing.T) {
 		"X-Custom-Header": "custom-value",
 		"X-Tenant-ID":     "tenant-123",
 	}
-	evaluator := NewRemoteEvaluator(srv.URL, nil, "", headers)
+	evaluator := NewRemoteEvaluator(srv.URL, nil, "", headers, 0, 0, true, 0, nil)
 	result := evaluator.StringEvaluation(context.Background(), "test-flag", "default", openfeature.FlattenedContext{})
 
 	require.NotEqual(t, openfeature.ErrorReason, result.Reason)
@@ -71,7 +71,7 @@ func TestNewRemoteEvaluator_WithoutOptionalParams(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	evaluator := NewRemoteEvaluator(srv.URL, nil, "", nil)
+	evaluator := NewRemoteEvaluator(srv.URL, nil, "", nil, 0, 0, true, 0, nil)
 	require.NotNil(t, evaluator)
 
 	result := evaluator.BooleanEvaluation(context.Background(), "test-flag", false, openfeature.FlattenedContext{})
@@ -79,7 +79,7 @@ func TestNewRemoteEvaluator_WithoutOptionalParams(t *testing.T) {
 }
 
 func TestRemote_InitShutdown(t *testing.T) {
-	evaluator := NewRemoteEvaluator("http://localhost", nil, "", nil)
+	evaluator := NewRemoteEvaluator("http://localhost", nil, "", nil, 0, 0, true, 0, nil)
 	require.NotNil(t, evaluator)
 
 	assert.NoError(t, evaluator.Init(context.Background()))

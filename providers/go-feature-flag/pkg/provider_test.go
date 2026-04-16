@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/open-feature/go-sdk-contrib/providers/go-feature-flag/pkg/model"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -1753,7 +1755,290 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 			_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, tt.evalCtx)
 			assert.NoError(t, err)
 
-			assert.JSONEq(t, tt.want, cli.requestBodies[0])
+			assert.JSONEq(t, tt.want, cli.requestBodies[len(cli.requestBodies)-1])
 		})
 	}
+}
+
+// --------------------------------------------------------------------------
+// Remote cache test infrastructure
+// --------------------------------------------------------------------------
+
+// remoteCacheMockClient is a RoundTripper-based mock for Remote evaluation tests.
+// It routes requests to the appropriate handler and tracks call counts.
+type remoteCacheMockClient struct {
+	mu                 sync.Mutex
+	ofrepCallCount     int
+	collectorCallCount int
+	collectorBodies    []string
+	cacheable          bool // controls gofeatureflag_cacheable in OFREP response
+}
+
+func (m *remoteCacheMockClient) roundTripFunc(req *http.Request) *http.Response {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	switch {
+	case req.URL.Path == "/v1/flag/configuration":
+		// Return 304 so the polling goroutine never purges the cache during tests.
+		return &http.Response{StatusCode: http.StatusNotModified, Body: http.NoBody}
+
+	case strings.HasPrefix(req.URL.Path, "/ofrep/v1/evaluate/flags/"):
+		m.ofrepCallCount++
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(bytes.NewReader(cacheableOfrepFlagResponse(true, m.cacheable))),
+		}
+
+	case req.URL.Path == "/v1/data/collector":
+		body, _ := io.ReadAll(req.Body)
+		m.collectorCallCount++
+		m.collectorBodies = append(m.collectorBodies, string(body))
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+	}
+
+	return &http.Response{StatusCode: http.StatusNotFound, Body: http.NoBody}
+}
+
+// cacheableOfrepFlagResponse builds a minimal OFREP boolean response.
+// When cacheable is true the response includes gofeatureflag_cacheable=true so the
+// Remote evaluator stores it in the cache.
+func cacheableOfrepFlagResponse(value any, cacheable bool) []byte {
+	meta := map[string]any{}
+	if cacheable {
+		meta["gofeatureflag_cacheable"] = true
+	}
+	b, _ := json.Marshal(map[string]any{
+		"key":      "test-flag",
+		"reason":   "TARGETING_MATCH",
+		"variant":  "default",
+		"value":    value,
+		"metadata": meta,
+	})
+	return b
+}
+
+// newRemoteProvider creates a provider with EvaluationTypeRemote wired to the given mock client.
+func newRemoteProvider(t *testing.T, cli *remoteCacheMockClient, cacheTTL time.Duration, cacheSize int, disableCache bool) *Provider {
+	t.Helper()
+	p, err := NewProviderWithContext(context.Background(), ProviderOptions{
+		Endpoint:                  "https://gofeatureflag.org/",
+		HTTPClient:                NewMockClient(cli.roundTripFunc),
+		EvaluationType:            EvaluationTypeRemote,
+		FlagCacheTTL:              cacheTTL,
+		FlagCacheSize:             cacheSize,
+		DisableCache:              disableCache,
+		FlagChangePollingInterval: 24 * time.Hour, // prevent polling from firing during tests
+	})
+	require.NoError(t, err)
+	return p
+}
+
+// --------------------------------------------------------------------------
+// TestProvider_Remote_Cache
+// --------------------------------------------------------------------------
+
+func TestProvider_Remote_Cache(t *testing.T) {
+	t.Run("same user hits cache on second call", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: true}
+		provider := newRemoteProvider(t, cli, 5*time.Minute, 100, false)
+		err := openfeature.SetProviderAndWait(provider)
+		require.NoError(t, err)
+		defer provider.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		r1, err := client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.Equal(t, openfeature.TargetingMatchReason, r1.Reason)
+
+		r2, err := client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.Equal(t, openfeature.CachedReason, r2.Reason)
+
+		assert.Equal(t, 1, cli.ofrepCallCount)
+	})
+
+	t.Run("different contexts each miss the cache", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: true}
+		provider := newRemoteProvider(t, cli, 5*time.Minute, 100, false)
+		err := openfeature.SetProviderAndWait(provider)
+		require.NoError(t, err)
+		defer provider.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		contexts := []openfeature.EvaluationContext{
+			openfeature.NewEvaluationContext("ctx-1", nil),
+			openfeature.NewEvaluationContext("ctx-2", nil),
+			openfeature.NewEvaluationContext("ctx-3", nil),
+			openfeature.NewEvaluationContext("ctx-4", nil),
+		}
+		for _, ctx := range contexts {
+			r, err := client.BooleanValueDetails(context.TODO(), "test-flag", false, ctx)
+			require.NoError(t, err)
+			assert.NotEqual(t, openfeature.CachedReason, r.Reason)
+		}
+		assert.Equal(t, 4, cli.ofrepCallCount)
+	})
+
+	t.Run("LRU eviction re-fetches evicted entry", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: true}
+		provider := newRemoteProvider(t, cli, 5*time.Minute, 2, false) // cache size = 2
+		err := openfeature.SetProviderAndWait(provider)
+		require.NoError(t, err)
+		defer provider.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		ctx1 := openfeature.NewEvaluationContext("ctx-1", nil)
+		ctx2 := openfeature.NewEvaluationContext("ctx-2", nil)
+		ctx3 := openfeature.NewEvaluationContext("ctx-3", nil)
+
+		// ctx1 — miss then hit
+		r, _ := client.BooleanValueDetails(context.TODO(), "test-flag", false, ctx1)
+		assert.Equal(t, openfeature.TargetingMatchReason, r.Reason)
+		r, _ = client.BooleanValueDetails(context.TODO(), "test-flag", false, ctx1)
+		assert.Equal(t, openfeature.CachedReason, r.Reason)
+
+		// ctx2 — miss then hit
+		r, _ = client.BooleanValueDetails(context.TODO(), "test-flag", false, ctx2)
+		assert.Equal(t, openfeature.TargetingMatchReason, r.Reason)
+		r, _ = client.BooleanValueDetails(context.TODO(), "test-flag", false, ctx2)
+		assert.Equal(t, openfeature.CachedReason, r.Reason)
+
+		// ctx3 — evicts ctx1 (LRU, cache size 2)
+		r, _ = client.BooleanValueDetails(context.TODO(), "test-flag", false, ctx3)
+		assert.Equal(t, openfeature.TargetingMatchReason, r.Reason)
+
+		// ctx1 — evicted, must re-fetch
+		r, _ = client.BooleanValueDetails(context.TODO(), "test-flag", false, ctx1)
+		assert.Equal(t, openfeature.TargetingMatchReason, r.Reason)
+
+		assert.Equal(t, 4, cli.ofrepCallCount)
+	})
+
+	t.Run("TTL expiration triggers re-fetch", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: true}
+		provider := newRemoteProvider(t, cli, 300*time.Millisecond, 100, false)
+		err := openfeature.SetProviderAndWait(provider)
+		require.NoError(t, err)
+		defer provider.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		_, err = client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+
+		time.Sleep(500 * time.Millisecond) // wait for TTL to expire
+
+		_, err = client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+
+		assert.Equal(t, 2, cli.ofrepCallCount)
+	})
+
+	t.Run("non-cacheable flag is never cached", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: false} // metadata does not include cacheable=true
+		provider := newRemoteProvider(t, cli, 5*time.Minute, 100, false)
+		err := openfeature.SetProviderAndWait(provider)
+		require.NoError(t, err)
+		defer provider.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		r1, err := client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.NotEqual(t, openfeature.CachedReason, r1.Reason)
+
+		r2, err := client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.NotEqual(t, openfeature.CachedReason, r2.Reason)
+
+		assert.Equal(t, 2, cli.ofrepCallCount)
+	})
+
+	t.Run("disabled cache always calls remote", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: true}
+		provider := newRemoteProvider(t, cli, 5*time.Minute, 100, true) // DisableCache=true
+		err := openfeature.SetProviderAndWait(provider)
+		require.NoError(t, err)
+		defer provider.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		r1, err := client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.NotEqual(t, openfeature.CachedReason, r1.Reason)
+
+		r2, err := client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+		assert.NotEqual(t, openfeature.CachedReason, r2.Reason)
+
+		assert.Equal(t, 2, cli.ofrepCallCount)
+	})
+}
+
+// --------------------------------------------------------------------------
+// TestProvider_Remote_DataCollector
+// --------------------------------------------------------------------------
+
+func TestProvider_Remote_DataCollector(t *testing.T) {
+	t.Run("cached evaluation sends event to collector with PROVIDER_CACHE source", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: true}
+		p, err := NewProviderWithContext(context.Background(), ProviderOptions{
+			Endpoint:                  "https://gofeatureflag.org/",
+			HTTPClient:                NewMockClient(cli.roundTripFunc),
+			EvaluationType:            EvaluationTypeRemote,
+			FlagCacheTTL:              5 * time.Minute,
+			FlagCacheSize:             100,
+			FlagChangePollingInterval: 24 * time.Hour,
+		})
+		require.NoError(t, err)
+		err = openfeature.SetProviderAndWait(p)
+		require.NoError(t, err)
+		defer p.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		// First call: miss → hook skips collection (non-cached reason)
+		_, err = client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+
+		// Second call: hit → hook collects event (CachedReason)
+		_, err = client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+
+		// Flush the data collector
+		require.NoError(t, p.dataCollectorMgr.SendData(context.Background()))
+
+		assert.Equal(t, 1, cli.collectorCallCount)
+
+		var payload struct {
+			Events []json.RawMessage `json:"events"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(cli.collectorBodies[0]), &payload))
+		require.Len(t, payload.Events, 1)
+
+		var event model.FeatureEvent
+		require.NoError(t, json.Unmarshal(payload.Events[0], &event))
+		assert.Equal(t, "PROVIDER_CACHE", event.Source)
+	})
+
+	t.Run("non-cached remote evaluation sends no event", func(t *testing.T) {
+		cli := &remoteCacheMockClient{cacheable: true}
+		p, err := NewProviderWithContext(context.Background(), ProviderOptions{
+			Endpoint:                  "https://gofeatureflag.org/",
+			HTTPClient:                NewMockClient(cli.roundTripFunc),
+			EvaluationType:            EvaluationTypeRemote,
+			DisableCache:              true, // cache off → all calls are non-cached
+			FlagChangePollingInterval: 24 * time.Hour,
+		})
+		require.NoError(t, err)
+		err = openfeature.SetProviderAndWait(p)
+		require.NoError(t, err)
+		defer p.ShutdownWithContext(context.Background()) //nolint:errcheck
+		client := openfeature.NewClient("test-app")
+
+		_, err = client.BooleanValueDetails(context.TODO(), "test-flag", false, defaultEvaluationCtx())
+		require.NoError(t, err)
+
+		require.NoError(t, p.dataCollectorMgr.SendData(context.Background()))
+
+		assert.Equal(t, 0, cli.collectorCallCount)
+	})
 }
