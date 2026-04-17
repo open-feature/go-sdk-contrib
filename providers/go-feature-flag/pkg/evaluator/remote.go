@@ -87,16 +87,19 @@ func (r *Remote) startPolling() {
 	if interval <= 0 {
 		interval = pollingIntervalDefault
 	}
+	r.mu.Lock()
 	r.stopPolling = make(chan struct{})
 	r.pollingDone = make(chan struct{})
-	r.shutdownOnce = sync.Once{}
+	stop := r.stopPolling
+	done := r.pollingDone
+	r.mu.Unlock()
 	go func() {
-		defer close(r.pollingDone)
+		defer close(done)
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
 			select {
-			case <-r.stopPolling:
+			case <-stop:
 				return
 			case <-ticker.C:
 				r.mu.Lock()
@@ -121,8 +124,12 @@ func (r *Remote) startPolling() {
 }
 
 func (r *Remote) Shutdown(_ context.Context) error {
-	r.shutdownOnce.Do(func() { close(r.stopPolling) })
-	<-r.pollingDone
+	r.mu.Lock()
+	stop := r.stopPolling
+	done := r.pollingDone
+	r.mu.Unlock()
+	r.shutdownOnce.Do(func() { close(stop) })
+	<-done
 	return nil
 }
 

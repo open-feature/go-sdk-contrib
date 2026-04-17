@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	"hash/fnv"
 	"time"
 
 	"github.com/bluele/gcache"
@@ -136,9 +135,6 @@ func (c *Cache) IsEnabled() bool {
 }
 
 // buildCacheKey builds a cache key from the flag and evaluation context.
-func (c *Cache) buildCacheKey(flag string, evalCtx of.FlattenedContext) uint32 {
-	key := fmt.Sprintf("%s-%+v", flag, evalCtx)
-	h := fnv.New32a()
-	_, _ = h.Write([]byte(key))
-	return h.Sum32()
+func (c *Cache) buildCacheKey(flag string, evalCtx of.FlattenedContext) string {
+	return fmt.Sprintf("%s-%+v", flag, evalCtx)
 }
