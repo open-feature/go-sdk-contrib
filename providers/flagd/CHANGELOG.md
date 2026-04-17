@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.4.0...providers/flagd/v0.5.0) (2026-04-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* fractional bucketing improvements ([#866](https://github.com/open-feature/go-sdk-contrib/issues/866))
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/moby/buildkit to v0.28.1 [security] ([#853](https://github.com/open-feature/go-sdk-contrib/issues/853)) ([bd84e61](https://github.com/open-feature/go-sdk-contrib/commit/bd84e61344106b13805c3036c4b9a01ca8d53529))
+
+
+### ✨ New Features
+
+* fractional bucketing improvements ([#866](https://github.com/open-feature/go-sdk-contrib/issues/866)) ([73d84a6](https://github.com/open-feature/go-sdk-contrib/commit/73d84a638100815741eb83fad3b1bec785b00411))
+
 ## [0.4.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.2...providers/flagd/v0.4.0) (2026-03-11)
 
 
