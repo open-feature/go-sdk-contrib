@@ -478,6 +478,10 @@ func handleError(err error) of.ResolutionError {
 	return of.NewGeneralResolutionError(err.Error())
 }
 
+func (s *Service) ContextValues() *of.EvaluationContext {
+	return nil
+}
+
 func (s *Service) EventChannel() <-chan of.Event {
 	return s.events
 }
