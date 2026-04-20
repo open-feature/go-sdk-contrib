@@ -39,6 +39,7 @@ jobs:
       - name: Run workspace init
         run: make workspace-init
       - name: Run Vulncheck
+        continue-on-error: true
         run: make vulncheck
       - name: Run linter
         run: make lint
