@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
+	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v5"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 )
