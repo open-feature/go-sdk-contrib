@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
+	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v5"
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
