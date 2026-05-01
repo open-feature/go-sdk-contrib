@@ -7,7 +7,7 @@
     "providers/from-env": "0.1.6",
     "providers/go-feature-flag": "1.0.1",
     "providers/gcp": "0.0.1",
-    "providers/flagsmith": "0.1.5",
+    "providers/flagsmith": "0.1.6",
     "providers/launchdarkly": "0.1.6",
     "providers/unleash": "0.1.1-alpha",
     "providers/harness": "0.0.5-alpha",
