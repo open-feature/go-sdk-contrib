@@ -19,7 +19,6 @@ require (
 	github.com/DefangLabs/secret-detector v0.0.0-20250403165618-22662109213e // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
-	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df // indirect
 	github.com/buger/goterm v1.0.4 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
@@ -39,7 +38,7 @@ require (
 	github.com/cucumber/gherkin/go/v26 v26.2.0 // indirect
 	github.com/cucumber/messages/go/v21 v21.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/diegoholiveira/jsonlogic/v3 v3.9.0 // indirect
+	github.com/diegoholiveira/jsonlogic/v3 v3.9.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/buildx v0.31.1 // indirect
 	github.com/docker/cli v29.2.1+incompatible // indirect
@@ -75,7 +74,7 @@ require (
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/in-toto/attestation v1.1.2 // indirect
-	github.com/in-toto/in-toto-golang v0.10.0 // indirect
+	github.com/in-toto/in-toto-golang v0.11.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
@@ -102,7 +101,7 @@ require (
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/open-feature/flagd-schemas v0.2.13 // indirect
-	github.com/open-feature/flagd/core v0.15.0 // indirect
+	github.com/open-feature/flagd/core v0.15.5 // indirect
 	github.com/open-feature/go-sdk v1.17.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
