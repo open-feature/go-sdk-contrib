@@ -31,7 +31,7 @@ jobs:
       TAG: ${{ fromJSON(needs.release-please.outputs.all)[format('{0}--tag_name', matrix.release)] }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Set up Go
         uses: actions/setup-go@19bb51245e9c80abacb2e91cc42b33fa478b8639 # v4
         with:
