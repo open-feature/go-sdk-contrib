@@ -440,6 +440,7 @@ func (i *InProcess) Shutdown() {
 
 		i.logger.Info("waiting for background processes to complete")
 		i.wg.Wait()
+		close(i.events)
 		i.logger.Info("InProcess service shutdown completed successfully")
 	})
 }

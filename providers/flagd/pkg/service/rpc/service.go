@@ -108,6 +108,7 @@ func (s *Service) Shutdown() {
 		s.cancelHook()
 	}
 	s.wg.Wait()
+	close(s.events)
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
