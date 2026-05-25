@@ -113,9 +113,9 @@ type Configuration struct {
 	CustomSyncProviderUri   string
 	GrpcDialOptionsOverride []googlegrpc.DialOption
 	CertificatePath         string
-	RetryGracePeriod        int
-	RetryBackOffMs          int
-	RetryBackOffMaxMs       int
+	RetryGracePeriod        time.Duration
+	RetryBackOffMs          time.Duration
+	RetryBackOffMaxMs       time.Duration
 	FatalStatusCodes        []string
 	DeadlineMs              int
 }
@@ -251,7 +251,7 @@ func (i *InProcess) handleProviderError() {
 	}
 
 	// Start stale timer - when it expires, send error event
-	i.staleTimer.start(time.Duration(i.configuration.RetryGracePeriod)*time.Second, func() {
+	i.staleTimer.start(i.configuration.RetryGracePeriod, func() {
 		i.events <- of.Event{
 			ProviderName:         providerName,
 			EventType:            of.ProviderError,
