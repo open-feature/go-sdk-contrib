@@ -23,8 +23,8 @@ type Provider struct {
 	service               IService
 	status                of.State
 	mtx                   parallel.RWMutex
-
-	eventStream chan of.Event
+	hooks                 []of.Hook
+	eventStream           chan of.Event
 }
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
@@ -39,6 +39,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		eventStream:           make(chan of.Event),
 		providerConfiguration: providerConfiguration,
 		status:                of.NotReadyState,
+		hooks:                 []of.Hook{},
 	}
 
 	cacheService := cache.NewCacheService(
@@ -80,6 +81,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			RetryBackOffMaxMs:       provider.providerConfiguration.RetryBackoffMaxMs,
 			FatalStatusCodes:        provider.providerConfiguration.FatalStatusCodes,
 			DeadlineMs:              provider.providerConfiguration.DeadlineMs,
+			ContextEnricher:         provider.providerConfiguration.ContextEnricher,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
@@ -88,6 +90,9 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		})
 	}
 
+	if provider.providerConfiguration.Resolver == inProcess {
+		provider.hooks = append(provider.hooks, NewSyncContextHook(service.ContextValues))
+	}
 	provider.service = service
 
 	return provider, nil
@@ -179,9 +184,9 @@ func (p *Provider) EventChannel() <-chan of.Event {
 	return p.eventStream
 }
 
-// Hooks flagd provider does not have any hooks, returns empty slice
+// Hooks returns the hooks for the flagd provider.
 func (p *Provider) Hooks() []of.Hook {
-	return []of.Hook{}
+	return p.hooks
 }
 
 // Metadata returns value of Metadata (name of current service, exposed to openfeature sdk)
