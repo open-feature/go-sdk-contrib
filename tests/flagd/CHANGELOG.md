@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.2...tests/flagd/v2.0.3) (2026-05-25)
+
+
+### 🐛 Bug Fixes
+
+* core lib update for various custom operator conformance fixes ([#874](https://github.com/open-feature/go-sdk-contrib/issues/874)) ([df6230b](https://github.com/open-feature/go-sdk-contrib/commit/df6230b72b4a99a03929189cdab4c61641fc9e78))
+
 ## [2.0.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.1...tests/flagd/v2.0.2) (2026-03-19)
 
 
