@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.1...providers/flagd/v0.5.2) (2026-05-25)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update vulnerability-updates [security] ([#865](https://github.com/open-feature/go-sdk-contrib/issues/865)) ([9f0e819](https://github.com/open-feature/go-sdk-contrib/commit/9f0e819d2792297f70bfadabcd95ffe8ae510ab7))
+
 ## [0.5.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.0...providers/flagd/v0.5.1) (2026-05-01)
 
 
