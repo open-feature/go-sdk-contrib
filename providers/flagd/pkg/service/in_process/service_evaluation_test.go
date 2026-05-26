@@ -74,12 +74,28 @@ func TestBooleanEvaluation(t *testing.T) {
 				FlagMetadata: make(map[string]interface{}),
 			},
 		},
+		{
+			name: "Boolean Fallback - defaulted returns code default",
+			evaluator: MockEvaluator{
+				value:    false,
+				variant:  "",
+				reason:   model.DisabledReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: true,
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DisabledReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
 		defaultValue := false
-		if test.evaluator.reason == model.FallbackReason {
+		if test.evaluator.reason == model.FallbackReason || test.evaluator.reason == model.DisabledReason {
 			defaultValue = true
 		}
 		booleanEval := inProcessService.ResolveBoolean(context.Background(), "any", defaultValue, make(map[string]interface{}))
@@ -138,12 +154,28 @@ func TestStringEvaluation(t *testing.T) {
 				FlagMetadata: make(map[string]interface{}),
 			},
 		},
+		{
+			name: "String Fallback - default returns code default",
+			evaluator: MockEvaluator{
+				value:    "",
+				variant:  "",
+				reason:   model.DisabledReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: "my-default",
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DisabledReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
 		defaultValue := ""
-		if test.evaluator.reason == model.FallbackReason {
+		if test.evaluator.reason == model.FallbackReason || test.evaluator.reason == model.DisabledReason {
 			defaultValue = "my-default"
 		}
 		stringEval := inProcessService.ResolveString(context.Background(), "any", defaultValue, make(map[string]interface{}))
@@ -202,12 +234,28 @@ func TestFloatEvaluation(t *testing.T) {
 				FlagMetadata: make(map[string]interface{}),
 			},
 		},
+		{
+			name: "Float Fallback - disabled returns code default",
+			evaluator: MockEvaluator{
+				value:    0.0,
+				variant:  "",
+				reason:   model.DisabledReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: 42.5,
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DisabledReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
 		defaultValue := 0.0
-		if test.evaluator.reason == model.FallbackReason {
+		if test.evaluator.reason == model.FallbackReason || test.evaluator.reason == model.DisabledReason {
 			defaultValue = 42.5
 		}
 		floatEval := inProcessService.ResolveFloat(context.Background(), "any", defaultValue, make(map[string]interface{}))
@@ -266,12 +314,28 @@ func TestIntEvaluation(t *testing.T) {
 				FlagMetadata: make(map[string]interface{}),
 			},
 		},
+		{
+			name: "Integer Fallback - no default variant returns code default",
+			evaluator: MockEvaluator{
+				value:    int64(0),
+				variant:  "",
+				reason:   model.DisabledReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: int64(99),
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DisabledReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
 		defaultValue := int64(0)
-		if test.evaluator.reason == model.FallbackReason {
+		if test.evaluator.reason == model.FallbackReason || test.evaluator.reason == model.DisabledReason {
 			defaultValue = 99
 		}
 		intEval := inProcessService.ResolveInt(context.Background(), "any", defaultValue, make(map[string]interface{}))
@@ -334,6 +398,22 @@ func TestObjectEvaluation(t *testing.T) {
 				FlagMetadata: make(map[string]interface{}),
 			},
 		},
+		{
+			name: "Object Fallback - disabled returns code default",
+			evaluator: MockEvaluator{
+				value:    make(map[string]interface{}),
+				variant:  "",
+				reason:   model.DisabledReason,
+				metadata: make(map[string]interface{}),
+				err:      nil,
+			},
+			value: map[string]interface{}{"default": true},
+			resDetail: openfeature.ProviderResolutionDetail{
+				Reason:       openfeature.DisabledReason,
+				Variant:      "",
+				FlagMetadata: make(map[string]interface{}),
+			},
+		},
 	}
 
 	defaultObj := map[string]interface{}{"default": true}
@@ -341,7 +421,7 @@ func TestObjectEvaluation(t *testing.T) {
 	for _, test := range tests {
 		inProcessService := InProcess{evaluator: test.evaluator}
 		defaultValue := make(map[string]interface{})
-		if test.evaluator.reason == model.FallbackReason {
+		if test.evaluator.reason == model.FallbackReason || test.evaluator.reason == model.DisabledReason {
 			defaultValue = defaultObj
 		}
 		objEval := inProcessService.ResolveObject(context.Background(), "any", defaultValue, make(map[string]interface{}))
@@ -378,11 +458,6 @@ func TestErrorMapping(t *testing.T) {
 		{
 			name:         "Flag not found",
 			errorType:    model.FlagNotFoundErrorCode,
-			expectedCode: openfeature.FlagNotFoundCode,
-		},
-		{
-			name:         "Flag disabled",
-			errorType:    model.FlagDisabledErrorCode,
 			expectedCode: openfeature.FlagNotFoundCode,
 		},
 		{

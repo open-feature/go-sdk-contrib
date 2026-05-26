@@ -484,6 +484,16 @@ func (i *InProcess) ResolveBoolean(ctx context.Context, key string, defaultValue
 		}
 	}
 
+	if reason == model.DisabledReason {
+		return of.BoolResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				FlagMetadata: metadata,
+			},
+		}
+	}
+
 	if reason == model.FallbackReason {
 		return of.BoolResolutionDetail{
 			Value: defaultValue,
@@ -519,6 +529,16 @@ func (i *InProcess) ResolveString(ctx context.Context, key string, defaultValue 
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
+			},
+		}
+	}
+
+	if reason == model.DisabledReason {
+		return of.StringResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				FlagMetadata: metadata,
 			},
 		}
 	}
@@ -562,6 +582,16 @@ func (i *InProcess) ResolveFloat(ctx context.Context, key string, defaultValue f
 		}
 	}
 
+	if reason == model.DisabledReason {
+		return of.FloatResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				FlagMetadata: metadata,
+			},
+		}
+	}
+
 	if reason == model.FallbackReason {
 		return of.FloatResolutionDetail{
 			Value: defaultValue,
@@ -601,6 +631,16 @@ func (i *InProcess) ResolveInt(ctx context.Context, key string, defaultValue int
 		}
 	}
 
+	if reason == model.DisabledReason {
+		return of.IntResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				FlagMetadata: metadata,
+			},
+		}
+	}
+
 	if reason == model.FallbackReason {
 		return of.IntResolutionDetail{
 			Value: defaultValue,
@@ -636,6 +676,16 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 				Reason:          of.Reason(reason),
 				Variant:         variant,
 				FlagMetadata:    metadata,
+			},
+		}
+	}
+
+	if reason == model.DisabledReason {
+		return of.InterfaceResolutionDetail{
+			Value: defaultValue,
+			ProviderResolutionDetail: of.ProviderResolutionDetail{
+				Reason:       of.DisabledReason,
+				FlagMetadata: metadata,
 			},
 		}
 	}
@@ -708,8 +758,6 @@ func mapError(flagKey string, err error) of.ResolutionError {
 	switch err.Error() {
 	case model.FlagNotFoundErrorCode:
 		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: %s not found", flagKey))
-	case model.FlagDisabledErrorCode:
-		return of.NewFlagNotFoundResolutionError(fmt.Sprintf("flag: %s is disabled", flagKey))
 	case model.TypeMismatchErrorCode:
 		return of.NewTypeMismatchResolutionError(fmt.Sprintf("flag: %s evaluated type not valid", flagKey))
 	case model.ParseErrorCode:
