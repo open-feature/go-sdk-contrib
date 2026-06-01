@@ -24,10 +24,10 @@ type Provider struct {
 	status                of.State
 	mtx                   parallel.RWMutex
 
-	shutdownChan    chan struct{}
-	shutdownOnce    parallel.Once
-	handleEventsWg  parallel.WaitGroup
-	eventStream     chan of.Event
+	shutdownChan   chan struct{}
+	shutdownOnce   parallel.Once
+	handleEventsWg parallel.WaitGroup
+	eventStream    chan of.Event
 }
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
