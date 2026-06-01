@@ -67,6 +67,22 @@ type ProviderOptions struct {
 	// Logger (optional) is the logger to be used by the provider.
 	// default: slog.Default()
 	Logger *slog.Logger
+
+	// DisableCache (optional) set to true if you would like that every flag evaluation goes to the GO Feature Flag directly.
+	// Cache is used only for the remote evaluation.
+	// default: false
+	DisableCache bool
+
+	// FlagCacheSize (optional) is the maximum number of flag events we keep in memory to cache your flags.
+	// Cache is used only for the remote evaluation.
+	// default: 10000
+	FlagCacheSize int
+
+	// FlagCacheTTL (optional) is the time we keep the evaluation in the cache before we consider it as obsolete.
+	// If you want to keep the value forever you can set the FlagCacheTTL field to -1
+	// Cache is used only for the remote evaluation.
+	// default: 1 minute
+	FlagCacheTTL time.Duration
 }
 
 func (o *ProviderOptions) Validation() error {

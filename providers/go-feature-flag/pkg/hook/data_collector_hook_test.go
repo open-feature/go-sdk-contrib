@@ -52,7 +52,7 @@ func newDataCollectorHookForTest() (openfeature.Hook, *manager.DataCollectorMana
 		HTTPClient: client,
 	})
 	collector := manager.NewDataCollectorManager(goffAPI, 100, 0)
-	return hook.NewDataCollectorHook(&collector), &collector, mrt
+	return hook.NewDataCollectorHook(&collector, "INPROCESS"), &collector, mrt
 }
 
 func Test_NewDataCollectorHook(t *testing.T) {
@@ -159,4 +159,64 @@ func Test_DataCollectorHook_Error_AnonymousUser_SetsContextKind(t *testing.T) {
 	var event model.FeatureEvent
 	require.NoError(t, json.Unmarshal(payload.Events[0], &event))
 	assert.Equal(t, "anonymousUser", event.ContextKind)
+}
+
+func newRemoteDataCollectorHookForTest() (openfeature.Hook, *manager.DataCollectorManager, *hookMockRoundTripper) {
+	mrt := &hookMockRoundTripper{status: http.StatusOK}
+	client := &http.Client{Transport: mrt}
+	goffAPI := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+		Endpoint:   "http://localhost:1031",
+		HTTPClient: client,
+	})
+	collector := manager.NewDataCollectorManager(goffAPI, 100, 0)
+	return hook.NewDataCollectorHook(&collector, "REMOTE"), &collector, mrt
+}
+
+func Test_DataCollectorHook_Remote_CachedReason_CollectsEvent(t *testing.T) {
+	h, collector, mrt := newRemoteDataCollectorHookForTest()
+	hookCtx := newHookContext("user-123", map[string]any{})
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value: true,
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:  "test-flag",
+			FlagType: openfeature.Boolean,
+		},
+	}
+	evalDetails.Variant = "True"
+	evalDetails.Reason = openfeature.CachedReason
+
+	err := h.After(context.Background(), hookCtx, evalDetails, openfeature.HookHints{})
+	require.NoError(t, err)
+	require.NoError(t, collector.SendData(context.Background()))
+	assert.Equal(t, 1, mrt.numberCall)
+
+	var payload capturedCollectorRequest
+	require.NoError(t, json.Unmarshal(mrt.lastBody, &payload))
+	require.Len(t, payload.Events, 1)
+
+	var event model.FeatureEvent
+	require.NoError(t, json.Unmarshal(payload.Events[0], &event))
+	assert.Equal(t, "PROVIDER_CACHE", event.Source)
+	assert.Equal(t, "test-flag", event.Key)
+	assert.Equal(t, "True", event.Variation)
+}
+
+func Test_DataCollectorHook_Remote_NonCachedReason_DoesNotCollectEvent(t *testing.T) {
+	h, collector, mrt := newRemoteDataCollectorHookForTest()
+	hookCtx := newHookContext("user-123", map[string]any{})
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value: true,
+		EvaluationDetails: openfeature.EvaluationDetails{
+			FlagKey:  "test-flag",
+			FlagType: openfeature.Boolean,
+		},
+	}
+	evalDetails.Variant = "True"
+	evalDetails.Reason = openfeature.TargetingMatchReason
+
+	err := h.After(context.Background(), hookCtx, evalDetails, openfeature.HookHints{})
+	require.NoError(t, err)
+	require.NoError(t, collector.SendData(context.Background()))
+	// No events collected → collector should not have called the endpoint
+	assert.Equal(t, 0, mrt.numberCall)
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.0.1...providers/go-feature-flag/v1.1.0) (2026-05-11)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** add caching support for remote evaluation ([#868](https://github.com/open-feature/go-sdk-contrib/issues/868)) ([14e6034](https://github.com/open-feature/go-sdk-contrib/commit/14e6034c699c023d500821ce0475d6128caaa421))
+
 ## [1.0.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.0.0...providers/go-feature-flag/v1.0.1) (2026-03-30)
 
 

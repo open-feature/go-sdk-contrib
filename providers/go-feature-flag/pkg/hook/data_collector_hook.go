@@ -8,17 +8,26 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-func NewDataCollectorHook(dataCollectorManager *manager.DataCollectorManager) openfeature.Hook {
-	return &dataCollectorHook{dataCollectorManager: dataCollectorManager}
+const evaluationTypeRemote = "REMOTE"
+
+func NewDataCollectorHook(dataCollectorManager *manager.DataCollectorManager, evaluationType string) openfeature.Hook {
+	return &dataCollectorHook{dataCollectorManager: dataCollectorManager, evaluationType: evaluationType}
 }
 
 type dataCollectorHook struct {
 	openfeature.UnimplementedHook
 	dataCollectorManager *manager.DataCollectorManager
+	evaluationType       string
 }
 
 func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookContext,
 	evalDetails openfeature.InterfaceEvaluationDetails, hint openfeature.HookHints) error {
+	if d.evaluationType == evaluationTypeRemote &&
+		evalDetails.Reason != openfeature.CachedReason {
+		// only collect events for remote evaluation if the reason is cached
+		return nil
+	}
+
 	event := model.NewFeatureEvent(
 		hookCtx.EvaluationContext(),
 		hookCtx.FlagKey(),
@@ -26,7 +35,7 @@ func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookCon
 		evalDetails.Variant,
 		false,
 		"",
-		"INPROCESS",
+		getSource(d.evaluationType),
 	)
 	_ = d.dataCollectorManager.AddEvent(event)
 	return nil
@@ -41,7 +50,14 @@ func (d *dataCollectorHook) Error(_ context.Context, hookCtx openfeature.HookCon
 		"SdkDefault",
 		true,
 		"",
-		"INPROCESS",
+		getSource(d.evaluationType),
 	)
 	_ = d.dataCollectorManager.AddEvent(event)
+}
+
+func getSource(evaluationType string) string {
+	if evaluationType == evaluationTypeRemote {
+		return "PROVIDER_CACHE"
+	}
+	return "INPROCESS"
 }

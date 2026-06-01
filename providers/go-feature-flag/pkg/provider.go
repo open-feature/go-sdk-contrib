@@ -173,7 +173,17 @@ func (p *Provider) Track(ctx context.Context, trackingEventName string, evaluati
 // selectEvaluator selects the evaluator based on the evaluation type
 func selectEvaluator(options ProviderOptions, goffAPI *api.GoFeatureFlagAPI, eventStream chan openfeature.Event) evaluator.Evaluator {
 	if options.EvaluationType == EvaluationTypeRemote {
-		return evaluator.NewRemoteEvaluator(options.Endpoint, options.HTTPClient, options.APIKey, options.Headers)
+		return evaluator.NewRemoteEvaluator(
+			options.Endpoint,
+			options.HTTPClient,
+			options.APIKey,
+			options.Headers,
+			options.FlagCacheSize,
+			options.FlagCacheTTL,
+			options.DisableCache,
+			options.FlagChangePollingInterval,
+			goffAPI,
+		)
 	}
 	return evaluator.NewInprocessEvaluator(options.FlagChangePollingInterval, goffAPI, eventStream)
 }
@@ -183,8 +193,10 @@ func buildHooks(options ProviderOptions, dcm *controller.DataCollectorManager) [
 	hooks := []openfeature.Hook{
 		hook.NewEvaluationEnrichmentHook(options.ExporterMetadata),
 	}
-	if options.EvaluationType != EvaluationTypeRemote && !options.DataCollectorDisabled {
-		hooks = append(hooks, hook.NewDataCollectorHook(dcm))
+
+	if !options.DataCollectorDisabled &&
+		(options.EvaluationType != EvaluationTypeRemote || !options.DisableCache) {
+		hooks = append(hooks, hook.NewDataCollectorHook(dcm, string(options.EvaluationType)))
 	}
 	return hooks
 }

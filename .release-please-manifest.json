@@ -2,12 +2,12 @@
     "hooks/open-telemetry": "0.3.7",
     "hooks/validator": "0.1.7",
     "providers/configcat": "0.2.3",
-    "providers/flagd": "0.5.0",
+    "providers/flagd": "0.5.1",
     "providers/flipt": "0.1.5",
     "providers/from-env": "0.1.6",
-    "providers/go-feature-flag": "1.0.1",
+    "providers/go-feature-flag": "1.1.0",
     "providers/gcp": "0.0.1",
-    "providers/flagsmith": "0.1.5",
+    "providers/flagsmith": "0.1.6",
     "providers/launchdarkly": "0.1.6",
     "providers/unleash": "0.1.1-alpha",
     "providers/harness": "0.0.5-alpha",
@@ -19,5 +19,6 @@
     "providers/multi-provider": "0.0.5",
     "tools/flagd-http-connector": "0.0.2",
     "providers/rocketflag": "0.0.2",
-    "providers/aws-ssm": "1.0.0"
+    "providers/aws-ssm": "1.0.0",
+    "providers/optimizely": "0.0.2"
 }
