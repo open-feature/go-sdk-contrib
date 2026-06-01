@@ -58,6 +58,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 				TLSEnabled:      provider.providerConfiguration.Tls,
 				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
 				DeadlineMs:      provider.providerConfiguration.DeadlineMs,
+				Selector:        provider.providerConfiguration.Selector,
 			},
 			cacheService,
 			provider.providerConfiguration.log,
