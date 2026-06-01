@@ -3,6 +3,7 @@ package testframework
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/cucumber/godog"
@@ -187,7 +188,7 @@ func (s *TestState) assertResolvedValue(ctx context.Context, expectedValue strin
 		return nil
 	}
 
-	if actualValue != expected {
+	if !reflect.DeepEqual(actualValue, expected) {
 		return fmt.Errorf("expected value %v, got %v", expected, actualValue)
 	}
 
