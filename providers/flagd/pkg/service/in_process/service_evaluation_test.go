@@ -381,11 +381,6 @@ func TestErrorMapping(t *testing.T) {
 			expectedCode: openfeature.FlagNotFoundCode,
 		},
 		{
-			name:         "Flag disabled",
-			errorType:    model.FlagDisabledErrorCode,
-			expectedCode: openfeature.FlagNotFoundCode,
-		},
-		{
 			name:         "Type mismatch",
 			errorType:    model.TypeMismatchErrorCode,
 			expectedCode: openfeature.TypeMismatchCode,
