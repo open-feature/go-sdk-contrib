@@ -154,7 +154,9 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 	}
 
 	value := defaultValue
-	if resp.Value != nil {
+	variant := derefString(resp.Variant)
+	reason := of.Reason(resp.Reason)
+	if !isDefaultOrDisabledFallback(variant, reason) && resp.Value != nil {
 		value = *resp.Value
 	}
 
@@ -162,8 +164,8 @@ func (s *Service) ResolveBoolean(ctx context.Context, key string, defaultValue b
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
-			Reason:          of.Reason(resp.Reason),
-			Variant:         derefString(resp.Variant),
+			Reason:          reason,
+			Variant:         variant,
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -218,7 +220,9 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 	}
 
 	value := defaultValue
-	if resp.Value != nil {
+	variant := derefString(resp.Variant)
+	reason := of.Reason(resp.Reason)
+	if !isDefaultOrDisabledFallback(variant, reason) && resp.Value != nil {
 		value = *resp.Value
 	}
 
@@ -226,8 +230,8 @@ func (s *Service) ResolveString(ctx context.Context, key string, defaultValue st
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
-			Reason:          of.Reason(resp.Reason),
-			Variant:         derefString(resp.Variant),
+			Reason:          reason,
+			Variant:         variant,
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -282,7 +286,9 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 	}
 
 	value := defaultValue
-	if resp.Value != nil {
+	variant := derefString(resp.Variant)
+	reason := of.Reason(resp.Reason)
+	if !isDefaultOrDisabledFallback(variant, reason) && resp.Value != nil {
 		value = *resp.Value
 	}
 
@@ -290,8 +296,8 @@ func (s *Service) ResolveFloat(ctx context.Context, key string, defaultValue flo
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
-			Reason:          of.Reason(resp.Reason),
-			Variant:         derefString(resp.Variant),
+			Reason:          reason,
+			Variant:         variant,
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -346,7 +352,9 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 	}
 
 	value := defaultValue
-	if resp.Value != nil {
+	variant := derefString(resp.Variant)
+	reason := of.Reason(resp.Reason)
+	if !isDefaultOrDisabledFallback(variant, reason) && resp.Value != nil {
 		value = *resp.Value
 	}
 
@@ -354,8 +362,8 @@ func (s *Service) ResolveInt(ctx context.Context, key string, defaultValue int64
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
-			Reason:          of.Reason(resp.Reason),
-			Variant:         derefString(resp.Variant),
+			Reason:          reason,
+			Variant:         variant,
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -409,7 +417,9 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 	}
 
 	var value = defaultValue
-	if resp.Value != nil {
+	variant := derefString(resp.Variant)
+	reason := of.Reason(resp.Reason)
+	if !isDefaultOrDisabledFallback(variant, reason) && resp.Value != nil {
 		value = resp.Value.AsMap()
 	}
 
@@ -417,8 +427,8 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 		Value: value,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
 			ResolutionError: e,
-			Reason:          of.Reason(resp.Reason),
-			Variant:         derefString(resp.Variant),
+			Reason:          reason,
+			Variant:         variant,
 			FlagMetadata:    resp.Metadata.AsMap(),
 		},
 	}
@@ -432,6 +442,18 @@ func (s *Service) ResolveObject(ctx context.Context, key string, defaultValue in
 
 func (s *Service) isInitialised() bool {
 	return s.client != nil
+}
+
+// isDefaultOrDisabledFallback reports whether the response represents an
+// unresolved evaluation (DEFAULT or DISABLED reason with an empty variant).
+// In that case the caller-supplied default value should be returned, matching
+// the behavior of the in-process resolver and other flagd providers.
+func isDefaultOrDisabledFallback(variant string, reason of.Reason) bool {
+	if variant != "" {
+		return false
+	}
+	r := string(reason)
+	return r == flagdModels.DefaultReason || r == flagdModels.DisabledReason
 }
 
 func resolve[req resolutionRequestConstraints, resp resolutionResponseConstraints](
