@@ -40,6 +40,7 @@ type Configuration struct {
 	TLSEnabled      bool
 	OtelInterceptor bool
 	DeadlineMs      int
+	Selector        string
 }
 
 // Service handles the client side  interface for the flagd server
@@ -698,6 +699,10 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 		}
 
 		options = append(options, connect.WithInterceptors(interceptor))
+	}
+
+	if cfg.Selector != "" {
+		options = append(options, connect.WithInterceptors(newSelectorInterceptor(cfg.Selector)))
 	}
 
 	return schemaConnectV2.NewServiceClient(
