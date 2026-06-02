@@ -9,7 +9,7 @@ import (
 	schemaConnectV2 "buf.build/gen/go/open-feature/flagd/connectrpc/go/flagd/evaluation/v2/evaluationv2connect"
 	schemaV2 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/evaluation/v2"
 	"connectrpc.com/connect"
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/header"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/flagdmeta"
 )
 
 // TestSelectorInterceptor_Unary verifies the flagd-selector header is added
@@ -31,7 +31,7 @@ func TestSelectorInterceptor_Unary(t *testing.T) {
 			req := connect.NewRequest(&schemaV2.ResolveBooleanRequest{FlagKey: "k"})
 
 			wrapped := interceptor.WrapUnary(func(_ context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-				got := req.Header().Get(header.Selector)
+				got := req.Header().Get(flagdmeta.Selector)
 				if got != tt.expectedValue {
 					t.Errorf("expected header %q, got %q", tt.expectedValue, got)
 				}
@@ -98,6 +98,6 @@ type headerCapturingHandler struct {
 }
 
 func (h *headerCapturingHandler) ResolveBoolean(_ context.Context, req *connect.Request[schemaV2.ResolveBooleanRequest]) (*connect.Response[schemaV2.ResolveBooleanResponse], error) {
-	h.received <- req.Header().Get(header.Selector)
+	h.received <- req.Header().Get(flagdmeta.Selector)
 	return connect.NewResponse(&schemaV2.ResolveBooleanResponse{}), nil
 }

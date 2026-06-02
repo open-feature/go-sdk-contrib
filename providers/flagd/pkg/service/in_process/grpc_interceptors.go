@@ -3,7 +3,7 @@ package process
 import (
 	"context"
 
-	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/header"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/flagdmeta"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -19,7 +19,7 @@ func selectorUnaryInterceptor(selector string) grpc.UnaryClientInterceptor {
 		opts ...grpc.CallOption,
 	) error {
 		if selector != "" {
-			ctx = metadata.AppendToOutgoingContext(ctx, header.Selector, selector)
+			ctx = metadata.AppendToOutgoingContext(ctx, flagdmeta.Selector, selector)
 		}
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
@@ -36,7 +36,7 @@ func selectorStreamInterceptor(selector string) grpc.StreamClientInterceptor {
 		opts ...grpc.CallOption,
 	) (grpc.ClientStream, error) {
 		if selector != "" {
-			ctx = metadata.AppendToOutgoingContext(ctx, header.Selector, selector)
+			ctx = metadata.AppendToOutgoingContext(ctx, flagdmeta.Selector, selector)
 		}
 		return streamer(ctx, desc, cc, method, opts...)
 	}
