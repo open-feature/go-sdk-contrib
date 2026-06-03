@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.1...providers/flagd/v0.6.0) (2026-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896))
+
+### 🐛 Bug Fixes
+
+* **security:** update vulnerability-updates [security] ([#865](https://github.com/open-feature/go-sdk-contrib/issues/865)) ([9f0e819](https://github.com/open-feature/go-sdk-contrib/commit/9f0e819d2792297f70bfadabcd95ffe8ae510ab7))
+
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896)) ([f1d251a](https://github.com/open-feature/go-sdk-contrib/commit/f1d251ae6618cbb35e9033639781cc9ac99aaa73))
+* make use of flagd-selector header in RPC mode ([#895](https://github.com/open-feature/go-sdk-contrib/issues/895)) ([c513aa1](https://github.com/open-feature/go-sdk-contrib/commit/c513aa16315dbf870cbe71ecbe5f6c44f1e1b970))
+
 ## [0.5.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.0...providers/flagd/v0.5.1) (2026-05-01)
 
 
