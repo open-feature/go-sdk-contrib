@@ -14,7 +14,6 @@ import (
 
 	offlipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service"
 	of "github.com/open-feature/go-sdk/openfeature"
-	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
 	sdk "go.flipt.io/flipt/sdk/go"
 	sdkgrpc "go.flipt.io/flipt/sdk/go/grpc"
@@ -41,7 +40,7 @@ type Service struct {
 	certificatePath   string
 	unaryInterceptors []grpc.UnaryClientInterceptor
 	once              sync.Once
-	tokenProvider     sdk.ClientTokenProvider
+	tokenProvider     sdk.ClientAuthenticationProvider
 	grpcDialOptions   []grpc.DialOption
 	httpClient        *http.Client
 }
@@ -80,7 +79,7 @@ func WithUnaryClientInterceptor(unaryInterceptors ...grpc.UnaryClientInterceptor
 
 // WithClientTokenProvider sets the token provider for auth to support client
 // auth needs.
-func WithClientTokenProvider(tokenProvider sdk.ClientTokenProvider) Option {
+func WithClientTokenProvider(tokenProvider sdk.ClientAuthenticationProvider) Option {
 	return func(s *Service) {
 		s.tokenProvider = tokenProvider
 	}
@@ -167,7 +166,7 @@ func (s *Service) instance() (offlipt.Client, error) {
 		opts := []sdk.Option{}
 
 		if s.tokenProvider != nil {
-			opts = append(opts, sdk.WithClientTokenProvider(s.tokenProvider))
+			opts = append(opts, sdk.WithAuthenticationProvider(s.tokenProvider))
 		}
 
 		hclient := sdk.New(sdkhttp.NewTransport(s.address, sdkhttp.WithHTTPClient(s.httpClient)), opts...)
@@ -195,26 +194,8 @@ func (s *Service) instance() (offlipt.Client, error) {
 	return s.client, err
 }
 
-// GetFlag returns a flag if it exists for the given namespace/flag key pair.
-func (s *Service) GetFlag(ctx context.Context, namespaceKey, flagKey string) (*flipt.Flag, error) {
-	conn, err := s.instance()
-	if err != nil {
-		return nil, err
-	}
-
-	flag, err := conn.GetFlag(ctx, &flipt.GetFlagRequest{
-		Key:          flagKey,
-		NamespaceKey: namespaceKey,
-	})
-	if err != nil {
-		return nil, gRPCToOpenFeatureError(err)
-	}
-
-	return flag, nil
-}
-
 // Boolean evaluates a boolean type flag with the given context and namespace/flag key pair.
-func (s *Service) Boolean(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.BooleanEvaluationResponse, error) {
+func (s *Service) Boolean(ctx context.Context, environmentKey, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.BooleanEvaluationResponse, error) {
 	if evalCtx == nil {
 		return nil, of.NewInvalidContextResolutionError("evalCtx is nil")
 	}
@@ -230,8 +211,15 @@ func (s *Service) Boolean(ctx context.Context, namespaceKey, flagKey string, eva
 	if err != nil {
 		return nil, err
 	}
-
-	ber, err := conn.Boolean(ctx, &evaluation.EvaluationRequest{FlagKey: flagKey, NamespaceKey: namespaceKey, EntityId: targetingKey, RequestId: ec[requestID], Context: ec})
+	req := &evaluation.EvaluationRequest{
+		EnvironmentKey: environmentKey,
+		NamespaceKey:   namespaceKey,
+		FlagKey:        flagKey,
+		EntityId:       targetingKey,
+		RequestId:      ec[requestID],
+		Context:        ec,
+	}
+	ber, err := conn.Boolean(ctx, req)
 	if err != nil {
 		return nil, gRPCToOpenFeatureError(err)
 	}
@@ -239,8 +227,8 @@ func (s *Service) Boolean(ctx context.Context, namespaceKey, flagKey string, eva
 	return ber, nil
 }
 
-// Evaluate evaluates a variant type flag with the given context and namespace/flag key pair.
-func (s *Service) Evaluate(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.VariantEvaluationResponse, error) {
+// Variant evaluates a variant type flag with the given context and namespace/flag key pair.
+func (s *Service) Variant(ctx context.Context, environmentKey, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.VariantEvaluationResponse, error) {
 	if evalCtx == nil {
 		return nil, of.NewInvalidContextResolutionError("evalCtx is nil")
 	}
@@ -256,8 +244,15 @@ func (s *Service) Evaluate(ctx context.Context, namespaceKey, flagKey string, ev
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := conn.Variant(ctx, &evaluation.EvaluationRequest{FlagKey: flagKey, NamespaceKey: namespaceKey, EntityId: targetingKey, RequestId: ec[requestID], Context: ec})
+	req := &evaluation.EvaluationRequest{
+		EnvironmentKey: environmentKey,
+		NamespaceKey:   namespaceKey,
+		FlagKey:        flagKey,
+		EntityId:       targetingKey,
+		RequestId:      ec[requestID],
+		Context:        ec,
+	}
+	resp, err := conn.Variant(ctx, req)
 	if err != nil {
 		return nil, gRPCToOpenFeatureError(err)
 	}
