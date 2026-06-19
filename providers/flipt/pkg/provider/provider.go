@@ -9,7 +9,6 @@ import (
 
 	"github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service/transport"
 	of "github.com/open-feature/go-sdk/openfeature"
-	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
 	sdk "go.flipt.io/flipt/sdk/go"
 	"google.golang.org/grpc"
@@ -21,12 +20,13 @@ var _ of.FeatureProvider = (*Provider)(nil)
 
 // Config is a configuration for the FliptProvider.
 type Config struct {
-	Address         string
-	CertificatePath string
-	TokenProvider   sdk.ClientTokenProvider
-	Namespace       string
-	GRPCDialOptions []grpc.DialOption
-	httpClient      *http.Client
+	Address            string
+	CertificatePath    string
+	ClientAuthProvider sdk.ClientAuthenticationProvider
+	Environment        string
+	Namespace          string
+	GRPCDialOptions    []grpc.DialOption
+	httpClient         *http.Client
 }
 
 // Option is a configuration option for the provider.
@@ -67,11 +67,11 @@ func WithService(svc Service) Option {
 	}
 }
 
-// WithClientTokenProvider sets the token provider for auth to support client
+// WithClientAuthProvider sets the client authentication provider for auth to support client
 // auth needs.
-func WithClientTokenProvider(tokenProvider sdk.ClientTokenProvider) Option {
+func WithClientAuthProvider(clientAuthProvider sdk.ClientAuthenticationProvider) Option {
 	return func(p *Provider) {
-		p.config.TokenProvider = tokenProvider
+		p.config.ClientAuthProvider = clientAuthProvider
 	}
 }
 
@@ -89,11 +89,19 @@ func ForNamespace(namespace string) Option {
 	}
 }
 
+// ForEnvironment sets the environment for flag lookup and evaluation in Flipt.
+func ForEnvironment(environment string) Option {
+	return func(p *Provider) {
+		p.config.Environment = environment
+	}
+}
+
 // NewProvider returns a new Flipt provider.
 func NewProvider(opts ...Option) *Provider {
 	p := &Provider{config: Config{
 		Address:         "http://localhost:8080",
 		Namespace:       "default",
+		Environment:     "default",
 		GRPCDialOptions: []grpc.DialOption{},
 		httpClient:      transport.DefaultClient,
 	}}
@@ -108,8 +116,8 @@ func NewProvider(opts ...Option) *Provider {
 			transport.WithHTTPClient(p.config.httpClient),
 			transport.WithCertificatePath(p.config.CertificatePath),
 		}
-		if p.config.TokenProvider != nil {
-			topts = append(topts, transport.WithClientTokenProvider(p.config.TokenProvider))
+		if p.config.ClientAuthProvider != nil {
+			topts = append(topts, transport.WithClientTokenProvider(p.config.ClientAuthProvider))
 		}
 		if len(p.config.GRPCDialOptions) != 0 {
 			topts = append(topts, transport.WithGRPCDialOptions(p.config.GRPCDialOptions...))
@@ -121,11 +129,10 @@ func NewProvider(opts ...Option) *Provider {
 	return p
 }
 
-//go:generate mockery --name=Service --structname=mockService --case=underscore --output=. --outpkg=flipt --filename=provider_support.go --testonly --with-expecter --disable-version-string
+//go:generate mockery --name=Service --structname=mockService --case=underscore --output=. --outpkg=flipt --filename=provider_mock.go --testonly --with-expecter --disable-version-string
 type Service interface {
-	GetFlag(ctx context.Context, namespaceKey, flagKey string) (*flipt.Flag, error)
-	Evaluate(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.VariantEvaluationResponse, error)
-	Boolean(ctx context.Context, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.BooleanEvaluationResponse, error)
+	Variant(ctx context.Context, environmentKey, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.VariantEvaluationResponse, error)
+	Boolean(ctx context.Context, environmentKey, namespaceKey, flagKey string, evalCtx map[string]any) (*evaluation.BooleanEvaluationResponse, error)
 }
 
 // Provider implements the FeatureProvider interface and provides functions for evaluating flags with Flipt.
@@ -141,7 +148,7 @@ func (p *Provider) Metadata() of.Metadata {
 
 // BooleanEvaluation returns a boolean flag.
 func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, evalCtx of.FlattenedContext) of.BoolResolutionDetail {
-	resp, err := p.svc.Boolean(ctx, p.config.Namespace, flag, evalCtx)
+	resp, err := p.svc.Boolean(ctx, p.config.Environment, p.config.Namespace, flag, evalCtx)
 	if err != nil {
 		var (
 			rerr   of.ResolutionError
@@ -174,7 +181,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 
 // StringEvaluation returns a string flag.
 func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultValue string, evalCtx of.FlattenedContext) of.StringResolutionDetail {
-	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToString)
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Environment, p.config.Namespace, flag, defaultValue, evalCtx, transformToString)
 	return of.StringResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: detail,
@@ -183,7 +190,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 
 // FloatEvaluation returns a float flag.
 func (p Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
-	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToFloat64)
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Environment, p.config.Namespace, flag, defaultValue, evalCtx, transformToFloat64)
 	return of.FloatResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: detail,
@@ -192,7 +199,7 @@ func (p Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue
 
 // IntEvaluation returns an int flag.
 func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, evalCtx of.FlattenedContext) of.IntResolutionDetail {
-	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToInt64)
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Environment, p.config.Namespace, flag, defaultValue, evalCtx, transformToInt64)
 	return of.IntResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: detail,
@@ -201,7 +208,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flag string, defaultValue 
 
 // ObjectEvaluation returns an object flag with attachment if any. Value is a map of key/value pairs ([string]any).
 func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, evalCtx of.FlattenedContext) of.InterfaceResolutionDetail {
-	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Namespace, flag, defaultValue, evalCtx, transformToObject)
+	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Environment, p.config.Namespace, flag, defaultValue, evalCtx, transformToObject)
 	return of.InterfaceResolutionDetail{
 		Value:                    value,
 		ProviderResolutionDetail: detail,
@@ -215,12 +222,12 @@ func (p *Provider) Hooks() []of.Hook {
 }
 
 // evaluateVariantFlag is a helper which evaluates a variant flag and returns the value and resolution detail.
-func evaluateVariantFlag[T any](ctx context.Context, svc Service, namespace string, flag string, defaultValue T, evalCtx of.FlattenedContext, transform transformFunc[T]) (T, of.ProviderResolutionDetail) {
+func evaluateVariantFlag[T any](ctx context.Context, svc Service, environment string, namespace string, flag string, defaultValue T, evalCtx of.FlattenedContext, transform transformFunc[T]) (T, of.ProviderResolutionDetail) {
 	detail := of.ProviderResolutionDetail{
 		Reason: of.DefaultReason,
 	}
 	value := defaultValue
-	resp, err := svc.Evaluate(ctx, namespace, flag, evalCtx)
+	resp, err := svc.Variant(ctx, environment, namespace, flag, evalCtx)
 	if err != nil {
 		var rerr of.ResolutionError
 
