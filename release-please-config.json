@@ -20,6 +20,14 @@
       "versioning": "default",
       "extra-files": []
     },
+    "hooks/codereadiness": {
+      "release-type": "go",
+      "package-name": "hooks/codereadiness",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
     "providers/flagd": {
       "release-type": "go",
       "package-name": "providers/flagd",
