@@ -56,7 +56,7 @@ type InProcess struct {
 
 	// Stateless coordination using sync.Once
 	initOnce            sync.Once
-	sendReadyOnNextData sync.Once
+	sendReadyOnNextData *sync.Once
 	staleTimer          *staleTimer
 }
 
@@ -128,7 +128,7 @@ type EventSync interface {
 
 // SyncEvent represents an event from the sync provider
 type SyncEvent struct {
-	event of.EventType
+	Event of.EventType
 }
 
 // Shutdowner interface for graceful shutdown
@@ -152,8 +152,8 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		configuration:       cfg,
 		serviceMetadata:     createServiceMetadata(cfg),
 		events:              make(chan of.Event, eventChannelBuffer),
+		sendReadyOnNextData: &sync.Once{},
 		staleTimer:          newStaleTimer(),
-		sendReadyOnNextData: sync.Once{}, // Armed and ready to fire on first data
 		deadlineMs:          cfg.DeadlineMs,
 	}
 }
@@ -232,11 +232,10 @@ func (i *InProcess) runEventSyncMonitor() {
 
 // handleSyncEvent processes individual sync events
 func (i *InProcess) handleSyncEvent(event SyncEvent) {
-	switch event.event {
+	switch event.Event {
 	case of.ProviderError:
 		i.handleProviderError()
-		// Reset the sync.Once so it can fire again on recovery
-		i.sendReadyOnNextData = sync.Once{}
+		i.sendReadyOnNextData = &sync.Once{}
 	case of.ProviderReady:
 		i.handleProviderReady()
 	}
@@ -344,7 +343,7 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 	// Stop stale timer - we've successfully received and processed data
 	i.staleTimer.stop()
 
-	// Send ready event using sync.Once - handles initial ready and recovery automatically
+	// Send ready event if not already sent - handles initial ready and recovery automatically
 	i.sendReadyOnNextData.Do(func() {
 		i.events <- of.Event{ProviderName: providerName, EventType: of.ProviderReady}
 	})
