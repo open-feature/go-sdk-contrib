@@ -28,7 +28,7 @@ func (m *mockSync) Events() chan process.SyncEvent {
 	return m.events
 }
 
-func TestInProcessServiceDataRace(t *testing.T) {
+func TestInProcessServiceDataRace(t *testing.T) { 
 	m := &mockSync{
 		events:   make(chan process.SyncEvent, 100),
 		dataChan: make(chan chan<- isync.DataSync, 1),
@@ -38,14 +38,19 @@ func TestInProcessServiceDataRace(t *testing.T) {
 		CustomSyncProviderUri: "test-source",
 	})
 
+	errChan := make(chan error, 1)
 	// Start Init in a goroutine because it blocks until first DataSync
-	go service.Init()
+	go func() {
+		errChan <- service.Init()
+	}()
 	defer service.Shutdown()
 
 	// Wait for data channel to be passed to Sync
 	var dataChan chan<- isync.DataSync
 	select {
 	case dataChan = <-m.dataChan:
+	case err := <-errChan:
+		t.Fatalf("Init failed: %v", err)
 	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for Sync to be called")
 	}
@@ -81,5 +86,14 @@ func TestInProcessServiceDataRace(t *testing.T) {
 		}
 	}()
 
-	wg.Wait()
+	c := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+	select {
+	case <-c:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for test to complete")
+	}
 }

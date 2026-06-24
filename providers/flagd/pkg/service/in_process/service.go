@@ -234,10 +234,10 @@ func (i *InProcess) runEventSyncMonitor() {
 func (i *InProcess) handleSyncEvent(event SyncEvent) {
 	switch event.Event {
 	case of.ProviderError:
-		i.handleProviderError()
 		i.readyMu.Lock()
 		i.ready = false
 		i.readyMu.Unlock()
+		i.handleProviderError()
 	case of.ProviderReady:
 		i.handleProviderReady()
 	}
@@ -334,6 +334,9 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 
 	err = i.evaluator.SetState(data)
 	if err != nil {
+		i.readyMu.Lock()
+		i.ready = false
+		i.readyMu.Unlock()
 		i.events <- of.Event{
 			ProviderName:         providerName,
 			EventType:            of.ProviderError,
