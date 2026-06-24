@@ -56,7 +56,8 @@ type InProcess struct {
 
 	// Stateless coordination using sync.Once
 	initOnce            sync.Once
-	sendReadyOnNextData *sync.Once
+	readyMu             sync.Mutex
+	ready               bool
 	staleTimer          *staleTimer
 }
 
@@ -152,7 +153,6 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		configuration:       cfg,
 		serviceMetadata:     createServiceMetadata(cfg),
 		events:              make(chan of.Event, eventChannelBuffer),
-		sendReadyOnNextData: &sync.Once{},
 		staleTimer:          newStaleTimer(),
 		deadlineMs:          cfg.DeadlineMs,
 	}
@@ -235,7 +235,9 @@ func (i *InProcess) handleSyncEvent(event SyncEvent) {
 	switch event.Event {
 	case of.ProviderError:
 		i.handleProviderError()
-		i.sendReadyOnNextData = &sync.Once{}
+		i.readyMu.Lock()
+		i.ready = false
+		i.readyMu.Unlock()
 	case of.ProviderReady:
 		i.handleProviderReady()
 	}
@@ -344,9 +346,17 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 	i.staleTimer.stop()
 
 	// Send ready event if not already sent - handles initial ready and recovery automatically
-	i.sendReadyOnNextData.Do(func() {
+	var sendReady bool
+	i.readyMu.Lock()
+	if !i.ready {
+		i.ready = true
+		sendReady = true
+	}
+	i.readyMu.Unlock()
+
+	if sendReady {
 		i.events <- of.Event{ProviderName: providerName, EventType: of.ProviderReady}
-	})
+	}
 
 	// Handle initialization completion (only happens once ever)
 	i.initOnce.Do(func() {
