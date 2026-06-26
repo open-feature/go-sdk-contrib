@@ -72,7 +72,7 @@ func TestInProcessServiceDataRace(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			m.events <- process.SyncEvent{Event: of.ProviderError}
 			time.Sleep(time.Millisecond)
 		}
@@ -80,7 +80,7 @@ func TestInProcessServiceDataRace(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			dataChan <- isync.DataSync{FlagData: "{\"flags\":{}}", Source: "test-source"}
 			time.Sleep(time.Millisecond)
 		}
