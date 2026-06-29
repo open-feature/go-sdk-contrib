@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.5...providers/flipt/v0.1.6) (2026-06-29)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update vulnerability-updates [security] ([#865](https://github.com/open-feature/go-sdk-contrib/issues/865)) ([9f0e819](https://github.com/open-feature/go-sdk-contrib/commit/9f0e819d2792297f70bfadabcd95ffe8ae510ab7))
+
 ## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.4...providers/flipt/v0.1.5) (2025-11-24)
 
 
