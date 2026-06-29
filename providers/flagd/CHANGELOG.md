@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.6.0...providers/flagd/v0.6.1) (2026-06-29)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** resolve data race in InProcess service ([#903](https://github.com/open-feature/go-sdk-contrib/issues/903)) ([e277fa8](https://github.com/open-feature/go-sdk-contrib/commit/e277fa8f6dc5b8e2e311139ffa302a9bebb106fa))
+
 ## [0.6.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.1...providers/flagd/v0.6.0) (2026-06-02)
 
 
