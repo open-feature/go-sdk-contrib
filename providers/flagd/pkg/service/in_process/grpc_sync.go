@@ -207,7 +207,7 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 					}
 				}
 			}
-			g.sendEvent(ctx, SyncEvent{Event: of.ProviderError})
+			g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
 
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -362,7 +362,7 @@ func (g *Sync) handleConnectionState(ctx context.Context, state connectivity.Sta
 	switch state {
 	case connectivity.TransientFailure:
 		g.Logger.Error(fmt.Sprintf("gRPC connection entered TransientFailure state for %s", g.URI))
-		g.sendEvent(ctx, SyncEvent{Event: of.ProviderError})
+		g.sendEvent(ctx, SyncEvent{event: of.ProviderError})
 
 	case connectivity.Shutdown:
 		g.Logger.Error(fmt.Sprintf("gRPC connection shutdown for %s", g.URI))
