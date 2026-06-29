@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 
 	offlipt "github.com/open-feature/go-sdk-contrib/providers/flipt/pkg/service"
-	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/rpc/flipt/evaluation"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -73,56 +72,6 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestGetFlag(t *testing.T) {
-	tests := []struct {
-		name        string
-		err         error
-		expectedErr error
-		expected    *flipt.Flag
-	}{
-		{
-			name: "success",
-			expected: &flipt.Flag{
-				Key:          "foo",
-				NamespaceKey: "foo-namespace",
-			},
-		},
-		{
-			name:        "flag not found",
-			err:         status.Error(codes.NotFound, `flag "foo" not found`),
-			expectedErr: of.NewFlagNotFoundResolutionError(`flag "foo" not found`),
-		},
-		{
-			name:        "other error",
-			err:         status.Error(codes.Internal, "internal error"),
-			expectedErr: of.NewGeneralResolutionError("internal error"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockClient := offlipt.NewMockClient(t)
-
-			mockClient.On("GetFlag", mock.Anything, &flipt.GetFlagRequest{
-				Key:          "foo",
-				NamespaceKey: "foo-namespace",
-			}).Return(tt.expected, tt.err)
-
-			s := &Service{
-				client: mockClient,
-			}
-
-			actual, err := s.GetFlag(t.Context(), "foo-namespace", "foo")
-			if tt.expectedErr != nil {
-				assert.EqualError(t, err, tt.expectedErr.Error())
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expected, actual)
-			}
-		})
-	}
-}
-
 func TestEvaluate_NonBoolean(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -154,10 +103,11 @@ func TestEvaluate_NonBoolean(t *testing.T) {
 			mockClient := offlipt.NewMockClient(t)
 
 			mockClient.EXPECT().Variant(mock.Anything, &evaluation.EvaluationRequest{
-				FlagKey:      "foo",
-				NamespaceKey: "foo-namespace",
-				RequestId:    reqID,
-				EntityId:     entityID,
+				FlagKey:        "foo",
+				EnvironmentKey: t.Name(),
+				NamespaceKey:   "foo-namespace",
+				RequestId:      reqID,
+				EntityId:       entityID,
 				Context: map[string]string{
 					"requestID":    reqID,
 					"targetingKey": entityID,
@@ -173,7 +123,7 @@ func TestEvaluate_NonBoolean(t *testing.T) {
 				of.TargetingKey: entityID,
 			}
 
-			actual, err := s.Evaluate(t.Context(), "foo-namespace", "foo", evalCtx)
+			actual, err := s.Variant(t.Context(), t.Name(), "foo-namespace", "foo", evalCtx)
 			if tt.expectedErr != nil {
 				assert.ErrorContains(t, err, tt.expectedErr.Error())
 			} else {
@@ -193,10 +143,11 @@ func TestEvaluate_Boolean(t *testing.T) {
 	mockClient := offlipt.NewMockClient(t)
 
 	mockClient.EXPECT().Boolean(mock.Anything, &evaluation.EvaluationRequest{
-		FlagKey:      "foo",
-		NamespaceKey: "foo-namespace",
-		RequestId:    reqID,
-		EntityId:     entityID,
+		FlagKey:        "foo",
+		EnvironmentKey: t.Name(),
+		NamespaceKey:   "foo-namespace",
+		RequestId:      reqID,
+		EntityId:       entityID,
 		Context: map[string]string{
 			"requestID":    reqID,
 			"targetingKey": entityID,
@@ -212,7 +163,7 @@ func TestEvaluate_Boolean(t *testing.T) {
 		of.TargetingKey: entityID,
 	}
 
-	actual, err := s.Boolean(t.Context(), "foo-namespace", "foo", evalCtx)
+	actual, err := s.Boolean(t.Context(), t.Name(), "foo-namespace", "foo", evalCtx)
 	assert.NoError(t, err)
 	assert.False(t, actual.Enabled, "match value should be false")
 }
@@ -220,10 +171,10 @@ func TestEvaluate_Boolean(t *testing.T) {
 func TestEvaluateInvalidContext(t *testing.T) {
 	s := &Service{}
 
-	_, err := s.Evaluate(t.Context(), "foo-namespace", "foo", nil)
+	_, err := s.Variant(t.Context(), t.Name(), "foo-namespace", "foo", nil)
 	assert.EqualError(t, err, of.NewInvalidContextResolutionError("evalCtx is nil").Error())
 
-	_, err = s.Evaluate(t.Context(), "foo-namespace", "foo", map[string]any{})
+	_, err = s.Variant(t.Context(), t.Name(), "foo-namespace", "foo", map[string]any{})
 	assert.EqualError(t, err, of.NewTargetingKeyMissingResolutionError("targetingKey is missing").Error())
 }
 
