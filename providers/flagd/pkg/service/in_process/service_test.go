@@ -1,4 +1,4 @@
-package process_test
+package process
 
 import (
 	"context"
@@ -8,32 +8,31 @@ import (
 
 	isync "github.com/open-feature/flagd/core/pkg/sync"
 	of "github.com/open-feature/go-sdk/openfeature"
-	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 )
 
 type mockSync struct {
-	events   chan process.SyncEvent
+	events   chan SyncEvent
 	dataChan chan chan<- isync.DataSync
 }
 
-func (m *mockSync) Init(ctx context.Context) error { return nil }
-func (m *mockSync) IsReady() bool                  { return true }
+func (m *mockSync) Init(ctx context.Context) error                               { return nil }
+func (m *mockSync) IsReady() bool                                                { return true }
 func (m *mockSync) ReSync(ctx context.Context, data chan<- isync.DataSync) error { return nil }
 func (m *mockSync) Sync(ctx context.Context, data chan<- isync.DataSync) error {
 	m.dataChan <- data
 	<-ctx.Done()
 	return nil
 }
-func (m *mockSync) Events() chan process.SyncEvent {
+func (m *mockSync) Events() chan SyncEvent {
 	return m.events
 }
 
-func TestInProcessServiceDataRace(t *testing.T) { 
+func TestInProcessServiceDataRace(t *testing.T) {
 	m := &mockSync{
-		events:   make(chan process.SyncEvent, 100),
+		events:   make(chan SyncEvent, 100),
 		dataChan: make(chan chan<- isync.DataSync, 1),
 	}
-	service := process.NewInProcessService(process.Configuration{
+	service := NewInProcessService(Configuration{
 		CustomSyncProvider:    m,
 		CustomSyncProviderUri: "test-source",
 	})
@@ -73,7 +72,7 @@ func TestInProcessServiceDataRace(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for range 100 {
-			m.events <- process.SyncEvent{Event: of.ProviderError}
+			m.events <- SyncEvent{event: of.ProviderError}
 			time.Sleep(time.Millisecond)
 		}
 	}()

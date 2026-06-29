@@ -129,7 +129,7 @@ type EventSync interface {
 
 // SyncEvent represents an event from the sync provider
 type SyncEvent struct {
-	Event of.EventType
+	event of.EventType
 }
 
 // Shutdowner interface for graceful shutdown
@@ -232,7 +232,7 @@ func (i *InProcess) runEventSyncMonitor() {
 
 // handleSyncEvent processes individual sync events
 func (i *InProcess) handleSyncEvent(event SyncEvent) {
-	switch event.Event {
+	switch event.event {
 	case of.ProviderError:
 		i.readyMu.Lock()
 		i.ready = false
