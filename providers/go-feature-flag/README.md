@@ -221,7 +221,7 @@ Tracking events are queued in the same data collector buffer as flag evaluation 
 
 ### Disabling and tuning event collection
 
-Use the `DataCollector*` options to tune or disable collection:
+Use the `DataCollector` options to tune or disable collection:
 
 | Option | Default | Description |
 | --- | --- | --- |
