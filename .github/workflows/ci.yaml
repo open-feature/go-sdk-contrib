@@ -29,6 +29,7 @@ jobs:
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          echo "GOTOOLCHAIN=go${GO_VERSION}" >> $GITHUB_ENV
       - name: Module cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         env:
@@ -59,6 +60,7 @@ jobs:
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          echo "GOTOOLCHAIN=go${GO_VERSION}" >> $GITHUB_ENV
       - name: Module cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         env:
