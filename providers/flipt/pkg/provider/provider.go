@@ -20,9 +20,11 @@ var _ of.FeatureProvider = (*Provider)(nil)
 
 // Config is a configuration for the FliptProvider.
 type Config struct {
-	Address            string
-	CertificatePath    string
-	ClientAuthProvider sdk.ClientAuthenticationProvider
+	Address         string
+	CertificatePath string
+	// Deprecated: use [WithClientAuthenticationProvider] instead.
+	TokenProvider      sdk.ClientTokenProvider
+	clientAuthProvider sdk.ClientAuthenticationProvider
 	Environment        string
 	Namespace          string
 	GRPCDialOptions    []grpc.DialOption
@@ -67,11 +69,21 @@ func WithService(svc Service) Option {
 	}
 }
 
-// WithClientAuthProvider sets the client authentication provider for auth to support client
+// WithClientTokenProvider sets the token provider for auth to support client
 // auth needs.
-func WithClientAuthProvider(clientAuthProvider sdk.ClientAuthenticationProvider) Option {
+//
+// Deprecated: use [WithClientAuthenticationProvider]
+func WithClientTokenProvider(tokenProvider sdk.ClientTokenProvider) Option {
 	return func(p *Provider) {
-		p.config.ClientAuthProvider = clientAuthProvider
+		p.config.TokenProvider = tokenProvider
+	}
+}
+
+// WithClientAuthenticationProvider sets the client authentication provider for auth to support client
+// auth needs.
+func WithClientAuthenticationProvider(cap sdk.ClientAuthenticationProvider) Option {
+	return func(p *Provider) {
+		p.config.clientAuthProvider = cap
 	}
 }
 
@@ -116,9 +128,14 @@ func NewProvider(opts ...Option) *Provider {
 			transport.WithHTTPClient(p.config.httpClient),
 			transport.WithCertificatePath(p.config.CertificatePath),
 		}
-		if p.config.ClientAuthProvider != nil {
-			topts = append(topts, transport.WithClientTokenProvider(p.config.ClientAuthProvider))
+		if p.config.TokenProvider != nil {
+			topts = append(topts, transport.WithClientTokenProvider(p.config.TokenProvider))
 		}
+
+		if p.config.clientAuthProvider != nil {
+			topts = append(topts, transport.WithClientAuthenticationProvider(p.config.clientAuthProvider))
+		}
+
 		if len(p.config.GRPCDialOptions) != 0 {
 			topts = append(topts, transport.WithGRPCDialOptions(p.config.GRPCDialOptions...))
 		}
@@ -189,7 +206,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flag string, defaultVal
 }
 
 // FloatEvaluation returns a float flag.
-func (p Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
+func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, evalCtx of.FlattenedContext) of.FloatResolutionDetail {
 	value, detail := evaluateVariantFlag(ctx, p.svc, p.config.Environment, p.config.Namespace, flag, defaultValue, evalCtx, transformToFloat64)
 	return of.FloatResolutionDetail{
 		Value:                    value,

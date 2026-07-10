@@ -35,14 +35,14 @@ var DefaultClient = &http.Client{Transport: http.DefaultTransport}
 
 // Service is a Transport service.
 type Service struct {
-	client            offlipt.Client
-	address           string
-	certificatePath   string
-	unaryInterceptors []grpc.UnaryClientInterceptor
-	once              sync.Once
-	tokenProvider     sdk.ClientAuthenticationProvider
-	grpcDialOptions   []grpc.DialOption
-	httpClient        *http.Client
+	client             offlipt.Client
+	address            string
+	certificatePath    string
+	unaryInterceptors  []grpc.UnaryClientInterceptor
+	once               sync.Once
+	clientAuthProvider sdk.ClientAuthenticationProvider
+	grpcDialOptions    []grpc.DialOption
+	httpClient         *http.Client
 }
 
 // Option is a service option.
@@ -79,9 +79,31 @@ func WithUnaryClientInterceptor(unaryInterceptors ...grpc.UnaryClientInterceptor
 
 // WithClientTokenProvider sets the token provider for auth to support client
 // auth needs.
-func WithClientTokenProvider(tokenProvider sdk.ClientAuthenticationProvider) Option {
+//
+// Deprecated: use [WithClientAuthenticationProvider] instead.
+func WithClientTokenProvider(tokenProvider sdk.ClientTokenProvider) Option {
 	return func(s *Service) {
-		s.tokenProvider = tokenProvider
+		s.clientAuthProvider = authenticationProviderFunc(func(context.Context) (string, error) {
+			clientToken, err := tokenProvider.ClientToken()
+			if err != nil {
+				return "", err
+			}
+
+			return "Bearer " + clientToken, nil
+		})
+	}
+}
+
+type authenticationProviderFunc func(context.Context) (string, error)
+
+func (f authenticationProviderFunc) Authentication(ctx context.Context) (string, error) {
+	return f(ctx)
+}
+
+// WithClientAuthenticationProvider sets the client authentication provider.
+func WithClientAuthenticationProvider(cap sdk.ClientAuthenticationProvider) Option {
+	return func(s *Service) {
+		s.clientAuthProvider = cap
 	}
 }
 
@@ -165,8 +187,8 @@ func (s *Service) instance() (offlipt.Client, error) {
 
 		opts := []sdk.Option{}
 
-		if s.tokenProvider != nil {
-			opts = append(opts, sdk.WithAuthenticationProvider(s.tokenProvider))
+		if s.clientAuthProvider != nil {
+			opts = append(opts, sdk.WithAuthenticationProvider(s.clientAuthProvider))
 		}
 
 		hclient := sdk.New(sdkhttp.NewTransport(s.address, sdkhttp.WithHTTPClient(s.httpClient)), opts...)

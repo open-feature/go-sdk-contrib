@@ -8,7 +8,7 @@ From the [OpenFeature Specification](https://docs.openfeature.dev/docs/specifica
 
 ## Requirements
 
-- Go 1.20+
+- Go 1.25+
 - A running instance of [Flipt](https://www.flipt.io/docs/installation)
 
 ## Usage
@@ -39,17 +39,13 @@ func main() {
       panic(err)
     }
 
-    client := openfeature.NewClient("my-app")
-    value, err := client.BooleanValue(context.Background(), "v2_enabled", false, openfeature.NewEvaluationContext(
+    client := openfeature.NewDefaultClient()
+    value := client.Boolean(context.Background(), "v2_enabled", false, openfeature.NewEvaluationContext(
         "tim@apple.com",
         map[string]any{
             "favorite_color": "blue",
         },
     ))
-
-    if err != nil {
-        panic(err)
-    }
 
     if value {
         // do something
