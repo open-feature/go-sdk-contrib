@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.0...providers/go-feature-flag/v1.1.1) (2026-07-02)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** Typo in the readme file ([#911](https://github.com/open-feature/go-sdk-contrib/issues/911)) ([03ad519](https://github.com/open-feature/go-sdk-contrib/commit/03ad519b6e8bfc906ad18cb2046b345710a9af4c))
+
 ## [1.1.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.0.1...providers/go-feature-flag/v1.1.0) (2026-05-11)
 
 

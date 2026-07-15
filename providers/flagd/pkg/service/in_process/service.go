@@ -56,7 +56,8 @@ type InProcess struct {
 
 	// Stateless coordination using sync.Once
 	initOnce            sync.Once
-	sendReadyOnNextData sync.Once
+	readyMu             sync.Mutex
+	ready               bool
 	staleTimer          *staleTimer
 }
 
@@ -153,7 +154,6 @@ func NewInProcessService(cfg Configuration) *InProcess {
 		serviceMetadata:     createServiceMetadata(cfg),
 		events:              make(chan of.Event, eventChannelBuffer),
 		staleTimer:          newStaleTimer(),
-		sendReadyOnNextData: sync.Once{}, // Armed and ready to fire on first data
 		deadlineMs:          cfg.DeadlineMs,
 	}
 }
@@ -234,9 +234,10 @@ func (i *InProcess) runEventSyncMonitor() {
 func (i *InProcess) handleSyncEvent(event SyncEvent) {
 	switch event.event {
 	case of.ProviderError:
+		i.readyMu.Lock()
+		i.ready = false
+		i.readyMu.Unlock()
 		i.handleProviderError()
-		// Reset the sync.Once so it can fire again on recovery
-		i.sendReadyOnNextData = sync.Once{}
 	case of.ProviderReady:
 		i.handleProviderReady()
 	}
@@ -333,6 +334,9 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 
 	err = i.evaluator.SetState(data)
 	if err != nil {
+		i.readyMu.Lock()
+		i.ready = false
+		i.readyMu.Unlock()
 		i.events <- of.Event{
 			ProviderName:         providerName,
 			EventType:            of.ProviderError,
@@ -344,10 +348,18 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 	// Stop stale timer - we've successfully received and processed data
 	i.staleTimer.stop()
 
-	// Send ready event using sync.Once - handles initial ready and recovery automatically
-	i.sendReadyOnNextData.Do(func() {
+	// Send ready event if not already sent - handles initial ready and recovery automatically
+	var sendReady bool
+	i.readyMu.Lock()
+	if !i.ready {
+		i.ready = true
+		sendReady = true
+	}
+	i.readyMu.Unlock()
+
+	if sendReady {
 		i.events <- of.Event{ProviderName: providerName, EventType: of.ProviderReady}
-	})
+	}
 
 	// Handle initialization completion (only happens once ever)
 	i.initOnce.Do(func() {

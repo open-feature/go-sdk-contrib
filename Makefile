@@ -7,10 +7,10 @@ GOBIN := $(or $(shell go env GOBIN),$(shell go env GOPATH | cut -d: -f1)/bin)
 
 workspace-init:
 	go work init
-	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module);)
+	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module) &&) true
 
 workspace-update:
-	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module);)
+	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module) &&) true
 
 test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
