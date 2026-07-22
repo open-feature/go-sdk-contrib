@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.2...tests/flagd/v3.0.0) (2026-07-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896))
+
+### 🐛 Bug Fixes
+
+* core lib update for various custom operator conformance fixes ([#874](https://github.com/open-feature/go-sdk-contrib/issues/874)) ([df6230b](https://github.com/open-feature/go-sdk-contrib/commit/df6230b72b4a99a03929189cdab4c61641fc9e78))
+
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896)) ([f1d251a](https://github.com/open-feature/go-sdk-contrib/commit/f1d251ae6618cbb35e9033639781cc9ac99aaa73))
+
 ## [2.0.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.1...tests/flagd/v2.0.2) (2026-03-19)
 
 
