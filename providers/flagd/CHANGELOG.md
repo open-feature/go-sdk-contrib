@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.6.0...providers/flagd/v0.6.1) (2026-07-22)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** resolve data race in InProcess service ([#903](https://github.com/open-feature/go-sdk-contrib/issues/903)) ([e277fa8](https://github.com/open-feature/go-sdk-contrib/commit/e277fa8f6dc5b8e2e311139ffa302a9bebb106fa))
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.5 [security] ([#905](https://github.com/open-feature/go-sdk-contrib/issues/905)) ([d09a6ab](https://github.com/open-feature/go-sdk-contrib/commit/d09a6ab662a6910811f7ba623c0a5ae3578287d9))
+
 ## [0.6.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.1...providers/flagd/v0.6.0) (2026-06-02)
 
 
