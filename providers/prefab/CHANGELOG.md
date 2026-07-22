@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/prefab/v0.0.4...providers/prefab/v0.0.5) (2026-07-22)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.5 [security] ([#905](https://github.com/open-feature/go-sdk-contrib/issues/905)) ([d09a6ab](https://github.com/open-feature/go-sdk-contrib/commit/d09a6ab662a6910811f7ba623c0a5ae3578287d9))
+
 ## [0.0.4](https://github.com/open-feature/go-sdk-contrib/compare/providers/prefab/v0.0.3...providers/prefab/v0.0.4) (2025-10-30)
 
 
