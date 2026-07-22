@@ -57,12 +57,18 @@ func main() {
 
 ## Configuration
 
-The Flipt provider allows you to change the [namespace](https://docs.flipt.io/concepts#namespaces) that the evaluation is performed against. If not provided, it defaults to the `Default` namespace:
+The Flipt provider allows you to change the [namespace](https://docs.flipt.io/concepts#namespaces) and [environment](https://docs.flipt.io/v2/concepts#environments) for flag evaluation. If not provided, the namespace and environment both default to `default`.
 
 ### Target Namespace
 
 ```go
 provider := flipt.NewProvider(flipt.ForNamespace("your-namespace"))
+```
+
+### Target Environment (Flipt v2)
+
+```go
+provider := flipt.NewProvider(flipt.ForEnvironment("staging"))
 ```
 
 ### Protocol
@@ -86,16 +92,18 @@ provider := flipt.NewProvider(flipt.WithAddress("unix:///path/to/socket"))
 ##### HTTP/2
 
 ```go
-type Token string
+type authProvider struct {
+    token string
+}
 
-func (t Token) ClientToken() (string, error) {
-    return t, nil
+func (a authProvider) Authentication(ctx context.Context) (string, error) {
+    return "Bearer " + a.token, nil
 }
 
 provider := flipt.NewProvider(
     flipt.WithAddress("localhost:9000"),
     flipt.WithCertificatePath("/path/to/cert.pem"), // optional
-    flipt.WithClientProvider(Token("a-client-token")), // optional
+    flipt.WithClientAuthenticationProvider(authProvider{token: "a-client-token"}), // optional
 )
 ```
 
