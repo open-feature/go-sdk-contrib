@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.5...providers/flipt/v0.1.6) (2026-07-22)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.5 [security] ([#905](https://github.com/open-feature/go-sdk-contrib/issues/905)) ([d09a6ab](https://github.com/open-feature/go-sdk-contrib/commit/d09a6ab662a6910811f7ba623c0a5ae3578287d9))
+* **security:** update vulnerability-updates [security] ([#865](https://github.com/open-feature/go-sdk-contrib/issues/865)) ([9f0e819](https://github.com/open-feature/go-sdk-contrib/commit/9f0e819d2792297f70bfadabcd95ffe8ae510ab7))
+
+
+### ✨ New Features
+
+* **flipt:** add environment-aware flag evaluation ([#902](https://github.com/open-feature/go-sdk-contrib/issues/902)) ([7128e97](https://github.com/open-feature/go-sdk-contrib/commit/7128e9756473faa66dff8e83f209e08b9f80e3d0))
+
 ## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/flipt/v0.1.4...providers/flipt/v0.1.5) (2025-11-24)
 
 
