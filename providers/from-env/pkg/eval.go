@@ -1,6 +1,8 @@
 package from_env
 
 import (
+	"reflect"
+
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -34,7 +36,7 @@ func (f *StoredFlag) evaluate(evalCtx map[string]any) (string, openfeature.Reaso
 		match := true
 		for _, criteria := range variant.Criteria {
 			val, ok := evalCtx[criteria.Key]
-			if !ok || val != criteria.Value {
+			if !ok || !reflect.DeepEqual(val, criteria.Value) {
 				match = false
 				break
 			}
