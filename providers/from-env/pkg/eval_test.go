@@ -7,6 +7,100 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
+func TestValuesEqual(t *testing.T) {
+	tests := []struct {
+		name  string
+		left  any
+		right any
+		want  bool
+	}{
+		// nil
+		{name: "nil_nil", left: nil, right: nil, want: true},
+		{name: "nil_nonnil", left: nil, right: "x", want: false},
+		{name: "nonnil_nil", left: "x", right: nil, want: false},
+
+		// bool
+		{name: "bool_equal_true", left: true, right: true, want: true},
+		{name: "bool_equal_false", left: false, right: false, want: true},
+		{name: "bool_unequal", left: true, right: false, want: false},
+		{name: "bool_vs_string", left: true, right: "true", want: false},
+		{name: "bool_vs_int", left: true, right: 1, want: false},
+
+		// float64
+		{name: "float64_equal", left: float64(3.14), right: float64(3.14), want: true},
+		{name: "float64_unequal", left: float64(1.0), right: float64(2.0), want: false},
+		{name: "float64_vs_int", left: float64(1), right: 1, want: false},
+		{name: "float64_vs_string", left: float64(1), right: "1", want: false},
+		{name: "float64_nan", left: float64(0), right: float64(0), want: true},
+
+		// string (existing comparable path)
+		{name: "string_equal", left: "abc", right: "abc", want: true},
+		{name: "string_unequal", left: "abc", right: "xyz", want: false},
+
+		// deep equal – slices
+		{name: "slice_equal", left: []any{"a", "b"}, right: []any{"a", "b"}, want: true},
+		{name: "slice_unequal", left: []any{"a", "b"}, right: []any{"a", "c"}, want: false},
+		{name: "slice_diff_len", left: []any{"a"}, right: []any{"a", "b"}, want: false},
+
+		// deep equal – maps
+		{name: "map_equal", left: map[string]any{"k": "v"}, right: map[string]any{"k": "v"}, want: true},
+		{name: "map_unequal", left: map[string]any{"k": "v"}, right: map[string]any{"k": "x"}, want: false},
+		{name: "map_diff_keys", left: map[string]any{"a": 1}, right: map[string]any{"b": 1}, want: false},
+
+		// complex types via reflect.DeepEqual
+		{
+			name:  "nested_struct_equal",
+			left:  struct{ A int }{1},
+			right: struct{ A int }{1},
+			want:  true,
+		},
+		{
+			name:  "nested_struct_unequal",
+			left:  struct{ A int }{1},
+			right: struct{ A int }{2},
+			want:  false,
+		},
+		{
+			name:  "noncomparable_struct_equal",
+			left:  struct{ S []string }{[]string{"a"}},
+			right: struct{ S []string }{[]string{"a"}},
+			want:  true,
+		},
+		{
+			name:  "noncomparable_struct_unequal",
+			left:  struct{ S []string }{[]string{"a"}},
+			right: struct{ S []string }{[]string{"b"}},
+			want:  false,
+		},
+		{
+			name:  "noncomparable_mismatched_types",
+			left:  struct{ S []string }{[]string{"a"}},
+			right: struct{ N []int }{[]int{1}},
+			want:  false,
+		},
+		{
+			name:  "slice_of_maps_equal",
+			left:  []any{map[string]any{"x": 1}},
+			right: []any{map[string]any{"x": 1}},
+			want:  true,
+		},
+		{
+			name:  "slice_of_maps_unequal",
+			left:  []any{map[string]any{"x": 1}},
+			right: []any{map[string]any{"x": 2}},
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := valuesEqual(tt.left, tt.right); got != tt.want {
+				t.Errorf("valuesEqual(%v, %v) = %v, want %v", tt.left, tt.right, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNonComparableCriteria(t *testing.T) {
 	tests := []struct {
 		name          string
