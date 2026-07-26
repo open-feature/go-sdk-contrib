@@ -23,6 +23,17 @@ type Criteria struct {
 	Value any    `json:"value"`
 }
 
+func valuesEqual(left, right any) bool {
+	leftType := reflect.TypeOf(left)
+	if leftType != reflect.TypeOf(right) {
+		return false
+	}
+	if leftType == nil || leftType.Comparable() {
+		return left == right
+	}
+	return reflect.DeepEqual(left, right)
+}
+
 func (f *StoredFlag) evaluate(evalCtx map[string]any) (string, openfeature.Reason, any, error) {
 	var defaultVariant *Variant
 	for _, variant := range f.Variants {
@@ -36,7 +47,7 @@ func (f *StoredFlag) evaluate(evalCtx map[string]any) (string, openfeature.Reaso
 		match := true
 		for _, criteria := range variant.Criteria {
 			val, ok := evalCtx[criteria.Key]
-			if !ok || !reflect.DeepEqual(val, criteria.Value) {
+			if !ok || !valuesEqual(val, criteria.Value) {
 				match = false
 				break
 			}
