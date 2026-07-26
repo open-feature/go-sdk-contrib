@@ -48,6 +48,18 @@ func TestNonComparableCriteria(t *testing.T) {
 			wantReason:    openfeature.DefaultReason,
 			wantValue:     false,
 		},
+		{
+			name: "equal_nested_json",
+			criteriaValue: []any{
+				map[string]any{"roles": []any{"admin", "beta"}},
+			},
+			evalValue: []any{
+				map[string]any{"roles": []any{"admin", "beta"}},
+			},
+			wantVariant: "match",
+			wantReason:  openfeature.TargetingMatchReason,
+			wantValue:   true,
+		},
 	}
 
 	for _, tt := range tests {
