@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/docker/go-connections/nat"
-
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -125,13 +123,13 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 	return flagdContainer, nil
 }
 
-func getMappedPort(ctx context.Context, stack *compose.DockerCompose, container *testcontainers.DockerContainer, port nat.Port) (int, error) {
-	rpcPort, err := container.MappedPort(ctx, port)
+func getMappedPort(ctx context.Context, stack *compose.DockerCompose, container *testcontainers.DockerContainer, port string) (int, error) {
+	mappedPort, err := container.MappedPort(ctx, port)
 	if err != nil {
 		stack.Down(ctx)
 		return 0, fmt.Errorf("failed to fetch mapped port %s for %s: %w", port, container.ID, err)
 	}
-	return rpcPort.Int(), nil
+	return int(mappedPort.Num()), nil
 }
 
 // GetHost returns the container host
