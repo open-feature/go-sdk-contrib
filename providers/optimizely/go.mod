@@ -1,9 +1,9 @@
 module github.com/open-feature/go-sdk-contrib/providers/optimizely
 
-go 1.24.0
+go 1.25.0
 
 require (
-	github.com/open-feature/go-sdk v1.17.0
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/optimizely/go-sdk/v2 v2.2.1
 	github.com/stretchr/testify v1.11.1
 )
@@ -27,6 +27,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	go.uber.org/mock v0.6.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

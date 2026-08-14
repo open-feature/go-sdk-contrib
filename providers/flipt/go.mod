@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/flipt
 go 1.25.0
 
 require (
-	github.com/open-feature/go-sdk v1.17.0
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/stretchr/testify v1.11.1
 	go.flipt.io/flipt/rpc/flipt v1.54.1-0.20260718011037-2ba78353193a // pin to v2.11.0
 	go.flipt.io/flipt/sdk/go v0.13.1-0.20260718011037-2ba78353193a // pin to v2.11.0
