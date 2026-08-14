@@ -3,14 +3,13 @@ module github.com/open-feature/go-sdk-contrib/providers/prefab
 go 1.25.0
 
 require (
-	github.com/open-feature/go-sdk v1.17.0
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/prefab-cloud/prefab-cloud-go v0.0.5
 	github.com/stretchr/testify v1.11.1
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/r3labs/sse/v2 v2.10.0 // indirect

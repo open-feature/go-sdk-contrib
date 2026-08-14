@@ -4,14 +4,13 @@ go 1.25.0
 
 require (
 	github.com/Flagsmith/flagsmith-go-client/v5 v5.1.0
-	github.com/open-feature/go-sdk v1.17.0
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/stretchr/testify v1.11.1
 )
 
 require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-resty/resty/v2 v2.17.2 // indirect
 	github.com/itlightning/dateparse v0.2.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

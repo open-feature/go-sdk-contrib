@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag-in-proce
 go 1.25.0
 
 require (
-	github.com/open-feature/go-sdk v1.17.0
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/stretchr/testify v1.11.1
 	github.com/thomaspoignant/go-feature-flag v1.49.0
 )
@@ -16,7 +16,6 @@ require (
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/dariubs/percent v0.0.0-20190521174708-8153fcbd48ae // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/nikunjy/rules v1.5.0 // indirect
