@@ -3,6 +3,7 @@ package flagd
 import (
 	"errors"
 	"fmt"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"os"
 	"strconv"
 	"strings"
@@ -79,6 +80,7 @@ type ProviderConfiguration struct {
 	CustomSyncProvider               sync.ISync
 	CustomSyncProviderUri            string
 	GrpcDialOptionsOverride          []grpc.DialOption
+	ContextEnricher                  ContextEnricher
 	RetryGracePeriod                 int
 	RetryBackoffMs                   int
 	RetryBackoffMaxMs                int
@@ -97,6 +99,10 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		MaxCacheSize:                     defaultMaxCacheSize,
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
+		ContextEnricher: func(contextValues map[string]any) *of.EvaluationContext {
+			evaluationContext := of.NewTargetlessEvaluationContext(contextValues)
+			return &evaluationContext
+		},
 		RetryGracePeriod:                 defaultGracePeriod,
 		RetryBackoffMs:                   DefaultRetryBackoffMs,
 		RetryBackoffMaxMs:                DefaultRetryBackoffMaxMs,
@@ -460,6 +466,13 @@ func WithCustomSyncProviderAndUri(customSyncProvider sync.ISync, customSyncProvi
 func WithGrpcDialOptionsOverride(grpcDialOptionsOverride []grpc.DialOption) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.GrpcDialOptionsOverride = grpcDialOptionsOverride
+	}
+}
+
+// WithContextEnricher allows adding a custom context enricher for the in-process provider.
+func WithContextEnricher(contextEnricher ContextEnricher) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.ContextEnricher = contextEnricher
 	}
 }
 
