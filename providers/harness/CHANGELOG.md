@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.6-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/harness/v0.0.5-alpha...providers/harness/v0.0.6-alpha) (2026-08-21)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.5 [security] ([#905](https://github.com/open-feature/go-sdk-contrib/issues/905)) ([d09a6ab](https://github.com/open-feature/go-sdk-contrib/commit/d09a6ab662a6910811f7ba623c0a5ae3578287d9))
+* **security:** update module github.com/getkin/kin-openapi to v0.144.0 [security] ([#928](https://github.com/open-feature/go-sdk-contrib/issues/928)) ([c0cb5b9](https://github.com/open-feature/go-sdk-contrib/commit/c0cb5b997c614d0b34a3e8b9d065c9b1dddbb098))
+
 ## [0.0.5-alpha](https://github.com/open-feature/go-sdk-contrib/compare/providers/harness/v0.0.4-alpha...providers/harness/v0.0.5-alpha) (2025-10-29)
 
 
