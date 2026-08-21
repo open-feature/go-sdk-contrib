@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.6.0...providers/flagd/v0.6.1) (2026-08-21)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** resolve data race in InProcess service ([#903](https://github.com/open-feature/go-sdk-contrib/issues/903)) ([e277fa8](https://github.com/open-feature/go-sdk-contrib/commit/e277fa8f6dc5b8e2e311139ffa302a9bebb106fa))
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.5 [security] ([#905](https://github.com/open-feature/go-sdk-contrib/issues/905)) ([d09a6ab](https://github.com/open-feature/go-sdk-contrib/commit/d09a6ab662a6910811f7ba623c0a5ae3578287d9))
+* **security:** update module github.com/moby/go-archive to v0.3.0 [security] ([#937](https://github.com/open-feature/go-sdk-contrib/issues/937)) ([7cbb8dc](https://github.com/open-feature/go-sdk-contrib/commit/7cbb8dcf69e367b079b385f7f7cecfc6b2e444fe))
+* **security:** update module github.com/sigstore/sigstore-go to v1.2.1 [security] ([#934](https://github.com/open-feature/go-sdk-contrib/issues/934)) ([c7950e8](https://github.com/open-feature/go-sdk-contrib/commit/c7950e8356b3c6a918a4acd26b789b0b69955177))
+* **security:** update vulnerability-updates [security] ([#921](https://github.com/open-feature/go-sdk-contrib/issues/921)) ([cde1d5b](https://github.com/open-feature/go-sdk-contrib/commit/cde1d5bd74c83b7d9ec3c50eecf5bd8bfea48ce9))
+
 ## [0.6.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.1...providers/flagd/v0.6.0) (2026-06-02)
 
 
