@@ -164,7 +164,22 @@ const FlagsJson = `
         "environment": 1,
         "identity": null,
         "feature_segment": null
-    }
+    },
+	{
+    "id": 6,
+    "feature": {
+        "id": 6,
+        "name": "numeric_flag",
+        "default_enabled": true,
+        "type": "STANDARD",
+        "project": 1
+    },
+    "feature_state_value": 100.1,
+    "enabled": true,
+    "environment": 1,
+    "identity": null,
+    "feature_segment": null
+}
 ]`
 
 const IdentityResponseJson = `{
@@ -452,6 +467,14 @@ func TestFloatEvaluation(t *testing.T) {
 				of.TargetingKey: Identifier,
 				TraitKey:        TraitValue,
 			},
+		},
+		{
+			name:                "Should resolve a numeric JSON value as float",
+			flagKey:             "numeric_flag",
+			expectedValue:       expectedFlagValue,
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.StaticReason,
 		},
 	}
 
