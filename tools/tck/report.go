@@ -172,6 +172,16 @@ func (r *runner) buildReport() Report {
 			Reason:     rec.reason,
 			DurationMs: float64(rec.duration.Microseconds()) / 1000.0,
 		})
+		// Only a scenario that actually ran exercises anything. A scenario
+		// skipped for one undeclared capability still carries its other tags,
+		// and counting those would report a capability as passed on the
+		// strength of a scenario that never executed: events.feature's
+		// scenarios carry @events alongside @stale and @configuration-change,
+		// so withholding either left @events reading "passed" while both of its
+		// scenarios were skipped.
+		if rec.outcome != OutcomePassed && rec.outcome != OutcomeFailed {
+			continue
+		}
 		for _, tag := range rec.tags {
 			capability, gates := CapabilityForTag(tag)
 			if !gates {
