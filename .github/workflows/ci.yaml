@@ -45,6 +45,12 @@ jobs:
           key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
       - name: Run workspace init
         run: make workspace-init
+      # The provider TCK's conformance artifacts are generated from the spec
+      # submodule and committed, because Go module zips exclude submodule content.
+      # This fails if the committed copies have drifted from the submodule, so the
+      # definition of conformance cannot be edited locally without being caught.
+      - name: Check provider-tck assets are in sync with the spec submodule
+        run: make provider-tck-assets-check
       - name: Run Vulncheck
         continue-on-error: true
         run: make vulncheck
