@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/harness/ff-golang-server-sdk v0.1.26
 	github.com/jarcoal/httpmock v1.4.1
-	github.com/open-feature/go-sdk v1.17.0
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -15,7 +15,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen/v2 v2.1.0 // indirect
 	github.com/getkin/kin-openapi v0.144.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-openapi/jsonpointer v0.22.5 // indirect
 	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
@@ -42,8 +41,8 @@ require (
 	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
