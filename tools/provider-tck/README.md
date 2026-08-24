@@ -122,6 +122,12 @@ because the application sees a plausible value and no error. It is a capability 
 provider with the defect can adopt today and see the gap reported explicitly rather than being
 unable to adopt at all. Not declaring it is an admission of a known bug.
 
+## Adopters
+
+| Provider | Suite | Control path |
+| --- | --- | --- |
+| flagd (RPC and in-process resolvers) | [`providers/flagd/e2e/tck_test.go`](../../providers/flagd/e2e/tck_test.go) | `tck.HTTPControl` against the `flagd-testbed` launchpad |
+
 ## Controlling the backend
 
 `tck.BackendControl` is the single seam between the scenarios and whatever manipulates the backend.
