@@ -217,6 +217,12 @@ a reserved capability, and so is one naming a capability the SDK cannot express 
 cases the entry would explain a skip that says nothing about your provider. The list is empty by
 default, which is silence rather than a claim.
 
+## Adopters
+
+| Provider | Suite | Control path |
+| --- | --- | --- |
+| flagd (RPC and in-process resolvers) | [`providers/flagd/e2e/tck_test.go`](../../providers/flagd/e2e/tck_test.go) | `tck.HTTPControl` against the `flagd-testbed` launchpad |
+
 ## Controlling the backend
 
 `tck.BackendControl` is the single seam between the scenarios and whatever manipulates the backend,
