@@ -56,6 +56,39 @@ Tests provider configuration validation and defaults.
 - **Implementation**: Table-driven tests (refactored from 132 lines with duplication to 70 lines)
 - **Status**: ✅ **PASS** - All passing reliably
 
+### Provider Conformance Suite (`tck_test.go`)
+
+Runs the cross-language [OpenFeature Provider TCK](../../../tools/provider-tck/README.md) against
+flagd — the same Gherkin scenarios, canonical flag set and backend control API that every other
+language's TCK runs. It answers a different question from the suites above: not "does flagd work?"
+but "does the flagd provider implement the provider contract the same way every other provider
+does?".
+
+- **Subjects**: `TestFlagdRPCConformance` and `TestFlagdInProcessConformance`. The two resolvers are
+  separate suites because they are separately conformant.
+- **Backend**: the same `flagd-testbed` container, unmodified. The TCK drives its launchpad through
+  the standardised control API, which the launchpad already implements.
+- **Isolation**: the stack starts once per suite and is never restarted. Scenario isolation comes
+  from the control API, because container orchestrators cannot reliably preserve dynamically mapped
+  host ports across a restart.
+- **Relationship to the suites above**: none. They are untouched, and so is `flagd-testbed`.
+
+Two differences between the resolvers show up as capability declarations rather than as failures:
+
+| | RPC | in-process |
+| --- | --- | --- |
+| emits `PROVIDER_STALE` on connection loss | **no** — goes straight to `PROVIDER_ERROR` | yes, then escalates to `PROVIDER_ERROR` after the retry grace period |
+| `@stale` scenario | skipped, with the reason reported | runs |
+
+That gap is a real behavioural difference between two modes of the same provider: an application
+that switches from in-process to RPC silently stops receiving stale events. `tck.Stale` is withheld
+from the RPC suite so the scenario is reported as skipped rather than failed, and it should be
+declared as soon as the RPC resolver emits `PROVIDER_STALE`.
+
+```bash
+go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
+```
+
 ## Test Framework Components
 
 ### Core Architecture (`tests/flagd/testframework/`)
