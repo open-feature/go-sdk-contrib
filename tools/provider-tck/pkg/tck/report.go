@@ -131,10 +131,15 @@ func (r *runner) buildReport() Report {
 	})
 
 	scenarios := make([]ReportScenario, 0, len(records))
-	// failedCapabilities tracks which declared capabilities had a scenario fail,
-	// so a capability is only reported as passed when everything gating on it
-	// actually passed.
-	failedCapabilities := map[Capability]bool{}
+	// failed counts, per capability, the scenarios gating on it that failed, so a
+	// capability is reported as passed only when everything gating on it passed and
+	// a failure can say how much failed.
+	failed := map[Capability]int{}
+	// exercised counts the scenarios gating on each capability at all. A capability
+	// no scenario carries cannot have been demonstrated, and reporting it as passed
+	// would claim conformance the suite never tested -- which is the same vacuous
+	// green the capability vocabulary exists to prevent.
+	exercised := map[Capability]int{}
 
 	for _, rec := range records {
 		scenarios = append(scenarios, ReportScenario{
@@ -145,12 +150,14 @@ func (r *runner) buildReport() Report {
 			Reason:     rec.reason,
 			DurationMs: float64(rec.duration.Microseconds()) / 1000.0,
 		})
-		if rec.outcome != OutcomeFailed {
-			continue
-		}
 		for _, tag := range rec.tags {
-			if capability, gates := CapabilityForTag(tag); gates {
-				failedCapabilities[capability] = true
+			capability, gates := CapabilityForTag(tag)
+			if !gates {
+				continue
+			}
+			exercised[capability]++
+			if rec.outcome == OutcomeFailed {
+				failed[capability]++
 			}
 		}
 	}
@@ -165,8 +172,18 @@ func (r *runner) buildReport() Report {
 					"not declared by this provider's configuration; the %s scenarios were skipped and did not contribute to this result",
 					capability.Tag()),
 			}
-		case failedCapabilities[capability]:
-			capabilities[capability.Tag()] = ReportCapability{State: OutcomeFailed}
+		case exercised[capability] == 0:
+			// Declared, but no scenario in the suite gates on it. Saying nothing is
+			// the only honest answer: the suite asked no question, so it has none
+			// to report. Claiming passed would be a green result for an untested
+			// claim, which is precisely what this suite exists to make impossible.
+		case failed[capability] > 0:
+			capabilities[capability.Tag()] = ReportCapability{
+				State: OutcomeFailed,
+				Reason: fmt.Sprintf(
+					"%d of %d scenarios carrying %s failed; the per-scenario results say which, and why",
+					failed[capability], exercised[capability], capability.Tag()),
+			}
 		default:
 			capabilities[capability.Tag()] = ReportCapability{State: OutcomePassed}
 		}

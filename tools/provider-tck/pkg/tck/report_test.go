@@ -113,8 +113,8 @@ func TestReportRecordsUndeclaredCapabilities(t *testing.T) {
 	for _, capability := range tck.AllCapabilities() {
 		result, ok := report.Capabilities[capability.Tag()]
 		if !ok {
-			t.Errorf("capability %s is missing from the report; every capability is reported, "+
-				"because an absent one is indistinguishable from one that was forgotten",
+			t.Errorf("capability %s is missing from the report; a capability is omitted only when "+
+				"it is declared and no scenario exercises it, which is not the case here",
 				capability.Tag())
 			continue
 		}
@@ -192,4 +192,49 @@ func readReport(t *testing.T, path string) tck.Report {
 		t.Fatalf("report at %s has no schemaVersion", path)
 	}
 	return report
+}
+
+// TestReservedCapabilityIsNotReportedAsPassed covers the capability a provider
+// declares and the suite never tests.
+//
+// @targeting is reserved: it exists in the vocabulary but no scenario carries
+// it, because asserting that an evaluation context reached the backend needs an
+// echo operation the control API does not have yet. Reporting it as passed would
+// be a green result for a claim nothing tested -- the same vacuous pass the
+// capability vocabulary was introduced to eliminate, arriving through the report
+// instead of through the suite.
+//
+// Omitting it is the honest answer: the suite asked no question, so it has none
+// to report. A consumer sees the tag is absent rather than a pass it cannot rely
+// on.
+func TestReservedCapabilityIsNotReportedAsPassed(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	tck.Run(t, tck.Config{
+		Name:    "reserved-capability",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		// Targeting is declared and no scenario carries it. Object is declared so
+		// the suite still does something.
+		Capabilities: []tck.Capability{tck.Object, tck.Targeting},
+	})
+
+	report := readReport(t, filepath.Join(dir, "reserved-capability.json"))
+
+	if result, present := report.Capabilities[tck.Targeting.Tag()]; present {
+		t.Errorf("%s was declared and no scenario exercises it, but the report states %q; "+
+			"a capability the suite never tested must not be reported as a result",
+			tck.Targeting.Tag(), result.State)
+	}
+
+	// The declared capability that is exercised must still be reported, so the
+	// omission above is specific rather than a general failure to report.
+	if result, present := report.Capabilities[tck.Object.Tag()]; !present {
+		t.Errorf("%s was declared and exercised but is missing from the report", tck.Object.Tag())
+	} else if result.State != tck.OutcomePassed {
+		t.Errorf("%s reported as %q, want %q", tck.Object.Tag(), result.State, tck.OutcomePassed)
+	}
 }
