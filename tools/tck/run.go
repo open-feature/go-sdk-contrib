@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -108,6 +109,7 @@ func Run(t *testing.T, opts ...Option) {
 	}.Run()
 
 	r.reportSkips()
+	r.writeReport()
 
 	if status != 0 && !t.Failed() {
 		t.Fatalf("tck [%s]: suite failed with exit status %d", cfg.Name, status)
@@ -122,6 +124,29 @@ type runner struct {
 
 	mu    sync.Mutex
 	skips []skippedScenario
+
+	// records is the per-scenario outcome list the conformance report is built
+	// from. It is kept even when no report is requested, because it costs
+	// nothing and the alternative is a code path that only ever runs in CI.
+	records []scenarioRecord
+
+	// started times scenarios by name. godog gives no scenario-scoped place to
+	// hang this, and scenarios run serially, so a map keyed by name is enough.
+	started map[string]time.Time
+
+	// gated names the scenarios the capability gate stopped before their first
+	// step, so the after hook does not record them a second time.
+	//
+	// It exists because godog does not deliver the before hook's ErrSkip to the
+	// after hook -- err arrives nil, indistinguishable from a scenario that ran
+	// and passed. Testing for ErrSkip there silently recorded every skipped
+	// scenario twice, once correctly and once as passed, which is the exact
+	// failure Appendix F forbids.
+	gated map[string]bool
+
+	// providerName is what the provider called itself, observed from the last
+	// scenario that registered one.
+	providerName string
 }
 
 // skippedScenario records a scenario that did not run because the capability it
@@ -175,7 +200,22 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 	if capability, missing := r.missingCapability(sc); missing {
 		reason, inexpressible := capability.IsInexpressible()
 		r.recordSkip(sc.Name, capability, reason)
+		r.markGated(sc.Name)
+
+		// The outcome is the same -- the scenario was not run because the
+		// capability was not declared -- but the detail is not, and the detail
+		// is what a consumer of the report reads. "This provider does not
+		// declare it" describes a choice the provider made; a capability the
+		// SDK cannot express was never the provider's to choose, and saying so
+		// wrongly is a defect attributed to a provider that has none. The
+		// outcome is deliberately not a new enumeration value: the report
+		// schema is shared across four languages and the distinction belongs in
+		// the reason, which the schema already carries.
 		if inexpressible {
+			r.recordOutcome(sc, OutcomeNotDeclared, fmt.Sprintf(
+				"requires capability %s, which the Go SDK cannot express (%s), so no provider "+
+					"written against this SDK can be asked -- this says nothing about the provider "+
+					"under test", capability.Tag(), reason), 0)
 			return ctx, fmt.Errorf(
 				"%w: scenario requires capability %s (Gherkin tag %s), which the Go SDK cannot express: %s. "+
 					"This skip says nothing about the provider under test -- no provider written against this "+
@@ -183,10 +223,15 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 					"it to adopters. Declared capabilities: %s",
 				godog.ErrSkip, capability, capability.Tag(), reason, formatCapabilities(r.caps.sorted()))
 		}
+
+		r.recordOutcome(sc, OutcomeNotDeclared, fmt.Sprintf(
+			"requires capability %s, which this provider does not declare", capability.Tag()), 0)
 		return ctx, fmt.Errorf(
 			"%w: scenario requires capability %s (Gherkin tag %s), which this provider does not declare. Declared capabilities: %s",
 			godog.ErrSkip, capability, capability.Tag(), formatCapabilities(r.caps.sorted()))
 	}
+
+	r.markStarted(sc.Name)
 
 	ctx = withState(ctx, newScenarioState(&r.cfg))
 
@@ -200,11 +245,87 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 
 // afterScenario detaches the scenario's event handlers. A skipped scenario has
 // no state, which is not an error.
-func (r *runner) afterScenario(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
+func (r *runner) afterScenario(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
 	if state, stateErr := stateFrom(ctx); stateErr == nil {
+		if state.providerName != "" {
+			r.mu.Lock()
+			r.providerName = state.providerName
+			r.mu.Unlock()
+		}
 		state.teardown()
 	}
+
+	// A capability skip was already recorded before the scenario started.
+	// Recording it again here would put it in the report twice, the second time
+	// as passed.
+	if !r.wasGated(sc.Name) {
+		outcome, reason := OutcomePassed, ""
+		if err != nil {
+			outcome, reason = OutcomeFailed, err.Error()
+		}
+		r.recordOutcome(sc, outcome, reason, r.elapsed(sc.Name))
+	}
+
 	return ctx, err
+}
+
+// recordOutcome appends one scenario's result.
+func (r *runner) recordOutcome(sc *godog.Scenario, outcome Outcome, reason string, duration time.Duration) {
+	tags := make([]string, 0, len(sc.Tags))
+	for _, tag := range sc.Tags {
+		tags = append(tags, tag.Name)
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.records = append(r.records, scenarioRecord{
+		feature:  featureName(sc.Uri),
+		name:     sc.Name,
+		tags:     tags,
+		outcome:  outcome,
+		reason:   reason,
+		duration: duration,
+	})
+}
+
+// markGated and markStarted create their maps on first use.
+//
+// The runner has to work as a zero value: it is constructed as a struct literal
+// in tests that exercise the gate directly, and a nil map assignment there is a
+// panic rather than a helpful failure.
+func (r *runner) markGated(name string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.gated == nil {
+		r.gated = map[string]bool{}
+	}
+	r.gated[name] = true
+}
+
+func (r *runner) markStarted(name string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.started == nil {
+		r.started = map[string]time.Time{}
+	}
+	r.started[name] = time.Now()
+}
+
+// wasGated reports whether the capability gate stopped this scenario.
+func (r *runner) wasGated(name string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.gated[name]
+}
+
+func (r *runner) elapsed(name string) time.Duration {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	start, ok := r.started[name]
+	if !ok {
+		return 0
+	}
+	return time.Since(start)
 }
 
 // missingCapability reports the first capability a scenario needs that the

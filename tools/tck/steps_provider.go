@@ -56,6 +56,7 @@ func aStableProvider(ctx context.Context) (context.Context, error) {
 	}
 
 	state.provider = provider
+	state.providerName = provider.Metadata().Name
 	state.client = openfeature.NewClient(state.cfg.domain())
 	return ctx, nil
 }
