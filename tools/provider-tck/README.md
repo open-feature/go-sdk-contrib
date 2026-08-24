@@ -204,6 +204,100 @@ provider in a domain replaces and shuts down the previous one; a fresh domain pe
 leave every provider of the suite registered and running, which for a provider holding a network
 connection means leaking one connection per scenario.
 
+## Conformance reports
+
+Set `PROVIDER_TCK_REPORT_DIR` and each suite writes a machine-readable report of its run to
+`<dir>/<name>.json`, conforming to the [report schema][report-schema] in the specification.
+
+```console
+$ PROVIDER_TCK_REPORT_DIR=./reports go test ./...
+$ jq '.scenarios | group_by(.outcome) | map({(.[0].outcome): length}) | add' reports/in-memory.json
+{
+  "passed": 24,
+  "not-declared": 5
+}
+```
+
+It is an environment variable rather than a `Config` field so that emitting a report is a property
+of the run and not of the code: CI sets it, a developer running the suite locally does not, and no
+adopter changes a line to publish one. Unset means no report, which is not an error. Several suites
+in one test binary each write their own file, so flagd's two resolvers do not collide.
+
+### Why this exists in Go before the other languages
+
+Because Go is the language that needs it most. godog counts a capability-gated skip in its **passed**
+tally:
+
+```
+29 scenarios (29 passed)
+```
+
+Five of those twenty-nine did not run. Appendix F is unambiguous that a scenario skipped for an
+undeclared capability is reported as skipped with the reason and *never* as passed, and the harness
+does say so in a separate log line — but the headline number still says something false, and a
+number is what gets read. pytest and jest-cucumber both report skips correctly, so this is a property
+of the runner rather than of the suite's design.
+
+The report does not fix godog's summary. It makes the summary stop mattering, by recording the
+outcome of every scenario individually so that a consumer can check the rule instead of trusting the
+runner to have applied it. `reports/in-memory.json` above accounts for all twenty-nine scenarios and
+calls five of them `not-declared`, each with the reason.
+
+### What identifies a report
+
+`tck.specRevision` and `tck.assetsTree` come from [`revision.go`](./pkg/tck/revision.go), which
+`sync_assets.go` generates from the submodule alongside the embedded artifacts. Generating both in
+the same command is what keeps them honest: `make provider-tck-assets-check` regenerates and fails on
+any difference, so a revision that disagrees with the artifacts beside it cannot be committed.
+
+The tree hash is carried as well as the commit because it identifies the artifacts alone. It is
+unchanged by unrelated edits elsewhere in the specification, so two runs that executed identical
+artifacts report the same value even when pinned to different commits — and it is checkable, since
+`git rev-parse <specRevision>:specification/assets/provider-tck` must reproduce it.
+
+`provider.name` is what the provider reports through its own metadata, not `Config.Name`.
+`Config.Name` is chosen to read well in a failure message — `flagd-rpc` — which makes it the
+*configuration*, and it is reported as such. One provider with two materially different modes
+produces two reports that are not interchangeable.
+
+### What identifies a scenario
+
+`feature` and `name` together do not. Every row of a Scenario Outline shares one name, and the
+type-mismatch matrix in `errors.feature` is eleven rows, so eleven entries carry the same feature and
+the same name. A report that stopped there could not say which row failed, and a consumer keying on
+the pair would keep whichever row it read last.
+
+A row is identified by its parameters, which the report carries in `example` — the Examples row it
+came from, keyed by column header:
+
+```console
+$ jq -c '.scenarios[] | select(.name | startswith("Requesting the wrong type")) | .example' reports/in-memory.json
+{"default":"false","key":"string-flag","requested":"Boolean"}
+{"default":"1","key":"string-flag","requested":"Integer"}
+{"default":"0.1","key":"string-flag","requested":"Float"}
+...
+```
+
+The values are the cells verbatim, as strings. Gherkin has no types, so `"1"` stays `"1"`: coercing
+it would be this implementation inventing a fact the feature file did not state, and four
+implementations would each invent a different one.
+
+It is a field rather than a naming convention because the parameters *are* the identity, and they
+come from the feature file rather than from any runner. Mandating a mangled name instead would put a
+separator, an ordering and an escaping rule into normative text that every implementation has to
+reproduce byte for byte, and drift there is invisible until two reports silently fail to line up.
+
+A skipped row carries it too. The capability gate records its outcome before the scenario starts, so
+the four rows of the `@object` outline would otherwise be four `not-declared` entries differing in
+nothing — exactly as ambiguous as four failures.
+
+godog's hooks receive an already-expanded scenario, whose step text has the parameters substituted
+into it and whose row is otherwise gone. What survives is `AstNodeIds`, whose last entry is the id of
+the Examples `TableRow`, so the row is recovered by parsing the embedded feature files a second time
+and indexing every row by that id. Those ids come from a counter godog shares across the files it
+parses, which means reproducing them means reproducing godog's parse; a run that cannot resolve a row
+it knows came from an outline fails rather than quietly emitting the ambiguity again.
+
 ## The self-tests
 
 Three suites run against providers from the SDK itself. They need no Docker and finish in
@@ -258,11 +352,21 @@ the SDK's provider rather than reimplementing it — every resolution decision i
   then a provider that silently drops the context passes. `@targeting` is reserved for these.
 - **`POST /restart` is unused.** No current scenario needs a bounded outage — the stale scenario
   uses an explicit disconnect and reconnect — so `tck.ConnectionControl` has no `DisconnectFor`.
-- **Caching, hooks and flag metadata** are not covered.
+- **Hooks and flag metadata** are not covered.
+- **Caching is not covered, and the suite is quietly exposed to it.** `@caching` is reserved and no
+  scenario carries it, but flagd's RPC resolver enables an LRU cache *by default* and rewrites the
+  reason to `CACHED` on a hit. The adoption does not turn it off, so the suite already runs against a
+  caching provider while asserting `STATIC` everywhere. It passes only because no scenario evaluates
+  the same flag twice in a way that hits the cache — so a scenario added later that does will fail
+  against flagd RPC with `CACHED`, and the failure will look like a provider defect rather than a
+  test-design one. Note also that the configuration-change scenario already depends on cache
+  invalidation working without saying so: against flagd RPC it reads `changing-flag`, changes it, and
+  reads again, which only gives the right answer because the change event evicts the entry.
 
 [appendix-a]: https://github.com/open-feature/spec/blob/main/specification/appendix-a-included-utilities.md
 [appendix-b]: https://github.com/open-feature/spec/blob/main/specification/appendix-b-gherkin-suites.md
 [appendix-f]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md
 [control-api]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/openapi/control-api.yaml
+[report-schema]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/report/conformance-report.schema.json
 [spec]: https://github.com/open-feature/spec
 [tracking]: https://github.com/open-feature/spec/issues/417

@@ -234,3 +234,10 @@ func (c *InProcessControl) ChangeFlag(context.Context) error {
 
 	return c.current.UpdateFlag(ChangingFlagKey, changingFlag(c.changingVariant))
 }
+
+// ControlAPI reports how this backend was driven.
+//
+// "in-process" is the narrow allowance the schema makes for a provider with no
+// backend. A report claiming it for a provider that has one should be treated
+// with suspicion, which is precisely why it is recorded rather than assumed.
+func (c *InProcessControl) ControlAPI() string { return "in-process" }

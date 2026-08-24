@@ -139,9 +139,13 @@ func (c Capability) Tag() string { return string(c) }
 // String implements fmt.Stringer.
 func (c Capability) String() string { return string(c) }
 
-// capabilityForTag maps a Gherkin tag onto the capability it gates, reporting
+// CapabilityForTag maps a Gherkin tag onto the capability it gates, reporting
 // whether the tag gates anything at all.
-func capabilityForTag(tag string) (Capability, bool) {
+//
+// Exported because a conformance report is read by things outside this package:
+// deciding whether a scenario was skipped legitimately means knowing which of
+// its tags gate a capability and which are merely organisational.
+func CapabilityForTag(tag string) (Capability, bool) {
 	for _, c := range allCapabilities {
 		if string(c) == tag {
 			return c, true
@@ -156,7 +160,7 @@ type capabilitySet map[Capability]struct{}
 func newCapabilitySet(caps []Capability) (capabilitySet, error) {
 	set := make(capabilitySet, len(caps))
 	for _, c := range caps {
-		if _, known := capabilityForTag(string(c)); !known {
+		if _, known := CapabilityForTag(string(c)); !known {
 			return nil, fmt.Errorf(
 				"unknown capability %q: capabilities are the constants declared in this package, one of %s",
 				c, formatCapabilities(allCapabilities))
