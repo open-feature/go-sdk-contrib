@@ -36,7 +36,7 @@ func TestInMemoryProvider(t *testing.T) {
 		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
 		},
-		// Four capabilities, and every omission is a fact about the provider
+		// Three capabilities, and every omission is a fact about the provider
 		// rather than a convenience:
 		//
 		//   - ConfigurationChange is omitted because the SDK's in-memory
@@ -47,6 +47,15 @@ func TestInMemoryProvider(t *testing.T) {
 		//     tck.ConnectionControl for the same reason, and the two omissions
 		//     keep each other honest: the scenarios are skipped before any step
 		//     can reach an operation the control cannot perform.
+		//   - Lifecycle is omitted because there is no backend to reach and no
+		//     initialisation that reaches it: memprovider.InMemoryProvider does
+		//     not implement openfeature.StateHandler, so the SDK synthesises
+		//     PROVIDER_READY for it. Until @lifecycle existed the readiness
+		//     scenario ran here on the strength of Events alone and passed
+		//     without exercising anything — a NoopProvider would have passed it
+		//     the same way. Skipping it is the honest outcome, and it is the
+		//     reference answer for every backend-less provider adopting this
+		//     suite.
 		//   - Targeting and Caching are omitted because no scenario carries
 		//     their tags yet, so leaving them out skips nothing.
 		//

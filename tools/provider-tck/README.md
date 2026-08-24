@@ -53,7 +53,7 @@ func TestMyProviderConformance(t *testing.T) {
 		NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
 			return myprovider.New(control.Address()), nil
 		},
-		Capabilities: []tck.Capability{tck.Events, tck.Object, tck.StrictNumericTyping},
+		Capabilities: []tck.Capability{tck.Events, tck.Lifecycle, tck.Object, tck.StrictNumericTyping},
 	})
 }
 ```
@@ -93,6 +93,7 @@ to be inferred from a scenario count.
 | Capability | Tag | Meaning |
 | --- | --- | --- |
 | `tck.Events` | `@events` | emits lifecycle events at all |
+| `tck.Lifecycle` | `@lifecycle` | performs an initialisation that reaches its backend, with an observable outcome |
 | `tck.Stale` | `@stale` | enters `STALE` and emits `PROVIDER_STALE` on backend loss |
 | `tck.ConfigurationChange` | `@configuration-change` | detects configuration changes and emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `tck.Object` | `@object` | supports structured flag values |
@@ -104,6 +105,15 @@ to be inferred from a scenario count.
 Untagged scenarios are mandatory and always run. `Capabilities` defaults to everything — narrow it
 rather than widening it: start from the default, run the suite, and remove only what your provider
 genuinely cannot do.
+
+`@lifecycle` and `@events` are separate on purpose, and conflating them is the mistake the
+vocabulary exists to prevent. The Go SDK synthesises `PROVIDER_READY` for any provider that does not
+implement `openfeature.StateHandler`, so a provider with no initialisation passes the readiness
+scenario without demonstrating anything — a `NoopProvider` passes it identically. Conversely a
+stateless HTTP provider such as OFREP emits no events of its own and cannot declare `@events`, yet
+the readiness scenario is not really about events. Declare `@lifecycle` when initialisation actually
+reaches something and the client can observe how that went; declare `@events` when the provider
+emits events. Neither implies the other.
 
 `@strict-numeric-typing` deserves a note, because unlike the others it is **not** an optional
 feature. The specification requires `TYPE_MISMATCH` when the requested type cannot be satisfied, and
@@ -205,6 +215,11 @@ provider suite, these say so immediately and point at the TCK rather than at a p
 | `TestInMemoryProvider` | `memprovider.InMemoryProvider` | reference adoption for a backend-less provider |
 | `TestControllableProvider` | `tck.ControllableProvider` | the only suite that exercises the configuration-change path — see below |
 | `TestMultiProvider` | `multi.Provider` wrapping one child | delegation must be transparent |
+
+Only `TestControllableProvider` declares `@lifecycle`, because `tck.ControllableProvider` is the only
+one of the three that implements `openfeature.StateHandler` and therefore the only one whose `READY`
+the SDK did not manufacture. The other two leave it undeclared and report the readiness scenario as
+skipped, which is what they had been passing vacuously under `@events` before the tag existed.
 
 `TestMultiProvider` wraps exactly one child on purpose. That is the interesting configuration rather
 than a degenerate one: the correct answer is precisely what `TestControllableProvider` already
