@@ -260,6 +260,44 @@ artifacts report the same value even when pinned to different commits — and it
 *configuration*, and it is reported as such. One provider with two materially different modes
 produces two reports that are not interchangeable.
 
+### What identifies a scenario
+
+`feature` and `name` together do not. Every row of a Scenario Outline shares one name, and the
+type-mismatch matrix in `errors.feature` is eleven rows, so eleven entries carry the same feature and
+the same name. A report that stopped there could not say which row failed, and a consumer keying on
+the pair would keep whichever row it read last.
+
+A row is identified by its parameters, which the report carries in `example` — the Examples row it
+came from, keyed by column header:
+
+```console
+$ jq -c '.scenarios[] | select(.name | startswith("Requesting the wrong type")) | .example' reports/in-memory.json
+{"default":"false","key":"string-flag","requested":"Boolean"}
+{"default":"1","key":"string-flag","requested":"Integer"}
+{"default":"0.1","key":"string-flag","requested":"Float"}
+...
+```
+
+The values are the cells verbatim, as strings. Gherkin has no types, so `"1"` stays `"1"`: coercing
+it would be this implementation inventing a fact the feature file did not state, and four
+implementations would each invent a different one.
+
+It is a field rather than a naming convention because the parameters *are* the identity, and they
+come from the feature file rather than from any runner. Mandating a mangled name instead would put a
+separator, an ordering and an escaping rule into normative text that every implementation has to
+reproduce byte for byte, and drift there is invisible until two reports silently fail to line up.
+
+A skipped row carries it too. The capability gate records its outcome before the scenario starts, so
+the four rows of the `@object` outline would otherwise be four `not-declared` entries differing in
+nothing — exactly as ambiguous as four failures.
+
+godog's hooks receive an already-expanded scenario, whose step text has the parameters substituted
+into it and whose row is otherwise gone. What survives is `AstNodeIds`, whose last entry is the id of
+the Examples `TableRow`, so the row is recovered by parsing the embedded feature files a second time
+and indexing every row by that id. Those ids come from a counter godog shares across the files it
+parses, which means reproducing them means reproducing godog's parse; a run that cannot resolve a row
+it knows came from an outline fails rather than quietly emitting the ambiguity again.
+
 ## The self-tests
 
 Three suites run against providers from the SDK itself. They need no Docker and finish in

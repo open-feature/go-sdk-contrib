@@ -90,22 +90,40 @@ type ReportCapability struct {
 }
 
 type ReportScenario struct {
-	Feature    string   `json:"feature"`
-	Name       string   `json:"name"`
-	Tags       []string `json:"tags,omitempty"`
-	Outcome    Outcome  `json:"outcome"`
-	Reason     string   `json:"reason,omitempty"`
-	DurationMs float64  `json:"durationMs,omitempty"`
+	Feature string `json:"feature"`
+	Name    string `json:"name"`
+	// Example is the Examples row this entry came from, keyed by column header,
+	// present only for a scenario expanded from a Scenario Outline.
+	//
+	// It is what makes such an entry identifiable. Feature and name are shared by
+	// every row of an outline -- eleven rows of the type-mismatch matrix in
+	// errors.feature produce eleven otherwise identical entries -- so without it
+	// a report cannot say which row failed.
+	//
+	// The values are the cells verbatim, as strings. Gherkin has no types, so the
+	// cell "1" is reported as "1" and not as 1; the report says what the table
+	// said and leaves the interpretation to whoever reads it.
+	Example    map[string]string `json:"example,omitempty"`
+	Tags       []string          `json:"tags,omitempty"`
+	Outcome    Outcome           `json:"outcome"`
+	Reason     string            `json:"reason,omitempty"`
+	DurationMs float64           `json:"durationMs,omitempty"`
 }
 
 // scenarioRecord is what the runner accumulates as scenarios execute.
 type scenarioRecord struct {
-	feature  string
-	name     string
-	tags     []string
-	outcome  Outcome
-	reason   string
-	duration time.Duration
+	feature string
+	name    string
+	example map[string]string
+	// exampleOrder is the row's position in its scenario's Examples tables, kept
+	// only to sort the report. Ordering by the parameter values would list the
+	// rows of a matrix in an order the feature file never mentions, which makes a
+	// report needlessly hard to read next to the table it came from.
+	exampleOrder int
+	tags         []string
+	outcome      Outcome
+	reason       string
+	duration     time.Duration
 }
 
 // buildReport assembles the report from what the run observed.
@@ -127,7 +145,10 @@ func (r *runner) buildReport() Report {
 		if records[i].feature != records[j].feature {
 			return records[i].feature < records[j].feature
 		}
-		return records[i].name < records[j].name
+		if records[i].name != records[j].name {
+			return records[i].name < records[j].name
+		}
+		return records[i].exampleOrder < records[j].exampleOrder
 	})
 
 	scenarios := make([]ReportScenario, 0, len(records))
@@ -145,6 +166,7 @@ func (r *runner) buildReport() Report {
 		scenarios = append(scenarios, ReportScenario{
 			Feature:    rec.feature,
 			Name:       rec.name,
+			Example:    rec.example,
 			Tags:       rec.tags,
 			Outcome:    rec.outcome,
 			Reason:     rec.reason,
