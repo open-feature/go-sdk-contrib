@@ -187,6 +187,14 @@
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
+    },
+    "tools/provider-tck": {
+      "release-type": "go",
+      "package-name": "tools/provider-tck",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
     }
   },
   "changelog-sections": [
