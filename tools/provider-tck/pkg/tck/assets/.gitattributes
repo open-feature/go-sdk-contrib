@@ -1,9 +1,0 @@
-# These artifacts are consumed byte for byte by every language's provider TCK, and they are
-# embedded verbatim into this module's compiled package. Normalise to LF so a checkout on
-# Windows does not embed different bytes than one on Linux.
-#
-# Mirrors specification/assets/provider-tck/.gitattributes in open-feature/spec, which is
-# where these files come from.
-*.feature text eol=lf
-*.json    text eol=lf
-*.yaml    text eol=lf
