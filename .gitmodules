@@ -18,3 +18,6 @@
 	path = providers/flagd/flagd-testbed
 	url = https://github.com/open-feature/flagd-testbed.git
 	branch = v3.8.0
+[submodule "tools/provider-tck/pkg/tck/spec"]
+	path = tools/provider-tck/pkg/tck/spec
+	url = https://github.com/open-feature/spec
