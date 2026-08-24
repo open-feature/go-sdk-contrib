@@ -21,7 +21,7 @@ provider-tck-assets:
 	cd tools/provider-tck && go run ./sync_assets.go
 
 provider-tck-assets-check: provider-tck-assets
-	git diff --exit-code -- tools/provider-tck/pkg/tck/assets
+	git diff --exit-code -- tools/provider-tck/pkg/tck/assets tools/provider-tck/pkg/tck/revision.go
 
 test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
