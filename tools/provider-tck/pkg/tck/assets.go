@@ -34,14 +34,14 @@ import "embed"
 // their path relative to this package directory — so an entry is read back as
 // "spec/specification/assets/provider-tck/…", not by its base name.
 //
-//go:embed spec/specification/assets/provider-tck/gherkin/*.feature
-//go:embed spec/specification/assets/provider-tck/flags/canonical-flags.json
-//go:embed spec/specification/assets/provider-tck/openapi/control-api.yaml
+//go:embed assets/gherkin/*.feature
+//go:embed assets/flags/canonical-flags.json
+//go:embed assets/openapi/control-api.yaml
 var assets embed.FS
 
 // assetsRoot is the directory within assets holding the conformance artifacts,
 // which is the submodule's path plus the location of the artifacts inside it.
-const assetsRoot = "spec/specification/assets/provider-tck"
+const assetsRoot = "assets"
 
 // featuresPath is the directory within assets holding the canonical Gherkin.
 const featuresPath = assetsRoot + "/gherkin"
