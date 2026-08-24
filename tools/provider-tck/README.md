@@ -352,7 +352,16 @@ the SDK's provider rather than reimplementing it — every resolution decision i
   then a provider that silently drops the context passes. `@targeting` is reserved for these.
 - **`POST /restart` is unused.** No current scenario needs a bounded outage — the stale scenario
   uses an explicit disconnect and reconnect — so `tck.ConnectionControl` has no `DisconnectFor`.
-- **Caching, hooks and flag metadata** are not covered.
+- **Hooks and flag metadata** are not covered.
+- **Caching is not covered, and the suite is quietly exposed to it.** `@caching` is reserved and no
+  scenario carries it, but flagd's RPC resolver enables an LRU cache *by default* and rewrites the
+  reason to `CACHED` on a hit. The adoption does not turn it off, so the suite already runs against a
+  caching provider while asserting `STATIC` everywhere. It passes only because no scenario evaluates
+  the same flag twice in a way that hits the cache — so a scenario added later that does will fail
+  against flagd RPC with `CACHED`, and the failure will look like a provider defect rather than a
+  test-design one. Note also that the configuration-change scenario already depends on cache
+  invalidation working without saying so: against flagd RPC it reads `changing-flag`, changes it, and
+  reads again, which only gives the right answer because the change event evicts the entry.
 
 [appendix-a]: https://github.com/open-feature/spec/blob/main/specification/appendix-a-included-utilities.md
 [appendix-b]: https://github.com/open-feature/spec/blob/main/specification/appendix-b-gherkin-suites.md
