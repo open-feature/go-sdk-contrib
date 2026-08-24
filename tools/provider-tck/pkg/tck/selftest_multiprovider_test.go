@@ -48,6 +48,15 @@ func TestMultiProvider(t *testing.T) {
 			}
 			return provider, nil
 		},
+		// Lifecycle is omitted although TestControllableProvider declares it for
+		// the very same child, and the asymmetry is intentional. There is no
+		// backend to reach on either side; what makes the child's readiness
+		// worth asserting is that it comes out of its own Init, and that is a
+		// claim about the child, which its own suite already makes. Asserting
+		// it again through the wrapper would say nothing about delegation —
+		// which is the only thing this suite is for — while spending a green
+		// scenario on it. Before @lifecycle existed the readiness scenario ran
+		// here on the strength of Events and passed vacuously.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.ConfigurationChange,
