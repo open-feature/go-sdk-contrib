@@ -29,10 +29,10 @@ var ErrUnsupportedControl = errors.New("backend control operation not supported"
 //
 // If your provider talks to a backend — a server, a service, anything out of
 // process — drive it over the HTTP control API described in
-// assets/openapi/control-api.yaml. That API is the normative contract for those
-// providers, and it is what makes a conformance claim portable: another
-// language's TCK drives the same endpoints against the same stack and must get
-// the same answers.
+// spec/specification/assets/provider-tck/openapi/control-api.yaml. That API is
+// the normative contract for those providers, and it is what makes a
+// conformance claim portable: another language's TCK drives the same endpoints
+// against the same stack and must get the same answers.
 //
 // Do not write an in-process BackendControl that reaches into an external
 // backend through a side channel — a test-only admin client, a shared database

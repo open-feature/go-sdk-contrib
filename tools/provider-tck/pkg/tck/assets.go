@@ -4,21 +4,24 @@ import "embed"
 
 // NOTE ON THE SOURCE OF TRUTH
 //
-// The files under assets/ are NOT owned by this repository. They are copies of
-// the language-agnostic conformance artifacts defined in open-feature/spec
-// under specification/assets/provider-tck/:
+// The conformance artifacts are NOT owned by this repository. They are the
+// language-agnostic definitions kept in open-feature/spec under
+// specification/assets/provider-tck/, and they reach this package through a git
+// submodule of that repository checked out at spec/:
 //
-//	assets/features/*.feature            the canonical scenarios
-//	assets/flags/canonical-flags.json    the flag set those scenarios assume
-//	assets/openapi/control-api.yaml      the HTTP surface a backend under test exposes
+//	spec/specification/assets/provider-tck/gherkin/*.feature   the canonical scenarios
+//	spec/specification/assets/provider-tck/flags/…             the flag set those scenarios assume
+//	spec/specification/assets/provider-tck/openapi/…           the HTTP surface a backend under test exposes
 //
-// They are vendored here so that adopting this TCK never requires a consumer to
-// check out a git submodule of their own. A follow-up change will source them
-// from the spec repository as a submodule and copy them in at build time, the
-// way providers/flagd already consumes open-feature/spec. Until then, changes
-// belong in open-feature/spec first and are copied here — editing them locally
-// forks the definition of conformance, which is the one thing this suite exists
-// to prevent.
+// Nothing is copied. The embed directives below read the submodule's files
+// directly, so the revision of the specification this suite conforms to is
+// recorded by the submodule pin in the tree — one commit id, visible in
+// `git submodule status`, updated by moving the pin and by nothing else.
+//
+// That is the whole point of the arrangement. A vendored copy can be edited in
+// place, and an edited copy forks the definition of conformance, which is the
+// one thing this suite exists to prevent. Changes belong in open-feature/spec;
+// adopting them here means advancing the pin.
 //
 // See https://github.com/open-feature/spec/issues/417.
 
@@ -27,13 +30,21 @@ import "embed"
 // the consuming module. godog reads them through godog.Options.FS, which
 // accepts an embed.FS directly.
 //
-//go:embed assets/features/*.feature
-//go:embed assets/flags/canonical-flags.json
-//go:embed assets/openapi/control-api.yaml
+// The names in the FS are the pattern paths verbatim — embed keys files by
+// their path relative to this package directory — so an entry is read back as
+// "spec/specification/assets/provider-tck/…", not by its base name.
+//
+//go:embed spec/specification/assets/provider-tck/gherkin/*.feature
+//go:embed spec/specification/assets/provider-tck/flags/canonical-flags.json
+//go:embed spec/specification/assets/provider-tck/openapi/control-api.yaml
 var assets embed.FS
 
+// assetsRoot is the directory within assets holding the conformance artifacts,
+// which is the submodule's path plus the location of the artifacts inside it.
+const assetsRoot = "spec/specification/assets/provider-tck"
+
 // featuresPath is the directory within assets holding the canonical Gherkin.
-const featuresPath = "assets/features"
+const featuresPath = assetsRoot + "/gherkin"
 
 // CanonicalFlags returns the canonical flag set as raw JSON, in the flagd
 // flag-definition format.
@@ -47,7 +58,7 @@ const featuresPath = "assets/features"
 // the canonical definition rather than transcribing it, transcription being the
 // usual way the two drift apart.
 func CanonicalFlags() []byte {
-	b, err := assets.ReadFile("assets/flags/canonical-flags.json")
+	b, err := assets.ReadFile(assetsRoot + "/flags/canonical-flags.json")
 	if err != nil {
 		// Unreachable: the file is embedded at compile time, so a failure here
 		// means the embed directive above and the file layout disagree.
@@ -64,7 +75,7 @@ func CanonicalFlags() []byte {
 // testbed: containers are never stopped or restarted to simulate an outage, and
 // POST /start resets flag state while POST /restart preserves it.
 func ControlAPISpec() []byte {
-	b, err := assets.ReadFile("assets/openapi/control-api.yaml")
+	b, err := assets.ReadFile(assetsRoot + "/openapi/control-api.yaml")
 	if err != nil {
 		panic("provider-tck: control API spec missing from embedded assets: " + err.Error())
 	}
