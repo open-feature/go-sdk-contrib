@@ -4,3 +4,6 @@
 [submodule "providers/flagd/flagd-testbed"]
 	path = providers/flagd/flagd-testbed
 	url = https://github.com/open-feature/flagd-testbed.git
+[submodule "tools/provider-tck/pkg/tck/spec"]
+	path = tools/provider-tck/pkg/tck/spec
+	url = https://github.com/open-feature/spec

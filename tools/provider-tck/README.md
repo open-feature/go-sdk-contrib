@@ -66,8 +66,10 @@ stack's host ports do not exist until it is up.
 Each scenario becomes a Go subtest, so `-run` selects one the usual way and failures name a
 scenario.
 
-The canonical feature files and flag set are **embedded in this module**, so adopting it needs no
-git submodule of your own.
+The canonical feature files and flag set are **embedded in this module**, so **adopting it needs no
+git submodule of your own** — `go get` this module and everything the suite runs is already inside
+it. The submodule described under [The spec submodule](#the-spec-submodule) is a concern of
+contributors to *this* module, not of anyone consuming it.
 
 ### Timings
 
@@ -117,7 +119,9 @@ Step definitions never talk to a backend directly, which is why the same Gherkin
 against a containerised backend and against a provider manipulated in-process.
 
 **If your provider talks to a backend, drive it over the HTTP control API** in
-[`pkg/tck/assets/openapi/control-api.yaml`](./pkg/tck/assets/openapi/control-api.yaml). That API is
+[`specification/assets/provider-tck/openapi/control-api.yaml`][control-api], which this module
+carries at `pkg/tck/spec/specification/assets/provider-tck/openapi/control-api.yaml` and exposes as
+bytes through `tck.ControlAPISpec()`. That API is
 the normative contract for those providers, and it is what makes a conformance claim portable:
 another language's TCK drives the same endpoints against the same stack and must get the same
 answers.
@@ -147,6 +151,32 @@ Connection-dependent scenarios have no meaning without a connection, so a backen
 simply does not implement `tck.ConnectionControl`, leaves `Stale` and `UnavailableInit` undeclared,
 and those scenarios are skipped with their reason. Declaring the capability anyway fails loudly
 rather than silently passing — that is a test-configuration bug, not a provider defect.
+
+## The spec submodule
+
+The Gherkin, the canonical flag set and the control API are not owned by this repository. They are
+the language-agnostic definitions in [open-feature/spec][spec], and they reach this package through
+a git submodule of that repository at `pkg/tck/spec/`. Nothing is copied and nothing is generated:
+the `//go:embed` directives in `pkg/tck/assets.go` name paths inside the submodule, so the
+specification revision this suite conforms to is recorded by the submodule pin and by nothing else.
+
+**Adopters need no submodule.** The embedded copy is compiled into the package, so a provider
+consuming this module gets the assets with it.
+
+**Contributors to this module do.** Without the submodule checked out the embed patterns match no
+files and the package does not compile:
+
+```console
+git clone --recurse-submodules https://github.com/open-feature/go-sdk-contrib
+# or, in an existing clone
+git submodule update --init tools/provider-tck/pkg/tck/spec
+```
+
+CI checks out with `submodules: recursive` in both the `lint` and `test` jobs for the same reason.
+
+Changing a scenario, a flag or a control endpoint means changing it in `open-feature/spec` first and
+then advancing the pin here. Editing the submodule's working tree in place forks the definition of
+conformance, which is the one thing this suite exists to prevent.
 
 ## Go-specific translation notes
 
@@ -211,10 +241,6 @@ the SDK's provider rather than reimplementing it — every resolution decision i
 - **Evaluation context passthrough is unverifiable.** The scenarios build evaluation contexts but
   cannot assert one *reached* the backend. That needs an echo operation on the control API. Until
   then a provider that silently drops the context passes. `@targeting` is reserved for these.
-- **The assets are vendored, not submoduled.** `pkg/tck/assets/` is a copy of
-  `specification/assets/provider-tck/` in [open-feature/spec][spec]. Changes belong there and are
-  copied here; a follow-up will source them from a submodule at build time, the way
-  `providers/flagd` already consumes the spec repo.
 - **`POST /restart` is unused.** No current scenario needs a bounded outage — the stale scenario
   uses an explicit disconnect and reconnect — so `tck.ConnectionControl` has no `DisconnectFor`.
 - **Caching, hooks and flag metadata** are not covered.
@@ -222,5 +248,6 @@ the SDK's provider rather than reimplementing it — every resolution decision i
 [appendix-a]: https://github.com/open-feature/spec/blob/main/specification/appendix-a-included-utilities.md
 [appendix-b]: https://github.com/open-feature/spec/blob/main/specification/appendix-b-gherkin-suites.md
 [appendix-f]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md
+[control-api]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/openapi/control-api.yaml
 [spec]: https://github.com/open-feature/spec
 [tracking]: https://github.com/open-feature/spec/issues/417

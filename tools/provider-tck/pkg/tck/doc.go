@@ -39,8 +39,9 @@
 //
 // [BackendControl] is the single seam between the scenarios and whatever
 // manipulates the backend. Providers with a real backend drive it over the HTTP
-// control API defined in assets/openapi/control-api.yaml; providers with no
-// backend at all may use an in-process implementation such as
+// control API defined in the spec submodule, at
+// spec/specification/assets/provider-tck/openapi/control-api.yaml; providers
+// with no backend at all may use an in-process implementation such as
 // [InProcessControl]. The distinction matters and is not a matter of taste —
 // see the documentation on [BackendControl].
 //
