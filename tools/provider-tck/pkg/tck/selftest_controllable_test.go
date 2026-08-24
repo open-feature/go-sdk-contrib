@@ -34,8 +34,18 @@ func TestControllableProvider(t *testing.T) {
 		// connection to lose, and tck.InProcessControl does not implement
 		// tck.ConnectionControl. ConfigurationChange is the one this suite adds
 		// over TestInMemoryProvider, and it is the whole point of it.
+		//
+		// Lifecycle is declared here and nowhere else among the self-tests, and
+		// the reason is mechanical rather than a judgement call:
+		// tck.ControllableProvider implements openfeature.StateHandler, so the
+		// SDK calls Init and the client's READY is the observable outcome of
+		// that call. memprovider.InMemoryProvider does not, so the SDK
+		// manufactures its readiness — see TestInMemoryProvider. This is
+		// therefore the only suite that covers the @lifecycle steps without
+		// Docker, which is the same reason it exists for @configuration-change.
 		Capabilities: []tck.Capability{
 			tck.Events,
+			tck.Lifecycle,
 			tck.ConfigurationChange,
 			tck.Object,
 			tck.StrictNumericTyping,

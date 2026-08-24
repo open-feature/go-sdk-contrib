@@ -29,6 +29,37 @@ const (
 	// PROVIDER_READY once it has reached its backend.
 	Events Capability = "@events"
 
+	// Lifecycle means the provider performs an initialisation that reaches its
+	// backend, with an observable outcome: it becomes READY when the backend
+	// answers and settles into ERROR when it does not.
+	//
+	// It is deliberately separate from Events, and conflating the two is the
+	// mistake this vocabulary exists to prevent — the tag was wrong in both
+	// directions before it existed.
+	//
+	// Too lax, because declaring Events was enough to run the readiness
+	// scenario and the Go SDK synthesises PROVIDER_READY for any provider that
+	// does not implement openfeature.StateHandler, on the reasoning that "a
+	// provider without state handling capability can be assumed to be ready
+	// immediately". A provider with no initialisation therefore passed the
+	// scenario without demonstrating anything: a NoopProvider passes it
+	// identically. That is a green result for a claim never tested, which is
+	// exactly the failure mode this suite is built to make impossible.
+	//
+	// Too strict, because a stateless HTTP provider such as OFREP resolves
+	// every flag over the wire, emits no events of its own and so cannot
+	// declare Events — yet the readiness scenario is not really about events,
+	// and withholding Events skipped it for the wrong reason. Such a provider
+	// declares neither, and the lifecycle scenarios are reported as skipped
+	// rather than passing vacuously.
+	//
+	// Declare it when the provider has an initialisation whose outcome the
+	// client observes — in Go, when it implements openfeature.StateHandler and
+	// Init can fail. A provider that does not implement StateHandler cannot
+	// have it, however promptly its client reports READY, because the readiness
+	// it reports was manufactured by the SDK rather than by the provider.
+	Lifecycle Capability = "@lifecycle"
+
 	// Stale means the provider enters STALE and emits PROVIDER_STALE when it
 	// loses its backend, then returns to READY when it regains it.
 	Stale Capability = "@stale"
@@ -79,6 +110,7 @@ const (
 // canonical feature files carry organisational tags freely.
 var allCapabilities = []Capability{
 	Events,
+	Lifecycle,
 	Stale,
 	ConfigurationChange,
 	Object,
