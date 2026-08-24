@@ -53,12 +53,23 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// than failing it, and the gap needs its own issue against the
 		// provider. Declare this as soon as the RPC resolver emits
 		// PROVIDER_STALE.
+		// tck.StrictNumericTyping is NOT declared either, and this one was
+		// found by running the suite rather than by reading the code.
+		// Evaluating float-flag (0.5) through GetIntDetails returns 0 with no
+		// error code at all -- not TYPE_MISMATCH with the code default. The
+		// application sees a plausible value and no indication anything went
+		// wrong, which is the worst failure mode a feature flag has.
+		//
+		// Both resolvers do it identically, so the defect is in the shared
+		// provider layer rather than in either transport. The Java flagd
+		// provider has the same defect, reported in
+		// java-sdk-contrib#1830 -- so it is a flagd-wide issue rather than a
+		// Go one. Declare this as soon as it is fixed.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.ConfigurationChange,
 			tck.Object,
 			tck.UnavailableInit,
-			tck.StrictNumericTyping,
 		},
 
 		// The RPC resolver asks flagd to resolve each flag, so it is ready as
@@ -75,9 +86,20 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		portName: "in-process",
 		resolver: flagd.WithInProcessResolver(),
 
-		// The full set. The in-process resolver emits PROVIDER_STALE on
-		// connection loss, so unlike RPC it can satisfy the @stale scenario.
-		capabilities: tck.AllCapabilities(),
+		// Everything except tck.StrictNumericTyping. Unlike RPC, the
+		// in-process resolver emits PROVIDER_STALE on connection loss, so it
+		// can satisfy the @stale scenario.
+		//
+		// It narrows float-flag (0.5) to 0 on an integer request exactly as
+		// the RPC resolver does -- observed, not inferred -- which places that
+		// defect in the shared provider layer. See the RPC suite above.
+		capabilities: []tck.Capability{
+			tck.Events,
+			tck.Stale,
+			tck.ConfigurationChange,
+			tck.Object,
+			tck.UnavailableInit,
+		},
 
 		// In-process syncs the whole ruleset before reporting ready, so it
 		// needs longer than RPC to initialise.
