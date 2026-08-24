@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
@@ -174,6 +176,157 @@ func TestSpecRevisionIsRecorded(t *testing.T) {
 		t.Errorf("AssetsTree = %q, want a 40-character tree SHA; run `make provider-tck-assets`",
 			tck.AssetsTree)
 	}
+}
+
+// TestOutlineRowsAreDistinguishable is the property the example field exists to
+// establish.
+//
+// Every row of a Scenario Outline shares one feature and one name. The
+// type-mismatch matrix in errors.feature is eleven rows, so before the field
+// existed the report held eleven entries differing only in how long each took;
+// if one row failed and ten passed, nothing in the report said which. The
+// identity of a row is its parameters, so this asserts that feature, name and
+// example together are unique across the whole report -- which is exactly the
+// key a consumer needs to be able to use.
+func TestOutlineRowsAreDistinguishable(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	tck.Run(t, tck.Config{
+		Name:    "outline-identity",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		Capabilities: []tck.Capability{tck.Object},
+	})
+
+	report := readReport(t, filepath.Join(dir, "outline-identity.json"))
+
+	seen := map[string]bool{}
+	for _, scenario := range report.Scenarios {
+		key := scenarioKey(scenario)
+		if seen[key] {
+			t.Errorf("two entries share the identity %s; a Scenario Outline row is identified by "+
+				"its parameters, so a consumer keying on feature, name and example would keep "+
+				"only one of them", key)
+		}
+		seen[key] = true
+	}
+
+	// A report where nothing came from an outline would satisfy the loop above
+	// while asserting nothing, so the matrix itself is pinned: eleven rows,
+	// eleven different parameter sets.
+	const matrix = "Requesting the wrong type returns the code default"
+	examples := map[string]bool{}
+	rows := 0
+	for _, scenario := range report.Scenarios {
+		if scenario.Name != matrix {
+			continue
+		}
+		rows++
+		if len(scenario.Example) == 0 {
+			t.Errorf("row %d of %q carries no example, so it is indistinguishable from the others",
+				rows, matrix)
+			continue
+		}
+		examples[canonicalExample(scenario.Example)] = true
+	}
+	if rows == 0 {
+		t.Fatalf("no entry for %q; either the feature files changed or the suite did not run", matrix)
+	}
+	if len(examples) != rows {
+		t.Errorf("%d rows of %q produced %d distinct examples", rows, matrix, len(examples))
+	}
+
+	// The field is present only for outline rows. Emitting an empty object for an
+	// ordinary scenario would be a second thing for four implementations to agree
+	// on, and the schema asks for omission instead.
+	const ordinary = "An unknown flag key returns the code default"
+	found := false
+	for _, scenario := range report.Scenarios {
+		if scenario.Name != ordinary {
+			continue
+		}
+		found = true
+		if scenario.Example != nil {
+			t.Errorf("%q is not a Scenario Outline but carries example %v", ordinary, scenario.Example)
+		}
+	}
+	if !found {
+		t.Errorf("no entry for %q, so the omission of example was not checked", ordinary)
+	}
+}
+
+// TestSkippedOutlineRowsCarryTheirExample covers the capability gate, which
+// records its outcome before the scenario runs and so is a second place the
+// example has to be filled in.
+//
+// A skipped outline row is exactly as ambiguous as a failed one: the four rows
+// of the @object outline are four entries that differ in nothing without it.
+func TestSkippedOutlineRowsCarryTheirExample(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	tck.Run(t, tck.Config{
+		Name:    "skipped-outline",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		// Empty rather than nil: a nil Capabilities means "declare everything",
+		// and what this test needs is a provider that declares nothing, so the
+		// @object outline is gated in the Before hook and never starts.
+		Capabilities: []tck.Capability{},
+	})
+
+	report := readReport(t, filepath.Join(dir, "skipped-outline.json"))
+
+	const outline = "Requesting a structured flag as a scalar returns the code default"
+	examples := map[string]bool{}
+	rows := 0
+	for _, scenario := range report.Scenarios {
+		if scenario.Name != outline {
+			continue
+		}
+		rows++
+		if scenario.Outcome != tck.OutcomeNotDeclared {
+			t.Errorf("%q was reported as %q; @object was not declared", outline, scenario.Outcome)
+		}
+		if len(scenario.Example) == 0 {
+			t.Errorf("a skipped row of %q carries no example, so the report cannot say which row "+
+				"was skipped", outline)
+			continue
+		}
+		examples[canonicalExample(scenario.Example)] = true
+	}
+	if rows == 0 {
+		t.Fatalf("no entry for %q; the capability gate did not record it at all", outline)
+	}
+	if len(examples) != rows {
+		t.Errorf("%d skipped rows of %q produced %d distinct examples", rows, outline, len(examples))
+	}
+}
+
+// scenarioKey is the identity of a report entry: feature, name and example.
+func scenarioKey(scenario tck.ReportScenario) string {
+	return scenario.Feature + "/" + scenario.Name + "/" + canonicalExample(scenario.Example)
+}
+
+// canonicalExample renders an example so two of them compare equal exactly when
+// their parameters do, independently of map iteration order.
+func canonicalExample(example map[string]string) string {
+	keys := make([]string, 0, len(example))
+	for key := range example {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	parts := make([]string, 0, len(keys))
+	for _, key := range keys {
+		parts = append(parts, key+"="+example[key])
+	}
+	return strings.Join(parts, "\x00")
 }
 
 func readReport(t *testing.T, path string) tck.Report {
