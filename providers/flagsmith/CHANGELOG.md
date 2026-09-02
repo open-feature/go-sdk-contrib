@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagsmith/v0.1.6...providers/flagsmith/v0.1.7) (2026-09-02)
+
+
+### 🐛 Bug Fixes
+
+* **flagsmith:** handle float64 values in FloatEvaluation ([#933](https://github.com/open-feature/go-sdk-contrib/issues/933)) ([10665a1](https://github.com/open-feature/go-sdk-contrib/commit/10665a1c9da0371dc4b9bdd6c51b45a4e6e18aa9))
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.5 [security] ([#905](https://github.com/open-feature/go-sdk-contrib/issues/905)) ([d09a6ab](https://github.com/open-feature/go-sdk-contrib/commit/d09a6ab662a6910811f7ba623c0a5ae3578287d9))
+
 ## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagsmith/v0.1.5...providers/flagsmith/v0.1.6) (2026-05-01)
 
 
