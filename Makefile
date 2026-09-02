@@ -12,6 +12,17 @@ workspace-init:
 workspace-update:
 	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module) &&) true
 
+# Regenerate the provider TCK's conformance artifacts from the spec submodule.
+# They are committed because Go module zips are built from the VCS tree, where a
+# submodule is only a gitlink -- embedding straight from it would ship an empty
+# directory to anyone running `go get`. CI runs this and fails on a diff, so the
+# committed copies cannot drift from the submodule.
+provider-tck-assets:
+	cd tools/provider-tck && go run ./sync_assets.go
+
+provider-tck-assets-check: provider-tck-assets
+	git diff --exit-code -- tools/provider-tck/pkg/tck/assets
+
 test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
 

@@ -25,6 +25,12 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # tools/provider-tck embeds the conformance assets straight out of the
+          # open-feature/spec submodule, so without the submodule the //go:embed
+          # patterns match nothing and the package fails to compile — lint reports
+          # it as a build error rather than as a missing checkout.
+          submodules: recursive
       - name: Setup Environment
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
@@ -39,6 +45,12 @@ jobs:
           key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
       - name: Run workspace init
         run: make workspace-init
+      # The provider TCK's conformance artifacts are generated from the spec
+      # submodule and committed, because Go module zips exclude submodule content.
+      # This fails if the committed copies have drifted from the submodule, so the
+      # definition of conformance cannot be edited locally without being caught.
+      - name: Check provider-tck assets are in sync with the spec submodule
+        run: make provider-tck-assets-check
       - name: Run Vulncheck
         continue-on-error: true
         run: make vulncheck
