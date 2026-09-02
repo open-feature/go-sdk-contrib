@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/from-env/v0.1.6...providers/from-env/v0.1.7) (2026-09-02)
+
+
+### 🐛 Bug Fixes
+
+* **from-env:** safely compare complex criteria values ([#927](https://github.com/open-feature/go-sdk-contrib/issues/927)) ([e59150a](https://github.com/open-feature/go-sdk-contrib/commit/e59150a5f1361ff1aaaf9ae23334d3326d3d0eea))
+
 ## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/from-env/v0.1.5...providers/from-env/v0.1.6) (2025-10-30)
 
 
