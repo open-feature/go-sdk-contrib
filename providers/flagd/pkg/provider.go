@@ -217,7 +217,7 @@ func (p *Provider) IntEvaluation(
 }
 
 func (p *Provider) ObjectEvaluation(
-	ctx context.Context, flagKey string, defaultValue interface{}, evalCtx of.FlattenedContext,
+	ctx context.Context, flagKey string, defaultValue any, evalCtx of.FlattenedContext,
 ) of.InterfaceResolutionDetail {
 	return p.service.ResolveObject(ctx, flagKey, defaultValue, evalCtx)
 }
