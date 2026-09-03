@@ -104,7 +104,9 @@ Configuration can be provided as constructor options or as environment variables
 | WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
 | WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | file                |
 | WithProviderID                                           | FLAGD_SOURCE_PROVIDER_ID       | string                      | ""        | in-process          |
-| WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          | 
+| WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          |
+| WithStreamDeadline                                       | FLAGD_STREAM_DEADLINE_MS       | int                         | 600000    | rpc & in-process    |
+| WithKeepAliveTime                                        | FLAGD_KEEP_ALIVE_TIME_MS       | long                        | 0         | rpc & in-process    | 
 
 > **Note:** For the in-process resolver, `FLAGD_SYNC_PORT` takes priority over `FLAGD_PORT`. The `FLAGD_PORT` environment variable is still supported for backwards compatibility. 
 

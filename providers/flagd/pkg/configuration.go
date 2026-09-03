@@ -35,6 +35,8 @@ const (
 	defaultGracePeriod      = 10
 	defaultFatalStatusCodes = ""
 	defaultInitDeadlineMs   = 500
+	defaultStreamDeadlineMs = 600000
+	defaultKeepAliveMs      = 0
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -59,6 +61,8 @@ const (
 	flagdRetryBackoffMaxMsVariableName                = "FLAGD_RETRY_BACKOFF_MAX_MS"
 	flagdFatalStatusCodesVariableName                 = "FLAGD_FATAL_STATUS_CODES"
 	flagdDeadlineMsEnvironmentVariableName            = "FLAGD_DEADLINE_MS"
+	flagdStreamDeadlineMsEnvironmentVariableName      = "FLAGD_STREAM_DEADLINE_MS"
+	flagdKeepAliveTimeMsEnvironmentVariableName       = "FLAGD_KEEP_ALIVE_TIME_MS"
 )
 
 type ProviderConfiguration struct {
@@ -84,6 +88,8 @@ type ProviderConfiguration struct {
 	RetryBackoffMaxMs                int
 	FatalStatusCodes                 []string
 	DeadlineMs                       int
+	StreamDeadlineMs                 int
+	KeepAliveTime                    int64
 
 	log logr.Logger
 }
@@ -101,6 +107,8 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		RetryBackoffMs:                   DefaultRetryBackoffMs,
 		RetryBackoffMaxMs:                DefaultRetryBackoffMaxMs,
 		DeadlineMs:                       defaultInitDeadlineMs,
+		StreamDeadlineMs:                 defaultStreamDeadlineMs,
+		KeepAliveTime:                    defaultKeepAliveMs,
 	}
 
 	p.updateFromEnvVar()
@@ -222,6 +230,10 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	cfg.RetryBackoffMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMsVariableName, DefaultRetryBackoffMs, cfg.log)
 	cfg.RetryBackoffMaxMs = getIntFromEnvVarOrDefault(flagdRetryBackoffMaxMsVariableName, DefaultRetryBackoffMaxMs, cfg.log)
 	cfg.DeadlineMs = getIntFromEnvVarOrDefault(flagdDeadlineMsEnvironmentVariableName, defaultInitDeadlineMs, cfg.log)
+	cfg.StreamDeadlineMs = getIntFromEnvVarOrDefault(
+		flagdStreamDeadlineMsEnvironmentVariableName, defaultStreamDeadlineMs, cfg.log)
+	cfg.KeepAliveTime = int64(getIntFromEnvVarOrDefault(
+		flagdKeepAliveTimeMsEnvironmentVariableName, defaultKeepAliveMs, cfg.log))
 
 	var fatalStatusCodes string
 	if envVal := os.Getenv(flagdFatalStatusCodesVariableName); envVal != "" {
@@ -497,5 +509,23 @@ func WithFatalStatusCodes(fatalStatusCodes []string) ProviderOption {
 func WithDeadline(deadlineMs int) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.DeadlineMs = deadlineMs
+	}
+}
+
+// WithStreamDeadline sets the deadline (in ms) for streaming calls in the rpc and in-process resolvers.
+// It acts as an application-layer keepalive: once the deadline elapses the stream is recycled (a fresh
+// stream is opened) rather than being left open indefinitely. Set to 0 to disable. Defaults to 600000ms.
+func WithStreamDeadline(streamDeadlineMs int) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.StreamDeadlineMs = streamDeadlineMs
+	}
+}
+
+// WithKeepAliveTime sets the HTTP/2 keepalive time (in ms) for the rpc and in-process resolvers. When
+// greater than 0, a keepalive ping is sent on the connection after it has been idle for this duration.
+// Set to 0 to disable. Defaults to 0.
+func WithKeepAliveTime(keepAliveMs int64) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.KeepAliveTime = keepAliveMs
 	}
 }
