@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -223,9 +224,11 @@ type testServer struct {
 	evaluationv2connect.UnimplementedServiceHandler
 	eventStreamErrors    chan error
 	eventStreamResponses chan *evaluation.EventStreamResponse
+	eventStreamCalls     atomic.Int32
 }
 
 func (f *testServer) EventStream(ctx context.Context, req *connect.Request[evaluation.EventStreamRequest], stream *connect.ServerStream[evaluation.EventStreamResponse]) error {
+	f.eventStreamCalls.Add(1)
 	for {
 		select {
 		case rsp := <-f.eventStreamResponses:
@@ -263,4 +266,83 @@ func runTestServer(t *testing.T) (*testServer, Configuration) {
 	}
 	cfg := Configuration{Host: host, Port: uint16(port)}
 	return ts, cfg
+}
+
+// TestNewClientConfiguresHTTP2KeepAlive verifies that enabling KeepAliveTime configures the HTTP/2
+// transport without error, for both plaintext and TLS clients.
+func TestNewClientConfiguresHTTP2KeepAlive(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		tls  bool
+	}{
+		{name: "plaintext", tls: false},
+		{name: "tls", tls: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client, err := newClient(Configuration{
+				Host:          "localhost",
+				Port:          8013,
+				TLSEnabled:    tc.tls,
+				KeepAliveTime: 1000,
+			})
+			if err != nil {
+				t.Fatalf("newClient with KeepAliveTime returned unexpected error: %v", err)
+			}
+			if client == nil {
+				t.Fatal("expected non-nil client")
+			}
+		})
+	}
+}
+
+// TestRPCStreamDeadlineRecyclesWithoutError verifies that when the configured stream deadline elapses,
+// the event stream is recycled (a new EventStream call is made) without surfacing a ProviderError.
+func TestRPCStreamDeadlineRecyclesWithoutError(t *testing.T) {
+	checkGoroutineLeaks(t)
+
+	var log logr.Logger
+	cacheService := cache.NewCacheService(cache.LRUValue, 10, log)
+
+	srv, cfg := runTestServer(t)
+	cfg.StreamDeadlineMs = 200 // short deadline so the stream is recycled quickly
+	srv.eventStreamResponses <- &evaluation.EventStreamResponse{
+		Type: string(flagdService.ProviderReady),
+	}
+
+	service := NewService(cfg, cacheService, log, 3 /*=retries*/)
+	if err := service.Init(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(service.Shutdown)
+
+	channel := service.EventChannel()
+
+	// Wait for the provider to become ready.
+	select {
+	case event := <-channel:
+		if event.EventType != of.ProviderReady {
+			t.Fatalf("expected ProviderReady, got %s with message %s", event.EventType, event.Message)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("provider did not become ready within acceptable timeframe")
+	}
+
+	// After the stream deadline elapses the stream should be recycled: a second EventStream call is made
+	// and no ProviderError event is emitted in the meantime.
+	recycled := false
+	timeout := time.After(4 * time.Second)
+	for !recycled {
+		select {
+		case event := <-channel:
+			if event.EventType == of.ProviderError {
+				t.Fatalf("unexpected ProviderError during stream recycle: %s", event.Message)
+			}
+		case <-time.After(100 * time.Millisecond):
+			if srv.eventStreamCalls.Load() >= 2 {
+				recycled = true
+			}
+		case <-timeout:
+			t.Fatalf("stream was not recycled within timeout; eventStreamCalls=%d", srv.eventStreamCalls.Load())
+		}
+	}
 }
