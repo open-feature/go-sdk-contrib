@@ -55,10 +55,10 @@ type InProcess struct {
 	shutdownOnce     sync.Once
 
 	// Stateless coordination using sync.Once
-	initOnce            sync.Once
-	readyMu             sync.Mutex
-	ready               bool
-	staleTimer          *staleTimer
+	initOnce   sync.Once
+	readyMu    sync.Mutex
+	ready      bool
+	staleTimer *staleTimer
 }
 
 // shutdownChannels groups all shutdown-related channels
@@ -119,6 +119,8 @@ type Configuration struct {
 	RetryBackOffMaxMs       int
 	FatalStatusCodes        []string
 	DeadlineMs              int
+	StreamDeadlineMs        int
+	KeepAliveTime           int64
 }
 
 // EventSync interface for sync providers that support events
@@ -146,15 +148,15 @@ func NewInProcessService(cfg Configuration) *InProcess {
 	flagStore.FlagSources = append(flagStore.FlagSources, uri)
 
 	return &InProcess{
-		evaluator:           evaluator.NewJSON(log, flagStore),
-		flagStore:           flagStore,
-		syncProvider:        syncProvider,
-		logger:              log,
-		configuration:       cfg,
-		serviceMetadata:     createServiceMetadata(cfg),
-		events:              make(chan of.Event, eventChannelBuffer),
-		staleTimer:          newStaleTimer(),
-		deadlineMs:          cfg.DeadlineMs,
+		evaluator:       evaluator.NewJSON(log, flagStore),
+		flagStore:       flagStore,
+		syncProvider:    syncProvider,
+		logger:          log,
+		configuration:   cfg,
+		serviceMetadata: createServiceMetadata(cfg),
+		events:          make(chan of.Event, eventChannelBuffer),
+		staleTimer:      newStaleTimer(),
+		deadlineMs:      cfg.DeadlineMs,
 	}
 }
 
@@ -754,6 +756,8 @@ func createSyncProvider(cfg Configuration, log *logger.Logger) (isync.ISync, str
 		FatalStatusCodes:        cfg.FatalStatusCodes,
 		RetryBackOffMaxMs:       cfg.RetryBackOffMaxMs,
 		RetryBackOffMs:          cfg.RetryBackOffMs,
+		StreamDeadlineMs:        cfg.StreamDeadlineMs,
+		KeepAliveTime:           cfg.KeepAliveTime,
 	}, uri
 }
 

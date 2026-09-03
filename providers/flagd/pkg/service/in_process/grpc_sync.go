@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	msync "sync"
 	"time"
@@ -42,6 +43,8 @@ type Sync struct {
 	RetryGracePeriod        int
 	RetryBackOffMs          int
 	RetryBackOffMaxMs       int
+	StreamDeadlineMs        int
+	KeepAliveTime           int64
 	FatalStatusCodes        []string
 
 	// Runtime state
@@ -127,8 +130,12 @@ func (g *Sync) buildDialOptions() ([]grpc.DialOption, error) {
 	}
 
 	// Keepalive settings for connection health
+	keepaliveTime := defaultKeepaliveTime
+	if g.KeepAliveTime > 0 {
+		keepaliveTime = time.Duration(g.KeepAliveTime) * time.Millisecond
+	}
 	keepaliveParams := keepalive.ClientParameters{
-		Time:                defaultKeepaliveTime,
+		Time:                keepaliveTime,
 		Timeout:             defaultKeepaliveTimeout,
 		PermitWithoutStream: true,
 	}
@@ -230,9 +237,16 @@ func (g *Sync) Sync(ctx context.Context, dataSync chan<- sync.DataSync) error {
 func (g *Sync) performSyncCycle(ctx context.Context, dataSync chan<- sync.DataSync) error {
 	g.Logger.Debug("creating new sync stream")
 
+	streamCtx := ctx
+	if g.StreamDeadlineMs > 0 {
+		var cancel context.CancelFunc
+		streamCtx, cancel = context.WithTimeout(ctx, time.Duration(g.StreamDeadlineMs)*time.Millisecond)
+		defer cancel()
+	}
+
 	// Create sync stream with wait-for-ready to handle connection issues gracefully
 	stream, err := g.client.SyncFlags(
-		ctx,
+		streamCtx,
 		&v1.SyncFlagsRequest{
 			ProviderId: g.ProviderID,
 			Selector:   g.Selector,
@@ -246,7 +260,16 @@ func (g *Sync) performSyncCycle(ctx context.Context, dataSync chan<- sync.DataSy
 	g.Logger.Info("sync stream established, starting to receive flags")
 
 	// Handle the stream with proper context cancellation
-	return g.handleFlagSync(ctx, stream, dataSync)
+	err = g.handleFlagSync(streamCtx, stream, dataSync)
+
+	// If the configured stream deadline elapsed (and the parent context is still live), this is an
+	// intentional stream recycle - signal a clean cycle so the caller reconnects without error/backoff.
+	if g.StreamDeadlineMs > 0 && errors.Is(streamCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+		g.Logger.Debug("stream deadline reached, recycling sync stream")
+		return nil
+	}
+
+	return err
 }
 
 // handleFlagSync processes messages from the sync stream with proper context handling

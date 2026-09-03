@@ -10,7 +10,7 @@ import (
 
 const (
 	// Default timeouts for keepalive settings
-	defaultKeepaliveTime    = 30 * time.Second
+	defaultKeepaliveTime    = 0 * time.Second
 	defaultKeepaliveTimeout = 5 * time.Second
 	// Default retry intervals per https://flagd.dev/reference/specifications/providers/#configuration
 	DefaultRetryBackoffMs    = 1000 // 1 second

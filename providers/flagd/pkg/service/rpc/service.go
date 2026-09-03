@@ -22,6 +22,7 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/net/context"
+	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -33,14 +34,16 @@ const (
 var ErrClientNotReady = of.NewProviderNotReadyResolutionError(ClientNotReadyMsg)
 
 type Configuration struct {
-	Port            uint16
-	Host            string
-	CertificatePath string
-	SocketPath      string
-	TLSEnabled      bool
-	OtelInterceptor bool
-	DeadlineMs      int
-	Selector        string
+	Port             uint16
+	Host             string
+	CertificatePath  string
+	SocketPath       string
+	TLSEnabled       bool
+	OtelInterceptor  bool
+	DeadlineMs       int
+	StreamDeadlineMs int
+	KeepAliveTime    int64
+	Selector         string
 }
 
 // Service handles the client side  interface for the flagd server
@@ -573,7 +576,16 @@ func (s *Service) signalStreamReady(err error) {
 
 // streamClient opens the event stream and distribute streams to appropriate handlers.
 func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) error {
-	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
+	// Apply the stream deadline as an application-layer keepalive: once it elapses the stream is
+	// recycled (closed and reopened by the retry loop) rather than being left open indefinitely.
+	streamCtx := ctx
+	if s.cfg.StreamDeadlineMs > 0 {
+		var cancel context.CancelFunc
+		streamCtx, cancel = context.WithTimeout(ctx, time.Duration(s.cfg.StreamDeadlineMs)*time.Millisecond)
+		defer cancel()
+	}
+
+	stream, err := s.client.EventStream(streamCtx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
 	if err != nil {
 		return err
 	}
@@ -605,6 +617,13 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	if err := stream.Err(); err != nil {
+		// If the configured stream deadline elapsed (and the parent context is still live), this is an
+		// intentional stream recycle - reconnect gracefully without surfacing a provider error.
+		if s.cfg.StreamDeadlineMs > 0 && errors.Is(streamCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+			s.logger.V(logger.Debug).Info("stream deadline reached, recycling event stream")
+			return nil
+		}
+
 		s.sendEvent(ctx, of.Event{
 			ProviderName: "flagd",
 			EventType:    of.ProviderError,
@@ -727,13 +746,22 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 		options = append(options, connect.WithInterceptors(newSelectorInterceptor(cfg.Selector)))
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext:     dialContext,
+	}
+
+	// Enable HTTP/2 keepalive pings when configured.
+	if cfg.KeepAliveTime > 0 {
+		http2Transport, err := http2.ConfigureTransports(transport)
+		if err != nil {
+			return nil, err
+		}
+		http2Transport.ReadIdleTimeout = time.Duration(cfg.KeepAliveTime) * time.Millisecond
+	}
+
 	return schemaConnectV2.NewServiceClient(
-		&http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-				DialContext:     dialContext,
-			},
-		},
+		&http.Client{Transport: transport},
 		url,
 		options...,
 	), nil
