@@ -307,8 +307,9 @@ func TestLoggerFormat(t *testing.T) {
 
 	assert.Ok(t, err)
 	assert.Equals(t, 1, len(spy.warnCalls))
-	assert.Equals(t, "multi-context: unexpected type in top-level attribute: organization", spy.warnCalls[0].msg)
-	assert.Equals(t, 0, len(spy.warnCalls[0].args))
+	assert.Equals(t, "multi-context: unexpected type in top-level attribute", spy.warnCalls[0].msg)
+	assert.Equals(t, 2, len(spy.warnCalls[0].args))
+	assert.Equals(t, "organization", spy.warnCalls[0].args[1])
 }
 
 // mockLDClient can be a struct that implements the LDClient interface for testing.
