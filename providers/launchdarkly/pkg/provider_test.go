@@ -313,6 +313,35 @@ func TestLoggerFormat(t *testing.T) {
 	assert.Equals(t, "organization", spy.warnCalls[0].args[1])
 }
 
+func TestToMultiLDContext(t *testing.T) {
+	t.Run("does not warn about the reserved targeting key attribute", func(t *testing.T) {
+		spy := &spyLogger{}
+		p := &Provider{options: options{kindAttr: "kind", l: spy}}
+
+		_, err := p.toMultiLDContext(openfeature.FlattenedContext{
+			"kind":                   "multi",
+			openfeature.TargetingKey: "user-123",
+			"organization":           map[string]any{"key": "org-1"},
+		})
+
+		assert.Ok(t, err)
+		assert.Equals(t, 0, len(spy.warnCalls))
+	})
+
+	t.Run("still warns about a genuinely malformed top-level attribute", func(t *testing.T) {
+		spy := &spyLogger{}
+		p := &Provider{options: options{kindAttr: "kind", l: spy}}
+
+		_, err := p.toMultiLDContext(openfeature.FlattenedContext{
+			"kind":         "multi",
+			"organization": "not-a-map",
+		})
+
+		assert.Ok(t, err)
+		assert.Equals(t, 1, len(spy.warnCalls))
+	})
+}
+
 // mockLDClient can be a struct that implements the LDClient interface for testing.
 type mockLDClient struct {
 	ld.LDClient // Embedding the real client can be useful for mocking only specific methods
