@@ -3,6 +3,7 @@ package launchdarkly
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -16,25 +17,25 @@ import (
 )
 
 type testLogger struct {
-	t *testing.T
+	l *slog.Logger
 }
 
 func newTestLogger(t *testing.T) Logger {
 	return &testLogger{
-		t: t,
+		l: slog.New(slog.NewTextHandler(t.Output(), nil)),
 	}
 }
 
 func (l *testLogger) Debug(msg string, args ...any) {
-	l.t.Logf(msg, args...)
+	l.l.Debug(msg, args...)
 }
 
 func (l *testLogger) Error(msg string, args ...any) {
-	l.t.Logf(msg, args...)
+	l.l.Error(msg, args...)
 }
 
 func (l *testLogger) Warn(msg string, args ...any) {
-	l.t.Logf(msg, args...)
+	l.l.Warn(msg, args...)
 }
 
 type loggedCall struct {
