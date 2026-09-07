@@ -37,6 +37,21 @@ func (l *testLogger) Warn(msg string, args ...any) {
 	l.t.Logf(msg, args...)
 }
 
+type loggedCall struct {
+	msg  string
+	args []any
+}
+
+type spyLogger struct {
+	warnCalls []loggedCall
+}
+
+func (l *spyLogger) Debug(msg string, args ...any) {}
+func (l *spyLogger) Error(msg string, args ...any) {}
+func (l *spyLogger) Warn(msg string, args ...any) {
+	l.warnCalls = append(l.warnCalls, loggedCall{msg: msg, args: args})
+}
+
 func makeLDClient(t *testing.T, flagsFilePath string) *ld.LDClient {
 	var config ld.Config
 	config.DataSource = ldfiledata.DataSource().FilePaths(flagsFilePath)
@@ -279,6 +294,21 @@ func TestContextCancellation(t *testing.T) {
 	cancel()
 	_, err = client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, errors.New("GENERAL: context canceled"), errors.Unwrap(err))
+}
+
+func TestLoggerFormat(t *testing.T) {
+	spy := &spyLogger{}
+	p := &Provider{options: options{kindAttr: "kind", l: spy}}
+
+	_, err := p.toMultiLDContext(openfeature.FlattenedContext{
+		"kind":         "multi",
+		"organization": "not-a-map",
+	})
+
+	assert.Ok(t, err)
+	assert.Equals(t, 1, len(spy.warnCalls))
+	assert.Equals(t, "multi-context: unexpected type in top-level attribute: organization", spy.warnCalls[0].msg)
+	assert.Equals(t, 0, len(spy.warnCalls[0].args))
 }
 
 // mockLDClient can be a struct that implements the LDClient interface for testing.
