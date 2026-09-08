@@ -3,6 +3,7 @@ package launchdarkly
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -16,25 +17,40 @@ import (
 )
 
 type testLogger struct {
-	t *testing.T
+	l *slog.Logger
 }
 
 func newTestLogger(t *testing.T) Logger {
 	return &testLogger{
-		t: t,
+		l: slog.New(slog.NewTextHandler(t.Output(), nil)),
 	}
 }
 
 func (l *testLogger) Debug(msg string, args ...any) {
-	l.t.Logf(msg, args...)
+	l.l.Debug(msg, args...)
 }
 
 func (l *testLogger) Error(msg string, args ...any) {
-	l.t.Logf(msg, args...)
+	l.l.Error(msg, args...)
 }
 
 func (l *testLogger) Warn(msg string, args ...any) {
-	l.t.Logf(msg, args...)
+	l.l.Warn(msg, args...)
+}
+
+type loggedCall struct {
+	msg  string
+	args []any
+}
+
+type spyLogger struct {
+	warnCalls []loggedCall
+}
+
+func (l *spyLogger) Debug(msg string, args ...any) {}
+func (l *spyLogger) Error(msg string, args ...any) {}
+func (l *spyLogger) Warn(msg string, args ...any) {
+	l.warnCalls = append(l.warnCalls, loggedCall{msg: msg, args: args})
 }
 
 func makeLDClient(t *testing.T, flagsFilePath string) *ld.LDClient {
@@ -279,6 +295,22 @@ func TestContextCancellation(t *testing.T) {
 	cancel()
 	_, err = client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, errors.New("GENERAL: context canceled"), errors.Unwrap(err))
+}
+
+func TestLoggerFormat(t *testing.T) {
+	spy := &spyLogger{}
+	p := &Provider{options: options{kindAttr: "kind", l: spy}}
+
+	_, err := p.toMultiLDContext(openfeature.FlattenedContext{
+		"kind":         "multi",
+		"organization": "not-a-map",
+	})
+
+	assert.Ok(t, err)
+	assert.Equals(t, 1, len(spy.warnCalls))
+	assert.Equals(t, "multi-context: unexpected type in top-level attribute", spy.warnCalls[0].msg)
+	assert.Equals(t, 2, len(spy.warnCalls[0].args))
+	assert.Equals(t, "organization", spy.warnCalls[0].args[1])
 }
 
 // mockLDClient can be a struct that implements the LDClient interface for testing.
