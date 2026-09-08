@@ -1,6 +1,7 @@
 package testframework
 
 import (
+	"sync"
 	"time"
 
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
@@ -49,6 +50,39 @@ type EventRecord struct {
 	Details   openfeature.EventDetails
 }
 
+// EventLog records every event received during a scenario
+type EventLog struct {
+	mu     sync.Mutex
+	events []EventRecord
+}
+
+// Record appends an event to the log
+func (l *EventLog) Record(event EventRecord) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.events = append(l.events, event)
+}
+
+// Contains reports whether an event of the given type was recorded, along with
+// the first matching record
+func (l *EventLog) Contains(eventType string) (EventRecord, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for _, event := range l.events {
+		if event.Type == eventType {
+			return event, true
+		}
+	}
+	return EventRecord{}, false
+}
+
+// Clear drops all recorded events
+func (l *EventLog) Clear() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.events = nil
+}
+
 // TestState holds all test state shared across step definitions
 type TestState struct {
 	// Provider configuration
@@ -73,6 +107,7 @@ type TestState struct {
 	// Event tracking
 	EventChannel chan EventRecord // Single channel for all events
 	LastEvent    *EventRecord     // Store the last received event for multiple step access
+	EventLog     *EventLog        // Store all events of scenario
 
 	// Container/testbed state
 	Container    TestContainer
