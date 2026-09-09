@@ -218,6 +218,15 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flag string, defaultValu
 
 	misMatchResolutionErr := of.NewTypeMismatchResolutionError(fmt.Sprintf("flagsmith: Value %v is not a valid float", res.Value))
 
+	// Because `encoding/json` uses float64 for JSON numbers
+	// ref: https://pkg.go.dev/encoding/json#Unmarshal
+	if value, ok := res.Value.(float64); ok {
+		return of.FloatResolutionDetail{
+			Value:                    value,
+			ProviderResolutionDetail: res.ProviderResolutionDetail,
+		}
+	}
+
 	// Because We store floats as string
 	stringValue, ok := res.Value.(string)
 	if !ok {

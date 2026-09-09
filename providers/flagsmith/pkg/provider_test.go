@@ -164,7 +164,22 @@ const FlagsJson = `
         "environment": 1,
         "identity": null,
         "feature_segment": null
-    }
+    },
+	{
+    "id": 6,
+    "feature": {
+        "id": 6,
+        "name": "numeric_flag",
+        "default_enabled": true,
+        "type": "STANDARD",
+        "project": 1
+    },
+    "feature_state_value": 100,
+    "enabled": true,
+    "environment": 1,
+    "identity": null,
+    "feature_segment": null
+}
 ]`
 
 const IdentityResponseJson = `{
@@ -452,6 +467,16 @@ func TestFloatEvaluation(t *testing.T) {
 				of.TargetingKey: Identifier,
 				TraitKey:        TraitValue,
 			},
+		},
+		{
+			// The Flagsmith API returns integer values as native JSON numbers,
+			// which encoding/json decodes as float64.
+			name:                "Should resolve a numeric JSON value as float",
+			flagKey:             "numeric_flag",
+			expectedValue:       float64(100),
+			expectederrorString: "",
+			expectedErrorCode:   "",
+			reason:              of.StaticReason,
 		},
 	}
 
