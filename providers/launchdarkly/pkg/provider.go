@@ -105,7 +105,7 @@ func (p *Provider) toMultiLDContext(evalCtx openfeature.FlattenedContext) (ldcon
 			continue
 		}
 
-		p.l.Debug("mapping %q context kind", key)
+		p.l.Debug("mapping context kind", "kind", key)
 		if innerCtx, ok := attrs.(map[string]any); ok {
 			ctx, err := p.mapContext(ldcontext.Kind(key), openfeature.FlattenedContext(innerCtx))
 			if err != nil {
@@ -113,7 +113,7 @@ func (p *Provider) toMultiLDContext(evalCtx openfeature.FlattenedContext) (ldcon
 			}
 			ldCtx.Add(ctx)
 		} else {
-			p.l.Warn("multi-context: unexpected type in top-level attribute: %s", key)
+			p.l.Warn("multi-context: unexpected type in top-level attribute", "key", key)
 		}
 	}
 
@@ -173,7 +173,7 @@ func (p *Provider) toLDContext(evalCtx openfeature.FlattenedContext) (ldcontext.
 	if ok && strings.Trim(k, " ") != "" {
 		kind = ldcontext.Kind(k)
 	} else {
-		p.l.Warn("no context kind set, setting %q by default", kind)
+		p.l.Warn("no context kind set, using default", "kind", kind)
 	}
 
 	if kind == ldcontext.MultiKind {
@@ -224,7 +224,7 @@ func (p *Provider) toResolutionError(errorKind ldreason.EvalErrorKind, reason st
 // toProviderResolutionDetail maps LaunchDarkly's flag resolution details to
 // OPen
 func (p *Provider) toProviderResolutionDetail(detail ldreason.EvaluationDetail) openfeature.ProviderResolutionDetail {
-	p.l.Debug("launchdarkly evaluation detail: %v", detail)
+	p.l.Debug("launchdarkly evaluation detail", "detail", detail)
 
 	ofDetail := openfeature.ProviderResolutionDetail{
 		Reason: p.toReason(detail.Reason.GetKind()),
@@ -288,7 +288,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flagKey string, defaul
 
 	value, detail, err := p.client.BoolVariationDetail(flagKey, ldCtx, defaultValue)
 	if err != nil {
-		p.l.Error("boolean evaluation: %s", err)
+		p.l.Error("boolean evaluation error", "error", err)
 	}
 
 	return openfeature.BoolResolutionDetail{
@@ -309,7 +309,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flagKey string, default
 
 	value, detail, err := p.client.StringVariationDetail(flagKey, ldCtx, defaultValue)
 	if err != nil {
-		p.l.Error("string evaluation: %s", err)
+		p.l.Error("string evaluation error", "error", err)
 	}
 
 	return openfeature.StringResolutionDetail{
@@ -330,7 +330,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flagKey string, defaultV
 
 	value, detail, err := p.client.Float64VariationDetail(flagKey, ldCtx, defaultValue)
 	if err != nil {
-		p.l.Error("float evaluation: %s", err)
+		p.l.Error("float evaluation error", "error", err)
 	}
 
 	return openfeature.FloatResolutionDetail{
@@ -351,7 +351,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flagKey string, defaultVal
 
 	value, detail, err := p.client.IntVariationDetail(flagKey, ldCtx, int(defaultValue))
 	if err != nil {
-		p.l.Error("int evaluation: %s", err)
+		p.l.Error("int evaluation error", "error", err)
 	}
 
 	return openfeature.IntResolutionDetail{
@@ -372,7 +372,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flagKey string, default
 
 	value, detail, err := p.client.JSONVariationDetail(flagKey, ldCtx, ldvalue.CopyArbitraryValue(defaultValue))
 	if err != nil {
-		p.l.Error("object evaluation: %s", err)
+		p.l.Error("object evaluation error", "error", err)
 	}
 
 	return openfeature.InterfaceResolutionDetail{
@@ -393,7 +393,7 @@ func (p *Provider) Init(evaluationContext openfeature.EvaluationContext) error {
 func (p *Provider) Shutdown() {
 	if p.closeOnShutdown {
 		if err := p.client.Close(); err != nil {
-			p.l.Error("error during LaunchDarkly client shutdown: %s", err)
+			p.l.Error("error during LaunchDarkly client shutdown", "error", err)
 		}
 	}
 }
