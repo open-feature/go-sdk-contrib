@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"time"
 
+	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -107,6 +109,54 @@ type Config struct {
 	// ReadyTimeout is how long to wait for a provider to reach READY during
 	// initialisation. Defaults to 30 seconds.
 	ReadyTimeout time.Duration
+
+	// ExtensionFeatures supplies feature files of your own, to run in the same
+	// suite as the canonical ones and under the same backend lifecycle.
+	//
+	// This is for behaviour the specification does not describe and cannot —
+	// flagd's fractional targeting, a vendor's segment rules — where the
+	// scenarios still need a provider registered per scenario, a backend reset
+	// between them, and the event plumbing the TCK already owns. Running them
+	// in a harness of your own means reimplementing that, and the two then
+	// drift.
+	//
+	// Any .feature file anywhere in the filesystem is picked up, so a directory
+	// is the usual thing to pass:
+	//
+	//	ExtensionFeatures: os.DirFS("testdata/tck-extensions"),
+	//
+	// The files appear to the run under an "extensions/" prefix, and the
+	// canonical assets keep their "assets/gherkin/" one. Nothing you supply is
+	// reachable under the canonical prefix, so an extension file named
+	// evaluation.feature is an addition and never a replacement — which is the
+	// failure the Java TCK had, where a same-named file in a second classpath
+	// root silently displaced the canonical one. The same partition is what
+	// distinguishes the two in a conformance report: a result whose feature URI
+	// starts with "assets/gherkin/" is canonical, one under "extensions/" is
+	// yours.
+	//
+	// A filesystem holding no .feature file is refused rather than quietly
+	// running the canonical suite alone, that being how mis-wired extensions
+	// otherwise go unnoticed.
+	//
+	// Optional. Nil means the canonical suite exactly as before.
+	ExtensionFeatures fs.FS
+
+	// ExtensionSteps registers step definitions of your own.
+	//
+	// It is called during scenario initialisation, after the TCK's own steps,
+	// so your definitions see the same scenario context and can use the same
+	// godog hooks. Steps whose expressions collide with the TCK's are ambiguous
+	// to godog and fail the scenario, so keep the wording distinct.
+	//
+	//	ExtensionSteps: func(ctx *godog.ScenarioContext) {
+	//	    ctx.Step(`^the fractional bucket for "([^"]*)" is "([^"]*)"$`, theBucketIs)
+	//	},
+	//
+	// Your steps run inside the TCK's scenario lifecycle: the provider is
+	// already registered and ready, and Control.PrepareScenario has already
+	// reset the backend. Optional.
+	ExtensionSteps func(*godog.ScenarioContext)
 }
 
 // validate reports whether the configuration can run a suite at all, naming
