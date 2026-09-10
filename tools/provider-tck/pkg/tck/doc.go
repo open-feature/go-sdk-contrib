@@ -35,6 +35,32 @@
 // not declared is reported as skipped with the reason printed — never as
 // passed. See [Capability].
 //
+// # Adding your own scenarios
+//
+// A provider with behaviour the specification does not describe — flagd's
+// fractional targeting, a vendor's segment rules — can run scenarios of its own
+// inside this suite rather than in a harness beside it, through
+// [Config.ExtensionFeatures] and [Config.ExtensionSteps]:
+//
+//	tck.Run(t, tck.Config{
+//	    // ... as above ...
+//	    ExtensionFeatures: os.DirFS("testdata/tck-extensions"),
+//	    ExtensionSteps: func(ctx *godog.ScenarioContext) {
+//	        ctx.Step(`^the fractional bucket is "([^"]*)"$`, theBucketIs)
+//	    },
+//	})
+//
+// Extension scenarios get the same provider registration, readiness wait and
+// per-scenario backend reset the canonical ones get, and an extension step
+// reaches the provider under test with [ClientFromContext]. They are
+// distinguishable from canonical scenarios in the conformance report: a result
+// whose feature URI starts with "assets/gherkin/" is canonical, one under
+// "extensions/" is the adopter's.
+//
+// Java and Python discover extensions by convention — a classpath scan, a
+// conftest.py — because those languages can scan. Go cannot, so extension here
+// is two fields rather than none.
+//
 // # Which control path to use
 //
 // [BackendControl] is the single seam between the scenarios and whatever
