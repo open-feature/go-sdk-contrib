@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -43,13 +42,28 @@ func Run(t *testing.T, cfg Config) {
 	t.Logf("provider-tck [%s]: backend under test is %s; declared capabilities %s",
 		cfg.Name, cfg.Control.Description(), formatCapabilities(caps.sorted()))
 
+	// The Cucumber Messages stream is collected whether or not a report is
+	// requested. It costs one buffer, and the alternative is a code path that
+	// only ever runs in CI.
+	registerMessagesFormatter()
+	if !installMessagesSink(cfg.Name, &messagesSink{out: &r.messages, skipReason: r.skipReason}) {
+		t.Fatalf("provider-tck: two suites named %q are running at once; suite names must be "+
+			"unique within a test binary, since they also scope the OpenFeature domain and the "+
+			"report filenames", cfg.Name)
+	}
+	defer removeMessagesSink(cfg.Name)
+
 	defer r.shutdown()
 
 	status := godog.TestSuite{
 		Name:                cfg.Name,
 		ScenarioInitializer: r.initializeScenario,
 		Options: &godog.Options{
-			Format: "pretty",
+			// Two formatters: the human-readable one on stdout, and the
+			// Messages stream into the buffer the report references. Both are
+			// handed the same writer by godog, so the Messages formatter
+			// resolves its own sink rather than using it. See messages.go.
+			Format: "pretty," + messagesFormatterName,
 			Output: os.Stdout,
 			// The canonical Gherkin is embedded in this package, so an adopting
 			// module needs no submodule and no particular directory layout.
@@ -57,7 +71,10 @@ func Run(t *testing.T, cfg Config) {
 			Paths: []string{featuresPath},
 			// Scenarios become subtests of t.
 			TestingT: t,
-			// Serial. See the doc comment.
+			// Serial. See the doc comment. The Messages formatter also depends
+			// on it: godog has no scenario-finished event, so the formatter
+			// closes a test case when the run moves on, which is only
+			// unambiguous while one scenario runs at a time.
 			Concurrency: 1,
 			// An undefined or pending step is a failure, not a silent pass. The
 			// feature files come from the specification, so a step with no
@@ -68,7 +85,6 @@ func Run(t *testing.T, cfg Config) {
 	}.Run()
 
 	r.reportSkips()
-	r.reportExampleGaps()
 	r.writeReport()
 
 	if status != 0 && !t.Failed() {
@@ -85,36 +101,23 @@ type runner struct {
 	mu    sync.Mutex
 	skips []skippedScenario
 
-	// records is the per-scenario outcome list the conformance report is built
-	// from. It is kept even when no report is requested, because it costs
-	// nothing and the alternative is a code path that only ever runs in CI.
-	records []scenarioRecord
+	// messages receives the Cucumber Messages stream, written by the formatter
+	// registered in messages.go when godog delivers its Summary event.
+	messages lockedBuffer
 
-	// started times scenarios by pickle id. godog gives no scenario-scoped place
-	// to hang this, so a map is the only option; the key is the pickle id rather
-	// than the scenario name because every row of a Scenario Outline shares one
-	// name and would otherwise share one entry.
-	started map[string]time.Time
-
-	// gated names the scenarios the capability gate stopped before their first
-	// step, so the after hook does not record them a second time.
+	// skipReasons is why the capability gate refused a scenario, keyed by
+	// pickle id.
 	//
-	// It exists because godog does not deliver the before hook's ErrSkip to the
-	// after hook -- err arrives nil, indistinguishable from a scenario that ran
-	// and passed. Testing for ErrSkip there silently recorded every skipped
-	// scenario twice, once correctly and once as passed, which is the exact
-	// failure Appendix F forbids.
+	// It exists because godog's formatter events cannot carry it:
+	// Skipped(pickle, step, definition) has no error parameter, so a formatter
+	// can see that a scenario did not run but not why. The gate is the only
+	// place that knows, so it records it here and the formatter reads it back.
 	//
-	// Keyed by pickle id for a second reason as well as the shared name: Gherkin
-	// allows an Examples block to carry its own tags, so two rows of one outline
-	// can differ in whether the gate stops them. Keyed by name, gating one row
-	// would suppress the after hook for every row, and the rows that did run
-	// would vanish from the report entirely.
-	gated map[string]bool
-
-	// exampleGaps collects outline rows whose Examples row could not be
-	// resolved. See reportExampleGaps.
-	exampleGaps []string
+	// Keyed by pickle id rather than by scenario name because every row of a
+	// Scenario Outline shares one name, and because Gherkin allows an Examples
+	// block to carry its own tags — so two rows of one outline can differ in
+	// whether the gate stops them.
+	skipReasons map[string]string
 
 	// providerName is what the provider called itself, observed from the last
 	// scenario that registered one.
@@ -142,19 +145,17 @@ func (r *runner) initializeScenario(ctx *godog.ScenarioContext) {
 // Returning an error wrapping godog.ErrSkip skips the scenario and every step
 // in it without failing the suite, which is exactly the semantics an
 // undeclared capability calls for: the scenario is reported, visibly, as not
-// run.
+// run. godog reports every step of such a scenario to the formatter as
+// SKIPPED, so the Messages stream says so too.
 func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 	if capability, missing := r.missingCapability(sc); missing {
 		r.recordSkip(sc.Name, capability)
-		r.recordOutcome(sc, OutcomeNotDeclared, fmt.Sprintf(
-			"requires capability %s, which this provider does not declare", capability.Tag()), 0)
-		r.markGated(sc.Id)
+		r.noteSkipReason(sc.Id, fmt.Sprintf(
+			"requires capability %s, which this provider does not declare", capability.Tag()))
 		return ctx, fmt.Errorf(
 			"%w: scenario requires capability %s (Gherkin tag %s), which this provider does not declare. Declared capabilities: %s",
 			godog.ErrSkip, capability, capability.Tag(), formatCapabilities(r.caps.sorted()))
 	}
-
-	r.markStarted(sc.Id)
 
 	ctx = withState(ctx, newScenarioState(&r.cfg))
 
@@ -168,7 +169,13 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 
 // afterScenario detaches the scenario's event handlers. A skipped scenario has
 // no state, which is not an error.
-func (r *runner) afterScenario(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
+//
+// It deliberately records nothing. godog does not deliver the Before hook's
+// ErrSkip here — err arrives nil, indistinguishable from a scenario that ran
+// and passed — so an outcome derived in this hook reported every capability
+// skip as a pass, which is the exact failure Appendix F forbids. The outcome
+// now comes from the formatter events, where a skip is a skip.
+func (r *runner) afterScenario(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
 	if state, stateErr := stateFrom(ctx); stateErr == nil {
 		if state.providerName != "" {
 			r.mu.Lock()
@@ -178,149 +185,34 @@ func (r *runner) afterScenario(ctx context.Context, sc *godog.Scenario, err erro
 		state.teardown()
 	}
 
-	// A capability skip was already recorded before the scenario started.
-	// Recording it again here would put it in the report twice, the second time
-	// as passed.
-	if !r.wasGated(sc.Id) {
-		outcome, reason := OutcomePassed, ""
-		if err != nil {
-			outcome, reason = OutcomeFailed, err.Error()
-		}
-		r.recordOutcome(sc, outcome, reason, r.elapsed(sc.Id))
-	}
-
 	return ctx, err
 }
 
-// recordOutcome appends one scenario's result.
-func (r *runner) recordOutcome(sc *godog.Scenario, outcome Outcome, reason string, duration time.Duration) {
-	tags := make([]string, 0, len(sc.Tags))
-	for _, tag := range sc.Tags {
-		tags = append(tags, tag.Name)
-	}
-
-	// Resolved before the lock, because a failure to resolve takes the lock
-	// itself.
-	example, order := r.exampleFor(sc)
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.records = append(r.records, scenarioRecord{
-		feature:      featureName(sc.Uri),
-		name:         sc.Name,
-		example:      example,
-		exampleOrder: order,
-		tags:         tags,
-		outcome:      outcome,
-		reason:       reason,
-		duration:     duration,
-	})
-}
-
-// exampleFor resolves the Examples row a scenario came from, or nil for a
-// scenario that is not an outline row.
+// noteSkipReason records why the gate refused a scenario.
 //
-// It is called from both the gate path and the pass/fail path, because a
-// skipped outline row is exactly as ambiguous as a failed one: four skipped
-// rows of the @object outline are four entries that differ in nothing without
-// it.
-func (r *runner) exampleFor(sc *godog.Scenario) (map[string]string, int) {
-	index, err := scenarioExamples()
-	if err != nil {
-		r.recordExampleGap(fmt.Sprintf(
-			"the embedded feature files could not be parsed for their Examples tables: %v", err))
-		return nil, 0
-	}
-
-	if row, ok := index.rowFor(sc); ok {
-		return row.values, row.order
-	}
-
-	if index.isOutline(sc.Uri, sc.Name) {
-		r.recordExampleGap(fmt.Sprintf(
-			"scenario %q in %s comes from a Scenario Outline, but no Examples row matched AST node ids %v",
-			sc.Name, sc.Uri, sc.AstNodeIds))
-	}
-
-	return nil, 0
-}
-
-func (r *runner) recordExampleGap(detail string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, existing := range r.exampleGaps {
-		if existing == detail {
-			return
-		}
-	}
-	r.exampleGaps = append(r.exampleGaps, detail)
-}
-
-// reportExampleGaps fails the run if any outline row went unidentified.
-//
-// Recovering the Examples row depends on reproducing the AST node ids godog
-// assigns, which is a coupling to how godog numbers nodes. This is what keeps
-// that coupling honest: if a godog release changes the numbering, the report
-// would quietly go back to emitting rows that differ in nothing, and a quiet
-// return to the ambiguity this field exists to remove is worse than a build
+// The map is created on first use because the runner has to work as a zero
+// value: it is constructed as a struct literal in tests that exercise the gate
+// directly, and a nil map assignment there is a panic rather than a helpful
 // failure.
-func (r *runner) reportExampleGaps() {
-	r.mu.Lock()
-	gaps := make([]string, len(r.exampleGaps))
-	copy(gaps, r.exampleGaps)
-	r.mu.Unlock()
-
-	if len(gaps) == 0 {
-		return
-	}
-
-	message := []string{fmt.Sprintf(
-		"provider-tck [%s]: %d Scenario Outline row(s) could not be identified by their Examples parameters, "+
-			"so the report cannot distinguish them:", r.cfg.Name, len(gaps))}
-	for _, gap := range gaps {
-		message = append(message, "  - "+gap)
-	}
-	r.t.Error(strings.Join(message, "\n"))
-}
-
-// markGated and markStarted create their maps on first use.
-//
-// The runner has to work as a zero value: it is constructed as a struct literal
-// in tests that exercise the gate directly, and a nil map assignment there is a
-// panic rather than a helpful failure.
-func (r *runner) markGated(name string) {
+func (r *runner) noteSkipReason(pickleID, reason string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.gated == nil {
-		r.gated = map[string]bool{}
+	if r.skipReasons == nil {
+		r.skipReasons = map[string]string{}
 	}
-	r.gated[name] = true
+	r.skipReasons[pickleID] = reason
 }
 
-func (r *runner) markStarted(name string) {
+// skipReason is the lookup the Messages formatter consults.
+func (r *runner) skipReason(pickleID string) string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.started == nil {
-		r.started = map[string]time.Time{}
-	}
-	r.started[name] = time.Now()
+	return r.skipReasons[pickleID]
 }
 
-// wasGated reports whether the capability gate stopped this scenario.
-func (r *runner) wasGated(name string) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.gated[name]
-}
-
-func (r *runner) elapsed(name string) time.Duration {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	start, ok := r.started[name]
-	if !ok {
-		return 0
-	}
-	return time.Since(start)
+// messagesBytes is the Cucumber Messages stream the run produced.
+func (r *runner) messagesBytes() []byte {
+	return r.messages.bytes()
 }
 
 // missingCapability reports the first capability a scenario needs that the

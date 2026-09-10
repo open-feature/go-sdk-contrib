@@ -173,23 +173,19 @@ func fail(format string, args ...any) {
 // honest: the CI check regenerates both and fails on any difference, so a
 // revision that disagrees with the artifacts beside it cannot be committed.
 //
-// The tree hash is recorded as well as the commit because it identifies the
-// artifacts alone. It does not change when an unrelated part of the
-// specification does, so two runs that executed identical artifacts report the
-// same value even when pinned to different commits. It is also checkable, since
-// `git rev-parse <commit>:specification/assets/provider-tck` must reproduce it.
+// Only the commit is recorded. A tree hash over the artifact directory used to
+// be recorded beside it, so that a consumer could check which questions a
+// report answers without trusting the commit. The report now carries the
+// executed feature source itself, in the Cucumber Messages results, which
+// answers the same question with the text rather than with a hash of it.
 func writeRevision() error {
 	commit, err := gitOutput("-C", specRoot, "rev-parse", "HEAD")
 	if err != nil {
 		return err
 	}
-	tree, err := gitOutput("-C", specRoot, "rev-parse", "HEAD:"+assetsPathInSpec)
-	if err != nil {
-		return err
-	}
 
 	return os.WriteFile(filepath.Join("pkg", "tck", "revision.go"),
-		[]byte(fmt.Sprintf(revisionTemplate, commit, tree)), 0o644)
+		[]byte(fmt.Sprintf(revisionTemplate, commit)), 0o644)
 }
 
 func gitOutput(args ...string) (string, error) {
@@ -207,12 +203,4 @@ package tck
 // SpecRevision is the open-feature/spec commit the embedded conformance
 // artifacts were taken from.
 const SpecRevision = %q
-
-// AssetsTree is the git tree object ID of specification/assets/provider-tck at
-// SpecRevision.
-//
-// It identifies the artifacts rather than the commit, so an unrelated change
-// elsewhere in the specification leaves it untouched, and
-// ` + "`git rev-parse SpecRevision:specification/assets/provider-tck`" + ` reproduces it.
-const AssetsTree = %q
 `
