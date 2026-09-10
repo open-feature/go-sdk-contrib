@@ -34,6 +34,12 @@ import (
 // Each scenario becomes a Go subtest, so failures point at a scenario by name
 // and -run selects one the usual way.
 //
+// The run fails unless every canonical scenario produced an outcome — see
+// checkCanonicalCoverage. A scenario the provider declines through
+// Config.Capabilities has produced one; a scenario filtered out of the run has
+// not, and a report describing a subset of the canonical set is not a
+// conformance result.
+//
 // Scenarios run serially, and that is enforced rather than merely preferred.
 // Backend state — which flags are seeded, whether the backend is reachable — is
 // global to the suite, so concurrent scenarios corrupt each other: one
@@ -84,7 +90,11 @@ func Run(t *testing.T, opts ...Option) {
 	// requested. It costs one buffer, and the alternative is a code path that
 	// only ever runs in CI.
 	registerMessagesFormatter()
-	if !installMessagesSink(cfg.Name, &messagesSink{out: &r.messages, skipReason: r.skipReason}) {
+	if !installMessagesSink(cfg.Name, &messagesSink{
+		out:        &r.messages,
+		skipReason: r.skipReason,
+		executed:   r.recordExecuted,
+	}) {
 		t.Fatalf("provider-tck: two suites named %q are running at once; suite names must be "+
 			"unique within a test binary, since they also scope the OpenFeature domain and the "+
 			"report filenames", cfg.Name)
@@ -128,6 +138,7 @@ func Run(t *testing.T, opts ...Option) {
 	r.reportSkips()
 	r.reportControlAPIGap()
 	r.writeReport()
+	r.checkCanonicalCoverage()
 
 	if status != 0 && !t.Failed() {
 		t.Fatalf("tck [%s]: suite failed with exit status %d", cfg.Name, status)
@@ -164,6 +175,18 @@ type runner struct {
 	// providerName is what the provider called itself, observed from the last
 	// scenario that registered one.
 	providerName string
+
+	// executed is every scenario the run reported on, with its outcome, as the
+	// Messages formatter derived it. It is what checkCanonicalCoverage compares
+	// against the embedded canonical assets.
+	executed []executedScenario
+}
+
+// recordExecuted collects one scenario's outcome from the Messages formatter.
+func (r *runner) recordExecuted(scenario executedScenario) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.executed = append(r.executed, scenario)
 }
 
 // skippedScenario records a scenario that did not run because the provider did

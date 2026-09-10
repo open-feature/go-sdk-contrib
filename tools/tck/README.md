@@ -649,6 +649,29 @@ locally does not, and no adopter changes a line to publish one. Unset means no r
 an error. Several suites in one test binary each write their own pair of files, so flagd's two
 resolvers do not collide.
 
+### The canonical set has to have run
+
+A report is a claim that the provider was asked the canonical questions, and nothing in the format
+establishes that it was asked all of them. `go test -run` matching one scenario name produces a
+green suite and a well-formed report describing a single scenario; so does a mis-wired extension
+filesystem. There is no field in the envelope a consumer could read to notice.
+
+So the suite checks itself. After the run it compares what executed against the scenarios the
+embedded assets compile to — parsed by godog's own parser, so the expectation is exactly what a full
+run would have produced — and fails the test if any of them produced no outcome:
+
+```
+provider-tck [in-memory]: 12 canonical scenario(s) did not run, so this is not a conformance run
+and its report must not be published:
+  - assets/gherkin/errors.feature: Requesting the wrong type returns the code default: 0 of 11
+    executed (11 announced but never run, which is what a -run selector or a tag filter leaves behind)
+```
+
+A capability-gated scenario is not a gap: it ran the gate and is in the results as `SKIPPED` with
+its reason, so the question was put and declined. What this catches is the question that was never
+put. Extension scenarios are counted and reported but can never close a gap — an adopter's feature
+is an addition to the canonical set, not a substitute for part of it.
+
 ### Why the results are Cucumber Messages
 
 Because the alternative was a second format to maintain. The per-scenario outcome, the tags, the
