@@ -91,6 +91,23 @@ const messagesProtocolVersionFallback = "21.0.1"
 // names. It is the schema's expected value.
 const resultsFormatCucumberMessages = "cucumber-messages"
 
+// statusSeverity orders step results so that the most severe of a scenario's
+// steps is the scenario's outcome.
+//
+// This is Cucumber's own ordering, and it is the rule a consumer of the stream
+// has to apply too, since testCaseFinished carries no status. It matters that
+// SKIPPED outranks PASSED: a capability-gated scenario has a skipped first step
+// and would otherwise read as passed, which is exactly what Appendix F forbids.
+var statusSeverity = map[messages.TestStepResultStatus]int{
+	messages.TestStepResultStatus_UNKNOWN:   0,
+	messages.TestStepResultStatus_PASSED:    1,
+	messages.TestStepResultStatus_SKIPPED:   2,
+	messages.TestStepResultStatus_PENDING:   3,
+	messages.TestStepResultStatus_UNDEFINED: 4,
+	messages.TestStepResultStatus_AMBIGUOUS: 5,
+	messages.TestStepResultStatus_FAILED:    6,
+}
+
 // messagesSink is where one run's stream goes, and how it recovers a skip
 // reason.
 //
@@ -106,6 +123,15 @@ type messagesSink struct {
 	// skipReason returns the reason a scenario was skipped, or "" if it was
 	// not, keyed by pickle id.
 	skipReason func(pickleID string) string
+	// executed reports one scenario's feature, name and derived outcome as the
+	// stream is assembled.
+	//
+	// The formatter is where this can be observed at all. godog's hooks do not
+	// see a scenario the run announced and then never executed — a subtest
+	// filtered out by `go test -run` — but the formatter has already been told
+	// about its pickle, so a test case with no step results is exactly what such
+	// a scenario looks like here. See checkCanonicalCoverage.
+	executed func(executedScenario)
 }
 
 var (
@@ -458,7 +484,14 @@ func (f *messagesFormatter) Summary() {
 			}},
 		)
 
+		// A test case's outcome is the most severe of its step results, which is
+		// Cucumber's own rule; Messages has no per-test-case status field.
+		outcome := messages.TestStepResultStatus_UNKNOWN
+
 		for _, ts := range tc.steps {
+			if statusSeverity[ts.status] > statusSeverity[outcome] {
+				outcome = ts.status
+			}
 			envelopes = append(envelopes,
 				&messages.Envelope{TestStepStarted: &messages.TestStepStarted{
 					TestCaseStartedId: tc.startedID,
@@ -490,6 +523,14 @@ func (f *messagesFormatter) Summary() {
 				WillBeRetried:     false,
 			},
 		})
+
+		if f.sink.executed != nil && tc.pickle != nil {
+			f.sink.executed(executedScenario{
+				uri:    tc.pickle.Uri,
+				name:   tc.pickle.Name,
+				status: outcome,
+			})
+		}
 
 		if tc.finishedAt.After(finishedAt) {
 			finishedAt = tc.finishedAt
