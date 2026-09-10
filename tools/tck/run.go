@@ -126,6 +126,7 @@ func Run(t *testing.T, opts ...Option) {
 	}.Run()
 
 	r.reportSkips()
+	r.reportControlAPIGap()
 	r.writeReport()
 
 	if status != 0 && !t.Failed() {
@@ -323,6 +324,27 @@ func (r *runner) recordSkip(scenario string, capability Capability) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.skips = append(r.skips, skippedScenario{name: scenario, capability: capability})
+}
+
+// reportControlAPIGap tells an adopter when their control does not say how it
+// drives the backend.
+//
+// The field is optional in the report and the interface is optional in Go, both
+// so that adding it broke nobody. That combination makes it easy to omit
+// forever without noticing: the suite passes, the report validates, and the
+// field is simply absent. It went unnoticed here until two reports of the same
+// kind of provider were compared side by side and one of them was silent.
+//
+// Logged rather than failed, because a missing optional field is not a
+// conformance problem -- it is a gap in what the report can say about the run.
+func (r *runner) reportControlAPIGap() {
+	if _, reports := r.cfg.Control.(controlAPIReporter); reports {
+		return
+	}
+	r.t.Logf("provider-tck [%s]: %s does not implement ControlAPI() string, so the conformance "+
+		"report cannot say whether the backend was driven over HTTP or in process. Add the method, "+
+		"returning \"http\" or \"in-process\".",
+		r.cfg.Name, r.cfg.Control.Description())
 }
 
 // reportSkips prints every capability-gated skip with its reason.

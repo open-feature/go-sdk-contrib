@@ -134,6 +134,11 @@ func (plainMemoryControl) ChangeFlag(context.Context) error {
 			"tck.ControllableProvider for what the SDK's provider is missing")
 }
 
+// ControlAPI reports that this control manipulates a provider in this process
+// rather than driving a backend over HTTP, which is what the in-memory provider
+// is: there is no backend to drive.
+func (plainMemoryControl) ControlAPI() string { return "in-process" }
+
 func (plainMemoryControl) Description() string {
 	return "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario"
 }
