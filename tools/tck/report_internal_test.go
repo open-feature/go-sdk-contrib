@@ -253,7 +253,7 @@ type parsedStream struct {
 func (s *parsedStream) worst(pickleID string) messages.TestStepResultStatus {
 	worst := messages.TestStepResultStatus_UNKNOWN
 	for status, count := range s.statuses[pickleID] {
-		if count > 0 && statusSeverity(status) > statusSeverity(worst) {
+		if count > 0 && statusSeverity[status] > statusSeverity[worst] {
 			worst = status
 		}
 	}
@@ -261,27 +261,6 @@ func (s *parsedStream) worst(pickleID string) messages.TestStepResultStatus {
 }
 
 func (s *parsedStream) message(pickleID string) string { return s.reasons[pickleID] }
-
-// statusSeverity is Cucumber's ordering, by which a test case's outcome is the
-// most severe of its steps'. Messages has no per-test-case status field.
-func statusSeverity(status messages.TestStepResultStatus) int {
-	switch status {
-	case messages.TestStepResultStatus_PASSED:
-		return 1
-	case messages.TestStepResultStatus_SKIPPED:
-		return 2
-	case messages.TestStepResultStatus_PENDING:
-		return 3
-	case messages.TestStepResultStatus_UNDEFINED:
-		return 4
-	case messages.TestStepResultStatus_AMBIGUOUS:
-		return 5
-	case messages.TestStepResultStatus_FAILED:
-		return 6
-	default:
-		return 0
-	}
-}
 
 func parseStream(t *testing.T, data []byte) *parsedStream {
 	t.Helper()
