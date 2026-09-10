@@ -61,6 +61,10 @@
 // conftest.py — because those languages can scan. Go cannot, so extension here
 // is two fields rather than none.
 //
+// Extension scenarios are an addition to the canonical set and never a
+// substitute for part of it: [Run] fails if any canonical scenario produced no
+// outcome, whatever else ran.
+//
 // # Which control path to use
 //
 // [BackendControl] is the single seam between the scenarios and whatever
