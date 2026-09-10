@@ -78,6 +78,47 @@ different timescales — a streaming provider sees a configuration change in mil
 polls every 30 seconds may need most of a poll interval. Set it to comfortably exceed your
 worst-case detection latency, or the suite reports timeouts that are really just impatience.
 
+### Adding your own scenarios
+
+A provider often has behaviour the specification does not describe and cannot — flagd's `fractional`
+targeting, a vendor's segment rules. Those scenarios still need a provider registered per scenario,
+a backend reset between them and the event plumbing this suite already owns, so they run *in* the
+suite rather than beside it. Two optional fields:
+
+```go
+tck.Run(t, tck.Config{
+	// ... Name, NewProvider, Control, Capabilities as above ...
+	ExtensionFeatures: os.DirFS("testdata/tck-extensions"),
+	ExtensionSteps: func(ctx *godog.ScenarioContext) {
+		ctx.Step(`^the fractional bucket for "([^"]*)" is "([^"]*)"$`, theBucketIs)
+	},
+})
+```
+
+`ExtensionFeatures` is any `fs.FS`; every `.feature` file in it is picked up. `ExtensionSteps` is
+called during scenario initialisation, after the TCK's own step definitions, so an extension step
+sees the same scenario context and the same hooks. It reaches the provider under test through
+`tck.ClientFromContext(ctx)` — the provider is registered under a suite-scoped domain the adopter
+never names, and a step that built a client of its own would be testing a different provider.
+
+An extension feature can use the canonical steps, and usually should: `Given a stable provider` in a
+`Background` is what puts the scenario in the same lifecycle phase as the canonical ones.
+
+Extension features are mounted under an `extensions/` prefix while the suite runs, and the canonical
+ones keep their `assets/gherkin/` paths. That partition is a contract rather than a detail: it stops
+an extension file shadowing a canonical one, and it is how a result in the conformance report is
+told apart from a canonical result. A filesystem holding no `.feature` file is refused rather than
+quietly running the canonical suite alone, that being how mis-wired extensions otherwise go
+unnoticed.
+
+**Both fields are optional, and a `Config` without them runs exactly what it ran before they
+existed.**
+
+Where Java and Python discover extensions by convention — a classpath scan, a `conftest.py` beside
+the feature files — Go has no runtime scanning, so this is configuration. The design rule across the
+four languages is convention where the language can scan and configuration where it cannot; the
+constraint is that the configuration stays small.
+
 ## Capabilities
 
 Not every provider implements every optional part of the contract. A provider backed by a static
