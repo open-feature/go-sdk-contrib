@@ -187,6 +187,18 @@ type controlAPIReporter interface {
 	ControlAPI() string
 }
 
+// controlAPIOf reports how the backend was driven, or "" when the control does
+// not say.
+//
+// A control that does not implement the interface leaves the field out, which is
+// non-breaking but silent -- and silence here is a small lie by omission: every
+// control is either driving a real backend over HTTP or manipulating an
+// in-process one, so there is no third case the empty value legitimately
+// describes. Two reports of the same in-process provider, one of which says so
+// and one of which does not, are harder to compare than either alone.
+//
+// The runner therefore says so where the adopter will see it, rather than
+// quietly emitting a report with a hole in it. See runner.reportControlAPIGap.
 func controlAPIOf(control BackendControl) string {
 	if reporter, ok := control.(controlAPIReporter); ok {
 		return reporter.ControlAPI()
