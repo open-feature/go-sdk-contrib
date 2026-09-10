@@ -107,6 +107,17 @@ type ReportDeclaration struct {
 // to find out.
 type ReportResults struct {
 	Format string `json:"format"`
+	// FormatVersion is the Cucumber Messages release these results were
+	// produced against.
+	//
+	// Messages is versioned and implementations pin different releases -- this
+	// one builds against messages/go/v21 while cucumber-jvm ships a
+	// considerably later one -- and the message types differ between them.
+	// Without recording it a consumer validating this stream has to guess which
+	// schema to validate against, and guessing wrong is worse than not checking:
+	// a later schema accepts messages this producer could not have emitted,
+	// while an earlier one rejects messages that are perfectly valid.
+	FormatVersion string `json:"formatVersion,omitempty"`
 	// Location is a path relative to this document. It is a bare filename with
 	// no separator in it, so the same envelope reads correctly whatever wrote
 	// it.
@@ -143,9 +154,10 @@ func (r *runner) buildReport(location, digest string) Report {
 		},
 		Declaration: ReportDeclaration{Declared: tags},
 		Results: ReportResults{
-			Format:   resultsFormatCucumberMessages,
-			Location: location,
-			Digest:   digest,
+			Format:        resultsFormatCucumberMessages,
+			FormatVersion: messagesProtocolVersion(),
+			Location:      location,
+			Digest:        digest,
 		},
 	}
 }
