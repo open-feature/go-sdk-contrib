@@ -37,6 +37,11 @@ func Run(t *testing.T, cfg Config) {
 		t.Fatalf("provider-tck: invalid configuration:\n%v", err)
 	}
 
+	features, err := cfg.featureSources()
+	if err != nil {
+		t.Fatalf("provider-tck: invalid configuration:\n%v", err)
+	}
+
 	r := &runner{cfg: cfg, caps: caps, t: t}
 
 	t.Logf("provider-tck [%s]: backend under test is %s; declared capabilities %s",
@@ -67,8 +72,11 @@ func Run(t *testing.T, cfg Config) {
 			Output: os.Stdout,
 			// The canonical Gherkin is embedded in this package, so an adopting
 			// module needs no submodule and no particular directory layout.
-			FS:    assets,
-			Paths: []string{featuresPath},
+			// With Config.ExtensionFeatures set, the adopter's filesystem is
+			// mounted alongside it and both are parsed in one pass. See
+			// featureSources.
+			FS:    features.fsys,
+			Paths: features.paths,
 			// Scenarios become subtests of t.
 			TestingT: t,
 			// Serial. See the doc comment. The Messages formatter also depends
@@ -138,6 +146,13 @@ func (r *runner) initializeScenario(ctx *godog.ScenarioContext) {
 	registerProviderSteps(ctx)
 	registerFlagSteps(ctx)
 	registerEventSteps(ctx)
+
+	// An adopter's steps go last, so a collision with a TCK expression is
+	// godog's ambiguity error naming both rather than a silent override in
+	// either direction.
+	if r.cfg.ExtensionSteps != nil {
+		r.cfg.ExtensionSteps(ctx)
+	}
 }
 
 // beforeScenario gates on capabilities and resets the backend.
