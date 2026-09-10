@@ -1,14 +1,13 @@
 package tck
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
-	"sort"
 	"strings"
-	"time"
 )
 
 // ReportDirEnv names the directory a conformance report is written to.
@@ -16,9 +15,9 @@ import (
 // It is an environment variable rather than a Config field so that emitting a
 // report is a property of the run and not of the code: CI sets it, a developer
 // running the suite locally does not, and no adopter has to change a line to
-// publish one. A suite writes <dir>/<name>.json, so several suites in one test
-// binary — flagd's RPC and in-process resolvers, say — each produce their own
-// file without colliding.
+// publish one. A suite writes <dir>/<name>.json and <dir>/<name>.ndjson, so
+// several suites in one test binary — flagd's RPC and in-process resolvers,
+// say — each produce their own pair of files without colliding.
 //
 // Unset means no report, which is the default and is not an error.
 const ReportDirEnv = "PROVIDER_TCK_REPORT_DIR"
@@ -27,36 +26,27 @@ const ReportDirEnv = "PROVIDER_TCK_REPORT_DIR"
 // produces. See specification/assets/provider-tck/report/.
 const reportSchemaVersion = "1"
 
-// Outcome is the result of one scenario, or of one capability.
-//
-// There are four rather than two because "did not run" is not one thing.
-// A capability the provider chose not to declare is a different statement from
-// one the language makes impossible — @strict-numeric-typing cannot hold in a
-// language with no integer type — and reporting both as "not declared" would
-// show a whole language as missing something none of its providers can have.
-type Outcome string
-
-const (
-	OutcomePassed        Outcome = "passed"
-	OutcomeFailed        Outcome = "failed"
-	OutcomeNotDeclared   Outcome = "not-declared"
-	OutcomeNotApplicable Outcome = "not-applicable"
-)
-
 // Report is one run of the suite against one provider in one configuration.
+//
+// It is an envelope. It identifies what was tested and what the provider
+// claims, and it points at the results; it does not contain them. The results
+// are Cucumber Messages, written alongside this document, because per-scenario
+// outcomes, tags, Scenario Outline row identity and the executed feature source
+// are all already specified there. Restating them here would create a second
+// format to maintain and two places for the same fact to disagree.
 //
 // The field names and shape are fixed by the schema in the specification
 // repository; this type is deliberately a transcription of it rather than a
 // convenient Go representation, because the point of the format is that four
 // languages emit the same thing.
 type Report struct {
-	SchemaVersion string                      `json:"schemaVersion"`
-	Provider      ReportProvider              `json:"provider"`
-	SDK           ReportSDK                   `json:"sdk"`
-	TCK           ReportTCK                   `json:"tck"`
-	Backend       *ReportBackend              `json:"backend,omitempty"`
-	Capabilities  map[string]ReportCapability `json:"capabilities"`
-	Scenarios     []ReportScenario            `json:"scenarios"`
+	SchemaVersion string            `json:"schemaVersion"`
+	Provider      ReportProvider    `json:"provider"`
+	SDK           ReportSDK         `json:"sdk"`
+	TCK           ReportTCK         `json:"tck"`
+	Backend       *ReportBackend    `json:"backend,omitempty"`
+	Declaration   ReportDeclaration `json:"declaration"`
+	Results       ReportResults     `json:"results"`
 }
 
 type ReportProvider struct {
@@ -76,7 +66,6 @@ type ReportTCK struct {
 	Version        string `json:"version"`
 	SpecRevision   string `json:"specRevision"`
 	SpecRelease    string `json:"specRelease,omitempty"`
-	AssetsTree     string `json:"assetsTree,omitempty"`
 }
 
 type ReportBackend struct {
@@ -84,147 +73,61 @@ type ReportBackend struct {
 	ControlAPI  string `json:"controlApi,omitempty"`
 }
 
-type ReportCapability struct {
-	State  Outcome `json:"state"`
-	Reason string  `json:"reason,omitempty"`
-}
-
-type ReportScenario struct {
-	Feature string `json:"feature"`
-	Name    string `json:"name"`
-	// Example is the Examples row this entry came from, keyed by column header,
-	// present only for a scenario expanded from a Scenario Outline.
-	//
-	// It is what makes such an entry identifiable. Feature and name are shared by
-	// every row of an outline -- eleven rows of the type-mismatch matrix in
-	// errors.feature produce eleven otherwise identical entries -- so without it
-	// a report cannot say which row failed.
-	//
-	// The values are the cells verbatim, as strings. Gherkin has no types, so the
-	// cell "1" is reported as "1" and not as 1; the report says what the table
-	// said and leaves the interpretation to whoever reads it.
-	Example    map[string]string `json:"example,omitempty"`
-	Tags       []string          `json:"tags,omitempty"`
-	Outcome    Outcome           `json:"outcome"`
-	Reason     string            `json:"reason,omitempty"`
-	DurationMs float64           `json:"durationMs,omitempty"`
-}
-
-// scenarioRecord is what the runner accumulates as scenarios execute.
-type scenarioRecord struct {
-	feature string
-	name    string
-	example map[string]string
-	// exampleOrder is the row's position in its scenario's Examples tables, kept
-	// only to sort the report. Ordering by the parameter values would list the
-	// rows of a matrix in an order the feature file never mentions, which makes a
-	// report needlessly hard to read next to the table it came from.
-	exampleOrder int
-	tags         []string
-	outcome      Outcome
-	reason       string
-	duration     time.Duration
-}
-
-// buildReport assembles the report from what the run observed.
+// ReportDeclaration is the capability set the provider claims.
 //
-// The per-scenario list is the load-bearing part. Appendix F requires that a
-// scenario skipped for an undeclared capability is never reported as passed,
-// and godog's own summary does exactly that — it counts capability skips in its
-// passed tally, so the headline number says something false. Emitting the
-// outcome of every scenario individually makes the rule checkable by a consumer
-// instead of dependent on each runner's summary being trustworthy.
-func (r *runner) buildReport() Report {
-	providerName := r.observedProviderName()
-	r.mu.Lock()
-	records := make([]scenarioRecord, len(r.records))
-	copy(records, r.records)
-	r.mu.Unlock()
+// This is an input to reading the results rather than a summary of them, which
+// is why it cannot be derived from the results payload and has to be stated
+// here. A skipped scenario in the payload says the question was not put to this
+// provider; only the declaration says whether that is because the provider
+// declines the capability. Given the declaration and a scenario's tags — both
+// of which the payload carries — the reason for a skip follows without being
+// transported per scenario.
+type ReportDeclaration struct {
+	// Declared is every capability this configuration declares, as Gherkin tags
+	// including the leading at-sign. A scenario tagged with anything absent
+	// from this list is expected to be skipped in the results.
+	//
+	// Never nil: a provider that declares nothing states an empty list, which
+	// is a claim, whereas null would be silence.
+	Declared []string `json:"declared"`
 
-	sort.Slice(records, func(i, j int) bool {
-		if records[i].feature != records[j].feature {
-			return records[i].feature < records[j].feature
-		}
-		if records[i].name != records[j].name {
-			return records[i].name < records[j].name
-		}
-		return records[i].exampleOrder < records[j].exampleOrder
-	})
+	// NotApplicable maps a capability that cannot hold for this provider, as
+	// opposed to one merely undeclared, to the reason. Nothing populates it
+	// yet: Config has no field for it, because no Go provider has needed to
+	// distinguish the two. It is transcribed so that a consumer unmarshalling
+	// this type sees the whole schema.
+	NotApplicable map[string]string `json:"notApplicable,omitempty"`
+}
 
-	scenarios := make([]ReportScenario, 0, len(records))
-	// failed counts, per capability, the scenarios gating on it that failed, so a
-	// capability is reported as passed only when everything gating on it passed and
-	// a failure can say how much failed.
-	failed := map[Capability]int{}
-	// exercised counts the scenarios gating on each capability at all. A capability
-	// no scenario carries cannot have been demonstrated, and reporting it as passed
-	// would claim conformance the suite never tested -- which is the same vacuous
-	// green the capability vocabulary exists to prevent.
-	exercised := map[Capability]int{}
+// ReportResults says where the executed results live and in what format.
+//
+// Referenced rather than inlined because a Messages stream carries the feature
+// sources and so is far larger than this envelope, and because a consumer
+// deciding whether it cares about a report should not have to fetch a whole run
+// to find out.
+type ReportResults struct {
+	Format string `json:"format"`
+	// Location is a path relative to this document. It is a bare filename with
+	// no separator in it, so the same envelope reads correctly whatever wrote
+	// it.
+	Location string `json:"location"`
+	// Digest covers the results payload byte for byte, as sha256:<hex>, so a
+	// consumer can tell that what it fetched is what this envelope describes.
+	Digest string `json:"digest,omitempty"`
+}
 
-	for _, rec := range records {
-		scenarios = append(scenarios, ReportScenario{
-			Feature:    rec.feature,
-			Name:       rec.name,
-			Example:    rec.example,
-			Tags:       rec.tags,
-			Outcome:    rec.outcome,
-			Reason:     rec.reason,
-			DurationMs: float64(rec.duration.Microseconds()) / 1000.0,
-		})
-		// Only a scenario that actually ran exercises anything. A scenario
-		// skipped for one undeclared capability still carries its other tags,
-		// and counting those would report a capability as passed on the
-		// strength of a scenario that never executed: events.feature's
-		// scenarios carry @events alongside @stale and @configuration-change,
-		// so withholding either left @events reading "passed" while both of its
-		// scenarios were skipped.
-		if rec.outcome != OutcomePassed && rec.outcome != OutcomeFailed {
-			continue
-		}
-		for _, tag := range rec.tags {
-			capability, gates := CapabilityForTag(tag)
-			if !gates {
-				continue
-			}
-			exercised[capability]++
-			if rec.outcome == OutcomeFailed {
-				failed[capability]++
-			}
-		}
-	}
-
-	capabilities := map[string]ReportCapability{}
-	for _, capability := range AllCapabilities() {
-		switch {
-		case !r.caps.has(capability):
-			capabilities[capability.Tag()] = ReportCapability{
-				State: OutcomeNotDeclared,
-				Reason: fmt.Sprintf(
-					"not declared by this provider's configuration; the %s scenarios were skipped and did not contribute to this result",
-					capability.Tag()),
-			}
-		case exercised[capability] == 0:
-			// Declared, but no scenario in the suite gates on it. Saying nothing is
-			// the only honest answer: the suite asked no question, so it has none
-			// to report. Claiming passed would be a green result for an untested
-			// claim, which is precisely what this suite exists to make impossible.
-		case failed[capability] > 0:
-			capabilities[capability.Tag()] = ReportCapability{
-				State: OutcomeFailed,
-				Reason: fmt.Sprintf(
-					"%d of %d scenarios carrying %s failed; the per-scenario results say which, and why",
-					failed[capability], exercised[capability], capability.Tag()),
-			}
-		default:
-			capabilities[capability.Tag()] = ReportCapability{State: OutcomePassed}
-		}
+// buildReport assembles the envelope around a results payload already written.
+func (r *runner) buildReport(location, digest string) Report {
+	declared := r.caps.sorted()
+	tags := make([]string, 0, len(declared))
+	for _, capability := range declared {
+		tags = append(tags, capability.Tag())
 	}
 
 	return Report{
 		SchemaVersion: reportSchemaVersion,
 		Provider: ReportProvider{
-			Name:          providerName,
+			Name:          r.observedProviderName(),
 			Language:      "go",
 			Configuration: r.cfg.Name,
 		},
@@ -233,14 +136,17 @@ func (r *runner) buildReport() Report {
 			Implementation: tckImplementation,
 			Version:        tckVersion(),
 			SpecRevision:   SpecRevision,
-			AssetsTree:     AssetsTree,
 		},
 		Backend: &ReportBackend{
 			Description: r.cfg.Control.Description(),
 			ControlAPI:  controlAPIOf(r.cfg.Control),
 		},
-		Capabilities: capabilities,
-		Scenarios:    scenarios,
+		Declaration: ReportDeclaration{Declared: tags},
+		Results: ReportResults{
+			Format:   resultsFormatCucumberMessages,
+			Location: location,
+			Digest:   digest,
+		},
 	}
 }
 
@@ -284,6 +190,10 @@ const (
 
 // writeReport emits the report if ReportDirEnv is set.
 //
+// One run writes two files: the results payload as Cucumber Messages ndjson,
+// and the envelope naming and digesting it. The payload is written first so the
+// digest in the envelope is over bytes that exist.
+//
 // A failure to write is reported as a test failure rather than logged and
 // ignored. CI that asked for a report and silently did not get one is how a
 // publishing pipeline ends up serving a stale result forever.
@@ -293,7 +203,31 @@ func (r *runner) writeReport() {
 		return
 	}
 
-	report := r.buildReport()
+	results := r.messagesBytes()
+	if len(results) == 0 {
+		r.t.Errorf("provider-tck [%s]: the Cucumber Messages formatter produced nothing, so there "+
+			"are no results to report; an envelope pointing at an empty payload would be worse "+
+			"than no report", r.cfg.Name)
+		return
+	}
+
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		r.t.Errorf("provider-tck [%s]: could not create the report directory %s: %v", r.cfg.Name, dir, err)
+		return
+	}
+
+	base := reportBaseName(r.cfg.Name)
+	location := base + ".ndjson"
+
+	resultsPath := filepath.Join(dir, location)
+	if err := os.WriteFile(resultsPath, results, 0o644); err != nil {
+		r.t.Errorf("provider-tck [%s]: could not write the results payload to %s: %v",
+			r.cfg.Name, resultsPath, err)
+		return
+	}
+
+	sum := sha256.Sum256(results)
+	report := r.buildReport(location, "sha256:"+hex.EncodeToString(sum[:]))
 
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
@@ -302,27 +236,24 @@ func (r *runner) writeReport() {
 	}
 	data = append(data, '\n')
 
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		r.t.Errorf("provider-tck [%s]: could not create the report directory %s: %v", r.cfg.Name, dir, err)
-		return
-	}
-
-	path := filepath.Join(dir, reportFileName(r.cfg.Name))
+	path := filepath.Join(dir, base+".json")
 	if err := os.WriteFile(path, data, 0o644); err != nil {
-		r.t.Errorf("provider-tck [%s]: could not write the conformance report to %s: %v", r.cfg.Name, path, err)
+		r.t.Errorf("provider-tck [%s]: could not write the conformance report to %s: %v",
+			r.cfg.Name, path, err)
 		return
 	}
 
-	r.t.Logf("provider-tck [%s]: conformance report written to %s", r.cfg.Name, path)
+	r.t.Logf("provider-tck [%s]: conformance report written to %s, results to %s",
+		r.cfg.Name, path, resultsPath)
 }
 
-// reportFileName turns a suite name into a filename.
+// reportBaseName turns a suite name into the stem both report files share.
 //
 // Suite names are chosen to read well in failure messages rather than to be
 // path-safe, so anything that is not obviously safe becomes a hyphen. Without
 // this a suite named "flagd/rpc" would silently write outside the directory it
 // was given.
-func reportFileName(name string) string {
+func reportBaseName(name string) string {
 	var b strings.Builder
 	for _, r := range name {
 		switch {
@@ -336,7 +267,7 @@ func reportFileName(name string) string {
 	if cleaned == "" {
 		cleaned = "report"
 	}
-	return cleaned + ".json"
+	return cleaned
 }
 
 // sdkVersion reports the go-sdk version this binary was built against.
@@ -375,11 +306,4 @@ func moduleVersion(path string) string {
 		}
 	}
 	return "unknown"
-}
-
-// featureName turns a Gherkin document's URI into the bare feature name the
-// schema asks for: "errors", not "features/errors.feature".
-func featureName(uri string) string {
-	base := filepath.Base(filepath.ToSlash(uri))
-	return strings.TrimSuffix(base, filepath.Ext(base))
 }

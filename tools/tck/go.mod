@@ -3,7 +3,6 @@ module github.com/open-feature/go-sdk-contrib/tools/tck
 go 1.25.9
 
 require (
-	github.com/cucumber/gherkin/go/v26 v26.2.0
 	github.com/cucumber/godog v0.15.1
 	github.com/cucumber/messages/go/v21 v21.0.1
 	github.com/open-feature/go-sdk v1.18.0

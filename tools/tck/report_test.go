@@ -2,19 +2,26 @@ package tck_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 
+	messages "github.com/cucumber/messages/go/v21"
 	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
 
-// TestReportNeverCallsASkippedScenarioPassed is the reason the report exists.
+// The report is an envelope plus a Cucumber Messages payload, so these tests
+// read both. The envelope's job is to identify what was tested and what the
+// provider declared; the payload's job is to account for every scenario, and
+// never to report a scenario the capability gate stopped as passed.
+
+// TestResultsNeverCallASkippedScenarioPassed is the reason the report exists.
 //
 // Appendix F requires that a scenario skipped for an undeclared capability is
 // reported as skipped with the reason, never as passed. Go's runner does not
@@ -22,11 +29,11 @@ import (
 // passed tally, so the headline number the suite prints says something false and
 // only a separate log line reveals it.
 //
-// The report is what makes the rule checkable rather than aspirational, so this
-// test asserts the property directly: every scenario carrying a tag the suite
-// did not declare appears in the report as not-declared, with a reason, and
-// none of them appears as passed.
-func TestReportNeverCallsASkippedScenarioPassed(t *testing.T) {
+// The Messages stream is what makes the rule checkable rather than aspirational,
+// so this test asserts the property directly over the stream: every scenario
+// carrying a tag the suite did not declare is SKIPPED with a reason, and none of
+// them is PASSED.
+func TestResultsNeverCallASkippedScenarioPassed(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
@@ -42,14 +49,13 @@ func TestReportNeverCallsASkippedScenarioPassed(t *testing.T) {
 		Capabilities: []tck.Capability{tck.Object},
 	})
 
-	report := readReport(t, filepath.Join(dir, "report-selftest.json"))
-
+	run := readRun(t, dir, "report-selftest")
 	declared := map[string]bool{tck.Object.Tag(): true}
 
 	var skipped, passed int
-	for _, scenario := range report.Scenarios {
+	for _, tc := range run.cases {
 		needsUndeclared := false
-		for _, tag := range scenario.Tags {
+		for _, tag := range tc.tags {
 			// Only tags that gate a capability matter; the feature files are
 			// free to carry organisational tags that gate nothing.
 			if _, gates := tck.CapabilityForTag(tag); gates && !declared[tag] {
@@ -60,20 +66,20 @@ func TestReportNeverCallsASkippedScenarioPassed(t *testing.T) {
 		switch {
 		case needsUndeclared:
 			skipped++
-			if scenario.Outcome != tck.OutcomeNotDeclared {
-				t.Errorf("scenario %q needs an undeclared capability but was reported as %q; "+
-					"Appendix F requires it be reported as %q and never as passed",
-					scenario.Name, scenario.Outcome, tck.OutcomeNotDeclared)
+			if tc.status != messages.TestStepResultStatus_SKIPPED {
+				t.Errorf("scenario %q needs an undeclared capability but the stream reports it as %s; "+
+					"Appendix F requires it be reported as SKIPPED and never as passed",
+					tc.name, tc.status)
 			}
-			if scenario.Reason == "" {
+			if tc.message == "" {
 				t.Errorf("scenario %q was skipped without a reason; the reason is what makes a "+
-					"skip readable to someone comparing providers", scenario.Name)
+					"skip readable to someone comparing providers", tc.name)
 			}
-		case scenario.Outcome == tck.OutcomePassed:
+		case tc.status == messages.TestStepResultStatus_PASSED:
 			passed++
 		default:
-			t.Errorf("scenario %q needs no undeclared capability but was reported as %q: %s",
-				scenario.Name, scenario.Outcome, scenario.Reason)
+			t.Errorf("scenario %q needs no undeclared capability but the stream reports it as %s: %s",
+				tc.name, tc.status, tc.message)
 		}
 	}
 
@@ -85,24 +91,32 @@ func TestReportNeverCallsASkippedScenarioPassed(t *testing.T) {
 		t.Fatal("no scenario passed, so the suite did not really run")
 	}
 
-	// The count is the other half of the property. A report that simply omitted
+	// The count is the other half of the property. A stream that simply omitted
 	// the scenarios it did not run would satisfy every assertion above while
 	// still misleading a consumer, who has no way to know how many questions
 	// went unasked.
-	if total := len(report.Scenarios); total != skipped+passed {
-		t.Errorf("report accounts for %d scenarios but %d passed and %d were skipped; "+
+	if total := len(run.cases); total != skipped+passed {
+		t.Errorf("the stream accounts for %d scenarios but %d passed and %d were skipped; "+
 			"every scenario in the suite must appear exactly once", total, passed, skipped)
 	}
+
+	t.Logf("outcome counts for %q: %d scenarios, %d passed, %d skipped",
+		"report-selftest", len(run.cases), passed, skipped)
 }
 
-// TestReportRecordsUndeclaredCapabilities checks the capability summary agrees
-// with the per-scenario detail, since a consumer may read either.
-func TestReportRecordsUndeclaredCapabilities(t *testing.T) {
+// TestEveryScenarioIsAccountedForExactlyOnce pins the accounting property on
+// its own, independently of any outcome.
+//
+// A test case per pickle, a pickle per scenario, and no scenario twice. The
+// stream's own pickle list is the denominator, so this also catches a formatter
+// that announced a scenario and then failed to open a test case for it — which
+// is how a gated scenario would disappear rather than be reported.
+func TestEveryScenarioIsAccountedForExactlyOnce(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
 	tck.Run(t, tck.Config{
-		Name:    "capability-selftest",
+		Name:    "accounting",
 		Control: plainMemoryControl{},
 		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
@@ -110,27 +124,116 @@ func TestReportRecordsUndeclaredCapabilities(t *testing.T) {
 		Capabilities: []tck.Capability{tck.Object},
 	})
 
-	report := readReport(t, filepath.Join(dir, "capability-selftest.json"))
+	run := readRun(t, dir, "accounting")
 
-	for _, capability := range tck.AllCapabilities() {
-		result, ok := report.Capabilities[capability.Tag()]
-		if !ok {
-			t.Errorf("capability %s is missing from the report; a capability is omitted only when "+
-				"it is declared and no scenario exercises it, which is not the case here",
-				capability.Tag())
-			continue
-		}
+	if len(run.pickles) == 0 {
+		t.Fatal("the stream carries no pickles, so the suite parsed nothing")
+	}
+	if len(run.cases) != len(run.pickles) {
+		t.Errorf("the stream carries %d scenarios but %d results", len(run.pickles), len(run.cases))
+	}
 
-		want := tck.OutcomeNotDeclared
-		if capability == tck.Object {
-			want = tck.OutcomePassed
+	seen := map[string]int{}
+	for _, tc := range run.cases {
+		seen[tc.pickleID]++
+	}
+	for id, count := range seen {
+		if count != 1 {
+			t.Errorf("scenario %s has %d results; every scenario must be reported exactly once",
+				id, count)
 		}
-		if result.State != want {
-			t.Errorf("capability %s reported as %q, want %q", capability.Tag(), result.State, want)
+	}
+	for id := range run.pickles {
+		if seen[id] == 0 {
+			t.Errorf("scenario %s appears in the stream but has no result at all", id)
 		}
-		if want == tck.OutcomeNotDeclared && result.Reason == "" {
-			t.Errorf("capability %s is not declared but carries no reason", capability.Tag())
+	}
+
+	// Every result must resolve to a status. UNKNOWN means the formatter opened
+	// a test case and never heard what happened to it, which would report a
+	// scenario as neither run nor skipped.
+	for _, tc := range run.cases {
+		if tc.status == messages.TestStepResultStatus_UNKNOWN {
+			t.Errorf("scenario %q has no outcome in the stream", tc.name)
 		}
+	}
+}
+
+// TestEnvelopeReferencesTheResults covers the split between the two files.
+func TestEnvelopeReferencesTheResults(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	tck.Run(t, tck.Config{
+		Name:    "envelope",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		Capabilities: []tck.Capability{tck.Object},
+	})
+
+	report := readReport(t, filepath.Join(dir, "envelope.json"))
+
+	if report.Results.Format != "cucumber-messages" {
+		t.Errorf("results.format = %q, want %q", report.Results.Format, "cucumber-messages")
+	}
+
+	// The location has to be resolvable relative to the envelope on any
+	// platform, so it must be a bare name rather than anything built with a
+	// filesystem separator.
+	if strings.ContainsAny(report.Results.Location, `/\`) {
+		t.Errorf("results.location = %q, which is not relative to the envelope",
+			report.Results.Location)
+	}
+	if report.Results.Location != "envelope.ndjson" {
+		t.Errorf("results.location = %q, want %q", report.Results.Location, "envelope.ndjson")
+	}
+
+	payload, err := os.ReadFile(filepath.Join(dir, report.Results.Location))
+	if err != nil {
+		t.Fatalf("results.location does not resolve to a file: %v", err)
+	}
+	if want := "sha256:" + sha256Hex(payload); report.Results.Digest != want {
+		t.Errorf("results.digest = %q but the payload hashes to %q; a digest that does not match "+
+			"is worse than none, since a consumer would reject a correct payload",
+			report.Results.Digest, want)
+	}
+
+	// The declaration is an input to reading the results, not a summary of
+	// them, so it has to say what the provider claimed rather than what
+	// happened.
+	if got := report.Declaration.Declared; len(got) != 1 || got[0] != tck.Object.Tag() {
+		t.Errorf("declaration.declared = %v, want exactly [%s]", got, tck.Object.Tag())
+	}
+}
+
+// TestDeclarationOfNothingIsAnEmptyListNotNull keeps the difference between
+// stating none and saying nothing.
+//
+// The schema requires declared to be an array. A provider that declares no
+// capability is making a claim; null would be silence, and a consumer cannot
+// tell silence from a bug in the emitter.
+func TestDeclarationOfNothingIsAnEmptyListNotNull(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	tck.Run(t, tck.Config{
+		Name:    "declares-nothing",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		// Empty rather than nil: nil means "declare everything".
+		Capabilities: []tck.Capability{},
+	})
+
+	data, err := os.ReadFile(filepath.Join(dir, "declares-nothing.json"))
+	if err != nil {
+		t.Fatalf("no conformance report: %v", err)
+	}
+	if !strings.Contains(string(data), `"declared": []`) {
+		t.Errorf("a provider declaring no capability did not emit an empty declared list:\n%s", data)
 	}
 }
 
@@ -161,33 +264,33 @@ func TestReportNotWrittenByDefault(t *testing.T) {
 	}
 }
 
-// TestSpecRevisionIsRecorded guards the generated constants.
+// TestSpecRevisionIsRecorded guards the generated constant.
 //
-// They are what lets a consumer know which questions a report answers, and they
-// are generated rather than written, so the failure mode is silence: a
-// regenerate that stopped emitting them would leave the report structurally
-// valid and semantically useless.
+// It is what lets a consumer know which questions a report answers, and it is
+// generated rather than written, so the failure mode is silence: a regenerate
+// that stopped emitting it would leave the report structurally valid and
+// semantically useless.
 func TestSpecRevisionIsRecorded(t *testing.T) {
 	if len(tck.SpecRevision) != 40 {
 		t.Errorf("SpecRevision = %q, want a 40-character commit SHA; run `make provider-tck-assets`",
 			tck.SpecRevision)
 	}
-	if len(tck.AssetsTree) != 40 {
-		t.Errorf("AssetsTree = %q, want a 40-character tree SHA; run `make provider-tck-assets`",
-			tck.AssetsTree)
-	}
 }
 
-// TestOutlineRowsAreDistinguishable is the property the example field exists to
-// establish.
+// TestOutlineRowsAreDistinguishable is the property Messages carries for free,
+// and which the report used to carry a bespoke field for.
 //
 // Every row of a Scenario Outline shares one feature and one name. The
-// type-mismatch matrix in errors.feature is eleven rows, so before the field
-// existed the report held eleven entries differing only in how long each took;
-// if one row failed and ten passed, nothing in the report said which. The
-// identity of a row is its parameters, so this asserts that feature, name and
-// example together are unique across the whole report -- which is exactly the
-// key a consumer needs to be able to use.
+// type-mismatch matrix in errors.feature is eleven rows, so a result keyed on
+// feature and name is eleven entries differing in nothing; if one row failed and
+// ten passed, nothing would say which. Messages identifies the row exactly: a
+// pickle's last AST node id is the id of the Examples TableRow it was expanded
+// from, and the stream carries the gherkinDocument those ids belong to, so the
+// row's cells are recoverable from the stream alone.
+//
+// That is strictly better than the field it replaces, which had to reproduce
+// godog's node numbering by reparsing the feature files -- a coupling to
+// godog's internals that this removes.
 func TestOutlineRowsAreDistinguishable(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
@@ -201,70 +304,74 @@ func TestOutlineRowsAreDistinguishable(t *testing.T) {
 		Capabilities: []tck.Capability{tck.Object},
 	})
 
-	report := readReport(t, filepath.Join(dir, "outline-identity.json"))
+	run := readRun(t, dir, "outline-identity")
 
-	seen := map[string]bool{}
-	for _, scenario := range report.Scenarios {
-		key := scenarioKey(scenario)
-		if seen[key] {
-			t.Errorf("two entries share the identity %s; a Scenario Outline row is identified by "+
-				"its parameters, so a consumer keying on feature, name and example would keep "+
-				"only one of them", key)
+	// No two scenarios share an identity, where the identity is the pickle's
+	// AST node ids -- the scenario node, plus the Examples row for an outline.
+	seen := map[string]string{}
+	for _, tc := range run.cases {
+		key := tc.uri + "\x00" + strings.Join(tc.astNodeIDs, ",")
+		if previous, clash := seen[key]; clash {
+			t.Errorf("scenarios %q and %q share the AST identity %s; a consumer keying on it "+
+				"would keep only one of them", previous, tc.name, key)
 		}
-		seen[key] = true
+		seen[key] = tc.name
 	}
 
-	// A report where nothing came from an outline would satisfy the loop above
+	// A stream where nothing came from an outline would satisfy the loop above
 	// while asserting nothing, so the matrix itself is pinned: eleven rows,
-	// eleven different parameter sets.
+	// eleven different parameter sets, recovered from the stream's own
+	// gherkinDocument.
 	const matrix = "Requesting the wrong type returns the code default"
-	examples := map[string]bool{}
 	rows := 0
-	for _, scenario := range report.Scenarios {
-		if scenario.Name != matrix {
+	cells := map[string]bool{}
+	for _, tc := range run.cases {
+		if tc.name != matrix {
 			continue
 		}
 		rows++
-		if len(scenario.Example) == 0 {
-			t.Errorf("row %d of %q carries no example, so it is indistinguishable from the others",
-				rows, matrix)
+		row, ok := run.exampleRow(tc)
+		if !ok {
+			t.Errorf("row %d of %q does not resolve to an Examples row, so it is indistinguishable "+
+				"from the others", rows, matrix)
 			continue
 		}
-		examples[canonicalExample(scenario.Example)] = true
+		cells[strings.Join(row, "|")] = true
 	}
-	if rows == 0 {
-		t.Fatalf("no entry for %q; either the feature files changed or the suite did not run", matrix)
+	if rows != 11 {
+		t.Errorf("%q produced %d results, want the 11 rows of the matrix in errors.feature",
+			matrix, rows)
 	}
-	if len(examples) != rows {
-		t.Errorf("%d rows of %q produced %d distinct examples", rows, matrix, len(examples))
+	if len(cells) != rows {
+		t.Errorf("%d rows of %q resolved to %d distinct Examples rows", rows, matrix, len(cells))
 	}
 
-	// The field is present only for outline rows. Emitting an empty object for an
-	// ordinary scenario would be a second thing for four implementations to agree
-	// on, and the schema asks for omission instead.
+	// An ordinary scenario resolves to no Examples row, which is how a consumer
+	// tells the two apart without a separate field saying so.
 	const ordinary = "An unknown flag key returns the code default"
 	found := false
-	for _, scenario := range report.Scenarios {
-		if scenario.Name != ordinary {
+	for _, tc := range run.cases {
+		if tc.name != ordinary {
 			continue
 		}
 		found = true
-		if scenario.Example != nil {
-			t.Errorf("%q is not a Scenario Outline but carries example %v", ordinary, scenario.Example)
+		if row, ok := run.exampleRow(tc); ok {
+			t.Errorf("%q is not a Scenario Outline but resolves to the Examples row %v", ordinary, row)
 		}
 	}
 	if !found {
-		t.Errorf("no entry for %q, so the omission of example was not checked", ordinary)
+		t.Errorf("no result for %q, so the ordinary case was not checked", ordinary)
 	}
 }
 
-// TestSkippedOutlineRowsCarryTheirExample covers the capability gate, which
-// records its outcome before the scenario runs and so is a second place the
-// example has to be filled in.
+// TestSkippedOutlineRowsAreDistinguishable covers the capability gate, which
+// stops a scenario before its first step and so is the path most likely to lose
+// a row's identity.
 //
 // A skipped outline row is exactly as ambiguous as a failed one: the four rows
-// of the @object outline are four entries that differ in nothing without it.
-func TestSkippedOutlineRowsCarryTheirExample(t *testing.T) {
+// of the @object outline are four results that differ in nothing unless the row
+// is recoverable.
+func TestSkippedOutlineRowsAreDistinguishable(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
@@ -274,59 +381,274 @@ func TestSkippedOutlineRowsCarryTheirExample(t *testing.T) {
 		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
 		},
-		// Empty rather than nil: a nil Capabilities means "declare everything",
-		// and what this test needs is a provider that declares nothing, so the
-		// @object outline is gated in the Before hook and never starts.
+		// A provider that declares nothing, so the @object outline is gated in
+		// the Before hook and never starts.
 		Capabilities: []tck.Capability{},
 	})
 
-	report := readReport(t, filepath.Join(dir, "skipped-outline.json"))
+	run := readRun(t, dir, "skipped-outline")
 
 	const outline = "Requesting a structured flag as a scalar returns the code default"
-	examples := map[string]bool{}
 	rows := 0
-	for _, scenario := range report.Scenarios {
-		if scenario.Name != outline {
+	cells := map[string]bool{}
+	for _, tc := range run.cases {
+		if tc.name != outline {
 			continue
 		}
 		rows++
-		if scenario.Outcome != tck.OutcomeNotDeclared {
-			t.Errorf("%q was reported as %q; @object was not declared", outline, scenario.Outcome)
+		if tc.status != messages.TestStepResultStatus_SKIPPED {
+			t.Errorf("%q is reported as %s; @object was not declared", outline, tc.status)
 		}
-		if len(scenario.Example) == 0 {
-			t.Errorf("a skipped row of %q carries no example, so the report cannot say which row "+
-				"was skipped", outline)
+		row, ok := run.exampleRow(tc)
+		if !ok {
+			t.Errorf("a skipped row of %q does not resolve to an Examples row, so the results "+
+				"cannot say which row was skipped", outline)
 			continue
 		}
-		examples[canonicalExample(scenario.Example)] = true
+		cells[strings.Join(row, "|")] = true
 	}
 	if rows == 0 {
-		t.Fatalf("no entry for %q; the capability gate did not record it at all", outline)
+		t.Fatalf("no result for %q; the capability gate did not report it at all", outline)
 	}
-	if len(examples) != rows {
-		t.Errorf("%d skipped rows of %q produced %d distinct examples", rows, outline, len(examples))
+	if len(cells) != rows {
+		t.Errorf("%d skipped rows of %q resolved to %d distinct Examples rows", rows, outline, len(cells))
 	}
 }
 
-// scenarioKey is the identity of a report entry: feature, name and example.
-func scenarioKey(scenario tck.ReportScenario) string {
-	return scenario.Feature + "/" + scenario.Name + "/" + canonicalExample(scenario.Example)
+// TestTheExecutedSourceIsCarried is why assetsTree was dropped.
+//
+// The report used to carry a git tree hash over the asset directory so a
+// consumer could tell which questions a run asked. The Messages stream carries
+// the feature text godog actually parsed, which answers the same question with
+// the source rather than with a hash of it -- and unlike the hash it cannot be
+// asserted wrongly, because it is the input.
+func TestTheExecutedSourceIsCarried(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	tck.Run(t, tck.Config{
+		Name:    "sources",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		Capabilities: []tck.Capability{tck.Object},
+	})
+
+	run := readRun(t, dir, "sources")
+
+	if len(run.sources) == 0 {
+		t.Fatal("the stream carries no feature source")
+	}
+	for uri, data := range run.sources {
+		if !strings.Contains(data, "Feature:") {
+			t.Errorf("the source for %s does not look like a feature file", uri)
+		}
+	}
+
+	// Every scenario's feature must be present, or a consumer cannot see the
+	// question behind a result.
+	for _, tc := range run.cases {
+		if _, ok := run.sources[tc.uri]; !ok {
+			t.Errorf("scenario %q came from %s, whose source is not in the stream", tc.name, tc.uri)
+		}
+	}
 }
 
-// canonicalExample renders an example so two of them compare equal exactly when
-// their parameters do, independently of map iteration order.
-func canonicalExample(example map[string]string) string {
-	keys := make([]string, 0, len(example))
-	for key := range example {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
+// --- reading the two files back ----------------------------------------------
 
-	parts := make([]string, 0, len(keys))
-	for _, key := range keys {
-		parts = append(parts, key+"="+example[key])
+// runResults is a Cucumber Messages stream indexed the way these tests ask
+// questions of it.
+type runResults struct {
+	sources map[string]string
+	pickles map[string]*messages.Pickle
+	cases   []resultCase
+	// tableRows maps an Examples TableRow id to its cells, built from the
+	// documents in the stream.
+	tableRows map[string][]string
+}
+
+// resultCase is one scenario's result, flattened.
+type resultCase struct {
+	pickleID   string
+	name       string
+	uri        string
+	tags       []string
+	astNodeIDs []string
+	// status is the most severe of the test case's step results, which is how
+	// Cucumber derives a scenario's outcome; Messages has no per-test-case
+	// status field.
+	status  messages.TestStepResultStatus
+	message string
+}
+
+// severity orders statuses so that the most severe of a test case's steps is
+// the test case's outcome. This is Cucumber's own ordering.
+var severity = map[messages.TestStepResultStatus]int{
+	messages.TestStepResultStatus_UNKNOWN:   0,
+	messages.TestStepResultStatus_PASSED:    1,
+	messages.TestStepResultStatus_SKIPPED:   2,
+	messages.TestStepResultStatus_PENDING:   3,
+	messages.TestStepResultStatus_UNDEFINED: 4,
+	messages.TestStepResultStatus_AMBIGUOUS: 5,
+	messages.TestStepResultStatus_FAILED:    6,
+}
+
+// exampleRow resolves the Examples row a scenario was expanded from, using only
+// what the stream carries.
+//
+// A pickle's AST node ids end with the id of the Examples TableRow for an
+// outline row, and with the Scenario node for an ordinary scenario, so a lookup
+// that misses is the ordinary case rather than an error.
+func (r *runResults) exampleRow(tc resultCase) ([]string, bool) {
+	if len(tc.astNodeIDs) == 0 {
+		return nil, false
 	}
-	return strings.Join(parts, "\x00")
+	row, ok := r.tableRows[tc.astNodeIDs[len(tc.astNodeIDs)-1]]
+	return row, ok
+}
+
+func readRun(t *testing.T, dir, name string) *runResults {
+	t.Helper()
+
+	report := readReport(t, filepath.Join(dir, name+".json"))
+	path := filepath.Join(dir, report.Results.Location)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("no results payload at %s: %v", path, err)
+	}
+
+	// A null where the protocol requires an array is the failure a Go emitter
+	// falls into most easily: a nil slice marshals to null, and most of the
+	// required array fields in the Messages types have no omitempty. Checked on
+	// every stream these tests read, since the fields at risk depend on what
+	// the feature files happen to contain.
+	if strings.Contains(string(data), ":null") {
+		t.Errorf("%s contains a null where the Messages protocol requires a value", path)
+	}
+
+	run := &runResults{
+		sources:   map[string]string{},
+		pickles:   map[string]*messages.Pickle{},
+		tableRows: map[string][]string{},
+	}
+
+	// testCaseId -> pickleId, and testCaseStartedId -> testCaseId, so a step
+	// result can be attributed to a scenario the way a consumer has to do it.
+	casePickle := map[string]string{}
+	startedCase := map[string]string{}
+	worst := map[string]messages.TestStepResultStatus{}
+	reasons := map[string]string{}
+	var order []string
+
+	for i, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		var envelope messages.Envelope
+		if err := json.Unmarshal([]byte(line), &envelope); err != nil {
+			t.Fatalf("line %d of %s is not a Cucumber Messages envelope: %v", i+1, path, err)
+		}
+
+		switch {
+		case envelope.Source != nil:
+			run.sources[envelope.Source.Uri] = envelope.Source.Data
+		case envelope.GherkinDocument != nil:
+			collectTableRows(envelope.GherkinDocument, run.tableRows)
+		case envelope.Pickle != nil:
+			run.pickles[envelope.Pickle.Id] = envelope.Pickle
+		case envelope.TestCase != nil:
+			casePickle[envelope.TestCase.Id] = envelope.TestCase.PickleId
+		case envelope.TestCaseStarted != nil:
+			startedCase[envelope.TestCaseStarted.Id] = envelope.TestCaseStarted.TestCaseId
+			order = append(order, envelope.TestCaseStarted.Id)
+		case envelope.TestStepFinished != nil:
+			finished := envelope.TestStepFinished
+			if finished.TestStepResult == nil {
+				t.Fatalf("a testStepFinished in %s carries no result", path)
+			}
+			id := finished.TestCaseStartedId
+			if severity[finished.TestStepResult.Status] > severity[worst[id]] {
+				worst[id] = finished.TestStepResult.Status
+			}
+			if reasons[id] == "" && finished.TestStepResult.Message != "" {
+				reasons[id] = finished.TestStepResult.Message
+			}
+		}
+	}
+
+	for _, startedID := range order {
+		pickleID := casePickle[startedCase[startedID]]
+		pickle, ok := run.pickles[pickleID]
+		if !ok {
+			t.Fatalf("%s reports a result for scenario %s, which the stream does not describe",
+				path, pickleID)
+		}
+
+		tags := make([]string, 0, len(pickle.Tags))
+		for _, tag := range pickle.Tags {
+			tags = append(tags, tag.Name)
+		}
+
+		run.cases = append(run.cases, resultCase{
+			pickleID:   pickleID,
+			name:       pickle.Name,
+			uri:        pickle.Uri,
+			tags:       tags,
+			astNodeIDs: pickle.AstNodeIds,
+			status:     worst[startedID],
+			message:    reasons[startedID],
+		})
+	}
+
+	if len(run.cases) == 0 {
+		t.Fatalf("%s reports no scenario results at all", path)
+	}
+	return run
+}
+
+// collectTableRows indexes every Examples TableRow in a document by its id.
+func collectTableRows(document *messages.GherkinDocument, into map[string][]string) {
+	if document == nil || document.Feature == nil {
+		return
+	}
+
+	collect := func(scenario *messages.Scenario) {
+		if scenario == nil {
+			return
+		}
+		for _, examples := range scenario.Examples {
+			if examples == nil {
+				continue
+			}
+			for _, row := range examples.TableBody {
+				if row == nil {
+					continue
+				}
+				cells := make([]string, 0, len(row.Cells))
+				for _, cell := range row.Cells {
+					cells = append(cells, cell.Value)
+				}
+				into[row.Id] = cells
+			}
+		}
+	}
+
+	for _, child := range document.Feature.Children {
+		if child == nil {
+			continue
+		}
+		collect(child.Scenario)
+		if child.Rule == nil {
+			continue
+		}
+		for _, ruleChild := range child.Rule.Children {
+			if ruleChild != nil {
+				collect(ruleChild.Scenario)
+			}
+		}
+	}
 }
 
 func readReport(t *testing.T, path string) tck.Report {
@@ -344,50 +666,13 @@ func readReport(t *testing.T, path string) tck.Report {
 	if report.SchemaVersion == "" {
 		t.Fatalf("report at %s has no schemaVersion", path)
 	}
+	if report.Results.Location == "" {
+		t.Fatalf("report at %s does not say where its results are", path)
+	}
 	return report
 }
 
-// TestReservedCapabilityIsNotReportedAsPassed covers the capability a provider
-// declares and the suite never tests.
-//
-// @targeting is reserved: it exists in the vocabulary but no scenario carries
-// it, because asserting that an evaluation context reached the backend needs an
-// echo operation the control API does not have yet. Reporting it as passed would
-// be a green result for a claim nothing tested -- the same vacuous pass the
-// capability vocabulary was introduced to eliminate, arriving through the report
-// instead of through the suite.
-//
-// Omitting it is the honest answer: the suite asked no question, so it has none
-// to report. A consumer sees the tag is absent rather than a pass it cannot rely
-// on.
-func TestReservedCapabilityIsNotReportedAsPassed(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv(tck.ReportDirEnv, dir)
-
-	tck.Run(t, tck.Config{
-		Name:    "reserved-capability",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
-			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		// Targeting is declared and no scenario carries it. Object is declared so
-		// the suite still does something.
-		Capabilities: []tck.Capability{tck.Object, tck.Targeting},
-	})
-
-	report := readReport(t, filepath.Join(dir, "reserved-capability.json"))
-
-	if result, present := report.Capabilities[tck.Targeting.Tag()]; present {
-		t.Errorf("%s was declared and no scenario exercises it, but the report states %q; "+
-			"a capability the suite never tested must not be reported as a result",
-			tck.Targeting.Tag(), result.State)
-	}
-
-	// The declared capability that is exercised must still be reported, so the
-	// omission above is specific rather than a general failure to report.
-	if result, present := report.Capabilities[tck.Object.Tag()]; !present {
-		t.Errorf("%s was declared and exercised but is missing from the report", tck.Object.Tag())
-	} else if result.State != tck.OutcomePassed {
-		t.Errorf("%s reported as %q, want %q", tck.Object.Tag(), result.State, tck.OutcomePassed)
-	}
+func sha256Hex(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }
