@@ -61,7 +61,7 @@ func TestMultiProvider(t *testing.T) {
 			tck.Events,
 			tck.ConfigurationChange,
 			tck.Object,
-			tck.StrictNumericTyping,
+			tck.NumericCoercion,
 		},
 	})
 }

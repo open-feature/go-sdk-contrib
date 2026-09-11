@@ -33,8 +33,8 @@ const (
 //
 // Integer values are int64 and float values are float64 so that the two numeric
 // types stay distinct: memprovider widens int to int64 but never converts
-// between integer and float, which is the behaviour StrictNumericTyping
-// describes.
+// between integer and float, which satisfies the lossy half of NumericCoercion
+// — the only half the canonical scenarios ask about.
 func CanonicalFlagSet() map[string]memprovider.InMemoryFlag {
 	return map[string]memprovider.InMemoryFlag{
 		"boolean-flag": {
@@ -151,7 +151,7 @@ func changingFlag(defaultVariant string) memprovider.InMemoryFlag {
 //	    NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
 //	        return control.NewProvider(), nil
 //	    },
-//	    Capabilities: []tck.Capability{tck.Events, tck.ConfigurationChange, tck.Object, tck.StrictNumericTyping},
+//	    Capabilities: []tck.Capability{tck.Events, tck.ConfigurationChange, tck.Object, tck.NumericCoercion},
 //	})
 type InProcessControl struct {
 	mu sync.Mutex
