@@ -91,6 +91,27 @@ type Config struct {
 	// result.
 	Capabilities []Capability
 
+	// KnownDeviations records gaps the provider is known to have against parts
+	// of the specification that are not optional.
+	//
+	// Narrowing Capabilities is how a provider says a scenario was not run, but
+	// it cannot say why, and the two reasons are not alike: a provider with no
+	// streaming transport declining ConfigurationChange has made a decision,
+	// while one declining NumericCoercion because it narrows 0.5 to 0 with no
+	// error code has a bug. In the results both are a skip with the same
+	// reason, so unless the provider author says which happened, a consumer
+	// comparing providers reads a defect as a design choice.
+	//
+	// Declare an entry when you have narrowed Capabilities to work around a
+	// defect rather than to describe a limitation, and delete it when the
+	// defect is fixed. An entry may also name a capability that is declared,
+	// for the case where the capability holds but one of the scenarios it gates
+	// does not.
+	//
+	// Empty by default, which is silence rather than a claim. See
+	// KnownDeviation, TrackedDeviation and UntrackedDeviation.
+	KnownDeviations []KnownDeviation
+
 	// EventTimeout is how long to wait for a provider event to arrive.
 	//
 	// This is the single most important knob for a provider author, because
@@ -175,6 +196,10 @@ func (c *Config) validate() error {
 	}
 	if c.Control == nil {
 		problems = append(problems, errors.New("Control is required: see tck.BackendControl for which implementation fits your provider"))
+	}
+
+	if err := validateDeviations(c.KnownDeviations); err != nil {
+		problems = append(problems, err)
 	}
 
 	caps, err := newCapabilitySet(c.capabilities())
