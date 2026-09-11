@@ -225,7 +225,7 @@ func TestAnExtensionCannotShadowACanonicalScenario(t *testing.T) {
 
 	// The canonical feature the fixture impersonates was parsed from the
 	// embedded assets, byte for byte, and not from the adopter's copy.
-	const canonicalURI = "assets/gherkin/evaluation.feature"
+	const canonicalURI = "gherkin/evaluation.feature"
 	if baseline.sources[canonicalURI] == "" {
 		t.Fatalf("the baseline run carries no source for %s", canonicalURI)
 	}
@@ -287,7 +287,7 @@ func TestAnExtensionCannotShadowACanonicalScenario(t *testing.T) {
 }
 
 func isCanonicalURI(uri string) bool {
-	return strings.HasPrefix(uri, "assets/gherkin/")
+	return strings.HasPrefix(uri, "gherkin/")
 }
 
 func canonicalOnly(cases []resultCase) []resultCase {
