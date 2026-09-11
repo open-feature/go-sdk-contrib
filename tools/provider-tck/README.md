@@ -210,6 +210,51 @@ value survives the trip — anything routed through a 32-bit integer, or through
 with rounding, changes it. Java's accessor is a 32-bit `Integer`, and a provider there leaves the
 tag undeclared. Nothing above 2^53 − 1 is asked for.
 
+### Known deviations
+
+Narrowing `Capabilities` says a scenario was not run. It cannot say **why**, and the two reasons are
+not alike: a provider with no streaming transport declining `@configuration-change` has made a
+decision, while one declining `@numeric-coercion` because it narrows `0.5` to `0` with no error code
+has a bug. In the results they are indistinguishable — the same skip, carrying the same reason — so
+unless the provider author says which happened, a consumer comparing providers reads a defect as a
+design choice. The TCK cannot infer it: from the outside, a capability withheld by choice and one
+withheld because it is broken are the same absence.
+
+`Config.KnownDeviations` is where that gets said.
+
+```go
+KnownDeviations: []tck.KnownDeviation{
+	tck.TrackedDeviation(
+		tck.NumericCoercion,
+		"https://github.com/open-feature/flagd/issues/1996",
+		"The lossy half of the coercion rule is not enforced: float-flag (0.5) through the "+
+			"integer API returns 0 with no error code, rather than TYPE_MISMATCH with the "+
+			"code default.",
+	),
+	tck.UntrackedDeviation(
+		tck.Lifecycle,
+		"shutdown() never clears the initialised latch, so a later Init returns at once "+
+			"without re-creating the resolver it tore down.",
+	),
+},
+```
+
+`tck.UntrackedDeviation` is for a gap with no issue behind it yet, and is worth declaring even so:
+naming the defect is what separates it from a capability withheld by choice, and a declaration that
+merely omits the tag cannot say which of the two happened. Move it to `tck.TrackedDeviation` as soon
+as there is an issue to point at, and delete the entry once the defect is fixed.
+
+Two shapes are legitimate besides the obvious one. An entry with **no capability** is a gap against
+a mandatory scenario, which belongs to no capability and so can name none. An entry naming a
+capability that **is declared** covers the case where the capability holds but one of the scenarios
+it gates does not — worth recording precisely because such a scenario may pass for the wrong reason
+in one of a provider's modes and hide the gap there.
+
+Empty by default, which is silence rather than a claim. A deviation with no summary is rejected by
+configuration validation, because it records that something is broken without saying what and is
+then worth less than the bare skip it accompanies; so is one naming a reserved capability, because
+no scenario carries that tag and nothing was skipped for it to explain.
+
 ## Controlling the backend
 
 `tck.BackendControl` is the single seam between the scenarios and whatever manipulates the backend.
