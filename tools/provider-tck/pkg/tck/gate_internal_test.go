@@ -123,6 +123,103 @@ func TestValidateRejectsUnknownCapability(t *testing.T) {
 	}
 }
 
+// A reserved capability is one the vocabulary names and no scenario carries.
+// Declaring it cannot be verified and cannot even produce a skip, so a report
+// that says it was declared claims something nothing examined. These tests pin
+// the three places that could put one into a report: the declare-everything
+// convenience, the default when Config.Capabilities is unset, and an adopter
+// naming one outright.
+
+func TestAllCapabilitiesOmitsReservedCapabilities(t *testing.T) {
+	for _, c := range AllCapabilities() {
+		if c.IsReserved() {
+			t.Errorf("AllCapabilities returned the reserved capability %s; an adoption starting "+
+				"from the full set would declare a tag no scenario carries", c)
+		}
+	}
+
+	// The exclusion must be exactly the reserved set, not a convenient subset:
+	// a capability quietly dropped from the default is a gap an adopter never
+	// sees reported.
+	returned := make(map[Capability]bool, len(allCapabilities))
+	for _, c := range AllCapabilities() {
+		returned[c] = true
+	}
+	for _, c := range allCapabilities {
+		if c.IsReserved() == returned[c] {
+			t.Errorf("AllCapabilities is wrong about %s: reserved=%v, returned=%v",
+				c, c.IsReserved(), returned[c])
+		}
+	}
+}
+
+func TestTheDefaultCapabilitySetOmitsReservedCapabilities(t *testing.T) {
+	// nil means "declare everything", which is the shape that put @targeting
+	// and @caching into a published report elsewhere.
+	cfg := &Config{}
+	for _, c := range cfg.capabilities() {
+		if c.IsReserved() {
+			t.Errorf("the default capability set contains the reserved capability %s", c)
+		}
+	}
+}
+
+func TestValidateRejectsAnExplicitlyDeclaredReservedCapability(t *testing.T) {
+	for _, reserved := range reservedCapabilities {
+		cfg := Config{
+			Name:    "gate",
+			Control: stubControl{},
+			NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+				return openfeature.NoopProvider{}, nil
+			},
+			Capabilities: []Capability{Object, reserved},
+		}
+
+		err := cfg.validate()
+		if err == nil {
+			t.Errorf("declaring the reserved capability %s was accepted; it would reach a "+
+				"conformance report as a claim nothing examined", reserved)
+			continue
+		}
+		if !strings.Contains(err.Error(), reserved.Tag()) {
+			t.Errorf("the error for %s does not name the tag: %v", reserved, err)
+		}
+	}
+}
+
+// TestAReservedCapabilityCannotBeDeclared pins the rule at the only place a
+// capability set is built.
+//
+// The check lives in newCapabilitySet rather than only in Config.validate
+// because the set is the single thing a declaration is derived from and the only
+// constructor, so there is no second route by which a reserved capability could
+// reach one. Config.validate calls it, so an adopter naming a reserved
+// capability is refused before any scenario runs.
+//
+// The report half of this property -- that declaration.declared never contains a
+// reserved tag -- is asserted where the report exists, on the branch that emits
+// one. Here there is no report to inspect, and asserting the constructor is what
+// makes the report's guarantee structural rather than incidental.
+func TestAReservedCapabilityCannotBeDeclared(t *testing.T) {
+	for _, reserved := range reservedCapabilities {
+		if _, err := newCapabilitySet([]Capability{reserved}); err == nil {
+			t.Errorf("newCapabilitySet accepted the reserved capability %s, so it could still "+
+				"reach a conformance declaration", reserved)
+		}
+	}
+
+	caps, err := newCapabilitySet((&Config{}).capabilities())
+	if err != nil {
+		t.Fatalf("the default capability set does not validate: %v", err)
+	}
+	for _, capability := range caps.sorted() {
+		if capability.IsReserved() {
+			t.Errorf("the default capability set contains the reserved capability %s; a "+
+				"declare-everything default must not hand out tags nothing tests", capability)
+		}
+	}
+}
+
 // stubControl is a BackendControl that does nothing, for tests that only need
 // a non-nil one.
 type stubControl struct{}
