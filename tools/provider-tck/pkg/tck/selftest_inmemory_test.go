@@ -59,17 +59,24 @@ func TestInMemoryProvider(t *testing.T) {
 		//   - Targeting and Caching are omitted because they are reserved: no
 		//     scenario carries their tags, so declaring them is rejected as a
 		//     configuration error rather than reported as a result.
+		//   - NumericCoercion is omitted because memprovider does not coerce:
+		//     it type-asserts, so it refuses to narrow float-flag (0.5) to an
+		//     integer — the lossy half of the rule, which it gets right — but
+		//     it equally refuses integral-float-flag (10.0) as an integer and
+		//     integer-flag (10) as a float, and reports TYPE_MISMATCH for both.
+		//     Those are the lossless half, which the capability requires too;
+		//     rejecting every float is precisely the shortcut those scenarios
+		//     exist to stop. Until the flag set contained an integral float
+		//     this suite declared the capability on the strength of the lossy
+		//     scenario alone, which is the gap the spec closed.
 		//
-		// NumericCoercion is declared, and that is worth stating plainly:
-		// memprovider refuses to narrow float-flag (0.5) to an integer and
-		// reports TYPE_MISMATCH instead. That is the lossy half of the rule,
-		// and the only half any scenario asks about — whether memprovider would
-		// accept an integral float as an integer is untested here, because the
-		// canonical flag set contains no integral float.
+		// LargeIntegers is declared: the accessor is int64 and memprovider
+		// hands the int64 it was seeded with straight back, so 2^53-1
+		// survives the trip untouched.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.Object,
-			tck.NumericCoercion,
+			tck.LargeIntegers,
 		},
 	})
 }
