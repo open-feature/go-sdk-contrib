@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.1.0...tests/flagd/v2.2.0) (2026-09-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove "null" -> nil conversion ([#958](https://github.com/open-feature/go-sdk-contrib/issues/958))
+
+### 🐛 Bug Fixes
+
+* remove "null" -&gt; nil conversion ([#958](https://github.com/open-feature/go-sdk-contrib/issues/958)) ([97bfc96](https://github.com/open-feature/go-sdk-contrib/commit/97bfc9657e02dbe8548fe79f64d681ebe6bcf7f2))
+* **security:** update module github.com/moby/buildkit to v0.31.1 [security] ([#945](https://github.com/open-feature/go-sdk-contrib/issues/945)) ([8d275ab](https://github.com/open-feature/go-sdk-contrib/commit/8d275abcb77d512168a1a6b328d7a45ab2aef806))
+
 ## [2.1.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.2...tests/flagd/v2.1.0) (2026-07-22)
 
 
