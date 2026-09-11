@@ -54,7 +54,7 @@
 // per-scenario backend reset the canonical ones get, and an extension step
 // reaches the provider under test with [ClientFromContext]. They are
 // distinguishable from canonical scenarios in the conformance report: a result
-// whose feature URI starts with "assets/gherkin/" is canonical, one under
+// whose feature URI starts with "gherkin/" is canonical, one under
 // "extensions/" is the adopter's.
 //
 // Java and Python discover extensions by convention — a classpath scan, a
@@ -65,8 +65,8 @@
 //
 // [BackendControl] is the single seam between the scenarios and whatever
 // manipulates the backend. Providers with a real backend drive it over the HTTP
-// control API defined in the spec submodule, at
-// spec/specification/assets/provider-tck/openapi/control-api.yaml; providers
+// control API defined in the specification, at
+// specification/assets/provider-tck/openapi/control-api.yaml; providers
 // with no backend at all may use an in-process implementation such as
 // [InProcessControl]. The distinction matters and is not a matter of taste —
 // see the documentation on [BackendControl].
