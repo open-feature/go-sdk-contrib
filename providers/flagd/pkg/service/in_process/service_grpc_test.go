@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"fmt"
+	"google.golang.org/protobuf/types/known/structpb"
 	"net"
 	"testing"
 	"time"
@@ -38,11 +39,20 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	m := make(map[string]any)
+
+	m["context"] = "set"
+	syncContext, err := structpb.NewStruct(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	bufServ := &bufferedServer{
 		listener: listen,
 		mockResponses: []*v1.SyncFlagsResponse{
 			{
 				FlagConfiguration: flagRsp,
+				SyncContext:       syncContext,
 			},
 		},
 		fetchAllFlagsResponse: nil,
@@ -56,6 +66,10 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		TLSEnabled:        false,
 		RetryBackOffMaxMs: 5000,
 		RetryBackOffMs:    1000,
+		ContextEnricher: func(m map[string]any) *openfeature.EvaluationContext {
+			ctx := openfeature.NewTargetlessEvaluationContext(m)
+			return &ctx
+		},
 	})
 
 	// when
@@ -123,6 +137,10 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 
 	if scope != detail.FlagMetadata["scope"] {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
+	}
+
+	if inProcessService.ContextValues() == nil {
+		t.Fatal("Expected context_values to be present, but got none")
 	}
 }
 
