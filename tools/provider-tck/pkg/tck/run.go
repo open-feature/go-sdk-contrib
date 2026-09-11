@@ -154,7 +154,7 @@ func (r *runner) afterScenario(ctx context.Context, _ *godog.Scenario, err error
 // files stay free to carry organisational tags.
 func (r *runner) missingCapability(sc *godog.Scenario) (Capability, bool) {
 	for _, tag := range sc.Tags {
-		capability, gates := capabilityForTag(tag.Name)
+		capability, gates := CapabilityForTag(tag.Name)
 		if !gates {
 			continue
 		}
