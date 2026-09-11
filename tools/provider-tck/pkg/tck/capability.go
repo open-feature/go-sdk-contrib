@@ -83,31 +83,44 @@ const (
 	// types only when the coercion is lossless, and reports TYPE_MISMATCH when
 	// it would lose information.
 	//
-	// An integral float such as 10.0 requested as an integer must succeed; 0.5
-	// requested as an integer must not. The rule is not "never coerce", which is
-	// what this capability was originally named for — see flagd's numeric
-	// coercion ADR, https://github.com/open-feature/flagd/issues/1996.
+	// An integral float such as 10.0 requested as an integer must succeed and
+	// 10 requested as a float must widen; 0.5 requested as an integer must not.
+	// The rule is not "never coerce", which is what this capability was
+	// originally named for — see flagd's numeric coercion ADR,
+	// https://github.com/open-feature/flagd/issues/1996.
 	//
-	// Unlike every other entry here this is not an optional feature. The
-	// specification requires a provider to report TYPE_MISMATCH when the
-	// requested type cannot be satisfied, and narrowing 0.5 to 0 to satisfy an
-	// integer request loses information silently — the worst failure mode a
-	// feature flag has, because the application sees a plausible value and no
-	// error at all.
+	// The specification does not define this rule. OpenFeature has a single
+	// numeric type, and whether a language tells integers from floats is an
+	// idiom, so the rule is borrowed from the ADR rather than normative, and a
+	// provider that behaves differently is not violating the specification
+	// (open-feature/spec#430). What is true regardless is that narrowing 0.5 to
+	// 0 with no error code is the worst failure mode a feature flag has: the
+	// application sees a plausible value and no signal. A provider withholding
+	// this capability should say whether that is a choice or a tracked defect.
 	//
-	// It is a capability only so that a provider with this defect can adopt the
-	// suite today and see the gap reported as an explicit skip, rather than
-	// being unable to adopt at all. Not declaring it is an admission of a known
-	// bug, not a design choice. Declare it as soon as the provider is fixed.
+	// All three directions have a scenario, and a provider declaring the tag
+	// has to satisfy every one of them: rejecting every float passes the lossy
+	// scenario alone, and the two lossless ones are what stop that shortcut.
+	// The SDK's memprovider.InMemoryProvider is exactly such a provider — it
+	// type-asserts and never converts between int64 and float64 — which is why
+	// the in-memory self-tests do not declare this.
 	//
-	// Only the lossy half of the rule has a scenario. The canonical flag set
-	// contains no integral float to ask the lossless half of, so a provider that
-	// wrongly rejects 10.0 as an integer still passes; Appendix F records that as
-	// an open gap, because closing it changes the flag set for every language at
-	// once. Accessor width is not modelled either — Go's ResolveIntValue is
-	// int64, as is the canonical Long, and a 32-bit accessor would need its own
-	// scenarios.
+	// Accessor width is a separate property, of the SDK rather than of the
+	// provider, with its own capability: see LargeIntegers.
 	NumericCoercion Capability = "@numeric-coercion"
+
+	// LargeIntegers means the provider resolves integers up to 2^53-1 exactly.
+	//
+	// Whether such a value can be asked for at all is a property of the
+	// language's SDK rather than of the provider: Java's integer accessor is a
+	// 32-bit Integer and has no room for it, so a provider there leaves this
+	// undeclared. Go's ResolveIntValue is int64, so every Go provider can ask;
+	// what it declares here is that the value survives the trip, which anything
+	// routed through a 32-bit integer, or through a float and back with
+	// rounding, does not. Nothing above 2^53-1 is asked for, JavaScript being
+	// unable to represent it. The 32-bit maximum has an untagged scenario of
+	// its own, because every language can ask for that.
+	LargeIntegers Capability = "@large-integers"
 
 	// Targeting is reserved and must not be declared — see IsReserved. No
 	// scenario carries this tag: targeting is backend evaluation logic, which
@@ -135,6 +148,7 @@ var allCapabilities = []Capability{
 	Object,
 	UnavailableInit,
 	NumericCoercion,
+	LargeIntegers,
 	Targeting,
 	Caching,
 }
