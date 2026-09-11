@@ -77,7 +77,7 @@ func TestOFREPConformance(t *testing.T) {
 		// configuration tck.Config documents for a provider that cannot
 		// declare tck.UnavailableInit. See the capability notes below.
 
-		// The declared set is Object and StrictNumericTyping, and every
+		// The declared set is Object and NumericCoercion, and every
 		// omission is a property of the provider's code rather than a
 		// preference.
 		//
@@ -130,23 +130,34 @@ func TestOFREPConformance(t *testing.T) {
 		// scalar lands in a failed type assertion or a default switch branch
 		// and reports TYPE_MISMATCH (flags.go:49-59, 94-104, 141-155, 209-217).
 		//
-		// tck.StrictNumericTyping IS declared, which is worth stating plainly
+		// tck.NumericCoercion IS declared, which is worth stating plainly
 		// because OFREP is JSON and JSON has exactly one number type: 0.5 and
 		// 10 both arrive from encoding/json as float64, so the provider cannot
 		// learn integer-ness from the wire. It does not have to. ResolveInt
 		// round-trips the float64 through int64 and reports TYPE_MISMATCH when
 		// the round trip is lossy (flags.go:197-208), so float-flag requested
 		// as an Integer is a mismatch rather than a silent narrowing to 0,
-		// which is exactly what the @strict-numeric-typing scenario asserts.
+		// which is exactly what the @numeric-coercion scenario asserts.
+		//
+		// That lossy-round-trip check is, independently, the rule flagd's
+		// numeric coercion ADR settles on (open-feature/flagd#1996): coercion
+		// is permitted when lossless and must fail when it would lose
+		// information. This provider got there from the constraints of JSON
+		// rather than from the ADR, which is some evidence the rule is the
+		// natural one rather than a flagd preference. Worth knowing that the
+		// specification does not require it either way -- OpenFeature has one
+		// numeric type, of "unspecified type or size" -- so the capability is
+		// tested against a borrowed rule; see open-feature/spec#430.
 		//
 		// The converse — integer-flag requested as a Float — is accepted and
 		// returns 10.0, because ResolveFloat takes any float64
-		// (flags.go:141-155) and that is what a JSON 10 decodes to. No scenario
-		// covers that direction today, and for a JSON protocol it is arguably
-		// the correct answer, but the asymmetry is worth knowing about.
+		// (flags.go:141-155) and that is what a JSON 10 decodes to. That is the
+		// lossless direction, and no scenario covers it: the canonical flag set
+		// has no integral float to ask it of, so a provider that wrongly
+		// rejected 10.0 would still pass. Appendix F records the gap.
 		Capabilities: []tck.Capability{
 			tck.Object,
-			tck.StrictNumericTyping,
+			tck.NumericCoercion,
 		},
 
 		// The provider has no initialisation to wait for, so this bounds the
