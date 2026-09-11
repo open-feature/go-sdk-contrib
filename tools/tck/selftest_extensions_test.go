@@ -84,6 +84,13 @@ func (v *vendorSteps) count() int {
 
 // vendorConfig is the reference adoption with extensions: the in-memory suite
 // plus two fields. Passing nil steps gives the same suite without them.
+//
+// The capabilities come from inMemoryCapabilities rather than a list of their
+// own, because the backend is the same memprovider.InMemoryProvider that
+// TestInMemoryProvider drives and it can do neither more nor less here. These
+// tests are about ExtensionFeatures and ExtensionSteps; what the fixture
+// provider is capable of is not their question to answer, and answering it
+// separately is how the two lists came to disagree.
 func vendorConfig(name string, steps *vendorSteps) tck.Config {
 	cfg := tck.Config{
 		Name:    name,
@@ -91,7 +98,7 @@ func vendorConfig(name string, steps *vendorSteps) tck.Config {
 		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
 		},
-		Capabilities: []tck.Capability{tck.Events, tck.Object, tck.NumericCoercion},
+		Capabilities: inMemoryCapabilities(),
 	}
 	if steps != nil {
 		cfg.ExtensionFeatures = os.DirFS("testdata/tck-extensions")
