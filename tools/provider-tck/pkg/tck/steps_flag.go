@@ -12,6 +12,7 @@ import (
 // registerFlagSteps binds the steps that declare, evaluate and assert flags.
 func registerFlagSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^an? ([A-Za-z]+)-flag with key "([^"]*)" and a default value "([^"]*)"$`, aFlagWithKeyAndDefault)
+	ctx.Step(`^a context containing a targeting key with value "([^"]*)"$`, aContextContainingATargetingKey)
 	ctx.Step(`^the flag was evaluated with details$`, theFlagWasEvaluatedWithDetails)
 	ctx.Step(`^the resolved details value should be "([^"]*)"$`, theResolvedValueShouldBe)
 	ctx.Step(`^the variant should be "([^"]*)"$`, theVariantShouldBe)
@@ -48,6 +49,29 @@ func aFlagWithKeyAndDefault(ctx context.Context, rawType, key, rawDefault string
 	return nil
 }
 
+// aContextContainingATargetingKey builds the evaluation context the following
+// evaluation is made with.
+//
+// The wording is Appendix B's, verbatim, and the Java TCK already carries a
+// definition for it. Inventing a second way to say "a context containing a
+// targeting key" is the divergence Appendix F exists to prevent, so the
+// expression is copied rather than paraphrased.
+//
+// A scenario with no such step evaluates with the zero EvaluationContext,
+// which is what every scenario did before this step existed. That is not the
+// same as this step with an empty value: requirement 2.2.1 makes the context a
+// parameter of every resolve method, and "no context supplied" is the case the
+// third @targeting scenario asserts.
+func aContextContainingATargetingKey(ctx context.Context, targetingKey string) error {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return err
+	}
+
+	state.evalContext = openfeature.NewEvaluationContext(targetingKey, nil)
+	return nil
+}
+
 // theFlagWasEvaluatedWithDetails resolves the declared flag through the typed
 // client method matching its declared type.
 func theFlagWasEvaluatedWithDetails(ctx context.Context) error {
@@ -64,7 +88,7 @@ func theFlagWasEvaluatedWithDetails(ctx context.Context) error {
 		return err
 	}
 
-	state.last = evaluate(ctx, client, flag)
+	state.last = evaluate(ctx, client, flag, state.evalContext)
 	return nil
 }
 
@@ -75,7 +99,19 @@ func theFlagWasEvaluatedWithDetails(ctx context.Context) error {
 // an unhandled failure escaping a flag evaluation takes the host application
 // down. A returned error is not that — in Go an errored evaluation returns both
 // the code default and a non-nil error, which is the normal, correct shape.
-func evaluate(ctx context.Context, client *openfeature.Client, flag *flagUnderTest) (result *evaluation) {
+//
+// evalCtx is whatever the scenario built with "a context containing a targeting
+// key", and the zero value when it built none. Passing it rather than an empty
+// literal is what makes the context reach the provider at all: requirement
+// 2.2.1 makes it a parameter of every resolve method, and every scenario used
+// to discard it here, so a provider that threw on any context or serialised one
+// into a malformed request passed the whole suite.
+func evaluate(
+	ctx context.Context,
+	client *openfeature.Client,
+	flag *flagUnderTest,
+	evalCtx openfeature.EvaluationContext,
+) (result *evaluation) {
 	result = &evaluation{}
 
 	defer func() {
@@ -85,23 +121,21 @@ func evaluate(ctx context.Context, client *openfeature.Client, flag *flagUnderTe
 		}
 	}()
 
-	empty := openfeature.EvaluationContext{}
-
 	switch flag.typ {
 	case typeBoolean:
-		details, err := client.BooleanValueDetails(ctx, flag.key, flag.defaultValue.(bool), empty)
+		details, err := client.BooleanValueDetails(ctx, flag.key, flag.defaultValue.(bool), evalCtx)
 		fill(result, details.Value, details.ResolutionDetail, err)
 	case typeString:
-		details, err := client.StringValueDetails(ctx, flag.key, flag.defaultValue.(string), empty)
+		details, err := client.StringValueDetails(ctx, flag.key, flag.defaultValue.(string), evalCtx)
 		fill(result, details.Value, details.ResolutionDetail, err)
 	case typeInteger:
-		details, err := client.IntValueDetails(ctx, flag.key, flag.defaultValue.(int64), empty)
+		details, err := client.IntValueDetails(ctx, flag.key, flag.defaultValue.(int64), evalCtx)
 		fill(result, details.Value, details.ResolutionDetail, err)
 	case typeFloat:
-		details, err := client.FloatValueDetails(ctx, flag.key, flag.defaultValue.(float64), empty)
+		details, err := client.FloatValueDetails(ctx, flag.key, flag.defaultValue.(float64), evalCtx)
 		fill(result, details.Value, details.ResolutionDetail, err)
 	case typeObject:
-		details, err := client.ObjectValueDetails(ctx, flag.key, flag.defaultValue, empty)
+		details, err := client.ObjectValueDetails(ctx, flag.key, flag.defaultValue, evalCtx)
 		fill(result, details.Value, details.ResolutionDetail, err)
 	default:
 		result.err = fmt.Errorf("unknown flag type %q", flag.typ)

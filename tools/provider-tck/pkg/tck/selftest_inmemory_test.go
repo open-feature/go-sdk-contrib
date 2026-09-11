@@ -36,7 +36,7 @@ func TestInMemoryProvider(t *testing.T) {
 		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
 		},
-		// Three capabilities, and every omission is a fact about the provider
+		// Four capabilities, and every omission is a fact about the provider
 		// rather than a convenience:
 		//
 		//   - ConfigurationChange is omitted because the SDK's in-memory
@@ -56,9 +56,19 @@ func TestInMemoryProvider(t *testing.T) {
 		//     the same way. Skipping it is the honest outcome, and it is the
 		//     reference answer for every backend-less provider adopting this
 		//     suite.
-		//   - Targeting and Caching are omitted because they are reserved: no
-		//     scenario carries their tags, so declaring them is rejected as a
-		//     configuration error rather than reported as a result.
+		//   - Targeting is omitted because an in-memory flag set evaluates no
+		//     rules. tck.CanonicalFlagSet deliberately ignores the targeting
+		//     member of targeting-key-flag rather than translating flagd's
+		//     JsonLogic into a ContextEvaluator, so the flag resolves to its
+		//     miss variant whatever the context and the matching scenario
+		//     would fail. Undeclared is the accurate report — see
+		//     tck.CanonicalFlagSet. The untagged scenario that supplies a
+		//     context to an untargeted flag is unaffected and runs: it asserts
+		//     only that supplying one is harmless, which is a property of the
+		//     provider rather than of the flag set.
+		//   - Caching is omitted because it is reserved: no scenario carries
+		//     the tag, so declaring it is rejected as a configuration error
+		//     rather than reported as a result.
 		//   - NumericCoercion is omitted because memprovider does not coerce:
 		//     it type-asserts, so it refuses to narrow float-flag (0.5) to an
 		//     integer — the lossy half of the rule, which it gets right — but
@@ -73,9 +83,14 @@ func TestInMemoryProvider(t *testing.T) {
 		// LargeIntegers is declared: the accessor is int64 and memprovider
 		// hands the int64 it was seeded with straight back, so 2^53-1
 		// survives the trip untouched.
+		//
+		// Variants is declared: memprovider resolves a named variant and
+		// reports its name, so every row of the variant outline resolves the
+		// name the canonical set gives it.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.Object,
+			tck.Variants,
 			tck.LargeIntegers,
 		},
 	})

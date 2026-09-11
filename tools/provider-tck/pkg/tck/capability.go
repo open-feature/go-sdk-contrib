@@ -23,8 +23,8 @@ import (
 //
 // Scenarios with no capability tag are mandatory and always run.
 //
-// A few capabilities are reserved: they are part of the vocabulary but no
-// scenario carries their tag, so they must not be declared. See IsReserved.
+// One capability is reserved: it is part of the vocabulary but no scenario
+// carries its tag, so it must not be declared. See IsReserved.
 type Capability string
 
 const (
@@ -77,6 +77,32 @@ const (
 
 	// Object means the provider supports structured (object) flag values.
 	Object Capability = "@object"
+
+	// Variants means the provider names the variant it resolved.
+	//
+	// Requirement 2.2.4 is a SHOULD — in normal execution a provider "SHOULD
+	// populate the resolution details structure's variant field" — and types.md
+	// types the field "variant (string, optional)". The same section goes
+	// further and says the value "might only be meaningful in the context of
+	// the flag management system associated with the provider".
+	//
+	// So a backend with no variant concept for a plain flag is not defective.
+	// Its evaluation response carries no such key, the provider never receives
+	// one, and no amount of seeding can produce one. Until this capability
+	// existed every evaluation scenario asserted a variant, which failed such a
+	// provider ten times over for something its author could not fix — and left
+	// nothing to record as a known deviation, because there was no capability
+	// to hang one on.
+	//
+	// Declare it when the backend names its variants and the provider passes
+	// the name through. Withholding it skips the variant scenarios with that
+	// reason; the value and reason assertions are untagged and unaffected,
+	// because 2.2.3 makes the value a MUST.
+	//
+	// The reason field is deliberately *not* modelled this way even though
+	// 2.2.5 is also a SHOULD — see Appendix F, which records that as a decision
+	// rather than an oversight.
+	Variants Capability = "@variants"
 
 	// UnavailableInit means the provider reports an error state promptly,
 	// rather than hanging or panicking, when initialised against a backend it
@@ -159,17 +185,37 @@ const (
 	// asked this question at all, and one that has it may still decline reuse.
 	Reinitialization Capability = "@reinitialization"
 
-	// Targeting is reserved and must not be declared — see IsReserved. No
-	// scenario carries this tag: targeting is backend evaluation logic, which
-	// the TCK deliberately does not test. It exists so the vocabulary stays
-	// aligned with the flagd test harness, and so that context-passthrough
-	// scenarios have a home once the control API grows an echo endpoint.
+	// Targeting means the provider resolves a flag differently for a matching
+	// evaluation context: the context reaches the backend and the rule there is
+	// evaluated against it.
+	//
+	// It was reserved and undeclarable until spec 26362f85, on the reasoning
+	// that asserting anything about targeting needed an echo endpoint on the
+	// control API. It does not. The canonical set now carries exactly one flag
+	// with a rule, targeting-key-flag, whose matching context resolves to a
+	// different value — so a provider that drops the context is caught by the
+	// resolved value itself.
+	//
+	// What is under test is the provider's passthrough, not the backend's rule
+	// language. The rule is specified by behaviour rather than syntax — resolve
+	// "hit" when the targeting key is exactly the canonical uuid, "miss"
+	// otherwise — so a backend expresses it however it expresses targeting.
+	// Three scenarios: a match, a non-match, and no context at all. The
+	// non-match is what stops a provider passing by always serving the targeted
+	// variant, and the third pins down that an unmatchable rule must not error.
+	//
+	// Declare it when the backend evaluates targeting rules at all. A provider
+	// whose backend has no notion of them — an in-memory flag set, an
+	// environment-variable provider — leaves it undeclared, and the three
+	// scenarios are skipped with that reason rather than failed. Whether the
+	// *whole* context arrives intact, attributes included, is still unverified
+	// in every language; see Appendix F's known gaps.
 	Targeting Capability = "@targeting"
 
 	// Caching is reserved and must not be declared — see IsReserved. No
-	// scenario carries this tag yet. Whether a stale provider keeps serving
-	// last-known values during an outage depends on whether it holds a local
-	// copy of the ruleset.
+	// scenario carries this tag yet, and it is the only reserved tag left.
+	// Whether a stale provider keeps serving last-known values during an outage
+	// depends on whether it holds a local copy of the ruleset.
 	Caching Capability = "@caching"
 )
 
@@ -183,6 +229,7 @@ var allCapabilities = []Capability{
 	Stale,
 	ConfigurationChange,
 	Object,
+	Variants,
 	UnavailableInit,
 	NumericCoercion,
 	LargeIntegers,
@@ -196,8 +243,8 @@ var allCapabilities = []Capability{
 // It is a single list rather than a property repeated at each use, because the
 // rule and the set it applies to have to move together: adding the first
 // scenario for one of these means deleting one line here and nothing else.
+// Targeting left it exactly that way when spec 26362f85 gave it scenarios.
 var reservedCapabilities = []Capability{
-	Targeting,
 	Caching,
 }
 
@@ -237,7 +284,8 @@ func (c Capability) IsReserved() bool {
 // published conformance report then asserts capabilities that were never
 // examined — which is how a Java report came to declare @targeting and
 // @caching, not by anyone's decision. A declare-everything shortcut must not
-// hand out tags nothing tests.
+// hand out tags nothing tests. That report named @targeting and @caching, back
+// when both were reserved; only @caching still is.
 func AllCapabilities() []Capability {
 	out := make([]Capability, 0, len(allCapabilities))
 	for _, c := range allCapabilities {

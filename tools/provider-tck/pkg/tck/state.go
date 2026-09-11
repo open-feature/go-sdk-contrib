@@ -84,7 +84,14 @@ type scenarioState struct {
 	provider openfeature.FeatureProvider
 	client   *openfeature.Client
 
-	flag       *flagUnderTest
+	flag *flagUnderTest
+
+	// evalContext is the evaluation context the next evaluation is made with,
+	// built by "a context containing a targeting key". Its zero value is the
+	// no-context case, which is what every scenario without that step supplies
+	// and what the third @targeting scenario asserts is not an error.
+	evalContext openfeature.EvaluationContext
+
 	last       *evaluation
 	remembered any
 	hasMemory  bool
