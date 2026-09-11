@@ -55,7 +55,7 @@ func ClientFromContext(ctx context.Context) (*openfeature.Client, error) {
 // It is a prefix rather than the adopter's own directory name because the
 // canonical assets and the extension filesystem are two roots presented to
 // godog as one, and because it partitions the URI space: everything the run
-// executed under assets/gherkin/ is canonical, everything under extensions/ is
+// executed under gherkin/ is canonical, everything under extensions/ is
 // not. That partition is what the coverage check and a reader of the Cucumber
 // Messages stream both key on, so it is a contract rather than a detail.
 const extensionsRoot = "extensions"
@@ -151,9 +151,8 @@ type overlayFS struct {
 // overlayRoot mounts fsys at prefix, serving it from base within fsys.
 //
 // base exists so a mount can be an identity: the canonical assets are embedded
-// under assets/gherkin and are served at assets/gherkin, which keeps the URIs
-// in the results stable. An adopter's filesystem is rooted at "." and served at
-// extensions.
+// under gherkin and are served at gherkin, which keeps the URIs in the results
+// stable. An adopter's filesystem is rooted at "." and served at extensions.
 type overlayRoot struct {
 	prefix string
 	fsys   fs.FS
