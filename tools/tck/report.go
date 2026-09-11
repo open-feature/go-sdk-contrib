@@ -46,7 +46,24 @@ type Report struct {
 	TCK           ReportTCK         `json:"tck"`
 	Backend       *ReportBackend    `json:"backend,omitempty"`
 	Declaration   ReportDeclaration `json:"declaration"`
-	Results       ReportResults     `json:"results"`
+
+	// KnownDeviations are the gaps the provider author acknowledges, carried
+	// verbatim from Config.KnownDeviations.
+	//
+	// It sits beside the declaration rather than inside it because it is not a
+	// claim about capabilities: an entry may concern a capability that was
+	// declared, or a mandatory scenario that belongs to no capability at all.
+	// What it qualifies is the declaration as a whole -- which of its absences
+	// were decisions and which were defects, a distinction the results cannot
+	// carry because a skip looks the same either way.
+	//
+	// Omitted when there are none, which is silence rather than a claim of
+	// having no known gaps. Appendix F expects the field under this name and
+	// the Java TCK emits the same one, so a consumer comparing two languages'
+	// reports reads one shape.
+	KnownDeviations []KnownDeviation `json:"knownDeviations,omitempty"`
+
+	Results ReportResults `json:"results"`
 }
 
 type ReportProvider struct {
@@ -152,7 +169,8 @@ func (r *runner) buildReport(location, digest string) Report {
 			Description: r.cfg.Control.Description(),
 			ControlAPI:  controlAPIOf(r.cfg.Control),
 		},
-		Declaration: ReportDeclaration{Declared: tags},
+		Declaration:     ReportDeclaration{Declared: tags},
+		KnownDeviations: r.cfg.KnownDeviations,
 		Results: ReportResults{
 			Format:        resultsFormatCucumberMessages,
 			FormatVersion: messagesProtocolVersion(),
