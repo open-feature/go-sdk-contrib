@@ -551,7 +551,9 @@ func (f *messagesFormatter) Summary() {
 		if err := encoder.Encode(envelope); err != nil {
 			// The sink is an in-memory buffer, so this cannot fail in practice;
 			// swallowing it silently would still be the wrong shape of code.
-			fmt.Fprintf(f.sink.out, "\n")
+			// The write is a best-effort marker in a stream already broken, so
+			// its own error is the one thing here with nowhere to go.
+			_, _ = fmt.Fprintf(f.sink.out, "\n")
 			return
 		}
 	}
