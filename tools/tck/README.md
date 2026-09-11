@@ -663,7 +663,7 @@ run would have produced — and fails the test if any of them produced no outcom
 ```
 provider-tck [in-memory]: 12 canonical scenario(s) did not run, so this is not a conformance run
 and its report must not be published:
-  - assets/gherkin/errors.feature: Requesting the wrong type returns the code default: 0 of 11
+  - gherkin/errors.feature: Requesting the wrong type returns the code default: 0 of 11
     executed (11 announced but never run, which is what a -run selector or a tag filter leaves behind)
 ```
 
@@ -728,10 +728,16 @@ therefore comes from the capability gate itself and lands in `TestStepResult.mes
 
 ### What identifies a report
 
-`tck.specRevision` comes from [`revision.go`](./pkg/tck/revision.go), which `sync_assets.go`
-generates from the submodule alongside the embedded artifacts. Generating both in the same command is
-what keeps them honest: `make provider-tck-assets-check` regenerates and fails on any difference, so
-a revision that disagrees with the artifacts beside it cannot be committed.
+`tck.specRevision` comes from [`revision.go`](./pkg/tck/revision.go), and it is the module version
+pinned in [`go.mod`](./go.mod) — the assets arrive as a Go module, so the pin *is* the revision.
+
+It is written by hand, which needs a guard rather than an apology. Nothing generates it and nothing
+can: a library package's test binary carries no module build information at all, so
+`runtime/debug.ReadBuildInfo` reports no dependencies from one, in a Go workspace and in a plain
+module alike — and the TCK always runs inside a library test binary, both its own self-tests and an
+adopter's `TestConformance`. So `TestSpecRevisionIsRecorded` reads `go.mod` and fails if the constant
+disagrees with the pin. Moving the pin without updating the constant breaks the suite's own tests
+rather than a consumer's report.
 
 A git tree hash over the artifact directory used to be carried beside it, so that a consumer could
 tell which questions a report answers without trusting the recorded commit. The results now carry the
