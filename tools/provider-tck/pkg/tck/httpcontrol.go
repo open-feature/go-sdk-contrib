@@ -235,7 +235,7 @@ func (c *HTTPControl) call(ctx context.Context, path string, query url.Values) (
 			"reachable even while the backend is deliberately down, otherwise an outage cannot be ended",
 			target, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	_, _ = io.Copy(io.Discard, resp.Body)
 
