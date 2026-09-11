@@ -56,14 +56,21 @@ func TestControllableProvider(t *testing.T) {
 		// NumericCoercion is not declared, for the reason TestInMemoryProvider
 		// gives: every resolution decision is still memprovider's, and
 		// memprovider type-asserts rather than coerces, so the lossless
-		// scenarios would fail. LargeIntegers is declared for the same reason
-		// in reverse — the int64 it was seeded with comes straight back.
+		// scenarios would fail. LargeIntegers and Variants are declared for
+		// the same reason in reverse — the int64 it was seeded with comes
+		// straight back, and so does the variant name it resolved.
+		//
+		// Targeting is not declared, and that is a fact about the flag set
+		// rather than about this provider: tck.CanonicalFlagSet ignores
+		// targeting-key-flag's rule, so the flag resolves to its miss variant
+		// whatever the context. See TestInMemoryProvider.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
 			tck.Reinitialization,
 			tck.ConfigurationChange,
 			tck.Object,
+			tck.Variants,
 			tck.LargeIntegers,
 		},
 	})

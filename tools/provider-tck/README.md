@@ -22,9 +22,12 @@ mechanism once, not exhaustive coverage. Breaking changes should be expected.
 
 ## What it tests
 
-- mapping backend responses onto typed resolution details: value, variant, reason, error code, and
-  no error message on a normal evaluation
+- mapping backend responses onto typed resolution details: value, reason, error code, and no error
+  message on a normal evaluation — plus the variant, under `@variants`, because a variant is a
+  `SHOULD` and some backends have no such concept
 - the values most often mistaken for an absence — `false`, `0` and `""` — resolving as values
+- that supplying an evaluation context to an untargeted resolution is harmless, and under
+  `@targeting` that a matching one actually reaches the backend and changes the answer
 - integer precision: 2^31 − 1 for every provider, and 2^53 − 1 under `@large-integers`
 - keeping the integer and float types distinct, and under `@numeric-coercion` converting between
   them only when nothing is lost
@@ -37,9 +40,15 @@ mechanism once, not exhaustive coverage. Breaking changes should be expected.
 - that a signalled configuration change is actually **applied** on re-evaluation, not merely
   signalled
 
-Deliberately out of scope: backend evaluation logic and targeting (that is the backend's contract,
-not the provider's — every canonical flag resolves to its default variant), the provider↔backend
-wire protocol, and SDK behaviour, which belongs to the SDK's own [Appendix B][appendix-b] suite.
+Deliberately out of scope: backend evaluation logic, bucketing and rule-language correctness (that
+is the backend's contract, not the provider's — every canonical flag but one resolves to its default
+variant whatever the context), the provider↔backend wire protocol, and SDK behaviour, which belongs
+to the SDK's own [Appendix B][appendix-b] suite.
+
+The one exception is `targeting-key-flag`, which carries a single rule and is there to show that the
+evaluation context *reached* the backend rather than to test how the backend evaluated it. Its rule
+is stated as behaviour — resolve `hit` for one specific targeting key, `miss` otherwise — not as a
+syntax, so a backend expresses it however it expresses targeting.
 
 ## Adopting it
 
@@ -143,11 +152,12 @@ to be inferred from a scenario count.
 | `tck.Stale` | `@stale` | enters `STALE` and emits `PROVIDER_STALE` on backend loss |
 | `tck.ConfigurationChange` | `@configuration-change` | detects configuration changes and emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `tck.Object` | `@object` | supports structured flag values |
+| `tck.Variants` | `@variants` | names the variant it resolved, which [Requirement 2.2.4][req-224] makes a `SHOULD` and `types.md` types as optional |
 | `tck.UnavailableInit` | `@unavailable` | reports an error state instead of hanging against a dead backend |
 | `tck.NumericCoercion` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
 | `tck.LargeIntegers` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; undeclarable where the SDK's integer accessor is 32-bit |
 | `tck.Reinitialization` | `@reinitialization` | can be initialised again after `shutdown`, which [Requirement 2.5.2][req-252] permits rather than requires |
-| `tck.Targeting` | `@targeting` | reserved; **not declarable** — no scenarios yet |
+| `tck.Targeting` | `@targeting` | resolves a flag differently for a matching evaluation context |
 | `tck.Caching` | `@caching` | reserved; **not declarable** — no scenarios yet |
 
 Untagged scenarios are mandatory and always run. `Capabilities` defaults to `tck.AllCapabilities()`
@@ -159,11 +169,29 @@ exist, but it **must not be declared**. No scenario carries the tag, so declarin
 verified, cannot even produce a skip, and tells a reader of a report only that something was claimed
 and nothing examined. `tck.AllCapabilities()` therefore excludes the reserved capabilities, and
 naming one in `Capabilities` is rejected by configuration validation rather than passed into a
-report — an unverifiable claim is a configuration mistake, not a conformance result.
+report — an unverifiable claim is a configuration mistake, not a conformance result. `@caching` is
+the only reserved tag left: `@targeting` became declarable, with three scenarios, in spec
+`26362f85`.
 
 That is easy to reintroduce by accident rather than by intent: an adoption that declares everything
 and then removes what it cannot do collects every reserved tag on the way past, which is how a Java
-conformance report came to assert `@targeting` and `@caching` as declared.
+conformance report came to assert `@targeting` and `@caching` as declared — back when both were
+reserved.
+
+**Declare a capability only on evidence from running the suite, never from reading the provider's
+source.** Source inspection is unreliable in both directions and demonstrably so: flagd's RPC
+resolver clears its own initialised flag on shutdown, which reads as support for reuse, and then
+fails to initialise again because the transport underneath cannot restart. Start from the default,
+run, and withdraw what actually fails.
+
+`@variants` is the case that earned this tag its existence. Every evaluation scenario used to assert
+a variant, which reads as obviously correct until a backend with no variant concept for a plain flag
+is put under test: its response carries no such key, the provider never receives one, and no seeding
+can produce one. Ten scenarios failed a conformant provider for something its author could not fix,
+with nothing to record as a known deviation because there was no capability to hang one on. The
+value and reason assertions stay untagged, because [Requirement 2.2.3][req-223] makes the value a
+`MUST`. The `reason` field is *not* modelled this way even though [Requirement 2.2.5][req-225] is
+also a `SHOULD` — Appendix F records that as a deliberate narrowing rather than an oversight.
 
 `@lifecycle` and `@events` are separate on purpose, and conflating them is the mistake the
 vocabulary exists to prevent. The Go SDK synthesises `PROVIDER_READY` for any provider that does not
@@ -467,10 +495,13 @@ the SDK's provider rather than reimplementing it — every resolution decision i
 
 ## Known gaps
 
-- **Evaluation context passthrough is unverifiable.** The scenarios build evaluation contexts but
-  cannot assert one *reached* the backend. That needs an echo operation on the control API. Until
-  then a provider that silently drops the context passes. `@targeting` is reserved for these, and
-  until they exist it cannot be declared.
+- **Evaluation context passthrough is verified only for the targeting key.** `targeting-key-flag`
+  resolves differently for a matching context, so a provider that drops the context is caught by the
+  resolved value itself — that is what the three `@targeting` scenarios do, and no echo operation is
+  needed for it. What is still unverified is that the *whole* context arrives intact: a provider
+  that forwards the targeting key and silently discards every other attribute passes. Closing that
+  needs either an echo operation on the control API or a second canonical flag whose rule keys on a
+  custom attribute.
 - **`POST /restart` is unused.** No current scenario needs a bounded outage — the stale scenario
   uses an explicit disconnect and reconnect — so `tck.ConnectionControl` has no `DisconnectFor`.
 - **Hooks and flag metadata** are not covered. Provider metadata is, but only as far as a non-empty
@@ -491,6 +522,9 @@ the SDK's provider rather than reimplementing it — every resolution decision i
 [control-api]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/openapi/control-api.yaml
 [numeric-coercion-adr]: https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md
 [reinit-fix]: https://github.com/open-feature/spec/commit/fc99d5ace4da472a5fea0595fa4db8034bbbc769
+[req-223]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-223
+[req-224]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-224
+[req-225]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-225
 [req-252]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-252
 [spec]: https://github.com/open-feature/spec
 [tracking]: https://github.com/open-feature/spec/issues/417
