@@ -11,6 +11,6 @@ Feature: Provider flag evaluation
   Background:
     Given a stable provider
 
-  Scenario: Resolve values with variant and reason
+  Scenario: Resolve values with reason
     When the vendor step resolves "string-flag"
     Then the vendor step should have seen "hi"
