@@ -34,7 +34,7 @@ methods and `Hooks`; it implements neither `openfeature.EventHandler` nor
 | Capability | Declared | Why |
 | --- | --- | --- |
 | `@object` | yes | `ObjectEvaluation` passes the decoded JSON object through, and every scalar request against it reports `TYPE_MISMATCH`. |
-| `@strict-numeric-typing` | yes | `ResolveInt` round-trips the decoded `float64` through `int64` and reports `TYPE_MISMATCH` when that is lossy, so `float-flag` requested as an integer is a mismatch rather than a silent `0`. |
+| `@numeric-coercion` | yes | `ResolveInt` round-trips the decoded `float64` through `int64` and reports `TYPE_MISMATCH` when that is lossy, so `float-flag` requested as an integer is a mismatch rather than a silent `0`. |
 | `@events` | no | No `EventChannel`; the provider can never publish a provider event. |
 | `@configuration-change` | no | Follows from `@events`. Values do change on the next evaluation — nothing signals that they did. |
 | `@stale` | no | Follows from `@events`. No state handling means no state to transition. |
