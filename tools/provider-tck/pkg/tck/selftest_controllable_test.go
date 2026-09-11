@@ -43,12 +43,20 @@ func TestControllableProvider(t *testing.T) {
 		// manufactures its readiness — see TestInMemoryProvider. This is
 		// therefore the only suite that covers the @lifecycle steps without
 		// Docker, which is the same reason it exists for @configuration-change.
+		// That includes the shutdown scenarios: Shutdown is idempotent, Init
+		// after it succeeds, and the same instance keeps serving flags.
+		//
+		// NumericCoercion is not declared, for the reason TestInMemoryProvider
+		// gives: every resolution decision is still memprovider's, and
+		// memprovider type-asserts rather than coerces, so the lossless
+		// scenarios would fail. LargeIntegers is declared for the same reason
+		// in reverse — the int64 it was seeded with comes straight back.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
 			tck.ConfigurationChange,
 			tck.Object,
-			tck.NumericCoercion,
+			tck.LargeIntegers,
 		},
 	})
 }

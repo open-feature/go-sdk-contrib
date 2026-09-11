@@ -17,6 +17,7 @@ func registerFlagSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the variant should be "([^"]*)"$`, theVariantShouldBe)
 	ctx.Step(`^the reason should be "([^"]*)"$`, theReasonShouldBe)
 	ctx.Step(`^the error-code should be "([^"]*)"$`, theErrorCodeShouldBe)
+	ctx.Step(`^the error message should be empty$`, theErrorMessageShouldBeEmpty)
 	ctx.Step(`^no exception should have been thrown$`, noExceptionShouldHaveBeenThrown)
 	ctx.Step(`^the resolved object value should contain$`, theResolvedObjectValueShouldContain)
 	ctx.Step(`^the resolved value is remembered$`, theResolvedValueIsRemembered)
@@ -125,6 +126,7 @@ func fill(result *evaluation, value any, detail openfeature.ResolutionDetail, er
 	result.variant = detail.Variant
 	result.reason = detail.Reason
 	result.errorCode = detail.ErrorCode
+	result.errorMessage = detail.ErrorMessage
 	result.err = err
 }
 
@@ -218,13 +220,13 @@ func theErrorCodeShouldBe(ctx context.Context, expected string) error {
 	return nil
 }
 
-// noExceptionShouldHaveBeenThrown asserts that the evaluation did not panic.
+// theErrorMessageShouldBeEmpty asserts that a successful evaluation carried no
+// error message (requirement 2.3.2).
 //
-// Go has no exceptions, and the returned error is not one: an errored
-// evaluation correctly returns the code default alongside a non-nil error. The
-// behaviour the feature files forbid — an unhandled failure escaping a flag
-// evaluation and taking the application down — is a panic here.
-func noExceptionShouldHaveBeenThrown(ctx context.Context) error {
+// A provider that reports a value and an error message is sending two
+// contradictory signals, and an application reading the message believes the
+// wrong one.
+func theErrorMessageShouldBeEmpty(ctx context.Context) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
 		return err
@@ -234,9 +236,60 @@ func noExceptionShouldHaveBeenThrown(ctx context.Context) error {
 		return err
 	}
 
-	if result.panicked {
+	if result.errorMessage != "" {
+		return fmt.Errorf("error message was %q, expected none. A resolved value and an error message "+
+			"together are two contradictory signals, and the application cannot tell which to believe",
+			result.errorMessage)
+	}
+	return nil
+}
+
+// noExceptionShouldHaveBeenThrown asserts that nothing the scenario asked of
+// the provider panicked: the evaluation, and any direct Shutdown or Init the
+// lifecycle steps made.
+//
+// Go has no exceptions, and the error an evaluation returns is not one: an
+// errored evaluation correctly returns the code default alongside a non-nil
+// error. The behaviour the feature files forbid — an unhandled failure
+// escaping the provider and taking the application down — is a panic here.
+// The one returned error that does count is Init's, for the reason given on
+// lifecycleCall.err.
+//
+// The lifecycle calls are checked first: they precede the evaluation in every
+// scenario that has both, and a scenario about shutdown alone has no
+// evaluation at all.
+func noExceptionShouldHaveBeenThrown(ctx context.Context) error {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, call := range state.lifecycle {
+		if call.panicked {
+			return fmt.Errorf("the provider panicked in %s: %v. The application runs a provider's %s "+
+				"during its own startup or shutdown, where an unhandled failure is least welcome",
+				call.operation, call.panicValue, call.operation)
+		}
+		if call.err != nil {
+			return fmt.Errorf("the provider's %s returned an error: %v. After a shutdown a provider "+
+				"reverts to its uninitialised state (requirement 2.5.2), so initialising it again "+
+				"must succeed rather than find a client it discarded and never recreated",
+				call.operation, call.err)
+		}
+	}
+
+	if state.last == nil {
+		if len(state.lifecycle) > 0 {
+			return nil
+		}
+		return errors.New("nothing has been evaluated, shut down or initialised in this scenario: " +
+			"a \"When the flag was evaluated with details\" or \"When the provider is shut down\" " +
+			"step must come first")
+	}
+
+	if state.last.panicked {
 		return fmt.Errorf("the evaluation panicked: %v. A flag evaluation must always return a "+
-			"value and an error code, never panic", result.panicValue)
+			"value and an error code, never panic", state.last.panicValue)
 	}
 	return nil
 }

@@ -1,8 +1,12 @@
 package tck
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
@@ -22,84 +26,152 @@ const (
 
 // CanonicalFlagSet returns the canonical flag set as Go in-memory flags.
 //
-// It mirrors the specification's canonical-flags.json entry for entry.
-// Two details from that file are load-bearing and hold here too:
+// It is decoded from the specification's canonical-flags.json — the bytes
+// CanonicalFlags returns — rather than transcribed, so that the in-memory
+// suites cannot drift from the file every other language seeds from. Three
+// properties of that file are load-bearing and survive the decoding:
 //
 //   - missing-flag is absent, which is what the FLAG_NOT_FOUND scenario tests.
 //     Adding it turns that scenario green for the wrong reason.
 //   - no flag carries a ContextEvaluator, so every evaluation reports reason
 //     STATIC, which is what the feature files expect. The TCK tests a
 //     provider's mapping of a response, not a backend's evaluation logic.
-//
-// Integer values are int64 and float values are float64 so that the two numeric
-// types stay distinct: memprovider widens int to int64 but never converts
-// between integer and float, which satisfies the lossy half of NumericCoercion
-// — the only half the canonical scenarios ask about.
+//   - a number keeps the type it was written with: 10 becomes an int64 and
+//     10.0 a float64. memprovider type-asserts, so that is what keeps
+//     integer-flag an integer and integral-float-flag a float. Plain
+//     encoding/json would decode both as float64, and a loader that then
+//     turned integral floats back into int64 would make integral-float-flag
+//     an integer flag — which the file's own comment warns lets the lossless
+//     coercion scenario pass without coercing anything. See numberValue.
 func CanonicalFlagSet() map[string]memprovider.InMemoryFlag {
-	return map[string]memprovider.InMemoryFlag{
-		"boolean-flag": {
-			Key:            "boolean-flag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "on",
-			Variants: map[string]any{
-				"on":  true,
-				"off": false,
-			},
-		},
-		"string-flag": {
-			Key:            "string-flag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "greeting",
-			Variants: map[string]any{
-				"greeting": "hi",
-				"parting":  "bye",
-			},
-		},
-		"integer-flag": {
-			Key:            "integer-flag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "ten",
-			Variants: map[string]any{
-				"one": int64(1),
-				"ten": int64(10),
-			},
-		},
-		"float-flag": {
-			Key:            "float-flag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "half",
-			Variants: map[string]any{
-				"tenth": 0.1,
-				"half":  0.5,
-			},
-		},
-		"object-flag": {
-			Key:            "object-flag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "template",
-			Variants: map[string]any{
-				"empty": map[string]any{},
-				"template": map[string]any{
-					"showImages":    true,
-					"title":         "Check out these pics!",
-					"imagesPerPage": int64(100),
-				},
-			},
-		},
-		// A string flag, evaluated as a boolean by the TYPE_MISMATCH scenario.
-		"wrong-flag": {
-			Key:            "wrong-flag",
-			State:          memprovider.Enabled,
-			DefaultVariant: "one",
-			Variants: map[string]any{
-				"one": "uno",
-				"two": "dos",
-			},
-		},
-		ChangingFlagKey: changingFlag(changingBaseline),
+	flags, err := decodeCanonicalFlags(CanonicalFlags())
+	if err != nil {
+		// Unreachable for a pinned spec revision: the file is embedded at
+		// compile time, so a failure here means the pinned assets and this
+		// decoder disagree about the file's shape, which moving the pin should
+		// have surfaced.
+		panic("provider-tck: canonical flag set could not be decoded: " + err.Error())
+	}
+	return flags
+}
+
+// canonicalFlagFile is the shape of canonical-flags.json — the flagd
+// flag-definition format — reduced to what an in-memory flag needs. The
+// $comment members are ignored along with any other unknown field.
+type canonicalFlagFile struct {
+	Flags map[string]canonicalFlag `json:"flags"`
+}
+
+type canonicalFlag struct {
+	State          string         `json:"state"`
+	DefaultVariant string         `json:"defaultVariant"`
+	Variants       map[string]any `json:"variants"`
+}
+
+// decodeCanonicalFlags turns the canonical flag file into in-memory flags.
+func decodeCanonicalFlags(data []byte) (map[string]memprovider.InMemoryFlag, error) {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	// Keep every number as the literal it was written as, so that the split
+	// into int64 and float64 in numberValue can follow the file rather than
+	// float64's inability to say whether it started life as 10 or 10.0.
+	decoder.UseNumber()
+
+	var file canonicalFlagFile
+	if err := decoder.Decode(&file); err != nil {
+		return nil, err
+	}
+	if len(file.Flags) == 0 {
+		return nil, errors.New("the file defines no flags")
+	}
+
+	flags := make(map[string]memprovider.InMemoryFlag, len(file.Flags))
+	for key, def := range file.Flags {
+		state := memprovider.State(def.State)
+		if state != memprovider.Enabled && state != memprovider.Disabled {
+			return nil, fmt.Errorf("flag %q: state %q is neither %q nor %q",
+				key, def.State, memprovider.Enabled, memprovider.Disabled)
+		}
+		if _, ok := def.Variants[def.DefaultVariant]; !ok {
+			return nil, fmt.Errorf("flag %q: default variant %q is not one of its variants", key, def.DefaultVariant)
+		}
+
+		variants := make(map[string]any, len(def.Variants))
+		for name, raw := range def.Variants {
+			value, err := fromJSONValue(raw)
+			if err != nil {
+				return nil, fmt.Errorf("flag %q, variant %q: %w", key, name, err)
+			}
+			variants[name] = value
+		}
+
+		flags[key] = memprovider.InMemoryFlag{
+			Key:            key,
+			State:          state,
+			DefaultVariant: def.DefaultVariant,
+			Variants:       variants,
+		}
+	}
+	return flags, nil
+}
+
+// fromJSONValue converts a value decoded with UseNumber into what memprovider's
+// type assertions expect, recursing into objects and arrays so that a number
+// inside object-flag is converted the same way as a top-level one.
+func fromJSONValue(v any) (any, error) {
+	switch v := v.(type) {
+	case json.Number:
+		return numberValue(v)
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for key, member := range v {
+			converted, err := fromJSONValue(member)
+			if err != nil {
+				return nil, fmt.Errorf("member %q: %w", key, err)
+			}
+			out[key] = converted
+		}
+		return out, nil
+	case []any:
+		out := make([]any, len(v))
+		for i, member := range v {
+			converted, err := fromJSONValue(member)
+			if err != nil {
+				return nil, fmt.Errorf("element %d: %w", i, err)
+			}
+			out[i] = converted
+		}
+		return out, nil
+	default:
+		// bool, string and nil need no conversion.
+		return v, nil
 	}
 }
 
+// numberValue splits a JSON number on how it was written: a literal with a
+// fraction or an exponent is a float64, anything else an int64.
+//
+// This is the whole reason the decoder runs with UseNumber. The canonical set
+// deliberately contains 10 (integer-flag), 10.0 (integral-float-flag) and
+// 9007199254740991 (huge-integer-flag), and only the literal text tells the
+// first two apart or carries the third exactly.
+func numberValue(n json.Number) (any, error) {
+	if strings.ContainsAny(n.String(), ".eE") {
+		f, err := n.Float64()
+		if err != nil {
+			return nil, fmt.Errorf("%s is not a float64: %w", n, err)
+		}
+		return f, nil
+	}
+	i, err := n.Int64()
+	if err != nil {
+		return nil, fmt.Errorf("%s does not fit an int64: %w", n, err)
+	}
+	return i, nil
+}
+
+// changingFlag is the one flag built by hand rather than decoded, because
+// ChangeFlag has to rebuild it with the other default variant. Its variant
+// names are pinned to the file by TestCanonicalFlagSetMatchesTheFile.
 func changingFlag(defaultVariant string) memprovider.InMemoryFlag {
 	return memprovider.InMemoryFlag{
 		Key:            ChangingFlagKey,
@@ -151,7 +223,7 @@ func changingFlag(defaultVariant string) memprovider.InMemoryFlag {
 //	    NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
 //	        return control.NewProvider(), nil
 //	    },
-//	    Capabilities: []tck.Capability{tck.Events, tck.ConfigurationChange, tck.Object, tck.NumericCoercion},
+//	    Capabilities: []tck.Capability{tck.Events, tck.ConfigurationChange, tck.Object, tck.LargeIntegers},
 //	})
 type InProcessControl struct {
 	mu sync.Mutex

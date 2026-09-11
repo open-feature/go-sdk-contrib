@@ -25,10 +25,11 @@ type flagUnderTest struct {
 // evaluation is the outcome of one flag evaluation, flattened across the five
 // typed client methods so the assertion steps do not care which was used.
 type evaluation struct {
-	value     any
-	variant   string
-	reason    openfeature.Reason
-	errorCode openfeature.ErrorCode
+	value        any
+	variant      string
+	reason       openfeature.Reason
+	errorCode    openfeature.ErrorCode
+	errorMessage string
 
 	// err is what the client returned. In Go an errored evaluation returns both
 	// the code default and a non-nil error, so this being set is normal and is
@@ -42,17 +43,55 @@ type evaluation struct {
 	panicValue any
 }
 
+// The two openfeature.StateHandler methods the lifecycle steps call directly.
+const (
+	lifecycleShutdown = "Shutdown"
+	lifecycleInit     = "Init"
+)
+
+// lifecycleCall is the outcome of one direct call into the provider's
+// openfeature.StateHandler — a Shutdown or an Init — made by a lifecycle step.
+//
+// The steps call the provider's own methods rather than going through the SDK.
+// Replacing the provider in the SDK would test the SDK's bookkeeping as much as
+// the provider, which Appendix B already does; and the SDK compares providers
+// with reflect.DeepEqual unless they are pointers, so re-registering the same
+// one may be judged no change at all and initialise nothing.
+type lifecycleCall struct {
+	operation string
+	duration  time.Duration
+
+	// err is what Init returned. Shutdown returns nothing, so for it this is
+	// always nil. Unlike an evaluation's error this one does count as the
+	// thrown exception the feature files forbid: a provider that cannot be
+	// initialised again after a shutdown has not reverted to its uninitialised
+	// state, which is what the other languages' initialize() throws to say.
+	err error
+
+	// panicked records that the call panicked, which is the Go analogue of the
+	// thrown exception — see evaluation.panicked.
+	panicked   bool
+	panicValue any
+}
+
 // scenarioState is everything one scenario accumulates. A fresh instance is
 // created per scenario and carried through the step definitions in the context.
 type scenarioState struct {
 	cfg *Config
 
-	client *openfeature.Client
+	// provider is the provider under test, held so that the lifecycle and
+	// metadata steps can address it directly. Evaluations go through client.
+	provider openfeature.FeatureProvider
+	client   *openfeature.Client
 
 	flag       *flagUnderTest
 	last       *evaluation
 	remembered any
 	hasMemory  bool
+
+	// lifecycle is every direct Shutdown and Init the scenario made, in order.
+	// "no exception should have been thrown" inspects all of them.
+	lifecycle []lifecycleCall
 
 	recorders map[openfeature.EventType]*eventRecorder
 }
@@ -93,6 +132,28 @@ func (s *scenarioState) requireClient() (*openfeature.Client, error) {
 	return s.client, nil
 }
 
+// requireProvider returns the provider under test itself, or an error naming
+// the missing step.
+func (s *scenarioState) requireProvider() (openfeature.FeatureProvider, error) {
+	if s.provider == nil {
+		return nil, errors.New("no provider has been registered in this scenario: " +
+			"a \"Given a stable provider\" or \"Given a unavailable provider\" step must come first")
+	}
+	return s.provider, nil
+}
+
+// lastShutdown returns the most recent direct Shutdown call, or an error naming
+// the missing step.
+func (s *scenarioState) lastShutdown() (*lifecycleCall, error) {
+	for i := len(s.lifecycle) - 1; i >= 0; i-- {
+		if s.lifecycle[i].operation == lifecycleShutdown {
+			return &s.lifecycle[i], nil
+		}
+	}
+	return nil, errors.New("the provider has not been shut down in this scenario: " +
+		"a \"When the provider is shut down\" step must come first")
+}
+
 // recorder returns the recorder for an event type, or an error naming the
 // missing step.
 func (s *scenarioState) recorder(eventType openfeature.EventType) (*eventRecorder, error) {
@@ -107,7 +168,11 @@ func (s *scenarioState) recorder(eventType openfeature.EventType) (*eventRecorde
 // teardown detaches every handler this scenario registered.
 //
 // The provider itself is left registered: the next scenario replaces it, which
-// is what makes the SDK shut this one down. See Config.domain.
+// is what makes the SDK shut this one down. See Config.domain. That holds for a
+// provider a lifecycle step already shut down directly, too — the SDK's
+// Shutdown on replacement is then the second call, which requirement 2.5.3
+// says must have no further effect — and for one that was shut down and
+// initialised again, which the SDK shuts down as it would any other.
 func (s *scenarioState) teardown() {
 	if s.client == nil {
 		return

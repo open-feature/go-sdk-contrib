@@ -3,6 +3,7 @@ package tck_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -136,6 +137,83 @@ func TestCanonicalFlagSetOmitsMissingFlag(t *testing.T) {
 	if _, present := tck.CanonicalFlagSet()["missing-flag"]; present {
 		t.Fatal("the canonical flag set contains missing-flag; its absence is what the " +
 			"FLAG_NOT_FOUND scenario tests")
+	}
+}
+
+// TestCanonicalFlagSetMatchesTheFile pins what the decoding of
+// canonical-flags.json must preserve, because a loader that "cleans up" values
+// destroys exactly what the scenarios test.
+//
+// The numeric rows are the load-bearing ones. encoding/json decodes every
+// number as float64, so a loader that turned integral float64s back into
+// int64 would silently make integral-float-flag an integer flag and let the
+// lossless-coercion scenario pass without coercing; and 9007199254740991 has
+// to arrive as an int64 rather than through a float. The falsy rows pin that
+// false, 0 and "" are values rather than absences, which is what their
+// scenarios are about.
+func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
+	flags := tck.CanonicalFlagSet()
+
+	for _, want := range []struct {
+		key     string
+		variant string
+		value   any
+	}{
+		{"boolean-flag", "on", true},
+		{"string-flag", "greeting", "hi"},
+		{"integer-flag", "ten", int64(10)},
+		{"float-flag", "half", 0.5},
+		{"large-integer-flag", "max-int32", int64(2147483647)},
+		{"huge-integer-flag", "max-safe", int64(9007199254740991)},
+		{"integral-float-flag", "ten", 10.0},
+		{"false-flag", "off", false},
+		{"zero-flag", "zero", int64(0)},
+		{"empty-string-flag", "empty", ""},
+		{"wrong-flag", "one", "uno"},
+		{tck.ChangingFlagKey, "foo", "foo"},
+	} {
+		flag, present := flags[want.key]
+		if !present {
+			t.Errorf("%s is missing from the canonical flag set", want.key)
+			continue
+		}
+		if flag.Key != want.key {
+			t.Errorf("%s carries Key %q", want.key, flag.Key)
+		}
+		if flag.DefaultVariant != want.variant {
+			t.Errorf("%s resolves to variant %q, want %q", want.key, flag.DefaultVariant, want.variant)
+		}
+		got, present := flag.Variants[want.variant]
+		if !present {
+			t.Errorf("%s has no variant %q", want.key, want.variant)
+			continue
+		}
+		// reflect.DeepEqual distinguishes int64(10) from float64(10), which is
+		// the distinction under test.
+		if !reflect.DeepEqual(got, want.value) {
+			t.Errorf("%s variant %q is %v (%T), want %v (%T)",
+				want.key, want.variant, got, got, want.value, want.value)
+		}
+	}
+
+	// ChangeFlag flips changing-flag between two variants it names itself, so
+	// the file has to define exactly those.
+	changing := flags[tck.ChangingFlagKey]
+	for _, variant := range []string{"foo", "bar"} {
+		if _, present := changing.Variants[variant]; !present {
+			t.Errorf("%s has no variant %q, which ChangeFlag switches to", tck.ChangingFlagKey, variant)
+		}
+	}
+
+	// The member inside object-flag has to be converted like a top-level
+	// number, or the type-aware comparison of the object scenario sees a
+	// json.Number.
+	template, ok := flags["object-flag"].Variants["template"].(map[string]any)
+	if !ok {
+		t.Fatalf("object-flag's template variant is a %T, want map[string]any", flags["object-flag"].Variants["template"])
+	}
+	if got := template["imagesPerPage"]; !reflect.DeepEqual(got, int64(100)) {
+		t.Errorf("object-flag's imagesPerPage is %v (%T), want int64(100)", got, got)
 	}
 }
 
