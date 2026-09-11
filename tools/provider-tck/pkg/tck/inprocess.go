@@ -33,9 +33,16 @@ const (
 //
 //   - missing-flag is absent, which is what the FLAG_NOT_FOUND scenario tests.
 //     Adding it turns that scenario green for the wrong reason.
-//   - no flag carries a ContextEvaluator, so every evaluation reports reason
-//     STATIC, which is what the feature files expect. The TCK tests a
-//     provider's mapping of a response, not a backend's evaluation logic.
+//   - no flag gets a ContextEvaluator, so every evaluation reports reason
+//     STATIC, which is what the untargeted feature files expect. The TCK tests
+//     a provider's mapping of a response, not a backend's evaluation logic.
+//     targeting-key-flag is the one flag in the file carrying a targeting
+//     rule, and that member is deliberately not read: translating flagd's
+//     JsonLogic into a ContextEvaluator would make these suites a test of a
+//     rule engine written here. So the flag resolves to its miss variant
+//     whatever the context, and a suite over this flag set leaves Targeting
+//     undeclared rather than failing the match scenario. Undeclared is the
+//     accurate report: an in-memory flag set evaluates no rules.
 //   - a number keeps the type it was written with: 10 becomes an int64 and
 //     10.0 a float64. memprovider type-asserts, so that is what keeps
 //     integer-flag an integer and integral-float-flag a float. Plain
