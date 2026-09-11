@@ -170,6 +170,7 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 		{"integer-zero-flag", "zero", int64(0)},
 		{"string-zero-flag", "zero", ""},
 		{"wrong-flag", "one", "uno"},
+		{"targeting-key-flag", "miss", "miss"},
 		{tck.ChangingFlagKey, "foo", "foo"},
 	} {
 		flag, present := flags[want.key]
@@ -214,6 +215,52 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 	}
 	if got := template["imagesPerPage"]; !reflect.DeepEqual(got, int64(100)) {
 		t.Errorf("object-flag's imagesPerPage is %v (%T), want int64(100)", got, got)
+	}
+}
+
+// TestCanonicalFlagSetEvaluatesNoTargeting is the evidence behind every
+// in-process suite leaving tck.Targeting undeclared.
+//
+// canonical-flags.json gives targeting-key-flag a JsonLogic rule, and
+// tck.CanonicalFlagSet deliberately does not read it: translating that rule
+// into a memprovider ContextEvaluator would make these self-tests a test of a
+// rule engine written here. The consequence is that a matching targeting key
+// resolves the miss variant, so the @targeting scenarios cannot pass against
+// this flag set — which is a fact about the flag set, not a provider defect,
+// and the reason the capability is withheld rather than recorded as a
+// deviation.
+//
+// Pinned here because it is otherwise invisible: the capability is simply
+// absent from four Config literals, and a future decoder that started honouring
+// the targeting member would make those omissions wrong with nothing failing to
+// say so.
+func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
+	const (
+		key     = "targeting-key-flag"
+		hitting = "5c3d8535-f81a-4478-a6d3-afaa4d51199e"
+	)
+
+	flag, present := tck.CanonicalFlagSet()[key]
+	if !present {
+		t.Fatalf("%s is missing from the canonical flag set", key)
+	}
+	if flag.ContextEvaluator != nil {
+		t.Fatalf("%s carries a ContextEvaluator: the in-memory suites declare no Targeting "+
+			"capability on the strength of it having none, so declaring it is now the honest "+
+			"report and those Config literals have to say so", key)
+	}
+
+	ctx := context.Background()
+	provider := tck.NewInProcessControl().NewProvider()
+	result := provider.StringEvaluation(ctx, key, "fallback", map[string]any{
+		openfeature.TargetingKey: hitting,
+	})
+	if result.Error() != nil {
+		t.Fatalf("resolving %s with a matching targeting key failed: %v", key, result.Error())
+	}
+	if result.Value != "miss" {
+		t.Fatalf("%s resolved to %q for a matching targeting key; the rule is being evaluated "+
+			"after all, so the in-memory suites should declare tck.Targeting", key, result.Value)
 	}
 }
 

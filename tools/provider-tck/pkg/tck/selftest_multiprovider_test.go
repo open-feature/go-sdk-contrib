@@ -63,11 +63,20 @@ func TestMultiProvider(t *testing.T) {
 		// TestInMemoryProvider — and a wrapper cannot pass a scenario its child
 		// fails. LargeIntegers is declared: the child returns its int64 exactly,
 		// and whether the value survives the hop is precisely a delegation
-		// question.
+		// question. Variants is declared for exactly that reason and is the
+		// clearest case of it: a variant that does not survive the hop is the
+		// first thing a delegating provider drops, and now it has scenarios of
+		// its own to drop it in.
+		//
+		// Targeting is not declared: the child resolves targeting-key-flag to
+		// its miss variant whatever the context, because the canonical flag
+		// set's rule is not translated into a ContextEvaluator, and a wrapper
+		// cannot pass a scenario its child fails. See TestInMemoryProvider.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.ConfigurationChange,
 			tck.Object,
+			tck.Variants,
 			tck.LargeIntegers,
 		},
 	})
