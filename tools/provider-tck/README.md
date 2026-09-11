@@ -53,7 +53,7 @@ func TestMyProviderConformance(t *testing.T) {
 		NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
 			return myprovider.New(control.Address()), nil
 		},
-		Capabilities: []tck.Capability{tck.Events, tck.Lifecycle, tck.Object, tck.StrictNumericTyping},
+		Capabilities: []tck.Capability{tck.Events, tck.Lifecycle, tck.Object, tck.NumericCoercion},
 	})
 }
 ```
@@ -98,7 +98,7 @@ to be inferred from a scenario count.
 | `tck.ConfigurationChange` | `@configuration-change` | detects configuration changes and emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `tck.Object` | `@object` | supports structured flag values |
 | `tck.UnavailableInit` | `@unavailable` | reports an error state instead of hanging against a dead backend |
-| `tck.StrictNumericTyping` | `@strict-numeric-typing` | does not coerce between integer and float |
+| `tck.NumericCoercion` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
 | `tck.Targeting` | `@targeting` | reserved; no scenarios yet |
 | `tck.Caching` | `@caching` | reserved; no scenarios yet |
 
@@ -115,12 +115,31 @@ the readiness scenario is not really about events. Declare `@lifecycle` when ini
 reaches something and the client can observe how that went; declare `@events` when the provider
 emits events. Neither implies the other.
 
-`@strict-numeric-typing` deserves a note, because unlike the others it is **not** an optional
-feature. The specification requires `TYPE_MISMATCH` when the requested type cannot be satisfied, and
-narrowing `0.5` to `0` loses information silently — the worst failure mode a feature flag has,
-because the application sees a plausible value and no error. It is a capability only so that a
-provider with the defect can adopt today and see the gap reported explicitly rather than being
-unable to adopt at all. Not declaring it is an admission of a known bug.
+`@numeric-coercion` deserves a note, because it is the one capability here that **the specification
+does not define**. OpenFeature has a single numeric type on purpose — `number` is "a numeric value of
+unspecified type or size", and languages **may** differentiate between integers and floats "as idioms
+dictate" — so no requirement says what a provider must do when a value does not fit the accessor it
+was asked through. That gap is
+[open-feature/spec#430](https://github.com/open-feature/spec/issues/430).
+
+The rule this tag is tested against is therefore **borrowed, not normative**: lossless coercion is
+permitted, lossy coercion must fail — `10.0` requested as an integer must succeed, `0.5` must not.
+It comes from flagd's [numeric coercion ADR][numeric-coercion-adr]
+([open-feature/flagd#1996](https://github.com/open-feature/flagd/issues/1996)), which is scoped to
+flagd's own implementations, and the tag took that name — it was `@strict-numeric-typing` — because
+flagd's testbed is gaining `@numeric-coercion` scenarios and two vocabularies for one observable
+property is worse than one borrowed name. **A provider that behaves differently is not violating the
+specification.** Withholding this capability may be a deliberate choice or a tracked defect; a
+report's `knownDeviations` is where the second is recorded.
+
+What remains true is that flagd narrows `0.5` to `0` with no error code at all, in Go and in Java and
+in both resolvers, so an application sees a plausible value and no signal — which is what
+flagd#1996 fixes. Two gaps follow and both are open, recorded in Appendix F rather than closed: the
+**lossless case has no scenario**, because the canonical flag set has no integral float to ask it
+of and adding one changes the flag set for every language at once, so a provider that wrongly
+rejects `10.0` as an integer still passes; and **accessor width is not modelled**, where the ADR
+distinguishes a 64-bit integer accessor — Go's `ResolveIntValue`, and the canonical `Long` — from a
+32-bit one that needs its own scenarios.
 
 ## Controlling the backend
 
