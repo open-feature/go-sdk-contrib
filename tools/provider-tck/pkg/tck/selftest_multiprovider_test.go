@@ -57,11 +57,18 @@ func TestMultiProvider(t *testing.T) {
 		// which is the only thing this suite is for — while spending a green
 		// scenario on it. Before @lifecycle existed the readiness scenario ran
 		// here on the strength of Events and passed vacuously.
+		//
+		// NumericCoercion is not declared because the child is memprovider
+		// underneath, which type-asserts rather than coerces — see
+		// TestInMemoryProvider — and a wrapper cannot pass a scenario its child
+		// fails. LargeIntegers is declared: the child returns its int64 exactly,
+		// and whether the value survives the hop is precisely a delegation
+		// question.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.ConfigurationChange,
 			tck.Object,
-			tck.NumericCoercion,
+			tck.LargeIntegers,
 		},
 	})
 }

@@ -107,7 +107,10 @@ type Config struct {
 	EventTimeout time.Duration
 
 	// ReadyTimeout is how long to wait for a provider to reach READY during
-	// initialisation. Defaults to 30 seconds.
+	// initialisation. It also bounds each direct Shutdown and Init the
+	// lifecycle scenarios make on the provider, so that one that never returns
+	// fails its step rather than hanging the test binary. Defaults to 30
+	// seconds.
 	ReadyTimeout time.Duration
 
 	// ExtensionFeatures supplies feature files of your own, to run in the same
