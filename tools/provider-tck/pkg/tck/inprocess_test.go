@@ -166,9 +166,9 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 		{"large-integer-flag", "max-int32", int64(2147483647)},
 		{"huge-integer-flag", "max-safe", int64(9007199254740991)},
 		{"integral-float-flag", "ten", 10.0},
-		{"false-flag", "off", false},
-		{"zero-flag", "zero", int64(0)},
-		{"empty-string-flag", "empty", ""},
+		{"boolean-zero-flag", "zero", false},
+		{"integer-zero-flag", "zero", int64(0)},
+		{"string-zero-flag", "zero", ""},
 		{"wrong-flag", "one", "uno"},
 		{tck.ChangingFlagKey, "foo", "foo"},
 	} {
