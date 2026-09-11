@@ -55,11 +55,11 @@ func Run(t *testing.T, cfg Config) {
 		Options: &godog.Options{
 			Format: "pretty",
 			Output: os.Stdout,
-			// The canonical Gherkin is embedded in this package, so an adopting
-			// module needs no submodule and no particular directory layout.
-			// With Config.ExtensionFeatures set, the adopter's filesystem is
-			// mounted alongside it and both are parsed in one pass. See
-			// featureSources.
+			// The canonical Gherkin comes embedded in the spec module this
+			// package depends on, so an adopting module needs no submodule and
+			// no particular directory layout. With Config.ExtensionFeatures
+			// set, the adopter's filesystem is mounted alongside it and both
+			// are parsed in one pass. See featureSources.
 			FS:    features.fsys,
 			Paths: features.paths,
 			// Scenarios become subtests of t.
