@@ -237,6 +237,100 @@ func TestDeclarationOfNothingIsAnEmptyListNotNull(t *testing.T) {
 	}
 }
 
+// TestEnvelopeCarriesTheKnownDeviations is what makes a withheld capability
+// readable as a defect rather than a decision.
+//
+// The declaration says a capability was not claimed and the results say the
+// scenario was skipped; neither says whether the provider declines the
+// capability or merely fails at it. Appendix F puts that in knownDeviations, so
+// the envelope has to carry what the adopter declared -- verbatim, because it is
+// prose written for whoever compares two providers, and a summary the emitter
+// paraphrased is no longer the author's statement.
+func TestEnvelopeCarriesTheKnownDeviations(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	const issue = "https://github.com/open-feature/flagd/issues/1996"
+
+	tck.Run(t, tck.Config{
+		Name:    "deviations",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		Capabilities: []tck.Capability{tck.Object},
+		KnownDeviations: []tck.KnownDeviation{
+			// A tracked gap behind a capability that is withheld.
+			tck.TrackedDeviation(tck.NumericCoercion, issue, "narrows 0.5 to 0 with no error code"),
+			// An untracked gap against a mandatory scenario, which belongs to
+			// no capability -- the shape that must survive with an empty
+			// capability rather than being dropped or defaulted.
+			tck.UntrackedDeviation("", "resolves large-integer-flag through a float and rounds it"),
+		},
+	})
+
+	report := readReport(t, filepath.Join(dir, "deviations.json"))
+
+	if len(report.KnownDeviations) != 2 {
+		t.Fatalf("knownDeviations has %d entries, want 2: %+v",
+			len(report.KnownDeviations), report.KnownDeviations)
+	}
+
+	tracked := report.KnownDeviations[0]
+	if tracked.Capability != tck.NumericCoercion {
+		t.Errorf("knownDeviations[0].capability = %q, want %q", tracked.Capability, tck.NumericCoercion)
+	}
+	if tracked.Issue != issue {
+		t.Errorf("knownDeviations[0].issue = %q, want %q", tracked.Issue, issue)
+	}
+	if tracked.Summary != "narrows 0.5 to 0 with no error code" {
+		t.Errorf("knownDeviations[0].summary was not carried verbatim: %q", tracked.Summary)
+	}
+
+	untracked := report.KnownDeviations[1]
+	if untracked.Capability != "" {
+		t.Errorf("knownDeviations[1].capability = %q, want it absent", untracked.Capability)
+	}
+	if untracked.Issue != "" {
+		t.Errorf("knownDeviations[1].issue = %q, want it absent", untracked.Issue)
+	}
+
+	// The declaration is unchanged by any of this: a deviation explains an
+	// absence, it does not create or remove one.
+	if got := report.Declaration.Declared; len(got) != 1 || got[0] != tck.Object.Tag() {
+		t.Errorf("declaration.declared = %v, want exactly [%s]", got, tck.Object.Tag())
+	}
+}
+
+// TestNoKnownDeviationsSaysNothingRatherThanNone is the opposite of the
+// declared-capability rule, and deliberately so.
+//
+// An empty declared list is a claim -- this provider declares no capability --
+// so it has to be emitted. Deviations are not a claim: a provider with no entry
+// is not asserting it has no defects, only that it has not recorded any. An
+// empty array would read as the former, so the field is omitted instead.
+func TestNoKnownDeviationsSaysNothingRatherThanNone(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(tck.ReportDirEnv, dir)
+
+	tck.Run(t, tck.Config{
+		Name:    "no-deviations",
+		Control: plainMemoryControl{},
+		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+		},
+		Capabilities: []tck.Capability{tck.Object},
+	})
+
+	data, err := os.ReadFile(filepath.Join(dir, "no-deviations.json"))
+	if err != nil {
+		t.Fatalf("no conformance report: %v", err)
+	}
+	if strings.Contains(string(data), "knownDeviations") {
+		t.Errorf("a provider recording no deviations still emitted the field:\n%s", data)
+	}
+}
+
 // TestReportNotWrittenByDefault keeps report emission opt-in.
 //
 // A suite that wrote files into the working directory of every developer who
