@@ -59,14 +59,16 @@ func TestInMemoryProvider(t *testing.T) {
 		//   - Targeting and Caching are omitted because no scenario carries
 		//     their tags yet, so leaving them out skips nothing.
 		//
-		// StrictNumericTyping is declared, and that is worth stating plainly:
+		// NumericCoercion is declared, and that is worth stating plainly:
 		// memprovider refuses to narrow float-flag (0.5) to an integer and
-		// reports TYPE_MISMATCH instead. It is the reference behaviour that
-		// capability describes.
+		// reports TYPE_MISMATCH instead. That is the lossy half of the rule,
+		// and the only half any scenario asks about — whether memprovider would
+		// accept an integral float as an integer is untested here, because the
+		// canonical flag set contains no integral float.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.Object,
-			tck.StrictNumericTyping,
+			tck.NumericCoercion,
 		},
 	})
 }

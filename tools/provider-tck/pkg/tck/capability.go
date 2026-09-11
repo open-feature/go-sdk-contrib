@@ -76,8 +76,14 @@ const (
 	// cannot reach.
 	UnavailableInit Capability = "@unavailable"
 
-	// StrictNumericTyping means the provider keeps the integer and float types
-	// distinct instead of coercing between them.
+	// NumericCoercion means the provider coerces between the integer and float
+	// types only when the coercion is lossless, and reports TYPE_MISMATCH when
+	// it would lose information.
+	//
+	// An integral float such as 10.0 requested as an integer must succeed; 0.5
+	// requested as an integer must not. The rule is not "never coerce", which is
+	// what this capability was originally named for — see flagd's numeric
+	// coercion ADR, https://github.com/open-feature/flagd/issues/1996.
 	//
 	// Unlike every other entry here this is not an optional feature. The
 	// specification requires a provider to report TYPE_MISMATCH when the
@@ -90,7 +96,15 @@ const (
 	// suite today and see the gap reported as an explicit skip, rather than
 	// being unable to adopt at all. Not declaring it is an admission of a known
 	// bug, not a design choice. Declare it as soon as the provider is fixed.
-	StrictNumericTyping Capability = "@strict-numeric-typing"
+	//
+	// Only the lossy half of the rule has a scenario. The canonical flag set
+	// contains no integral float to ask the lossless half of, so a provider that
+	// wrongly rejects 10.0 as an integer still passes; Appendix F records that as
+	// an open gap, because closing it changes the flag set for every language at
+	// once. Accessor width is not modelled either — Go's ResolveIntValue is
+	// int64, as is the canonical Long, and a 32-bit accessor would need its own
+	// scenarios.
+	NumericCoercion Capability = "@numeric-coercion"
 
 	// Targeting is reserved. No scenario carries this tag: targeting is backend
 	// evaluation logic, which the TCK deliberately does not test. It exists so
@@ -115,7 +129,7 @@ var allCapabilities = []Capability{
 	ConfigurationChange,
 	Object,
 	UnavailableInit,
-	StrictNumericTyping,
+	NumericCoercion,
 	Targeting,
 	Caching,
 }
