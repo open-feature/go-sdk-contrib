@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.6...providers/launchdarkly/v0.1.7) (2026-09-10)
+
+
+### 🐛 Bug Fixes
+
+* **launchdarkly:** pass slog-style attributes to Logger ([#950](https://github.com/open-feature/go-sdk-contrib/issues/950)) ([b427818](https://github.com/open-feature/go-sdk-contrib/commit/b42781876abdee42255955a882f60f4c4e49c905))
+* **launchdarkly:** skip the reserved targetingKey attribute in multi-contexts ([#951](https://github.com/open-feature/go-sdk-contrib/issues/951)) ([546286d](https://github.com/open-feature/go-sdk-contrib/commit/546286d5abf6aa9e635e0cbc37a8cd39f7b23171))
+
 ## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.5...providers/launchdarkly/v0.1.6) (2025-11-25)
 
 
