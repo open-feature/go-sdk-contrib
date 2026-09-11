@@ -53,18 +53,28 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// than failing it, and the gap needs its own issue against the
 		// provider. Declare this as soon as the RPC resolver emits
 		// PROVIDER_STALE.
-		// tck.StrictNumericTyping is NOT declared either, and this one was
-		// found by running the suite rather than by reading the code.
-		// Evaluating float-flag (0.5) through GetIntDetails returns 0 with no
-		// error code at all -- not TYPE_MISMATCH with the code default. The
-		// application sees a plausible value and no indication anything went
-		// wrong, which is the worst failure mode a feature flag has.
+		// tck.NumericCoercion is NOT declared either, and this one was found
+		// by running the suite rather than by reading the code. Evaluating
+		// float-flag (0.5) through GetIntDetails returns 0 with no error code
+		// at all -- not TYPE_MISMATCH with the code default. The application
+		// sees a plausible value and no indication anything went wrong, which
+		// is the worst failure mode a feature flag has.
 		//
 		// Both resolvers do it identically, so the defect is in the shared
-		// provider layer rather than in either transport. The Java flagd
-		// provider has the same defect, reported in
-		// java-sdk-contrib#1830 -- so it is a flagd-wide issue rather than a
-		// Go one. Declare this as soon as it is fixed.
+		// provider layer rather than in either transport, and the Java flagd
+		// provider does it too -- a flagd-wide issue rather than a Go one. It
+		// is tracked as open-feature/flagd#1996, which implements flagd's
+		// numeric coercion ADR: coercion is permitted when lossless, so
+		// 10.0 -> 10 keeps working, and must return TYPE_MISMATCH when it
+		// would lose information, which 0.5 does.
+		//
+		// Worth knowing when reading this: the specification does not actually
+		// require that. OpenFeature has one numeric type, of "unspecified type
+		// or size", and differentiating integers from floats is an optional
+		// language idiom -- so this capability is tested against a rule
+		// borrowed from flagd rather than a requirement, and the gap in the
+		// provider contract is open-feature/spec#430. Declare this once
+		// flagd#1996 lands.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.ConfigurationChange,
@@ -86,9 +96,9 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		portName: "in-process",
 		resolver: flagd.WithInProcessResolver(),
 
-		// Everything except tck.StrictNumericTyping. Unlike RPC, the
-		// in-process resolver emits PROVIDER_STALE on connection loss, so it
-		// can satisfy the @stale scenario.
+		// Everything except tck.NumericCoercion. Unlike RPC, the in-process
+		// resolver emits PROVIDER_STALE on connection loss, so it can satisfy
+		// the @stale scenario.
 		//
 		// It narrows float-flag (0.5) to 0 on an integer request exactly as
 		// the RPC resolver does -- observed, not inferred -- which places that
