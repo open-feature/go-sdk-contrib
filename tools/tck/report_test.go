@@ -264,16 +264,41 @@ func TestReportNotWrittenByDefault(t *testing.T) {
 	}
 }
 
-// TestSpecRevisionIsRecorded guards the generated constant.
+// TestSpecRevisionIsRecorded pins the constant to the module the assets come from.
 //
-// It is what lets a consumer know which questions a report answers, and it is
-// generated rather than written, so the failure mode is silence: a regenerate
-// that stopped emitting it would leave the report structurally valid and
-// semantically useless.
+// SpecRevision is what lets a consumer know which questions a report answers,
+// and it is now written by hand: the assets arrive as a Go module, so there is
+// no sync step left to generate it, and no build-time source to derive it from
+// either (see revision.go). A hand-written constant can go stale in silence,
+// which is the one failure mode that leaves a report structurally valid and
+// semantically wrong — naming a revision the run did not use.
+//
+// So compare it against the only other place the revision is recorded, the
+// module pin in go.mod. That file is inside the module, present in every clone
+// and in every module zip, so moving the pin without updating the constant
+// fails here rather than in a consumer's report.
 func TestSpecRevisionIsRecorded(t *testing.T) {
-	if len(tck.SpecRevision) != 40 {
-		t.Errorf("SpecRevision = %q, want a 40-character commit SHA; run `make provider-tck-assets`",
-			tck.SpecRevision)
+	gomod, err := os.ReadFile(filepath.Join("..", "..", "go.mod"))
+	if err != nil {
+		t.Fatalf("reading go.mod: %v", err)
+	}
+
+	var pinned string
+	for _, line := range strings.Split(string(gomod), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == tck.SpecModulePath {
+			pinned = fields[1]
+			break
+		}
+	}
+	if pinned == "" {
+		t.Fatalf("go.mod does not require %s, so the conformance assets have no recorded revision",
+			tck.SpecModulePath)
+	}
+
+	if tck.SpecRevision != pinned {
+		t.Errorf("SpecRevision = %q but go.mod pins %s at %q; move the pin with `go get` and "+
+			"update SpecRevision to match", tck.SpecRevision, tck.SpecModulePath, pinned)
 	}
 }
 
