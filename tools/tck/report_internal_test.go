@@ -31,7 +31,7 @@ func syntheticStream(reason string) (*messagesFormatter, *lockedBuffer) {
 func syntheticPickle(id, name string, tags ...string) *messages.Pickle {
 	pickle := &messages.Pickle{
 		Id:         id,
-		Uri:        "assets/gherkin/synthetic.feature",
+		Uri:        "gherkin/synthetic.feature",
 		Name:       name,
 		AstNodeIds: []string{"ast-" + id},
 		Steps: []*messages.PickleStep{
@@ -146,13 +146,13 @@ func TestStreamCarriesTagsAndSource(t *testing.T) {
 	formatter, buf := syntheticStream("")
 
 	document := &messages.GherkinDocument{
-		Uri:      "assets/gherkin/synthetic.feature",
+		Uri:      "gherkin/synthetic.feature",
 		Comments: []*messages.Comment{},
 	}
 	pickle := syntheticPickle("4", "a flag resolves", "@object")
 
 	formatter.TestRunStarted()
-	formatter.Feature(document, "assets/gherkin/synthetic.feature",
+	formatter.Feature(document, "gherkin/synthetic.feature",
 		[]byte("Feature: synthetic\n"))
 	formatter.Pickle(pickle)
 	for _, step := range pickle.Steps {
@@ -163,7 +163,7 @@ func TestStreamCarriesTagsAndSource(t *testing.T) {
 
 	stream := parseStream(t, buf.bytes())
 
-	if source := stream.sources["assets/gherkin/synthetic.feature"]; source != "Feature: synthetic\n" {
+	if source := stream.sources["gherkin/synthetic.feature"]; source != "Feature: synthetic\n" {
 		t.Errorf("the stream carries the source %q, not the bytes that were executed", source)
 	}
 	if tags := stream.tags["4"]; len(tags) != 1 || tags[0] != "@object" {
