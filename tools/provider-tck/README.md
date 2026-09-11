@@ -146,6 +146,7 @@ to be inferred from a scenario count.
 | `tck.UnavailableInit` | `@unavailable` | reports an error state instead of hanging against a dead backend |
 | `tck.NumericCoercion` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
 | `tck.LargeIntegers` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; undeclarable where the SDK's integer accessor is 32-bit |
+| `tck.Reinitialization` | `@reinitialization` | can be initialised again after `shutdown`, which [Requirement 2.5.2][req-252] permits rather than requires |
 | `tck.Targeting` | `@targeting` | reserved; **not declarable** — no scenarios yet |
 | `tck.Caching` | `@caching` | reserved; **not declarable** — no scenarios yet |
 
@@ -172,6 +173,27 @@ stateless HTTP provider such as OFREP emits no events of its own and cannot decl
 the readiness scenario is not really about events. Declare `@lifecycle` when initialisation actually
 reaches something and the client can observe how that went; declare `@events` when the provider
 emits events. Neither implies the other.
+
+`@reinitialization` is separate from `@lifecycle` for a subtler reason, and it is worth knowing how
+it came to be separate, because the mistake behind it is easy to repeat. [Requirement 2.5.2][req-252]
+says a provider **SHOULD** revert to its uninitialized state after `shutdown`, and its supporting
+text adds that *"some providers **may** allow reinitialization from this state"*. Reuse is therefore
+**permitted, not required**: a provider that releases its client on shutdown and refuses to be
+started again is exercising a choice the specification offers it. Leave the tag undeclared and the
+scenario is skipped — that is the whole of what is needed, and in particular it is **not** a known
+deviation, because nothing is deviating.
+
+The scenario was untagged and so mandatory until [spec `fc99d5ac`][reinit-fix]. Run against flagd's
+RPC resolver it failed, was written down as a known deviation, and was one step from being filed as
+a defect against a provider doing nothing wrong. **A false failure is the mirror image of a vacuous
+pass**, and this suite cares about both.
+
+What the tag buys is the other direction: a provider that does offer reuse has somewhere to be held
+to it, because "`Shutdown` releases the client and `Init` returns early because an initialised flag
+was never cleared" is easy to write and leaves the provider evaluating against a closed connection
+rather than failing outright. Reverting the state is not separately observable — a provider that
+reverts but refuses reuse presents exactly as one that did neither — so a gated reuse scenario is
+the only assertion the requirement admits.
 
 `@numeric-coercion` deserves a note, because it is the one capability here that **the specification
 does not define**. OpenFeature has a single numeric type on purpose — `number` is "a numeric value of
@@ -232,12 +254,23 @@ KnownDeviations: []tck.KnownDeviation{
 			"code default.",
 	),
 	tck.UntrackedDeviation(
-		tck.Lifecycle,
-		"shutdown() never clears the initialised latch, so a later Init returns at once "+
-			"without re-creating the resolver it tore down.",
+		tck.Stale,
+		"The provider never leaves READY when its stream drops: the reconnect loop swallows "+
+			"the transport error instead of emitting PROVIDER_STALE, so an application sees "+
+			"last-known values with no signal that they are last-known.",
 	),
 },
 ```
+
+**Check the requirement before you write one.** A scenario failed is not yet a deviation, and a
+capability you cannot satisfy is not yet a defect — first find the numbered requirement the scenario
+maps to and read what it actually says. Three rules in this suite have now been found asserted more
+strongly than the specification states them: `@numeric-coercion` is borrowed from an ADR and is not
+normative at all, `@large-integers` is a property of the SDK's accessor rather than of the provider,
+and `@reinitialization` is [explicitly permitted rather than required][req-252] — that last one
+reached a written-down deviation against a provider doing nothing wrong before anyone looked the
+requirement up. When the specification allows a provider to decline the behaviour, the answer is a
+gate, not a deviation.
 
 `tck.UntrackedDeviation` is for a gap with no issue behind it yet, and is worth declaring even so:
 naming the defect is what separates it from a capability withheld by choice, and a declaration that
@@ -439,5 +472,8 @@ the SDK's provider rather than reimplementing it — every resolution decision i
 [appendix-b]: https://github.com/open-feature/spec/blob/main/specification/appendix-b-gherkin-suites.md
 [appendix-f]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md
 [control-api]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/openapi/control-api.yaml
+[numeric-coercion-adr]: https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md
+[reinit-fix]: https://github.com/open-feature/spec/commit/fc99d5ace4da472a5fea0595fa4db8034bbbc769
+[req-252]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-252
 [spec]: https://github.com/open-feature/spec
 [tracking]: https://github.com/open-feature/spec/issues/417
