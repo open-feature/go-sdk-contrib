@@ -36,6 +36,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 			EnvVars:      make(map[string]string),
 			EvalContext:  make(map[string]interface{}),
 			EventChannel: make(chan EventRecord, 100),
+			EventLog:     &EventLog{},
 		}
 		state.ProviderType = ctx.Value("resolver").(ProviderType)
 		state.FlagDir = ctx.Value("flagDir").(string)
@@ -71,6 +72,9 @@ func (s *TestState) applyDefaults() {
 	}
 	if s.EventChannel == nil {
 		s.EventChannel = make(chan EventRecord, 100) // Buffered channel to prevent blocking
+	}
+	if s.EventLog == nil {
+		s.EventLog = &EventLog{}
 	}
 	if s.ProviderType == 0 {
 		s.ProviderType = RPC // Default to RPC
