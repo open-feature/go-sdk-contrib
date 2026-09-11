@@ -4,4 +4,4 @@ package tck
 
 // SpecRevision is the open-feature/spec commit the embedded conformance
 // artifacts were taken from.
-const SpecRevision = "dfa16586d91ca020ef1b3b82a7c972d833ff8f29"
+const SpecRevision = "dc4d7ae8df1c664f82a4adf46cd43812980c0da3"

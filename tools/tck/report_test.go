@@ -38,7 +38,7 @@ func TestResultsNeverCallASkippedScenarioPassed(t *testing.T) {
 	t.Setenv(tck.ReportDirEnv, dir)
 
 	// Deliberately narrow: declaring only Object leaves every event, lifecycle,
-	// stale, unavailable and strict-numeric-typing scenario ungated and skipped,
+	// stale, unavailable and numeric-coercion scenario ungated and skipped,
 	// which is precisely the situation the rule governs.
 	tck.Run(t, tck.Config{
 		Name:    "report-selftest",
