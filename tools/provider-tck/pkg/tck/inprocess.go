@@ -22,7 +22,7 @@ const (
 
 // CanonicalFlagSet returns the canonical flag set as Go in-memory flags.
 //
-// It mirrors the canonical-flags.json of the spec submodule entry for entry.
+// It mirrors the specification's canonical-flags.json entry for entry.
 // Two details from that file are load-bearing and hold here too:
 //
 //   - missing-flag is absent, which is what the FLAG_NOT_FOUND scenario tests.
