@@ -48,7 +48,7 @@ func TestControllableProvider(t *testing.T) {
 			tck.Lifecycle,
 			tck.ConfigurationChange,
 			tck.Object,
-			tck.StrictNumericTyping,
+			tck.NumericCoercion,
 		},
 	})
 }
