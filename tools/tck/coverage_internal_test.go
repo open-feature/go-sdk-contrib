@@ -68,7 +68,7 @@ func completeRun(t *testing.T) (map[canonicalScenario]int, []executedScenario) {
 
 	var executed []executedScenario
 	for key, count := range expected {
-		for i := 0; i < count; i++ {
+		for range count {
 			executed = append(executed, executedScenario{
 				uri:    key.uri,
 				name:   key.name,
