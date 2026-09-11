@@ -46,6 +46,13 @@ func TestControllableProvider(t *testing.T) {
 		// That includes the shutdown scenarios: Shutdown is idempotent, Init
 		// after it succeeds, and the same instance keeps serving flags.
 		//
+		// Reinitialization is declared for that last reason, and only because
+		// it is true here: Shutdown closes the event channel and nothing else,
+		// Init has nothing to reconnect, and the flag snapshot outlives both,
+		// so the provider really is reusable. Requirement 2.5.2 only permits
+		// reuse, so a provider that released something it cannot recreate
+		// would leave this undeclared rather than record a deviation.
+		//
 		// NumericCoercion is not declared, for the reason TestInMemoryProvider
 		// gives: every resolution decision is still memprovider's, and
 		// memprovider type-asserts rather than coerces, so the lossless
@@ -54,6 +61,7 @@ func TestControllableProvider(t *testing.T) {
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
+			tck.Reinitialization,
 			tck.ConfigurationChange,
 			tck.Object,
 			tck.LargeIntegers,
