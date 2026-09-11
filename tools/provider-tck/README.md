@@ -301,6 +301,23 @@ the normative contract for those providers, and it is what makes a conformance c
 another language's TCK drives the same endpoints against the same stack and must get the same
 answers.
 
+You do not have to write the client. `tck.HTTPControl` is one, and it ships here rather than in an
+adoption precisely because every adoption needs the same one:
+
+```go
+control, err := tck.NewHTTPControl(tck.HTTPControlOptions{
+    BaseURL: fmt.Sprintf("http://localhost:%d", launchpad.MappedPort()),
+})
+```
+
+`BaseURL` is the only required field, and it must be built from the **dynamically mapped** host port
+discovered after the stack is up — a stack under test must not pin host ports. `Configuration`
+defaults to `tck.DefaultConfiguration`, the one name Appendix F requires every backend under test to
+serve, and the one that serves the canonical flag set.
+
+If you find yourself writing a control client of your own, that is a defect here rather than
+something for you to work around.
+
 Two of its requirements are easy to get wrong:
 
 - **Containers are never stopped or restarted mid-suite.** Unavailability is simulated *inside* the
