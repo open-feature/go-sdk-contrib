@@ -34,6 +34,8 @@ github.com/open-feature/go-sdk v1.18.0 h1:+Ge8LAJjqDwQBqAWaWiTbnsiJ22d5SPQq7/hOi
 github.com/open-feature/go-sdk v1.18.0/go.mod h1:LOlB7jvyi3hz9mp7R2uIwCv+wcabCB4ir76AZJ1z2IQ=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911113217-ba002ce8e807 h1:m324/pHrluguzH4mCjw9Il0J09szOj3BLqzpouFlHHs=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911113217-ba002ce8e807/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
+github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911124500-fc99d5ace4da h1:w4bEfP6zVseA4cvr+/lzSIBlSrX4pCS9V4ed6XNM/LA=
+github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911124500-fc99d5ace4da/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
