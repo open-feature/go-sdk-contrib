@@ -14,9 +14,13 @@ The backend is a container, pulled automatically. Override it with `FLAGSMITH_TE
 **The suite is red, and the failures are the point.** Out of 40 scenarios: **17 pass, 12 fail, 11
 are skipped** because a capability is not declared. Identical in both modes.
 
-(`go test` prints 28 PASS lines. Eleven of those are the skipped scenarios -- the Go subtest passes
-while godog skips the scenario -- so 28 is the subtest count, not the conformance result.) Ten of the twelve fail for a reason the suite cannot currently express — see
-"Variant" below — so this is not a list of twelve provider bugs.
+Ten of the twelve fail for a reason the suite cannot currently express — see "Variant" below — so
+this is not a list of twelve provider bugs.
+
+`go test` prints 28 PASS lines, and that number is misleading: eleven of them are the skipped
+scenarios, where godog skips the scenario and the Go subtest passes anyway. 28 is the subtest count,
+not the conformance result. Reading it as one is exactly the vacuous pass the capability gating
+exists to prevent.
 
 Two things keep it a draft:
 
