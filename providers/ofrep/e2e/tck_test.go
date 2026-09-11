@@ -24,6 +24,37 @@ import (
 // conformant backend seeded with the canonical flag set and the standardised
 // launchpad control API without a new image, a new compose file, or any change
 // to the flagd suites.
+//
+// THIS SUITE IS CURRENTLY NON-DETERMINISTIC, and the cause is worth reading
+// before trusting a run of it.
+//
+// Two failures are stable, and both are gaps in the fixture rather than in the
+// provider: integral-float-flag and large-integer-flag are absent from
+// flagd-testbed (grep the testbed's flags/ directory -- number-zero-flag and
+// huge-integer-flag are missing too), so the scenarios that ask for them fail
+// with FLAG_NOT_FOUND against any provider. open-feature/flagd-testbed#392 adds
+// them.
+//
+// Every other failure moves between runs. Two consecutive runs of this file
+// produced 13 failures and then 12, with almost disjoint failing sets, and
+// every one of them was FLAG_NOT_FOUND on a flag the testbed definitely has --
+// boolean-flag, string-zero-flag, object-flag. The cause is that this provider
+// has no initialisation: the TCK's per-scenario reset calls POST /start on the
+// launchpad, which stops flagd, deletes the combined flag file, regenerates it
+// and restarts flagd, polling :8014/readyz until flagd answers. flagd answers
+// before its file source has loaded the flags. A provider with a lifecycle does
+// not notice, because its own Init blocks until the RPC stream is up or the
+// in-process sync completes, and by then the flags are there -- which is why
+// both flagd suites are stable against the same backend at the same revision.
+// A stateless provider fires its first evaluation the instant POST /start
+// returns, and races the load.
+//
+// So the defect is in the control-API contract rather than here: POST /start
+// returning before the backend serves flags makes the reset unusable by exactly
+// the providers that have no way to wait for it. Fixing it by adding a sleep or
+// a retry to this file would hide it from every other language's adoption, so
+// it is written down instead. Until then, read a red result here against the
+// list above before attributing anything to the provider.
 
 const (
 	// The flagd testbed is a git submodule of the flagd provider. Reused, not
@@ -152,9 +183,24 @@ func TestOFREPConformance(t *testing.T) {
 		// The converse — integer-flag requested as a Float — is accepted and
 		// returns 10.0, because ResolveFloat takes any float64
 		// (flags.go:141-155) and that is what a JSON 10 decodes to. That is the
-		// lossless direction, and no scenario covers it: the canonical flag set
-		// has no integral float to ask it of, so a provider that wrongly
-		// rejected 10.0 would still pass. Appendix F records the gap.
+		// lossless direction, and it now HAS scenarios: the canonical flag set
+		// gained integral-float-flag, so "An integral float requested as an
+		// integer is coerced without loss" and "An integer requested as a float
+		// is widened without loss" both run. The capability is therefore a
+		// stronger claim than it was when this comment was first written, and
+		// the declaration is kept deliberately rather than by inertia.
+		//
+		// One of those two cannot be verified against this backend, and it is
+		// the fixture's fault: flagd-testbed has no integral-float-flag, so the
+		// scenario fails with FLAG_NOT_FOUND no matter what the provider does.
+		// The capability is still declared, because the two scenarios that the
+		// backend CAN answer -- the lossy half, and the widening half through
+		// integer-flag -- both pass, and withholding the tag would skip the
+		// lossy scenario too. That is the one worth keeping: silently narrowing
+		// 0.5 to 0 is the failure mode flagd has and this provider does not.
+		// The failure gets no deviation entry, because the gap is in the
+		// fixture and an entry there would attribute it to the provider.
+		// open-feature/flagd-testbed#392.
 		Capabilities: []tck.Capability{
 			tck.Object,
 			tck.NumericCoercion,
