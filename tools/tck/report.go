@@ -107,13 +107,6 @@ type ReportDeclaration struct {
 	// Never nil: a provider that declares nothing states an empty list, which
 	// is a claim, whereas null would be silence.
 	Declared []string `json:"declared"`
-
-	// NotApplicable maps a capability that cannot hold for this provider, as
-	// opposed to one merely undeclared, to the reason. Nothing populates it
-	// yet: Config has no field for it, because no Go provider has needed to
-	// distinguish the two. It is transcribed so that a consumer unmarshalling
-	// this type sees the whole schema.
-	NotApplicable map[string]string `json:"notApplicable,omitempty"`
 }
 
 // ReportResults says where the executed results live and in what format.
