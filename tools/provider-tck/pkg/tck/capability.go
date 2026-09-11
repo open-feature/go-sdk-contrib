@@ -61,6 +61,10 @@ const (
 	// Init can fail. A provider that does not implement StateHandler cannot
 	// have it, however promptly its client reports READY, because the readiness
 	// it reports was manufactured by the SDK rather than by the provider.
+	//
+	// Whether such a provider can be started again after being shut down is a
+	// separate question the specification leaves to it, with its own
+	// capability: see Reinitialization.
 	Lifecycle Capability = "@lifecycle"
 
 	// Stale means the provider enters STALE and emits PROVIDER_STALE when it
@@ -122,6 +126,39 @@ const (
 	// its own, because every language can ask for that.
 	LargeIntegers Capability = "@large-integers"
 
+	// Reinitialization means the provider can be initialised again after it has
+	// been shut down, and serves flags afterwards.
+	//
+	// Requirement 2.5.2 says a provider SHOULD revert to its uninitialized
+	// state after shutdown, and its supporting text says "some providers MAY
+	// allow reinitialization from this state". Reuse is therefore permitted,
+	// not required: a provider that releases its client on shutdown and
+	// declines to start again is taking an option the specification offers it,
+	// not exhibiting a defect, and it needs no known-deviation entry to say so.
+	// Simply leave the tag undeclared.
+	//
+	// The scenario was mandatory until spec fc99d5ac, on the reading that
+	// reverting to the uninitialized state "is observable as exactly one thing
+	// -- it can be initialized again and then serves flags". That inference
+	// does not hold, and the cost was concrete: flagd's RPC resolver failed the
+	// scenario and the failure was one step from being filed as a defect
+	// against a provider doing nothing wrong. A false failure is the mirror
+	// image of a vacuous pass.
+	//
+	// What the tag buys is the other direction. A provider that does offer
+	// reuse has somewhere to be held to it, because "Shutdown releases the
+	// client and Init returns early because an initialised flag was never
+	// cleared" is easy to write and leaves the provider evaluating against a
+	// closed connection rather than failing outright. Reverting the state is
+	// not separately observable -- a provider that reverts but refuses reuse
+	// presents exactly as one that did neither -- so a gated reuse scenario is
+	// the only assertion the requirement admits.
+	//
+	// It is separate from Lifecycle because the scenario's feature carries
+	// @lifecycle too: a provider with no observable initialisation is not being
+	// asked this question at all, and one that has it may still decline reuse.
+	Reinitialization Capability = "@reinitialization"
+
 	// Targeting is reserved and must not be declared — see IsReserved. No
 	// scenario carries this tag: targeting is backend evaluation logic, which
 	// the TCK deliberately does not test. It exists so the vocabulary stays
@@ -149,6 +186,7 @@ var allCapabilities = []Capability{
 	UnavailableInit,
 	NumericCoercion,
 	LargeIntegers,
+	Reinitialization,
 	Targeting,
 	Caching,
 }
