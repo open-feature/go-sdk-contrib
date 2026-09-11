@@ -22,6 +22,9 @@ import (
 // worse than no suite at all.
 //
 // Scenarios with no capability tag are mandatory and always run.
+//
+// A few capabilities are reserved: they are part of the vocabulary but no
+// scenario carries their tag, so they must not be declared. See IsReserved.
 type Capability string
 
 const (
@@ -106,22 +109,24 @@ const (
 	// scenarios.
 	NumericCoercion Capability = "@numeric-coercion"
 
-	// Targeting is reserved. No scenario carries this tag: targeting is backend
-	// evaluation logic, which the TCK deliberately does not test. It exists so
-	// the vocabulary stays aligned with the flagd test harness, and so that
-	// context-passthrough scenarios have a home once the control API grows an
-	// echo endpoint.
+	// Targeting is reserved and must not be declared — see IsReserved. No
+	// scenario carries this tag: targeting is backend evaluation logic, which
+	// the TCK deliberately does not test. It exists so the vocabulary stays
+	// aligned with the flagd test harness, and so that context-passthrough
+	// scenarios have a home once the control API grows an echo endpoint.
 	Targeting Capability = "@targeting"
 
-	// Caching is reserved; no scenario carries this tag yet. Whether a stale
-	// provider keeps serving last-known values during an outage depends on
-	// whether it holds a local copy of the ruleset.
+	// Caching is reserved and must not be declared — see IsReserved. No
+	// scenario carries this tag yet. Whether a stale provider keeps serving
+	// last-known values during an outage depends on whether it holds a local
+	// copy of the ruleset.
 	Caching Capability = "@caching"
 )
 
-// allCapabilities is every capability the TCK knows about. A Gherkin tag that
-// is not in this list gates nothing and is ignored, which is what lets the
-// canonical feature files carry organisational tags freely.
+// allCapabilities is every capability the TCK knows about, reserved ones
+// included. A Gherkin tag that is not in this list gates nothing and is
+// ignored, which is what lets the canonical feature files carry organisational
+// tags freely.
 var allCapabilities = []Capability{
 	Events,
 	Lifecycle,
@@ -134,15 +139,61 @@ var allCapabilities = []Capability{
 	Caching,
 }
 
-// AllCapabilities returns every capability the TCK recognises.
+// reservedCapabilities is every capability no scenario carries.
+//
+// It is a single list rather than a property repeated at each use, because the
+// rule and the set it applies to have to move together: adding the first
+// scenario for one of these means deleting one line here and nothing else.
+var reservedCapabilities = []Capability{
+	Targeting,
+	Caching,
+}
+
+// IsReserved reports whether this capability is reserved: part of the
+// vocabulary, carried by no scenario, and therefore not declarable.
+//
+// A reserved capability exists so the vocabulary has a place for it once
+// scenarios do, but Appendix F states that it must not be declared and must not
+// appear in a conformance report's declaration. Nothing carries the tag, so
+// declaring it cannot be verified, cannot produce a skip, and tells a reader of
+// the report only that something was claimed and nothing examined — the vacuous
+// conformance claim this whole vocabulary exists to prevent.
+//
+// So AllCapabilities does not return one, and naming one in Config.Capabilities
+// is a configuration error rather than a conformance result.
+func (c Capability) IsReserved() bool {
+	for _, reserved := range reservedCapabilities {
+		if c == reserved {
+			return true
+		}
+	}
+	return false
+}
+
+// AllCapabilities returns every capability the TCK recognises **except the
+// reserved ones**, which no scenario carries and which therefore must not be
+// declared. It is the default when Config.Capabilities is unset.
 //
 // It is a reasonable starting point for a new adoption: declare everything, run
 // the suite, and remove only what your provider genuinely cannot do. Narrowing
 // from the full set surfaces gaps; widening towards it hides them until
 // something fails for an apparently unrelated reason.
+//
+// Reserved capabilities are excluded because this is the convenience through
+// which they get claimed by accident. An adoption that starts here and removes
+// what it cannot do picks up every reserved tag on the way past, and a
+// published conformance report then asserts capabilities that were never
+// examined — which is how a Java report came to declare @targeting and
+// @caching, not by anyone's decision. A declare-everything shortcut must not
+// hand out tags nothing tests.
 func AllCapabilities() []Capability {
-	out := make([]Capability, len(allCapabilities))
-	copy(out, allCapabilities)
+	out := make([]Capability, 0, len(allCapabilities))
+	for _, c := range allCapabilities {
+		if c.IsReserved() {
+			continue
+		}
+		out = append(out, c)
+	}
 	return out
 }
 
@@ -167,13 +218,30 @@ func capabilityForTag(tag string) (Capability, bool) {
 // capabilitySet is a declared capability set, in lookup form.
 type capabilitySet map[Capability]struct{}
 
+// newCapabilitySet turns a declared capability list into lookup form, rejecting
+// anything that cannot legitimately be declared.
+//
+// The reserved check lives here rather than in Config.validate so that the set
+// the conformance report's declaration is built from cannot be constructed with
+// a reserved capability in it at all. Config.validate calls this, so an adopter
+// still sees the problem reported as a configuration error before any scenario
+// runs; the point of putting it here is that there is no second path to a
+// declaration that could drift from the rule.
 func newCapabilitySet(caps []Capability) (capabilitySet, error) {
 	set := make(capabilitySet, len(caps))
 	for _, c := range caps {
 		if _, known := capabilityForTag(string(c)); !known {
 			return nil, fmt.Errorf(
 				"unknown capability %q: capabilities are the constants declared in this package, one of %s",
-				c, formatCapabilities(allCapabilities))
+				c, formatCapabilities(AllCapabilities()))
+		}
+		if c.IsReserved() {
+			return nil, fmt.Errorf(
+				"capability %q is reserved and cannot be declared: no scenario carries that tag, so "+
+					"declaring it cannot be verified and cannot even produce a skip — a conformance "+
+					"report saying it was declared would claim something nothing examined. Remove it; "+
+					"the declarable capabilities are %s",
+				c, formatCapabilities(AllCapabilities()))
 		}
 		set[c] = struct{}{}
 	}
