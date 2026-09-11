@@ -6,7 +6,7 @@ require (
 	github.com/cucumber/godog v0.15.1
 	github.com/cucumber/messages/go/v21 v21.0.1
 	github.com/open-feature/go-sdk v1.18.0
-	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911090950-7d12f33ca535
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911095834-15fe861170f4
 )
 
 require (
