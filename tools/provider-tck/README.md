@@ -99,12 +99,23 @@ to be inferred from a scenario count.
 | `tck.Object` | `@object` | supports structured flag values |
 | `tck.UnavailableInit` | `@unavailable` | reports an error state instead of hanging against a dead backend |
 | `tck.NumericCoercion` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
-| `tck.Targeting` | `@targeting` | reserved; no scenarios yet |
-| `tck.Caching` | `@caching` | reserved; no scenarios yet |
+| `tck.Targeting` | `@targeting` | reserved; **not declarable** — no scenarios yet |
+| `tck.Caching` | `@caching` | reserved; **not declarable** — no scenarios yet |
 
-Untagged scenarios are mandatory and always run. `Capabilities` defaults to everything — narrow it
-rather than widening it: start from the default, run the suite, and remove only what your provider
-genuinely cannot do.
+Untagged scenarios are mandatory and always run. `Capabilities` defaults to `tck.AllCapabilities()`
+— narrow it rather than widening it: start from the default, run the suite, and remove only what
+your provider genuinely cannot do.
+
+A **reserved** capability is named by the vocabulary so there is a place for it once scenarios
+exist, but it **must not be declared**. No scenario carries the tag, so declaring it cannot be
+verified, cannot even produce a skip, and tells a reader of a report only that something was claimed
+and nothing examined. `tck.AllCapabilities()` therefore excludes the reserved capabilities, and
+naming one in `Capabilities` is rejected by configuration validation rather than passed into a
+report — an unverifiable claim is a configuration mistake, not a conformance result.
+
+That is easy to reintroduce by accident rather than by intent: an adoption that declares everything
+and then removes what it cannot do collects every reserved tag on the way past, which is how a Java
+conformance report came to assert `@targeting` and `@caching` as declared.
 
 `@lifecycle` and `@events` are separate on purpose, and conflating them is the mistake the
 vocabulary exists to prevent. The Go SDK synthesises `PROVIDER_READY` for any provider that does not
@@ -274,10 +285,20 @@ the SDK's provider rather than reimplementing it — every resolution decision i
 
 - **Evaluation context passthrough is unverifiable.** The scenarios build evaluation contexts but
   cannot assert one *reached* the backend. That needs an echo operation on the control API. Until
-  then a provider that silently drops the context passes. `@targeting` is reserved for these.
+  then a provider that silently drops the context passes. `@targeting` is reserved for these, and
+  until they exist it cannot be declared.
 - **`POST /restart` is unused.** No current scenario needs a bounded outage — the stale scenario
   uses an explicit disconnect and reconnect — so `tck.ConnectionControl` has no `DisconnectFor`.
-- **Caching, hooks and flag metadata** are not covered.
+- **Hooks and flag metadata** are not covered.
+- **Caching is not covered, and the suite is quietly exposed to it.** `@caching` is reserved and
+  therefore not declarable, but flagd's RPC resolver enables an LRU cache *by default* and rewrites the
+  reason to `CACHED` on a hit. The adoption does not turn it off, so the suite already runs against a
+  caching provider while asserting `STATIC` everywhere. It passes only because no scenario evaluates
+  the same flag twice in a way that hits the cache — so a scenario added later that does will fail
+  against flagd RPC with `CACHED`, and the failure will look like a provider defect rather than a
+  test-design one. Note also that the configuration-change scenario already depends on cache
+  invalidation working without saying so: against flagd RPC it reads `changing-flag`, changes it, and
+  reads again, which only gives the right answer because the change event evicts the entry.
 
 [appendix-a]: https://github.com/open-feature/spec/blob/main/specification/appendix-a-included-utilities.md
 [appendix-b]: https://github.com/open-feature/spec/blob/main/specification/appendix-b-gherkin-suites.md
