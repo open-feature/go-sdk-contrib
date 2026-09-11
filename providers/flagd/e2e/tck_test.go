@@ -60,10 +60,15 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// sees a plausible value and no indication anything went wrong, which
 		// is the worst failure mode a feature flag has.
 		//
-		// Both resolvers do it identically, so the defect is in the shared
-		// provider layer rather than in either transport, and the Java flagd
-		// provider does it too -- a flagd-wide issue rather than a Go one. It
-		// is tracked as open-feature/flagd#1996, which implements flagd's
+		// Both resolvers do it identically, so the defect is in this provider's
+		// shared layer rather than in either transport. The Java flagd provider
+		// does it too -- but the Python one does not, in either resolver: its
+		// RPC path asks flagd for an Int and gets INVALID_ARGUMENT for a
+		// float-valued flag, and its in-process path admits only int for an
+		// integer request. So this is a Go and Java provider issue, not a
+		// flagd-wide one, and the server is not the thing getting it wrong.
+		//
+		// flagd's own fix is open-feature/flagd#1996, which implements flagd's
 		// numeric coercion ADR: coercion is permitted when lossless, so
 		// 10.0 -> 10 keeps working, and must return TYPE_MISMATCH when it
 		// would lose information, which 0.5 does.
