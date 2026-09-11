@@ -79,9 +79,14 @@ type Config struct {
 	// provider supports. Scenarios tagged with an undeclared capability are
 	// reported as skipped with the reason, never as passed.
 	//
-	// Defaults to AllCapabilities. Narrow it rather than widening it: start
-	// from the default, run the suite, and remove only what your provider
-	// genuinely cannot do.
+	// Defaults to AllCapabilities, which excludes the reserved capabilities.
+	// Narrow it rather than widening it: start from the default, run the suite,
+	// and remove only what your provider genuinely cannot do.
+	//
+	// Naming a reserved capability here is rejected by validate rather than
+	// passed into a report. No scenario carries a reserved tag, so declaring it
+	// cannot be verified — it is a configuration mistake, not a conformance
+	// result.
 	Capabilities []Capability
 
 	// EventTimeout is how long to wait for a provider event to arrive.
@@ -132,7 +137,8 @@ func (c *Config) validate() error {
 	return errors.Join(problems...)
 }
 
-// capabilities returns the declared capability list, defaulting to everything.
+// capabilities returns the declared capability list, defaulting to everything
+// declarable — AllCapabilities, which omits the reserved capabilities.
 func (c *Config) capabilities() []Capability {
 	if c.Capabilities == nil {
 		return AllCapabilities()

@@ -56,8 +56,9 @@ func TestInMemoryProvider(t *testing.T) {
 		//     the same way. Skipping it is the honest outcome, and it is the
 		//     reference answer for every backend-less provider adopting this
 		//     suite.
-		//   - Targeting and Caching are omitted because no scenario carries
-		//     their tags yet, so leaving them out skips nothing.
+		//   - Targeting and Caching are omitted because they are reserved: no
+		//     scenario carries their tags, so declaring them is rejected as a
+		//     configuration error rather than reported as a result.
 		//
 		// NumericCoercion is declared, and that is worth stating plainly:
 		// memprovider refuses to narrow float-flag (0.5) to an integer and
