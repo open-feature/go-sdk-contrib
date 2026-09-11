@@ -6,7 +6,7 @@ require (
 	github.com/cucumber/godog v0.15.1
 	github.com/cucumber/messages/go/v21 v21.0.1
 	github.com/open-feature/go-sdk v1.18.0
-	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911095834-15fe861170f4
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911113217-ba002ce8e807
 )
 
 require (
@@ -16,6 +16,6 @@ require (
 	github.com/hashicorp/go-memdb v1.3.5 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
 )
