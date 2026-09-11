@@ -22,11 +22,17 @@ mechanism once, not exhaustive coverage. Breaking changes should be expected.
 
 ## What it tests
 
-- mapping backend responses onto typed resolution details: value, variant, reason, error code
-- keeping the integer and float types distinct rather than coercing between them
+- mapping backend responses onto typed resolution details: value, variant, reason, error code, and
+  no error message on a normal evaluation
+- the values most often mistaken for an absence — `false`, `0` and `""` — resolving as values
+- integer precision: 2^31 − 1 for every provider, and 2^53 − 1 under `@large-integers`
+- keeping the integer and float types distinct, and under `@numeric-coercion` converting between
+  them only when nothing is lost
 - error handling: a type mismatch and an unknown flag return the code default, report the right
   error code, and never take the application down
-- lifecycle: reaching `READY`, and settling into `ERROR` against an unreachable backend
+- identity: a non-empty metadata name
+- lifecycle: reaching `READY`, settling into `ERROR` against an unreachable backend, and a shutdown
+  that is idempotent, reversible by initialising again, and prompt when the backend is gone
 - events: `PROVIDER_READY`, `PROVIDER_ERROR`, `PROVIDER_STALE`, `PROVIDER_CONFIGURATION_CHANGED`
 - that a signalled configuration change is actually **applied** on re-evaluation, not merely
   signalled
@@ -53,7 +59,7 @@ func TestMyProviderConformance(t *testing.T) {
 		NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
 			return myprovider.New(control.Address()), nil
 		},
-		Capabilities: []tck.Capability{tck.Events, tck.Lifecycle, tck.Object, tck.NumericCoercion},
+		Capabilities: []tck.Capability{tck.Events, tck.Lifecycle, tck.Object, tck.NumericCoercion, tck.LargeIntegers},
 	})
 }
 ```
@@ -139,6 +145,7 @@ to be inferred from a scenario count.
 | `tck.Object` | `@object` | supports structured flag values |
 | `tck.UnavailableInit` | `@unavailable` | reports an error state instead of hanging against a dead backend |
 | `tck.NumericCoercion` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
+| `tck.LargeIntegers` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; undeclarable where the SDK's integer accessor is 32-bit |
 | `tck.Targeting` | `@targeting` | reserved; **not declarable** — no scenarios yet |
 | `tck.Caching` | `@caching` | reserved; **not declarable** — no scenarios yet |
 
@@ -185,12 +192,23 @@ report's `knownDeviations` is where the second is recorded.
 
 What remains true is that flagd narrows `0.5` to `0` with no error code at all, in Go and in Java and
 in both resolvers, so an application sees a plausible value and no signal — which is what
-flagd#1996 fixes. Two gaps follow and both are open, recorded in Appendix F rather than closed: the
-**lossless case has no scenario**, because the canonical flag set has no integral float to ask it
-of and adding one changes the flag set for every language at once, so a provider that wrongly
-rejects `10.0` as an integer still passes; and **accessor width is not modelled**, where the ADR
-distinguishes a 64-bit integer accessor — Go's `ResolveIntValue`, and the canonical `Long` — from a
-32-bit one that needs its own scenarios.
+flagd#1996 fixes.
+
+Both halves of the rule have scenarios. The lossy half asks for `float-flag` (`0.5`) as an integer
+and expects `TYPE_MISMATCH`; the lossless half asks for `integral-float-flag` (`10.0`) as an integer
+and for `integer-flag` (`10`) as a float, and expects both to succeed. A provider declaring the tag
+has to satisfy all three — rejecting every float is an easy way to pass the first, and the other
+two are what stop it. The SDK's `memprovider.InMemoryProvider` is exactly such a provider: it
+type-asserts and never converts between `int64` and `float64`, which is why none of the self-tests
+declares the capability.
+
+**Accessor width** is the related property the ADR distinguishes, and it has its own tag because it
+is a property of the SDK rather than of the provider. Every language's integer accessor can ask for
+2^31 − 1, so that precision scenario is untagged. Only some can ask for 2^53 − 1: Go's
+`ResolveIntValue` is `int64`, so every Go provider can, and declaring `@large-integers` says the
+value survives the trip — anything routed through a 32-bit integer, or through a float and back
+with rounding, changes it. Java's accessor is a 32-bit `Integer`, and a provider there leaves the
+tag undeclared. Nothing above 2^53 − 1 is asked for.
 
 ## Controlling the backend
 
@@ -265,14 +283,28 @@ pseudo-version naming the exact commit.
 
 ## Go-specific translation notes
 
-Two places where the shared Gherkin needed a decision rather than a transcription:
+Three places where the shared Gherkin needed a decision rather than a transcription:
 
-**"no exception should have been thrown"** asserts that the evaluation did not **panic**. Go has no
-exceptions, and the returned `error` is not one: an errored evaluation correctly returns the code
-default *alongside* a non-nil error, which is the normal shape of the API. The behaviour the feature
-files forbid — an unhandled failure escaping a flag evaluation and taking the host application down
-— is a panic here. Registration is guarded the same way, because a provider that panics out of
-`SetProvider` takes the application with it.
+**"no exception should have been thrown"** asserts that nothing the scenario asked of the provider
+**panicked**: the evaluation, and any `Shutdown` or `Init` the lifecycle steps called. Go has no
+exceptions, and the `error` an evaluation returns is not one: an errored evaluation correctly
+returns the code default *alongside* a non-nil error, which is the normal shape of the API. The
+behaviour the feature files forbid — an unhandled failure escaping the provider and taking the host
+application down — is a panic here. Registration is guarded the same way, because a provider that
+panics out of `SetProvider` takes the application with it. The one returned error that does count is
+`Init`'s: a provider that cannot be initialised again after a shutdown has not reverted to its
+uninitialised state, which is what the other languages' `initialize()` throws to say.
+
+**The shutdown steps call the provider's `openfeature.StateHandler` directly**, on the very
+instance the scenario registered, and never through the SDK. Replacing the provider would test the
+SDK's bookkeeping as much as the provider, which Appendix B already covers; and the SDK compares
+providers with `reflect.DeepEqual` unless they are pointers, so re-registering the same one may be
+judged no change and initialise nothing. Because the SDK is never told about the direct shutdown,
+the client still routes to that instance and still holds it as `READY`, which is what lets the
+evaluation after "the provider is initialized again" reach it. A provider that does not implement
+`openfeature.StateHandler` has nothing to call, and the steps are no-ops — the `@lifecycle` gate
+keeps such a provider out of those scenarios anyway. Each direct call is bounded by
+`Config.ReadyTimeout`, so a shutdown that never returns fails its step rather than hanging `go test`.
 
 **Providers are registered under a suite-scoped domain, not a per-scenario one.** Registering a
 provider in a domain replaces and shuts down the previous one; a fresh domain per scenario would
@@ -294,7 +326,19 @@ provider suite, these say so immediately and point at the TCK rather than at a p
 Only `TestControllableProvider` declares `@lifecycle`, because `tck.ControllableProvider` is the only
 one of the three that implements `openfeature.StateHandler` and therefore the only one whose `READY`
 the SDK did not manufacture. The other two leave it undeclared and report the readiness scenario as
-skipped, which is what they had been passing vacuously under `@events` before the tag existed.
+skipped, which is what they had been passing vacuously under `@events` before the tag existed. It is
+also, for the same reason, the only suite that exercises the shutdown steps without Docker.
+
+None of the three declares `@numeric-coercion`. Every resolution decision in all three is made by
+`memprovider.InMemoryProvider`, which type-asserts rather than coerces: it correctly refuses `0.5` as
+an integer, but equally refuses `10.0` as an integer and `10` as a float, and the lossless scenarios
+are what the capability requires beyond the lossy one. All three declare `@large-integers`, because
+the `int64` a flag was seeded with is what comes back.
+
+The flag set the three are seeded from is decoded from the specification's `canonical-flags.json`
+rather than transcribed, and the decoding keeps the type each number was written with: `10` is an
+`int64` flag and `10.0` a `float64` one. That distinction is what the lossless-coercion scenario
+rests on, and it is the one `encoding/json` on its own would erase.
 
 `TestMultiProvider` wraps exactly one child on purpose. That is the interesting configuration rather
 than a degenerate one: the correct answer is precisely what `TestControllableProvider` already
@@ -334,7 +378,8 @@ the SDK's provider rather than reimplementing it — every resolution decision i
   until they exist it cannot be declared.
 - **`POST /restart` is unused.** No current scenario needs a bounded outage — the stale scenario
   uses an explicit disconnect and reconnect — so `tck.ConnectionControl` has no `DisconnectFor`.
-- **Hooks and flag metadata** are not covered.
+- **Hooks and flag metadata** are not covered. Provider metadata is, but only as far as a non-empty
+  name.
 - **Caching is not covered, and the suite is quietly exposed to it.** `@caching` is reserved and
   therefore not declarable, but flagd's RPC resolver enables an LRU cache *by default* and rewrites the
   reason to `CACHED` on a hit. The adoption does not turn it off, so the suite already runs against a
