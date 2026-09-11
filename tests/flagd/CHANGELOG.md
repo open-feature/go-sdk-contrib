@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.1.0...tests/flagd/v3.0.0) (2026-09-11)
+## [2.2.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.1.0...tests/flagd/v2.2.0) (2026-09-11)
 
 
 ### ⚠ BREAKING CHANGES
