@@ -2,15 +2,15 @@ name: ci
 
 on:
   push:
-   branches:
-    - feature/workflows
-    - main
+    branches:
+      - feature/workflows
+      - main
   pull_request:
     branches:
       - main
 
 env:
-  GO_VERSION: '1.25.9'
+  GO_VERSION: "1.26.0"
 
 jobs:
   lint:
