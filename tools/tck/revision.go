@@ -16,7 +16,7 @@ package tck
 // both its own self-tests and an adopter's TestConformance. So the value is
 // duplicated from go.mod on purpose, and TestSpecRevisionIsRecorded fails if the
 // two disagree.
-const SpecRevision = "v0.0.0-20260911090950-7d12f33ca535"
+const SpecRevision = "v0.0.0-20260911095834-15fe861170f4"
 
 // SpecModulePath is the module the conformance assets come from.
 //
