@@ -11,8 +11,11 @@ The backend is a container, pulled automatically. Override it with `FLAGSMITH_TE
 
 ## Status: draft
 
-**The suite is red, and the failures are the point.** 28 scenarios pass and 12 fail, identically in
-both modes. Ten of the twelve fail for a reason the suite cannot currently express — see
+**The suite is red, and the failures are the point.** Out of 40 scenarios: **17 pass, 12 fail, 11
+are skipped** because a capability is not declared. Identical in both modes.
+
+(`go test` prints 28 PASS lines. Eleven of those are the skipped scenarios -- the Go subtest passes
+while godog skips the scenario -- so 28 is the subtest count, not the conformance result.) Ten of the twelve fail for a reason the suite cannot currently express — see
 "Variant" below — so this is not a list of twelve provider bugs.
 
 Two things keep it a draft:
@@ -35,8 +38,8 @@ against a byte-identical document compares two implementations of the same engin
 shape as GO Feature Flag's one engine in several hosts, except these are separate reimplementations
 — which should make divergence *more* likely.
 
-**They do not diverge.** Byte-identical failure sets: same 28 passes, same 12 failures, same
-reasons. A negative result from a test designed to find divergence, worth re-running when the Java
+**They do not diverge.** Byte-identical results: same 17 passes, same 12 failures, same 11 skips,
+same reasons. A negative result from a test designed to find divergence, worth re-running when the Java
 and JS adoptions exist.
 
 ## Why the 12 fail
