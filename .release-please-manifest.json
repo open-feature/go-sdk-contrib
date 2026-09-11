@@ -4,7 +4,7 @@
     "hooks/codereadiness": "0.1.1",
     "providers/configcat": "0.2.3",
     "providers/flagd": "0.6.0",
-    "providers/flipt": "0.1.5",
+    "providers/flipt": "0.1.6",
     "providers/from-env": "0.1.6",
     "providers/go-feature-flag": "1.1.1",
     "providers/gcp": "0.0.1",
