@@ -625,10 +625,10 @@ $ jq . reports/in-memory.json
   "tck": {
     "implementation": "go-sdk-contrib/tools/provider-tck",
     "version": "v0.1.0",
-    "specRevision": "dfa16586d91ca020ef1b3b82a7c972d833ff8f29"
+    "specRevision": "dc4d7ae8df1c664f82a4adf46cd43812980c0da3"
   },
   "backend": { "description": "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario" },
-  "declaration": { "declared": ["@events", "@object", "@strict-numeric-typing"] },
+  "declaration": { "declared": ["@events", "@numeric-coercion", "@object"] },
   "results": {
     "format": "cucumber-messages",
     "location": "in-memory.ndjson",
