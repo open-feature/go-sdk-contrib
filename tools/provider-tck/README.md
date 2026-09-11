@@ -66,10 +66,9 @@ stack's host ports do not exist until it is up.
 Each scenario becomes a Go subtest, so `-run` selects one the usual way and failures name a
 scenario.
 
-The canonical feature files and flag set are **embedded in this module**, so **adopting it needs no
-git submodule of your own** — `go get` this module and everything the suite runs is already inside
-it. The submodule described under [The spec submodule](#the-spec-submodule) is a concern of
-contributors to *this* module, not of anyone consuming it.
+The canonical feature files and flag set arrive as an ordinary dependency, so **adopting this
+module needs no git submodule** — `go get` it and everything the suite runs comes with it. Where
+they come from and how the pin moves is described under [The spec module](#the-spec-module).
 
 ### Timings
 
@@ -105,7 +104,7 @@ An extension feature can use the canonical steps, and usually should: `Given a s
 `Background` is what puts the scenario in the same lifecycle phase as the canonical ones.
 
 Extension features are mounted under an `extensions/` prefix while the suite runs, and the canonical
-ones keep their `assets/gherkin/` paths. That partition is a contract rather than a detail: it stops
+ones keep their `gherkin/` paths. That partition is a contract rather than a detail: it stops
 an extension file shadowing a canonical one, and it is how a result in the conformance report is
 told apart from a canonical result. A filesystem holding no `.feature` file is refused rather than
 quietly running the canonical suite alone, that being how mis-wired extensions otherwise go
@@ -201,8 +200,7 @@ against a containerised backend and against a provider manipulated in-process.
 
 **If your provider talks to a backend, drive it over the HTTP control API** in
 [`specification/assets/provider-tck/openapi/control-api.yaml`][control-api], which this module
-carries at `pkg/tck/spec/specification/assets/provider-tck/openapi/control-api.yaml` and exposes as
-bytes through `tck.ControlAPISpec()`. That API is
+exposes as bytes through `tck.ControlAPISpec()`. That API is
 the normative contract for those providers, and it is what makes a conformance claim portable:
 another language's TCK drives the same endpoints against the same stack and must get the same
 answers.
@@ -233,31 +231,37 @@ simply does not implement `tck.ConnectionControl`, leaves `Stale` and `Unavailab
 and those scenarios are skipped with their reason. Declaring the capability anyway fails loudly
 rather than silently passing — that is a test-configuration bug, not a provider defect.
 
-## The spec submodule
+## The spec module
 
 The Gherkin, the canonical flag set and the control API are not owned by this repository. They are
-the language-agnostic definitions in [open-feature/spec][spec], and they reach this package through
-a git submodule of that repository at `pkg/tck/spec/`. Nothing is copied and nothing is generated:
-the `//go:embed` directives in `pkg/tck/assets.go` name paths inside the submodule, so the
-specification revision this suite conforms to is recorded by the submodule pin and by nothing else.
+the language-agnostic definitions in [open-feature/spec][spec], and that directory is also a Go
+module, `github.com/open-feature/spec/specification/assets/provider-tck`, whose only content is an
+`embed.FS` of them. This package depends on it like on any other module. Nothing is copied and
+nothing is generated: `pkg/tck/assets.go` reads the embedded files out of the dependency, so the
+specification revision this suite conforms to is the version pinned in `go.mod` and nothing else,
+and `go.sum` guarantees that version always resolves to the same bytes.
 
-**Adopters need no submodule.** The embedded copy is compiled into the package, so a provider
-consuming this module gets the assets with it.
+**Adopters need no submodule.** The dependency is fetched with this module, so a provider consuming
+it gets the assets with it.
 
-**Contributors to this module do.** Without the submodule checked out the embed patterns match no
-files and the package does not compile:
+**Contributors need none either.** There is no submodule to initialise; a plain clone builds.
 
-```console
-git clone --recurse-submodules https://github.com/open-feature/go-sdk-contrib
-# or, in an existing clone
-git submodule update --init tools/provider-tck/pkg/tck/spec
-```
-
-CI checks out with `submodules: recursive` in both the `lint` and `test` jobs for the same reason.
+A git submodule would not work here, which is why the other language TCKs use one and this one
+does not: a Go module is distributed as a zip of the VCS tree, in which a submodule is only a
+gitlink, so an embed from a submodule compiles in this repository and arrives empty for anyone
+running `go get`.
 
 Changing a scenario, a flag or a control endpoint means changing it in `open-feature/spec` first and
-then advancing the pin here. Editing the submodule's working tree in place forks the definition of
-conformance, which is the one thing this suite exists to prevent.
+then moving the pin here, by tag or by commit:
+
+```console
+cd tools/provider-tck
+go get github.com/open-feature/spec/specification/assets/provider-tck@<commit-or-tag>
+```
+
+Nested Go modules are tagged with their path as a prefix, so the tag form is
+`specification/assets/provider-tck/vX.Y.Z`; until the spec publishes one, the pin is a
+pseudo-version naming the exact commit.
 
 ## Go-specific translation notes
 

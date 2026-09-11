@@ -126,13 +126,13 @@ type Config struct {
 	//	ExtensionFeatures: os.DirFS("testdata/tck-extensions"),
 	//
 	// The files appear to the run under an "extensions/" prefix, and the
-	// canonical assets keep their "assets/gherkin/" one. Nothing you supply is
+	// canonical assets keep their "gherkin/" one. Nothing you supply is
 	// reachable under the canonical prefix, so an extension file named
 	// evaluation.feature is an addition and never a replacement — which is the
 	// failure the Java TCK had, where a same-named file in a second classpath
 	// root silently displaced the canonical one. The same partition is what
 	// distinguishes the two in a conformance report: a result whose feature URI
-	// starts with "assets/gherkin/" is canonical, one under "extensions/" is
+	// starts with "gherkin/" is canonical, one under "extensions/" is
 	// yours.
 	//
 	// A filesystem holding no .feature file is refused rather than quietly
