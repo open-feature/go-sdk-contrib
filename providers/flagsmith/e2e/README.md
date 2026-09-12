@@ -11,24 +11,20 @@ The backend is a container, pulled automatically. Override it with `FLAGSMITH_TE
 
 ## Status: draft
 
-**The suite is red, and the failures are the point.** Out of 40 scenarios: **17 pass, 12 fail, 11
-are skipped** because a capability is not declared. Identical in both modes.
+Out of 52 scenarios: **31 pass, 2 fail, 19 are skipped** because a capability is not declared.
+Identical in both modes.
 
-Ten of the twelve fail for a reason the suite cannot currently express — see "Variant" below — so
-this is not a list of twelve provider bugs.
+The two failures are the only ones left after `@variants` landed on the base branch, and neither is
+a provider bug — see "Why the 2 fail".
 
-`go test` prints 28 PASS lines, and that number is misleading: eleven of them are the skipped
-scenarios, where godog skips the scenario and the Go subtest passes anyway. 28 is the subtest count,
-not the conformance result. Reading it as one is exactly the vacuous pass the capability gating
-exists to prevent.
+It stays a draft because the testbed image lives in a personal namespace
+([aepfli/flagsmith-tck-testbed](https://github.com/aepfli/flagsmith-tck-testbed)), and a contrib
+repo's CI should not depend on it until it has a permanent home.
 
-Two things keep it a draft:
-
-1. The testbed image lives in a personal namespace
-   ([aepfli/flagsmith-tck-testbed](https://github.com/aepfli/flagsmith-tck-testbed)). A contrib
-   repo's CI should not depend on it until it has a permanent home.
-2. The variant question below wants a decision on the canonical set before anyone treats these
-   results as a conformance verdict.
+> Read the counts from the suite's own summary, not from `go test`. `go test` prints a PASS line for
+> every skipped scenario too — godog skips the scenario and the Go subtest passes anyway — so its
+> PASS count is 50, not 31. Reading that as the conformance result is exactly the vacuous pass the
+> capability gating exists to prevent.
 
 ## The two modes
 
@@ -42,32 +38,12 @@ against a byte-identical document compares two implementations of the same engin
 shape as GO Feature Flag's one engine in several hosts, except these are separate reimplementations
 — which should make divergence *more* likely.
 
-**They do not diverge.** Byte-identical results: same 17 passes, same 12 failures, same 11 skips,
-same reasons. A negative result from a test designed to find divergence, worth re-running when the Java
-and JS adoptions exist.
+**They do not diverge.** Byte-identical results: same 31 passes, same 2 failures, same 19 skips,
+same reasons — including all four of the evaluation-context and targeting scenarios. A negative
+result from a test designed to find divergence, worth re-running when the Java and JS adoptions
+exist.
 
-## Why the 12 fail
-
-### Variant — 10 of them
-
-Every one fails with `variant was ""`.
-
-Flagsmith has no variant concept for a standard feature. A feature state is `enabled` plus
-`feature_state_value`, and nothing names the value; the evaluation response carries no variant key
-at all. The provider is not dropping it — it never receives one, and no seeding of the canonical
-set can produce one.
-
-That makes this **a finding about the canonical set rather than about Flagsmith.** The set is
-expressed in flagd's format and its comment says what matters is "the keys, types, variant names and
-resolved values". Variant names are not universally available: a backend can be entirely conformant
-and have no such concept, and the evaluation scenarios assert one unconditionally.
-
-Worth settling on [spec#417](https://github.com/open-feature/spec/issues/417): either variant
-assertions get a capability gate, the way `@object` and `@large-integers` gate theirs, or the
-canonical set stops requiring them. No `KnownDeviation` is recorded, because there is no capability
-to hang one on — which is itself the gap.
-
-### Type mismatch — the other 2
+## Why the 2 fail
 
 Reading `float-flag` as a **string** returns `"0.5"` rather than `TYPE_MISMATCH`, and `object-flag`
 as a string returns the raw JSON text.
@@ -77,9 +53,26 @@ Neither is a provider bug. Flagsmith's `feature_state_value` is natively boolean
 them as strings is a correct request that correctly succeeds. The scenario assumes the backend's
 type system distinguishes them.
 
+Unlike the variant case there is no capability to withhold here, and inventing one looks wrong: the
+type-mismatch matrix is testing something real, and Flagsmith simply cannot express half of it.
+Recorded as an open question rather than declared solved.
+
 ## Capabilities
 
-Declared: `@object`, `@large-integers`.
+Declared: `@object`, `@large-integers`, `@targeting`.
+
+`@targeting` holds via the one mechanism Flagsmith has for it. A targeting key **is** a Flagsmith
+identifier — the provider calls `GetIdentityFlags(targetingKey)` whenever one is present — so the
+testbed seeds the canonical rule as an entry in the environment document's `identity_overrides`.
+Segments would be the wrong tool: they match on traits, and the canonical rule has none.
+
+`@variants` is withheld, and it is the reason this adoption was worth running. Flagsmith has no
+variant concept for a plain feature: a feature state is `enabled` plus `feature_state_value`,
+nothing names the value, and the evaluation response carries no variant key at all. The provider
+never receives one and no seeding can produce one. That is permitted rather than defective — 2.2.4
+makes populating the variant a SHOULD and `types.md` marks the field optional — so it gets no
+deviation entry. Before the capability existed these were untagged assertions and this provider
+failed ten scenarios for something its author could not fix, with nothing to record it as.
 
 Everything else is withheld, and almost all of it for one reason: the provider implements none of
 `Init`, `Shutdown`, `Status` or `EventChannel`, so it is neither an `openfeature.StateHandler` nor
