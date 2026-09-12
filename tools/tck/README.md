@@ -241,6 +241,16 @@ and then removes what it cannot do collects every reserved tag on the way past, 
 conformance report came to assert `@targeting` and `@caching` as declared — back when both were
 reserved.
 
+**The reservation expires by itself, and the suite fails when it should have.** The day the
+specification adds the first scenario carrying `@caching`, every adoption would otherwise report
+that scenario as skipped for a capability no adopter is permitted to declare: a green suite, a
+well-formed report, and a question put and silently withdrawn. Nothing else here would notice —
+the scenario *was* collected, so the under-collection guard is satisfied, and a capability-gated
+skip is explicitly not a gap. So a reserved tag on a real scenario **fails the run**, with a message
+naming the one line to delete (`reservedCapabilities` in `capability.go`).
+`TestTheCanonicalScenariosCarryNoReservedTag` is the same check against the pinned assets, so moving
+the pin trips it here rather than in an adopter's run.
+
 **Declare a capability only on evidence from running the suite, never from reading the provider's
 source.** Source inspection is unreliable in both directions and demonstrably so: flagd's RPC
 resolver clears its own initialised flag on shutdown, which reads as support for reuse, and then

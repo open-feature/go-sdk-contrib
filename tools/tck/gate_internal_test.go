@@ -2,6 +2,8 @@ package tck
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"strings"
 	"testing"
 	"time"
@@ -458,6 +460,99 @@ func TestAReservedCapabilityCannotBeDeclared(t *testing.T) {
 		if capability.IsReserved() {
 			t.Errorf("the default capability set contains the reserved capability %s; a "+
 				"declare-everything default must not hand out tags nothing tests", capability)
+		}
+	}
+}
+
+// The expiry check on reservedCapabilities.
+//
+// A reserved capability cannot be declared, so the day the specification adds
+// the first scenario carrying one, every adopter's run would report that
+// scenario as skipped for a capability nobody is permitted to claim: a green
+// suite, a well-formed report, and a question silently withdrawn. Nothing else
+// here would catch it -- the scenario was collected, so the under-collection
+// guard is satisfied, and a capability-gated skip is explicitly not a gap.
+func TestAScenarioCarryingAReservedTagFailsTheRun(t *testing.T) {
+	caps, err := newCapabilitySet(nil)
+	if err != nil {
+		t.Fatalf("newCapabilitySet: %v", err)
+	}
+	r := &runner{caps: caps}
+
+	for _, reserved := range reservedCapabilities {
+		sc := scenarioWithTags("a scenario the specification has just added", reserved.Tag())
+
+		capability, expired := expiredReservation(sc)
+		if !expired {
+			t.Fatalf("a scenario tagged %s did not trip the expiry check", reserved.Tag())
+		}
+		if capability != reserved {
+			t.Fatalf("blamed %s, want %s", capability, reserved)
+		}
+
+		// And the runner must fail rather than skip. It is the same error
+		// channel the gate uses, so the distinction is only in whether the
+		// error wraps godog.ErrSkip -- which is exactly the mistake this guards
+		// against.
+		_, runErr := r.beforeScenario(context.Background(), sc)
+		if runErr == nil {
+			t.Fatalf("beforeScenario accepted a scenario tagged %s", reserved.Tag())
+		}
+		if errors.Is(runErr, godog.ErrSkip) {
+			t.Fatalf("a scenario tagged %s was skipped rather than failed: %v", reserved.Tag(), runErr)
+		}
+		if !strings.Contains(runErr.Error(), "reservedCapabilities") {
+			t.Fatalf("the failure does not say what to change: %v", runErr)
+		}
+	}
+}
+
+// TestTheCanonicalScenariosCarryNoReservedTag is the same check against the
+// assets actually pinned, so that moving the pin is what trips it rather than
+// some future adopter's run.
+//
+// It is a tripwire on the pin and not the gate. The gate is expiredReservation,
+// which reads the scenario godog parsed and so cannot disagree with the run.
+// This one reads the feature source, which is why it is deliberately crude: it
+// looks for the tag as a whole token on a line that is not a Gherkin comment,
+// and nothing else. The first version searched the whole source and failed
+// immediately -- events.feature has a comment saying which scenario belongs
+// behind @caching once someone writes it, which is the opposite of the thing
+// being guarded against. Appendix F's warning about a second parser is about
+// computing an expectation with one; asking "does this tag appear on a tag
+// line" is narrow enough to be safe, and the runtime check is what is
+// authoritative.
+func TestTheCanonicalScenariosCarryNoReservedTag(t *testing.T) {
+	features, err := fs.ReadDir(assets, featuresPath)
+	if err != nil {
+		t.Fatalf("could not list the canonical features: %v", err)
+	}
+	if len(features) == 0 {
+		t.Fatal("no canonical feature files, so this test would pass vacuously")
+	}
+
+	for _, entry := range features {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".feature") {
+			continue
+		}
+		source, err := fs.ReadFile(assets, featuresPath+"/"+entry.Name())
+		if err != nil {
+			t.Fatalf("could not read %s: %v", entry.Name(), err)
+		}
+		for _, line := range strings.Split(string(source), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			for _, tag := range strings.Fields(line) {
+				capability, known := CapabilityForTag(tag)
+				if known && capability.IsReserved() {
+					t.Errorf("%s carries %s, which is still listed as reserved. Delete %s from "+
+						"reservedCapabilities in capability.go; it is the only change needed, and "+
+						"until it is made every adopter reports those scenarios as skipped for a "+
+						"capability they cannot declare", entry.Name(), tag, capability)
+				}
+			}
 		}
 	}
 }
