@@ -26,6 +26,8 @@ mechanism once, not exhaustive coverage. Breaking changes should be expected.
   message on a normal evaluation — plus the variant, under `@variants`, because a variant is a
   `SHOULD` and some backends have no such concept
 - the values most often mistaken for an absence — `false`, `0` and `""` — resolving as values
+- under `@disabled-flags`, that a flag disabled in the management system resolves to the caller's
+  default with no error, which only a provider that evaluates locally can do at all
 - that supplying an evaluation context to an untargeted resolution is harmless, and under
   `@targeting` that a matching one actually reaches the backend and changes the answer
 - integer precision: 2^31 − 1 for every provider, and 2^53 − 1 under `@large-integers`
@@ -41,14 +43,19 @@ mechanism once, not exhaustive coverage. Breaking changes should be expected.
   signalled
 
 Deliberately out of scope: backend evaluation logic, bucketing and rule-language correctness (that
-is the backend's contract, not the provider's — every canonical flag but one resolves to its default
-variant whatever the context), the provider↔backend wire protocol, and SDK behaviour, which belongs
-to the SDK's own [Appendix B][appendix-b] suite.
+is the backend's contract, not the provider's — every canonical flag that is enabled and untargeted
+resolves to its default variant whatever the context), the provider↔backend wire protocol, and SDK
+behaviour, which belongs to the SDK's own [Appendix B][appendix-b] suite.
 
-The one exception is `targeting-key-flag`, which carries a single rule and is there to show that the
-evaluation context *reached* the backend rather than to test how the backend evaluated it. Its rule
-is stated as behaviour — resolve `hit` for one specific targeting key, `miss` otherwise — not as a
-syntax, so a backend expresses it however it expresses targeting.
+`targeting-key-flag` is the one exception to the "whatever the context" half. It carries a single
+rule and is there to show that the evaluation context *reached* the backend rather than to test how
+the backend evaluated it. Its rule is stated as behaviour — resolve `hit` for one specific targeting
+key, `miss` otherwise — not as a syntax, so a backend expresses it however it expresses targeting.
+
+The four `disabled-*` flags are the exception to the "default variant" half, and the only flags in
+the set whose state is not `ENABLED`. They resolve to nothing: the caller's default stands in and no
+variant is named. Every other scenario assumes a flag serves its own value, so enabling one of
+these — or disabling anything else — breaks those quietly rather than loudly.
 
 ## Adopting it
 
@@ -153,6 +160,7 @@ to be inferred from a scenario count.
 | `tck.ConfigurationChange` | `@configuration-change` | detects configuration changes and emits `PROVIDER_CONFIGURATION_CHANGED` |
 | `tck.Object` | `@object` | supports structured flag values |
 | `tck.Variants` | `@variants` | names the variant it resolved, which [Requirement 2.2.4][req-224] makes a `SHOULD` and `types.md` types as optional |
+| `tck.DisabledFlags` | `@disabled-flags` | resolves a flag disabled in the management system to the code default, with no error |
 | `tck.UnavailableInit` | `@unavailable` | reports an error state instead of hanging against a dead backend |
 | `tck.NumericCoercion` | `@numeric-coercion` | coerces between integer and float only when lossless, else `TYPE_MISMATCH` |
 | `tck.LargeIntegers` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; undeclarable where the SDK's integer accessor is 32-bit |
@@ -192,6 +200,25 @@ with nothing to record as a known deviation because there was no capability to h
 value and reason assertions stay untagged, because [Requirement 2.2.3][req-223] makes the value a
 `MUST`. The `reason` field is *not* modelled this way even though [Requirement 2.2.5][req-225] is
 also a `SHOULD` — Appendix F records that as a deliberate narrowing rather than an oversight.
+
+`@disabled-flags` is gated for a reason no other capability here has: the answer depends on **where
+the substitution happens**, not on provider quality. A provider that evaluates locally — flagd's
+in-process resolver, an in-memory flag set — holds the flag's state and can hand back the value the
+caller passed in. A provider whose backend decides cannot, and OFREP is the clean case: the caller's
+default never leaves the process, so the server has never seen it and no response it could send
+would carry it. The same flag cannot behave the same way across those two architectures and neither
+of them is wrong.
+
+Nothing in the specification says what a provider owes a disabled flag either. [Requirement
+1.4.7][req-147] is about the SDK propagating whatever reason arrived, and [Requirement
+2.2.5][req-225] only lists `DISABLED` among the reason strings a provider may use — so, like
+`@numeric-coercion` below, the behaviour is stated by Appendix F and gated rather than required. The
+four scenarios assert the value and the absence of an error and **not** the reason: each row's
+caller default differs from the flag's configured value, so a provider that ignores the state is
+caught on the value alone, which rests on [Requirement 2.2.3][req-223], a `MUST`. Pinning reason
+`DISABLED` would rest on 2.2.5, a `SHOULD` that permits *"some other string"*. It does not compose
+with `@variants`, and that is not an omission: a disabled flag has resolved no variant, so there is
+no name for a variant assertion to be about.
 
 `@lifecycle` and `@events` are separate on purpose, and conflating them is the mistake the
 vocabulary exists to prevent. The Go SDK synthesises `PROVIDER_READY` for any provider that does not
@@ -458,6 +485,10 @@ an integer, but equally refuses `10.0` as an integer and `10` as a float, and th
 are what the capability requires beyond the lossy one. All three declare `@large-integers`, because
 the `int64` a flag was seeded with is what comes back.
 
+None of the three declares `@disabled-flags` either, and that one is a defect rather than an
+absence — see the finding below. An in-memory provider is the architecture that *can* satisfy the
+capability, because the caller's default never has to leave the process.
+
 The flag set the three are seeded from is decoded from the specification's `canonical-flags.json`
 rather than transcribed, and the decoding keeps the type each number was written with: `10` is an
 `int64` flag and `10.0` a `float64` one. That distinction is what the lossless-coercion scenario
@@ -493,6 +524,27 @@ skipped with its reason. `tck.ControllableProvider` supplies the missing behavio
 the SDK's provider rather than reimplementing it — every resolution decision is still made by
 `memprovider` — so it doubles as a reference for what the SDK's provider should grow.
 
+### The Go SDK's in-memory provider reports a disabled flag as an error
+
+`memprovider.InMemoryProvider` returns the caller's default value for a flag whose `state` is
+`DISABLED`, which is the half of the behaviour that matters most — but it attaches a `GENERAL`
+resolution error to it while setting the reason to `DISABLED`
+([`Resolve`](https://github.com/open-feature/go-sdk/blob/main/openfeature/memprovider/in_memory_provider.go)).
+Those two contradict each other. [Requirement 2.2.5][req-225] lists `DISABLED` among the reason
+strings a resolution that *worked* may carry, and an error code beside it tells the application
+something went wrong when nothing did.
+
+Measured, not inferred: with `@disabled-flags` declared, all four rows of the outline fail on `the
+error-code should be ""` in all three self-test suites, and only on that step — the value assertion
+passes, because the default really is what comes back.
+
+So the three suites leave the capability undeclared and the scenarios are reported as skipped. This
+is the odd one out among their omissions, because it is the *only* capability in the vocabulary an
+in-memory provider is architecturally guaranteed to be able to satisfy: there is no backend to ask,
+so the default is right there. `TestCanonicalFlagSetDisabledFlagsCarryAnError` pins the current
+behaviour and fails when the SDK stops attaching the error, at which point the fix is to declare the
+capability rather than to relax the assertion.
+
 ## Known gaps
 
 - **Evaluation context passthrough is verified only for the targeting key.** `targeting-key-flag`
@@ -522,6 +574,7 @@ the SDK's provider rather than reimplementing it — every resolution decision i
 [control-api]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/openapi/control-api.yaml
 [numeric-coercion-adr]: https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md
 [reinit-fix]: https://github.com/open-feature/spec/commit/fc99d5ace4da472a5fea0595fa4db8034bbbc769
+[req-147]: https://github.com/open-feature/spec/blob/main/specification/sections/01-flag-evaluation.md#requirement-147
 [req-223]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-223
 [req-224]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-224
 [req-225]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-225

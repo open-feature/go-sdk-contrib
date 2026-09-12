@@ -72,6 +72,16 @@ func TestMultiProvider(t *testing.T) {
 		// its miss variant whatever the context, because the canonical flag
 		// set's rule is not translated into a ContextEvaluator, and a wrapper
 		// cannot pass a scenario its child fails. See TestInMemoryProvider.
+		//
+		// DisabledFlags is not declared, for that same rule applied to a
+		// defect rather than to a design choice: the child returns the
+		// caller's default for a disabled flag but attaches a GENERAL error to
+		// it, so the outline fails underneath and a wrapper cannot pass a
+		// scenario its child fails. Worth noting that a delegating provider
+		// could plausibly get this wrong on its own — dropping an error code on
+		// the hop is one of the failure modes this suite exists to see — so
+		// this is a scenario to declare here as soon as the child can pass it,
+		// not one to leave withheld.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.ConfigurationChange,
