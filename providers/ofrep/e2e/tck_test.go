@@ -223,11 +223,43 @@ func TestOFREPConformance(t *testing.T) {
 		// scenario supplied a context at all, so a provider that serialised it
 		// into a malformed body passed the whole suite, and for this provider
 		// that body is the entire request.
+		//
+		// tck.DisabledFlags IS declared, and it is the one capability here
+		// that was expected to be impossible. It is gated because a disabled
+		// flag's resolution depends on where the caller's default is
+		// substituted: a provider that evaluates locally holds it, one whose
+		// backend decides does not. OFREP is the clearest case of the second
+		// kind -- the request body carries the context and the flag key and
+		// nothing else -- so the plan was to leave the tag undeclared and
+		// write the architecture down beside it.
+		//
+		// It passes, all four rows, over three consecutive runs. The reasoning
+		// was right about the server and wrong about what the capability
+		// needs. flagd's OFREP endpoint answers 200 with
+		// {"key":"disabled-string-flag","reason":"DISABLED","metadata":{}} --
+		// no value member and no variant, verified by curl against the testbed
+		// rather than inferred -- so the response does not have to carry the
+		// caller's default. It only has to distinguish a disabled flag from a
+		// resolved one, and OFREP's reason field does.
+		//
+		// This provider then acts on it: each of the five typed resolvers in
+		// internal/evaluate/flags.go checks the DISABLED reason BEFORE it
+		// type-asserts the value, and returns defaultValue with reason
+		// DISABLED and no resolution error. That ordering is what earns the
+		// tag. Without the branch an absent value would fail the type
+		// assertion and come back as TYPE_MISMATCH, which is exactly what the
+		// error-code step would have caught.
+		//
+		// The capability stays gated for the reason it always was -- a backend
+		// whose response says nothing about state leaves a provider no way to
+		// answer -- but this is not a property OFREP providers lack, and there
+		// is nothing here to record as a deviation.
 		Capabilities: []tck.Capability{
 			tck.Object,
 			tck.NumericCoercion,
 			tck.Variants,
 			tck.Targeting,
+			tck.DisabledFlags,
 		},
 
 		// The provider has no initialisation to wait for, so this bounds the
