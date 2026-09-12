@@ -611,12 +611,12 @@ testcontainers inside its `tck` artifact for the same reason.
 
 ## Conformance reports
 
-Set `PROVIDER_TCK_REPORT_DIR` and each suite writes two files: an envelope at `<dir>/<name>.json`,
+Set `TCK_REPORT_DIR` and each suite writes two files: an envelope at `<dir>/<name>.json`,
 conforming to the [report schema][report-schema] in the specification, and the results it references
 at `<dir>/<name>.ndjson`, which is a [Cucumber Messages][cucumber-messages] stream.
 
 ```console
-$ PROVIDER_TCK_REPORT_DIR=./reports go test ./...
+$ TCK_REPORT_DIR=./reports go test ./...
 $ jq . reports/in-memory.json
 {
   "schemaVersion": "1",
@@ -625,7 +625,7 @@ $ jq . reports/in-memory.json
   "tck": {
     "implementation": "go-sdk-contrib/tools/tck",
     "version": "v0.1.0",
-    "specRevision": "v0.0.0-20260912135310-93eb1a58d2d2"
+    "specRevision": "v0.0.0-20260912211427-ccdb88790bb4"
   },
   "backend": {
     "description": "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario",
@@ -659,7 +659,7 @@ in-process manipulation of a provider that *does* have a backend are not the sam
 the only field that separates them. The backend's own named flag configuration, if you set one, is
 `tck.WithBackendConfiguration` and does not appear in the report at all.
 
-`PROVIDER_TCK_REPORT_DIR` is an environment variable rather than a `Config` field so that emitting a
+`TCK_REPORT_DIR` is an environment variable rather than a `Config` field so that emitting a
 report is a property of the run and not of the code: CI sets it, a developer running the suite
 locally does not, and no adopter changes a line to publish one. Unset means no report, which is not
 an error. Several suites in one test binary each write their own pair of files, so flagd's two
