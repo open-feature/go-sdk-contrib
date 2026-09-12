@@ -1,0 +1,34 @@
+# Backend stack for the OpenFeature Provider Conformance Suite, wrapping the unmodified flagd
+# testbed image.
+#
+# The image serves flagd itself and the "launchpad" control API on 8080, whose endpoints the TCK's
+# control API contract was derived from. The launchpad starts flagd with the default configuration
+# before it begins listening, so a wait on 8080 implies flagd is already coming up on 8013 and 8015.
+#
+# It does not yet serve the whole canonical flag set: v3.8.0 has none of large-integer-flag,
+# huge-integer-flag or integral-float-flag. Only large-integer-flag is reached by scenarios that run
+# here -- the other two sit behind @large-integers and @numeric-coercion, which this provider does
+# not declare -- and it is reached twice: the untagged 32-bit precision scenario, and the @variants
+# row that asks for its "max-int32" variant and is answered with none. Both fail until
+# open-feature/flagd-testbed#392 lands. Bump the tag then.
+#
+# THIS IS NOT THE TESTBED SUBMODULE'S COMPOSE FILE, on purpose. That one bind-mounts ${FLAGS_DIR}
+# into the container and runs an envoy sidecar, neither of which the conformance suite needs: the
+# launchpad writes its combined flag file inside the container when nothing is mounted, and envoy
+# exists for the flagd e2e suites' TLS and permission-denied scenarios. An unset FLAGS_DIR defaults
+# to the compose file's own directory, so using that file would have the launchpad write into the
+# checked-out submodule. The other e2e suites in this package keep using it and are untouched.
+#
+# The service is called "backend" because that is the TCK's default and the same name Java's flagd
+# adoption uses, so the two stacks differ in nothing a reader has to reconcile.
+#
+# Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers them
+# after startup -- a pinned host port would make the suite unrunnable in parallel and would collide
+# with a developer's local flagd.
+services:
+  backend:
+    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    ports:
+      - 8013   # flagd RPC evaluation (gRPC)
+      - 8015   # flagd in-process sync (gRPC)
+      - 8080   # launchpad control API
