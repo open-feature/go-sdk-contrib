@@ -465,7 +465,7 @@ Three of its requirements are easy to get wrong:
   defect into what looks like a flaky provider.
 - **`/start` resets flag state; `/restart` preserves it.** An outage must be observable as a change
   in availability, never as a change in flag values. `/restart` is optional and no shipped scenario
-  reaches it — see [What this suite does not cover](#what-this-suite-does-not-cover).
+  reaches it — see [Known gaps](#known-gaps).
 
 ### A control says which path it took
 
