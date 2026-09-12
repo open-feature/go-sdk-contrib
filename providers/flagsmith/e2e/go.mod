@@ -54,7 +54,7 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/ohler55/ojg v1.28.1 // indirect
-	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911124500-fc99d5ace4da // indirect
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260911211750-26362f85b7fc // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

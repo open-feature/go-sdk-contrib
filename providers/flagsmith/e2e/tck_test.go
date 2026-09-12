@@ -274,14 +274,40 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 		// and /reset dead weight in this adoption: the testbed implements them
 		// and nothing here observes them yet.
 		//
+		// @variants is the other undeclared one, and it is not about the
+		// handlers. Flagsmith has no variant concept for a plain feature: a
+		// feature state is `enabled` plus `feature_state_value`, nothing names
+		// the value, and the evaluation response carries no variant key at all.
+		// The provider is not dropping it -- it never receives one, and no
+		// seeding of the canonical set can produce one.
+		//
+		// That is a permitted shape rather than a defect, which is why there is
+		// no deviation entry: 2.2.4 makes populating the variant a SHOULD, and
+		// types.md marks the field optional and says the value "might only be
+		// meaningful in the context of the flag management system associated
+		// with the provider". Flagsmith's answer is that there is no such name.
+		//
+		// This capability is why the adoption is worth having. Before it
+		// existed the variant assertions were untagged, and this provider
+		// failed ten scenarios for something its author could not fix, with
+		// nothing to record it as.
+		//
 		// @object holds -- the provider json.Unmarshals the JSON string
 		// Flagsmith stores an object as.
 		//
 		// @large-integers holds: Go's ResolveIntValue is int64, and 2^53-1
 		// survives the JSON number -> float64 -> int64 trip exactly.
+		//
+		// @targeting holds, via the one mechanism Flagsmith has for it. A
+		// targeting key IS a Flagsmith identifier -- the provider calls
+		// GetIdentityFlags(targetingKey) whenever one is present -- so the
+		// testbed seeds the canonical rule as an entry in the environment
+		// document's identity_overrides. Segments would be the wrong tool:
+		// they match on traits, and the canonical rule has none.
 		Capabilities: []tck.Capability{
 			tck.Object,
 			tck.LargeIntegers,
+			tck.Targeting,
 		},
 
 		KnownDeviations: []tck.KnownDeviation{
