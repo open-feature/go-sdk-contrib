@@ -186,19 +186,45 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// tck.LargeIntegers is NOT declared, and this absence is neither a
 		// choice nor a provider defect: huge-integer-flag is absent from
 		// flagd-testbed, so the capability cannot be verified against this
-		// backend at all. The untagged large-integer-flag scenario fails for
-		// the same reason, and it is the one failure this suite carries that
-		// says nothing whatever about the provider -- Go's ResolveIntValue is
-		// int64 and has room for both values.
-		// open-feature/flagd-testbed#392 adds the flags; declare this and the
-		// failure goes away together once it lands. It gets no
-		// knownDeviations entry on purpose, because the gap is in the fixture
-		// and an entry there would attribute it to the provider.
+		// backend at all. Two scenarios fail for the same reason -- the
+		// untagged "A large integer resolves without loss of precision", and
+		// the last row of the @variants outline below, which asks
+		// large-integer-flag for its max-int32 variant and gets "" because the
+		// flag is not there to have one. They are the only failures this suite
+		// carries that say nothing whatever about the provider: Go's
+		// ResolveIntValue is int64 and has room for both values.
+		// open-feature/flagd-testbed#392 adds the flags; declare this and both
+		// failures go away together once it lands. It gets no knownDeviations
+		// entry on purpose, because the gap is in the fixture and an entry
+		// there would attribute it to the provider.
+		//
+		// tck.Variants IS declared, on the evidence of the run rather than on
+		// the reasoning that flagd obviously has variants. Seven of the eight
+		// rows pass in both resolvers: the variant name survives the trip from
+		// the ruleset through the wire format into ResolutionDetail for
+		// booleans, strings, integers, floats and all three falsy flags. The
+		// eighth is the fixture gap described above and not a variant defect,
+		// which is why the capability is declared rather than withheld -- a
+		// withheld tag would skip seven working rows to hide one missing flag.
+		//
+		// tck.Targeting IS declared, and it was reserved rather than declarable
+		// until spec 26362f85. All three scenarios pass in both resolvers, and
+		// they assert something this suite could not otherwise see: that the
+		// evaluation context reaches the backend at all. targeting-key-flag has
+		// one JsonLogic rule on the targeting key, so a matching context
+		// resolves to a different value than a non-matching one or none --
+		// which means a provider that silently dropped the context would be
+		// caught by the resolved value itself, with no echo endpoint needed.
+		// The flag has been in flagd-testbed since flagd-testbed#103, released
+		// in v0.5.1 in February 2024, so this needs no image bump -- unlike
+		// tck.LargeIntegers above, which is waiting on one.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
 			tck.ConfigurationChange,
 			tck.Object,
+			tck.Variants,
+			tck.Targeting,
 			tck.UnavailableInit,
 		},
 
@@ -248,12 +274,23 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		// assertion is satisfied without a re-initialisation having happened.
 		// A skip that says "not offered" is more honest than a pass that says
 		// nothing.
+		//
+		// tck.Variants and tck.Targeting are declared here as well, and both
+		// resolvers produce the identical result: 52 scenarios, 50 passed, 2
+		// failed, and the two failures are the same pair of large-integer-flag
+		// assertions the fixture cannot serve. Running both mattered rather
+		// than being a formality -- in-process evaluates the JsonLogic rule
+		// itself while RPC has flagd evaluate it, so the @targeting scenarios
+		// exercise genuinely different code, and agreement between them is
+		// evidence rather than duplication.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
 			tck.Stale,
 			tck.ConfigurationChange,
 			tck.Object,
+			tck.Variants,
+			tck.Targeting,
 			tck.UnavailableInit,
 		},
 
