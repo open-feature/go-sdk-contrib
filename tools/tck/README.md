@@ -387,11 +387,31 @@ naming the defect is what separates it from a capability withheld by choice, and
 merely omits the tag cannot say which of the two happened. Move it to `tck.TrackedDeviation` as soon
 as there is an issue to point at, and delete the entry once the defect is fixed.
 
-Two shapes are legitimate besides the obvious one. An entry with **no capability** is a gap against
-a mandatory scenario, which belongs to no capability and so can name none. An entry naming a
-capability that **is declared** covers the case where the capability holds but one of the scenarios
-it gates does not — worth recording precisely because such a scenario may pass for the wrong reason
-in one of a provider's modes and hide the gap there.
+**An entry says one thing: this provider fails to do something it is required to do.** The
+requirement has to be a numbered `MUST`, or a rule the implementation bound itself to elsewhere —
+flagd measured against its own accepted numeric-coercion ADR is the worked example. Where the
+specification permits the choice, withholding the capability *is* the honest report, and an entry
+would assert a defect that does not exist.
+
+**Two shapes are legitimate, and a report's results already tell them apart.**
+
+1. **The capability is declared, the scenario runs, and it fails.** Prefer this. The failure stays
+   visible and the deviation says it is known and why.
+2. **The capability is withheld, and its scenarios skip.** Legitimate only when the provider cannot
+   attempt the behaviour at all, so running the scenario would establish nothing. The deviation then
+   explains the absence, so a reader can tell a defect from a design decision.
+
+Withdrawing a capability *in order to* turn a failing scenario into a skip is the failure mode this
+field exists to prevent. If the provider attempts the behaviour and gets it wrong, shape 1 is the
+honest report.
+
+An entry with **no capability** is also legitimate: the gap is against a mandatory, ungated
+scenario, which belongs to no capability and so can name none. Shape 1 — an entry naming a
+capability that *is* declared — is likewise how to record that the capability holds while one of the
+scenarios it gates does not, which is worth saying precisely because such a scenario may pass for
+the wrong reason in one of a provider's modes and hide the gap there.
+
+`summary` is required and `issue` is optional.
 
 Empty by default, which is silence rather than a claim. A deviation with no summary is rejected by
 configuration validation, because it records that something is broken without saying what and is
