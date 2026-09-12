@@ -44,7 +44,7 @@ type Report struct {
 	Provider      ReportProvider    `json:"provider"`
 	SDK           ReportSDK         `json:"sdk"`
 	TCK           ReportTCK         `json:"tck"`
-	Backend       *ReportBackend    `json:"backend,omitempty"`
+	Backend       ReportBackend     `json:"backend"`
 	Declaration   ReportDeclaration `json:"declaration"`
 
 	// KnownDeviations are the gaps the provider author acknowledges, carried
@@ -85,9 +85,23 @@ type ReportTCK struct {
 	SpecRelease    string `json:"specRelease,omitempty"`
 }
 
+// ReportBackend is what the provider was pointed at, and how the suite drove
+// it.
+//
+// Always emitted, and the schema requires it: a provider with no backend still
+// had its flag state manipulated somehow, and which of the two ways that was is
+// the single most important thing a reader needs in order to know what the
+// results are worth. The old shape made the block omissible, which made the one
+// value most worth knowing -- in-process, the case the enum exists for -- the
+// one that could never appear.
 type ReportBackend struct {
+	// Description is free text for a person, as the control reports itself.
 	Description string `json:"description,omitempty"`
-	ControlAPI  string `json:"controlApi,omitempty"`
+
+	// ControlAPI is which path the control drove the backend over. Never
+	// empty: BackendControl requires it, so there is no silent case left to
+	// encode, and nothing here infers it.
+	ControlAPI ControlAPI `json:"controlApi"`
 }
 
 // ReportDeclaration is the capability set the provider claims.
@@ -158,9 +172,9 @@ func (r *runner) buildReport(location, digest string) Report {
 			Version:        tckVersion(),
 			SpecRevision:   SpecRevision,
 		},
-		Backend: &ReportBackend{
+		Backend: ReportBackend{
 			Description: r.cfg.Control.Description(),
-			ControlAPI:  controlAPIOf(r.cfg.Control),
+			ControlAPI:  r.cfg.Control.ControlAPI(),
 		},
 		Declaration:     ReportDeclaration{Declared: tags},
 		KnownDeviations: r.cfg.KnownDeviations,
@@ -184,37 +198,6 @@ func (r *runner) observedProviderName() string {
 		return r.providerName
 	}
 	return r.cfg.Name
-}
-
-// controlAPIReporter is implemented by a BackendControl that knows which kind
-// of control the schema should record.
-//
-// It is an optional interface rather than a method on BackendControl because
-// adding a method would break every existing implementation for the sake of one
-// string, and a control that does not implement it simply omits the field.
-type controlAPIReporter interface {
-	// ControlAPI reports "http" for the normative control API or "in-process"
-	// for the narrow allowance made for providers with no backend.
-	ControlAPI() string
-}
-
-// controlAPIOf reports how the backend was driven, or "" when the control does
-// not say.
-//
-// A control that does not implement the interface leaves the field out, which is
-// non-breaking but silent -- and silence here is a small lie by omission: every
-// control is either driving a real backend over HTTP or manipulating an
-// in-process one, so there is no third case the empty value legitimately
-// describes. Two reports of the same in-process provider, one of which says so
-// and one of which does not, are harder to compare than either alone.
-//
-// The runner therefore says so where the adopter will see it, rather than
-// quietly emitting a report with a hole in it. See runner.reportControlAPIGap.
-func controlAPIOf(control BackendControl) string {
-	if reporter, ok := control.(controlAPIReporter); ok {
-		return reporter.ControlAPI()
-	}
-	return ""
 }
 
 const (
