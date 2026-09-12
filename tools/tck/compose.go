@@ -45,8 +45,10 @@ type composeConfig struct {
 	backendPorts    []int
 	controlPort     int
 	additionalPorts map[string][]int
-	configuration   string
-	startupTimeout  time.Duration
+	// backendConfiguration is the backend's named flag configuration, not the
+	// provider's mode. See WithBackendConfiguration.
+	backendConfiguration string
+	startupTimeout       time.Duration
 }
 
 // WithComposeFile hands the suite the Docker Compose file describing the
@@ -149,13 +151,19 @@ func WithAdditionalPorts(service string, ports ...int) Option {
 	}
 }
 
-// WithConfiguration sets the configuration name the suite asks the control API
-// to start, which is what seeds the canonical flag set.
+// WithBackendConfiguration sets the name of the backend's flag configuration
+// the suite asks the control API to start, which is what seeds the canonical
+// flag set.
 //
-// Defaults to DefaultConfiguration, the only name every backend under test must
-// support.
-func WithConfiguration(name string) Option {
-	return func(c *config) { c.composeConfig().configuration = name }
+// Defaults to DefaultBackendConfiguration, the only name every backend under
+// test must support.
+//
+// It is not the provider's configuration. The conformance report's
+// "configuration" field is the provider's own mode — flagd RPC against flagd
+// in-process — and that one comes from WithName. This is the backend's config
+// file, and the two are named apart because they were confused once already.
+func WithBackendConfiguration(name string) Option {
+	return func(c *config) { c.composeConfig().backendConfiguration = name }
 }
 
 // WithStartupTimeout sets how long to wait for the Compose stack and its control
@@ -193,11 +201,11 @@ func (cc *composeConfig) control() int {
 	return cc.controlPort
 }
 
-func (cc *composeConfig) config() string {
-	if cc.configuration == "" {
-		return DefaultConfiguration
+func (cc *composeConfig) backendConfig() string {
+	if cc.backendConfiguration == "" {
+		return DefaultBackendConfiguration
 	}
-	return cc.configuration
+	return cc.backendConfiguration
 }
 
 func (cc *composeConfig) timeout() time.Duration {
@@ -401,8 +409,8 @@ func startCompose(ctx context.Context, cc *composeConfig) (BackendEndpoint, *HTT
 	}
 
 	control, err := NewHTTPControl(HTTPControlOptions{
-		BaseURL:       fmt.Sprintf("http://%s:%d", endpoint.Host(), endpoint.Port(cc.control())),
-		Configuration: cc.config(),
+		BaseURL:              fmt.Sprintf("http://%s:%d", endpoint.Host(), endpoint.Port(cc.control())),
+		BackendConfiguration: cc.backendConfig(),
 	})
 	if err != nil {
 		stop()

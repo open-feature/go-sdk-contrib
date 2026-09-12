@@ -270,6 +270,14 @@ func (c *InProcessControl) Description() string {
 	return "in-process control of an in-memory provider"
 }
 
+// ControlAPI implements BackendControl.
+//
+// ControlAPIInProcess is the narrow allowance the report schema makes for a
+// provider with no backend, and this control is that case: the "backend" is a
+// data structure in this process. A provider that does have a backend must not
+// reach for this control to claim the value — see BackendControl.
+func (c *InProcessControl) ControlAPI() ControlAPI { return ControlAPIInProcess }
+
 // PrepareScenario implements BackendControl.
 //
 // Dropping the reference to the previous scenario's provider is the whole

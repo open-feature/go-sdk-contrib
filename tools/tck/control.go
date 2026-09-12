@@ -16,6 +16,27 @@ import (
 // than skipping, because a silent no-op would report the scenario as passed.
 var ErrUnsupportedControl = errors.New("backend control operation not supported")
 
+// ControlAPI names the path a run took to manipulate the backend under test.
+//
+// It is a defined type with a closed set of values rather than a string,
+// because the value ends up in the conformance report against a schema enum:
+// "HTTP" or "in_process" would compile, pass every test, and produce a report
+// that fails validation somewhere the author cannot see it.
+type ControlAPI string
+
+const (
+	// ControlAPIHTTP means the backend was driven over the normative HTTP
+	// control API. Every provider with a real backend answers this.
+	ControlAPIHTTP ControlAPI = "http"
+
+	// ControlAPIInProcess means flag state was manipulated in this process,
+	// which is the narrow allowance made for a provider that has no backend at
+	// all. A report claiming it for a provider that does have one should be
+	// treated with suspicion, which is precisely why it is recorded rather
+	// than assumed.
+	ControlAPIInProcess ControlAPI = "in-process"
+)
+
 // BackendControl is the single seam between the TCK's scenarios and whatever
 // manipulates the backend under test.
 //
@@ -73,6 +94,24 @@ type BackendControl interface {
 	// Description returns a short description of what is being controlled, for
 	// startup logging and for the failure messages of unsupported operations.
 	Description() string
+
+	// ControlAPI states which path this control drives the backend over, for
+	// the conformance report.
+	//
+	// Required, with no default and nothing inferred from the concrete type.
+	// The same scenarios passing over the HTTP control API and passing through
+	// in-process manipulation of a provider that does have a backend are not
+	// the same claim, and this is the only field that separates them. Silence
+	// would therefore not be "no claim made" but an unfalsifiable one: every
+	// control is either driving a real backend over HTTP or manipulating an
+	// in-process one, so there is no third case an empty value legitimately
+	// covers.
+	//
+	// Both controls this package ships answer it already, so an adopter using
+	// WithComposeFile or InProcessControl writes nothing. The only author who
+	// has to state it is the one writing a control of their own — which is
+	// exactly the case where it cannot be guessed.
+	ControlAPI() ControlAPI
 }
 
 // ConnectionControl is implemented by a BackendControl whose backend can be cut
