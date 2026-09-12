@@ -85,6 +85,29 @@ that switches from in-process to RPC silently stops receiving stale events. `tck
 from the RPC suite so the scenario is reported as skipped rather than failed, and it should be
 declared as soon as the RPC resolver emits `PROVIDER_STALE`.
 
+Both resolvers declare `@disabled-flags`, and that one is a difference that turned out **not** to
+exist. The capability is gated because what a disabled flag resolves to depends on where the
+caller's default is substituted, so the RPC resolver — which asks flagd to resolve every flag —
+looked like the side that could not have it. It can: flagd answers with reason `DISABLED`, an empty
+variant and a zero value, and the provider recognises that pair and keeps the caller's default
+(`isDefaultOrDisabledFallback` in `pkg/service/rpc/service.go`). The in-process resolver reads the
+state out of the ruleset it synced and arrives at the same answer. All four rows pass in both.
+
+Both suites run **56 scenarios: 54 pass and 2 fail.** The two failures are the same pair in both
+resolvers, and neither says anything about the provider: `large-integer-flag` is absent from
+`flagd-testbed`, so "A large integer resolves without loss of precision" fails with
+`FLAG_NOT_FOUND` and the last `@variants` row has no variant to name.
+[open-feature/flagd-testbed#392](https://github.com/open-feature/flagd-testbed/issues/392) adds the
+flag and both go green together. Neither gets a known-deviation entry, because the gap is in the
+fixture and an entry there would attribute it to the provider.
+
+**Re-run a red result before reading anything into it.** The launchpad's `POST /start` returns
+before flagd's file source has finished loading the regenerated flag file, so any scenario can fail
+with `FLAG_NOT_FOUND` or reason `ERROR` on a given run. It was seen here on the `@disabled-flags`
+outline and the object scenario in one pass and on neither in the next three. The OFREP suite
+documents the race in full, because a provider with no initialisation to block on hits it far more
+often.
+
 ```bash
 go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
 ```
