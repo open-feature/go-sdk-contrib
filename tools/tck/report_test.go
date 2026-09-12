@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	messages "github.com/cucumber/messages/go/v21"
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
@@ -40,14 +40,14 @@ func TestResultsNeverCallASkippedScenarioPassed(t *testing.T) {
 	// Deliberately narrow: declaring only Object leaves every event, lifecycle,
 	// stale, unavailable and numeric-coercion scenario ungated and skipped,
 	// which is precisely the situation the rule governs.
-	tck.Run(t, tck.Config{
-		Name:    "report-selftest",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("report-selftest"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-	})
+		}),
+		tck.WithCapabilities(tck.Object),
+	)
 
 	run := readRun(t, dir, "report-selftest")
 	declared := map[string]bool{tck.Object.Tag(): true}
@@ -115,14 +115,14 @@ func TestEveryScenarioIsAccountedForExactlyOnce(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
-	tck.Run(t, tck.Config{
-		Name:    "accounting",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("accounting"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-	})
+		}),
+		tck.WithCapabilities(tck.Object),
+	)
 
 	run := readRun(t, dir, "accounting")
 
@@ -164,14 +164,14 @@ func TestEnvelopeReferencesTheResults(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
-	tck.Run(t, tck.Config{
-		Name:    "envelope",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("envelope"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-	})
+		}),
+		tck.WithCapabilities(tck.Object),
+	)
 
 	report := readReport(t, filepath.Join(dir, "envelope.json"))
 
@@ -218,15 +218,15 @@ func TestDeclarationOfNothingIsAnEmptyListNotNull(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
-	tck.Run(t, tck.Config{
-		Name:    "declares-nothing",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("declares-nothing"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
+		}),
 		// Empty rather than nil: nil means "declare everything".
-		Capabilities: []tck.Capability{},
-	})
+		tck.WithCapabilities(),
+	)
 
 	data, err := os.ReadFile(filepath.Join(dir, "declares-nothing.json"))
 	if err != nil {
@@ -252,22 +252,22 @@ func TestEnvelopeCarriesTheKnownDeviations(t *testing.T) {
 
 	const issue = "https://github.com/open-feature/flagd/issues/1996"
 
-	tck.Run(t, tck.Config{
-		Name:    "deviations",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("deviations"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-		KnownDeviations: []tck.KnownDeviation{
+		}),
+		tck.WithCapabilities(tck.Object),
+		tck.WithKnownDeviations(
 			// A tracked gap behind a capability that is withheld.
 			tck.TrackedDeviation(tck.NumericCoercion, issue, "narrows 0.5 to 0 with no error code"),
 			// An untracked gap against a mandatory scenario, which belongs to
 			// no capability -- the shape that must survive with an empty
 			// capability rather than being dropped or defaulted.
 			tck.UntrackedDeviation("", "resolves large-integer-flag through a float and rounds it"),
-		},
-	})
+		),
+	)
 
 	report := readReport(t, filepath.Join(dir, "deviations.json"))
 
@@ -313,14 +313,14 @@ func TestNoKnownDeviationsSaysNothingRatherThanNone(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
-	tck.Run(t, tck.Config{
-		Name:    "no-deviations",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("no-deviations"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-	})
+		}),
+		tck.WithCapabilities(tck.Object),
+	)
 
 	data, err := os.ReadFile(filepath.Join(dir, "no-deviations.json"))
 	if err != nil {
@@ -340,14 +340,14 @@ func TestReportNotWrittenByDefault(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, "")
 
-	tck.Run(t, tck.Config{
-		Name:    "no-report",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("no-report"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-	})
+		}),
+		tck.WithCapabilities(tck.Object),
+	)
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -368,11 +368,12 @@ func TestReportNotWrittenByDefault(t *testing.T) {
 // semantically wrong — naming a revision the run did not use.
 //
 // So compare it against the only other place the revision is recorded, the
-// module pin in go.mod. That file is inside the module, present in every clone
+// module pin in go.mod, which sits beside this package now that the package is
+// the module root. That file is inside the module, present in every clone
 // and in every module zip, so moving the pin without updating the constant
 // fails here rather than in a consumer's report.
 func TestSpecRevisionIsRecorded(t *testing.T) {
-	gomod, err := os.ReadFile(filepath.Join("..", "..", "go.mod"))
+	gomod, err := os.ReadFile("go.mod")
 	if err != nil {
 		t.Fatalf("reading go.mod: %v", err)
 	}
@@ -414,14 +415,14 @@ func TestOutlineRowsAreDistinguishable(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
-	tck.Run(t, tck.Config{
-		Name:    "outline-identity",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("outline-identity"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-	})
+		}),
+		tck.WithCapabilities(tck.Object),
+	)
 
 	run := readRun(t, dir, "outline-identity")
 
@@ -494,16 +495,16 @@ func TestSkippedOutlineRowsAreDistinguishable(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
-	tck.Run(t, tck.Config{
-		Name:    "skipped-outline",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("skipped-outline"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
+		}),
 		// A provider that declares nothing, so the @object outline is gated in
 		// the Before hook and never starts.
-		Capabilities: []tck.Capability{},
-	})
+		tck.WithCapabilities(),
+	)
 
 	run := readRun(t, dir, "skipped-outline")
 
@@ -545,14 +546,14 @@ func TestTheExecutedSourceIsCarried(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
 
-	tck.Run(t, tck.Config{
-		Name:    "sources",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("sources"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: []tck.Capability{tck.Object},
-	})
+		}),
+		tck.WithCapabilities(tck.Object),
+	)
 
 	run := readRun(t, dir, "sources")
 
