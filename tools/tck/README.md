@@ -190,9 +190,9 @@ default, which is silence rather than a claim.
 
 ## Adopters
 
-| Provider | Suite | Control path |
+| Provider | Suite | Backend |
 | --- | --- | --- |
-| flagd (RPC and in-process resolvers) | [`providers/flagd/e2e/tck_test.go`](../../providers/flagd/e2e/tck_test.go) | `tck.HTTPControl` against the `flagd-testbed` launchpad |
+| flagd (RPC and in-process resolvers) | [`providers/flagd/e2e/tck_test.go`](../../providers/flagd/e2e/tck_test.go) | the Compose harness, against the `flagd-testbed` launchpad |
 
 ## Controlling the backend
 
