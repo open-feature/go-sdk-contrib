@@ -406,7 +406,7 @@ type conformanceSuite struct {
 // compiled under -tags=e2e, so CI still typechecks it against tools/tck and a
 // signature change there cannot rot this file unnoticed. Only the container
 // work is skipped, and the skip names the variable that turns it on.
-const runEnv = "PROVIDER_TCK_RUN"
+const runEnv = "TCK_RUN"
 
 func runConformance(t *testing.T, suite conformanceSuite) {
 	if testing.Short() {
