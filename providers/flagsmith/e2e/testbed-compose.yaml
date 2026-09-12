@@ -1,0 +1,14 @@
+# The Flagsmith provider-TCK backend: the Flagsmith Edge Proxy with a launchpad implementing the
+# control API as its upstream. https://github.com/aepfli/flagsmith-tck-testbed
+#
+# The service is named "backend" because that is the TCK's default.
+#
+# Ports are never pinned. The TCK resolves the dynamically mapped host ports after the stack is up,
+# and POST /stop deliberately never restarts the container precisely so those mappings survive an
+# outage scenario.
+services:
+  backend:
+    image: ${FLAGSMITH_TESTBED_IMAGE:-ghcr.io/aepfli/flagsmith-tck-testbed:latest}
+    ports:
+      - 8000 # Edge Proxy -- what the provider under test talks to
+      - 8080 # launchpad -- control API, exposed by the TCK automatically
