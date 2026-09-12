@@ -36,10 +36,10 @@ func aStableProvider(ctx context.Context) (context.Context, error) {
 
 	provider, err := state.cfg.NewProvider(ctx)
 	if err != nil {
-		return ctx, fmt.Errorf("Config.NewProvider failed: %w", err)
+		return ctx, fmt.Errorf("the provider factory from tck.WithProvider failed: %w", err)
 	}
 	if provider == nil {
-		return ctx, errors.New("Config.NewProvider returned a nil provider")
+		return ctx, errors.New("the provider factory from tck.WithProvider returned a nil provider")
 	}
 
 	panicValue, regErr := registerProvider(ctx, state.cfg.domain(), provider, state.cfg.readyTimeout())
@@ -51,7 +51,7 @@ func aStableProvider(ctx context.Context) (context.Context, error) {
 	if regErr != nil {
 		return ctx, fmt.Errorf(
 			"the provider did not become ready within %s: %w. The backend is up and seeded at this "+
-				"point, so either initialisation is genuinely failing or Config.ReadyTimeout is too short",
+				"point, so either initialisation is genuinely failing or tck.WithReadyTimeout is too short",
 			state.cfg.readyTimeout(), regErr)
 	}
 
@@ -76,7 +76,7 @@ func anUnavailableProvider(ctx context.Context) (context.Context, error) {
 
 	if state.cfg.NewUnavailableProvider == nil {
 		return ctx, fmt.Errorf(
-			"Config.NewUnavailableProvider is nil but an @unavailable scenario ran. This is a "+
+			"no tck.WithUnavailableProvider was given but an @unavailable scenario ran. This is a "+
 				"test-configuration bug rather than a provider defect: the suite declared %s "+
 				"without supplying a provider that cannot reach its backend. Remove that "+
 				"capability, or supply the factory", UnavailableInit)
@@ -84,10 +84,10 @@ func anUnavailableProvider(ctx context.Context) (context.Context, error) {
 
 	provider, err := state.cfg.NewUnavailableProvider(ctx)
 	if err != nil {
-		return ctx, fmt.Errorf("Config.NewUnavailableProvider failed: %w", err)
+		return ctx, fmt.Errorf("the factory from tck.WithUnavailableProvider failed: %w", err)
 	}
 	if provider == nil {
-		return ctx, errors.New("Config.NewUnavailableProvider returned a nil provider")
+		return ctx, errors.New("the factory from tck.WithUnavailableProvider returned a nil provider")
 	}
 
 	// The registration error is deliberately discarded. What the contract
@@ -278,7 +278,7 @@ func callStateHandler(operation string, timeout time.Duration, fn func() error) 
 	case <-timer.C:
 		return lifecycleCall{}, fmt.Errorf(
 			"the provider's %s did not return within %s. A %s that blocks on its backend hangs the "+
-				"host application; if the provider is merely slow, raise Config.ReadyTimeout",
+				"host application; if the provider is merely slow, raise tck.WithReadyTimeout",
 			operation, timeout, operation)
 	}
 }

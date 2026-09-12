@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
@@ -17,7 +17,7 @@ import (
 //
 // It is the reference adoption for a provider with no backend: everything a
 // file-based or environment-variable provider has to write is here, and it is
-// one struct literal.
+// four options.
 //
 // It is also the Docker-free canary. Needing no container, no compose stack and
 // no network, it runs in a fraction of a second on any machine and in any CI
@@ -30,12 +30,12 @@ import (
 // What it does not do is license providers that have a backend to test
 // themselves this way — see tck.BackendControl for why.
 func TestInMemoryProvider(t *testing.T) {
-	tck.Run(t, tck.Config{
-		Name:    "in-memory",
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("in-memory"),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
+		}),
 		// Four capabilities, and every omission is a fact about the provider
 		// rather than a convenience:
 		//
@@ -99,13 +99,13 @@ func TestInMemoryProvider(t *testing.T) {
 		// Variants is declared: memprovider resolves a named variant and
 		// reports its name, so every row of the variant outline resolves the
 		// name the canonical set gives it.
-		Capabilities: []tck.Capability{
+		tck.WithCapabilities(
 			tck.Events,
 			tck.Object,
 			tck.Variants,
 			tck.LargeIntegers,
-		},
-	})
+		),
+	)
 }
 
 // plainMemoryControl is the backend control for the SDK's in-memory provider.
