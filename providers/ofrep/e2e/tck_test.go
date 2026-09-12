@@ -12,17 +12,21 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep"
 	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
-	"github.com/testcontainers/testcontainers-go/modules/compose"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 // The OpenFeature Provider Conformance Suite, run against the OFREP provider.
 //
-// The backend is the existing flagd-testbed, unmodified. flagd serves the OFREP
-// API on container port 8016 alongside its own protocols, and the testbed's
-// compose file already publishes that port, so the OFREP provider gets a
-// conformant backend seeded with the canonical flag set and the standardised
-// launchpad control API without a new image, a new compose file, or any change
+// There is no container code in this file. The suite owns the stack: it is
+// handed the Compose file below, told which container-internal port the
+// provider connects to, and given a factory that builds a provider from the
+// host port it discovered. Starting the stack once, waiting for the launchpad
+// to accept commands, resetting the backend between scenarios and tearing down
+// all belong to tck.Run.
+//
+// The backend is the unmodified flagd-testbed image. flagd serves the OFREP API
+// on container port 8016 alongside its own protocols, and the same image serves
+// the launchpad control API on 8080, so the provider gets a conformant backend
+// seeded with the canonical flag set without a new image and without any change
 // to the flagd suites.
 //
 // THIS SUITE IS CURRENTLY NON-DETERMINISTIC, and the cause is worth reading
@@ -38,19 +42,25 @@ import (
 // same absence counted twice rather than a new defect.
 // open-feature/flagd-testbed#392 adds them.
 //
-// Every other failure moves between runs. Two consecutive runs of this file
-// produced 13 failures and then 12, with almost disjoint failing sets, and
-// every one of them was FLAG_NOT_FOUND on a flag the testbed definitely has --
-// boolean-flag, string-zero-flag, object-flag. The cause is that this provider
-// has no initialisation: the TCK's per-scenario reset calls POST /start on the
-// launchpad, which stops flagd, deletes the combined flag file, regenerates it
+// Every other failure moves between runs. Eight consecutive runs produced 41,
+// 12, 11, 33, 5, 19, 21 and 40 failures, with almost disjoint failing sets --
+// the last three of those from the hand-rolled container wrapper this file
+// replaced, which is how we know the flapping belongs to the backend and not to
+// the harness. Every one of the extra failures was FLAG_NOT_FOUND, or a stale
+// value, on a flag the testbed definitely has -- boolean-flag, string-zero-flag,
+// object-flag -- and curling the OFREP endpoint directly answers every one of
+// them correctly.
+//
+// The cause is that this provider has no initialisation. The testbed's launchpad
+// answers 404 to POST /reset, so the TCK's per-scenario isolation falls back to
+// POST /start, which stops flagd, deletes the combined flag file, regenerates it
 // and restarts flagd, polling :8014/readyz until flagd answers. flagd answers
-// before its file source has loaded the flags. A provider with a lifecycle does
-// not notice, because its own Init blocks until the RPC stream is up or the
-// in-process sync completes, and by then the flags are there -- which is why
-// both flagd suites are stable against the same backend at the same revision.
-// A stateless provider fires its first evaluation the instant POST /start
-// returns, and races the load.
+// before its file source has loaded the flags. A provider with a lifecycle
+// notices less often, because its own Init blocks until the RPC stream is up or
+// the in-process sync completes -- but it does hit the same race, which the
+// flagd suites' own re-run guidance now records. A stateless provider fires its
+// first evaluation the instant POST /start returns, and races the load every
+// time.
 //
 // So the defect is in the control-API contract rather than here: POST /start
 // returning before the backend serves flags makes the reset unusable by exactly
@@ -60,18 +70,18 @@ import (
 // list above before attributing anything to the provider.
 
 const (
-	// The flagd testbed is a git submodule of the flagd provider. Reused, not
-	// copied: two testbeds that drift apart would make a cross-provider
-	// disagreement look like a provider defect.
-	testbedComposeFile = "../../flagd/flagd-testbed/docker-compose.yaml"
+	// composeFile describes the backend stack. Resolved relative to this
+	// package directory, which is where `go test` runs.
+	//
+	// Deliberately not the testbed submodule's own compose file -- see the
+	// comment at the top of it for why -- which is also why this suite no
+	// longer needs the submodule checked out.
+	composeFile = "testdata/tck/docker-compose.yaml"
 
-	// Container ports as published by the testbed's compose file. Host ports
-	// are assigned dynamically and read back once the stack is up.
-	ofrepContainerPort     = "8016"
-	launchpadContainerPort = "8080"
-
-	// The compose service that runs both flagd and its launchpad.
-	composeService = "flagd"
+	// ofrepPort is the container-internal port flagd serves OFREP on, and the
+	// only port the provider connects to. The launchpad's control port is
+	// exposed by the harness and is not named here.
+	ofrepPort = 8016
 )
 
 // runEnv gates this suite out of a default build.
@@ -79,14 +89,13 @@ const (
 // `make e2e` runs every module's e2e-tagged tests, so without this the suite
 // would start a Docker stack on every pull request, and a run that is red for
 // the launchpad reset race described above would read as an OFREP provider
-// defect. The policy across the four languages is exclusion from the default
-// build, with a maintainer running the suite by hand before merge, and this is
+// defect. The reasoning is Appendix F's "Running the suite in CI"; this is
 // where it is enforced rather than merely described.
 //
 // A runtime skip rather than a second build tag on purpose: the adoption stays
 // compiled under -tags=e2e, so CI still typechecks it against tools/tck and a
 // signature change there cannot rot this file unnoticed.
-const runEnv = "PROVIDER_TCK_RUN"
+const runEnv = "TCK_RUN"
 
 // TestOFREPConformance runs the suite against the OFREP provider pointed at
 // flagd's OFREP endpoint.
@@ -99,29 +108,34 @@ func TestOFREPConformance(t *testing.T) {
 			"run it (it needs Docker and takes minutes). See README.md", runEnv)
 	}
 
-	ctx := context.Background()
-
-	baseURI, launchpadURL := startTestbed(ctx, t)
-
-	control, err := tck.NewHTTPControl(tck.HTTPControlOptions{
-		BaseURL: launchpadURL,
-	})
-	if err != nil {
-		t.Fatalf("could not build the backend control: %v", err)
-	}
-
 	tck.Run(t,
 		tck.WithName("ofrep"),
-		tck.WithControl(control),
 
-		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+		// The suite starts this stack once, discovers the host port Docker
+		// mapped to 8016, builds the HTTP control against the launchpad on 8080
+		// and waits until it accepts commands. Scenario isolation comes from
+		// the control API, never from restarting a container: mapped host ports
+		// do not survive a restart, so a restart would invalidate the provider
+		// already pointed at the old one.
+		tck.WithComposeFile(composeFile),
+		tck.WithBackendPorts(ofrepPort),
+
+		// Called once per scenario, because the mapped port does not exist
+		// until the stack is up.
+		tck.WithProviderFromEndpoint(func(_ context.Context, endpoint tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
 			// NewProvider never fails: it only builds an http.Client and a
 			// base URI, and does not contact the backend. See
 			// providers/ofrep/provider.go:25-40.
 			//
+			// endpoint.Host() rather than a hard-coded "localhost": with a
+			// remote Docker daemon, Docker Desktop on some platforms or a
+			// rootless setup the host is not localhost, and the hand-rolled
+			// wrapper this replaces hard-coded it.
+			//
 			// The timeout is well under the TCK's own step deadlines so that a
 			// wedged backend surfaces as a resolution error attributable to
 			// this provider rather than as a suite-level timeout.
+			baseURI := fmt.Sprintf("http://%s:%d", endpoint.Host(), endpoint.Port(ofrepPort))
 			return ofrep.NewProvider(baseURI, ofrep.WithTimeout(5*time.Second)), nil
 		}),
 
@@ -289,84 +303,4 @@ func TestOFREPConformance(t *testing.T) {
 		// meaning if the provider grows eventing.
 		tck.WithEventTimeout(15*time.Second),
 	)
-}
-
-// startTestbed brings up the flagd testbed for the whole suite and returns the
-// OFREP base URI and the launchpad URL, both built from dynamically mapped host
-// ports.
-//
-// tests/flagd/testframework.NewFlagdContainer is deliberately not used. It maps
-// only container ports 8013, 8014, 8015 and 8080 (testcontainer.go:80-95), its
-// GetPort accessor knows only "rpc", "in-process", "launchpad" and "health"
-// (testcontainer.go:141-154), and it exposes neither the compose stack nor the
-// service container, so there is no way to reach the OFREP port through it.
-// Widening that helper would change a published module every other flagd suite
-// depends on; driving compose directly here costs about thirty lines and
-// changes nothing outside this file.
-//
-// The stack is started once for the whole suite and never restarted. Scenario
-// isolation comes from the control API instead — see the no-container-restart
-// invariant in the control API specification.
-func startTestbed(ctx context.Context, t *testing.T) (baseURI, launchpadURL string) {
-	t.Helper()
-
-	stack, err := compose.NewDockerCompose(testbedComposeFile)
-	if err != nil {
-		t.Fatalf("could not read the flagd testbed compose file %s: %v. It is a git submodule of "+
-			"the flagd provider, so an empty directory here means the submodule was never checked "+
-			"out: git submodule update --init --recursive", testbedComposeFile, err)
-	}
-
-	// The launchpad writes flag files into this directory, which the compose
-	// file bind-mounts. It is per-suite so that nothing else can disturb it.
-	flagsDir, err := os.MkdirTemp("", "ofrep-tck-*")
-	if err != nil {
-		t.Fatalf("could not create a flags directory: %v", err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(flagsDir) })
-
-	stack.WithEnv(map[string]string{"FLAGS_DIR": flagsDir})
-
-	// Wait on the launchpad rather than on flagd: flagd is not running yet at
-	// this point, because the launchpad is what starts it, and the TCK's first
-	// control call is what asks for that.
-	stack.WaitForService(composeService,
-		wait.ForListeningPort(launchpadContainerPort+"/tcp").WithStartupTimeout(60*time.Second))
-
-	if err := stack.Up(ctx); err != nil {
-		t.Fatalf("could not start the flagd testbed: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := stack.Down(context.Background()); err != nil {
-			t.Logf("could not stop the flagd testbed: %v", err)
-		}
-	})
-
-	service, err := stack.ServiceContainer(ctx, composeService)
-	if err != nil {
-		t.Fatalf("the testbed has no %q service: %v", composeService, err)
-	}
-
-	// Read once, after the stack is up: compose assigns host ports dynamically,
-	// so these do not exist until now, and they stay valid for the whole suite
-	// because nothing restarts a container.
-	mapped := func(containerPort string) int {
-		port, err := service.MappedPort(ctx, containerPort)
-		if err != nil {
-			t.Fatalf("the testbed published no host port for container port %s: %v. flagd serves "+
-				"OFREP on 8016 and its launchpad on 8080; both must be published by %s",
-				containerPort, err, testbedComposeFile)
-		}
-		return int(port.Num())
-	}
-
-	baseURI = fmt.Sprintf("http://localhost:%d", mapped(ofrepContainerPort))
-	launchpadURL = fmt.Sprintf("http://localhost:%d", mapped(launchpadContainerPort))
-
-	// The launchpad's listener accepts connections slightly before it is ready
-	// to act on one. The flagd suite allows the same grace through
-	// FlagdContainerConfig.ExtraWaitTime.
-	time.Sleep(2 * time.Second)
-
-	return baseURI, launchpadURL
 }
