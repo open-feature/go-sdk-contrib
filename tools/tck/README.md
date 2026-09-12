@@ -625,12 +625,16 @@ $ jq . reports/in-memory.json
   "tck": {
     "implementation": "go-sdk-contrib/tools/tck",
     "version": "v0.1.0",
-    "specRevision": "v0.0.0-20260912100158-009afe061794"
+    "specRevision": "v0.0.0-20260912135310-93eb1a58d2d2"
   },
-  "backend": { "description": "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario" },
+  "backend": {
+    "description": "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario",
+    "controlApi": "in-process"
+  },
   "declaration": { "declared": ["@events", "@large-integers", "@object", "@variants"] },
   "results": {
     "format": "cucumber-messages",
+    "formatVersion": "21.0.1",
     "location": "in-memory.ndjson",
     "digest": "sha256:4754d458ac5a1a137080082b7947f8f1eafc5df9f6d54551440da9f8ac6a0dce"
   }
@@ -642,6 +646,18 @@ Messages stream carries the feature sources and so is far larger than the envelo
 deciding whether it cares about a report should not have to fetch a whole run to find out.
 `results.digest` covers the payload byte for byte, so a consumer can tell that what it fetched is
 what the envelope describes.
+
+Two fields next to each other mean different things and are worth reading carefully.
+`provider.configuration` is the provider's own **mode** — which of several materially different
+configurations of one provider was tested, `flagd-rpc` against `flagd-in-process` — and it comes
+from `tck.WithName`. `backend.controlApi` is how the suite drove the backend: `http` for the
+normative control API, `in-process` for the narrow allowance made for a provider with no backend.
+The backend block is always present and `controlApi` is always set, because `tck.BackendControl`
+requires the control to state it. Nothing infers it, and an absent value would not be "no claim
+made" but an unfalsifiable one — the same scenarios passing over the control API and passing through
+in-process manipulation of a provider that *does* have a backend are not the same claim, and this is
+the only field that separates them. The backend's own named flag configuration, if you set one, is
+`tck.WithBackendConfiguration` and does not appear in the report at all.
 
 `PROVIDER_TCK_REPORT_DIR` is an environment variable rather than a `Config` field so that emitting a
 report is a property of the run and not of the code: CI sets it, a developer running the suite
@@ -712,7 +728,7 @@ capability that gated it in `testStepResult.message`, so a consumer can check th
 trusting the runner to have applied it.
 
 godog 0.15.1 has no Messages formatter — it registers `cucumber` (the legacy relishapp JSON),
-`events`, `junit`, `pretty` and `progress` — so [`messages.go`](./pkg/tck/messages.go) is one,
+`events`, `junit`, `pretty` and `progress` — so [`messages.go`](./messages.go) is one,
 registered through the public `godog.Format` plugin interface. Its JUnit output was not a usable
 fallback: a capability-gated skip comes out as `skipped="0"` on the suite, in a non-standard
 `<error type="skipped">` element, with the step text where the skip reason should be.
@@ -728,7 +744,7 @@ therefore comes from the capability gate itself and lands in `TestStepResult.mes
 
 ### What identifies a report
 
-`tck.specRevision` comes from [`revision.go`](./pkg/tck/revision.go), and it is the module version
+`tck.specRevision` comes from [`revision.go`](./revision.go), and it is the module version
 pinned in [`go.mod`](./go.mod) — the assets arrive as a Go module, so the pin *is* the revision.
 
 It is written by hand, which needs a guard rather than an apology. Nothing generates it and nothing
