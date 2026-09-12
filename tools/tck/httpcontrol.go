@@ -12,9 +12,14 @@ import (
 	"time"
 )
 
-// DefaultConfiguration is the configuration name every backend under test must
-// support, and the one that serves the canonical flag set.
-const DefaultConfiguration = "default"
+// DefaultBackendConfiguration is the backend configuration name every backend
+// under test must support, and the one that serves the canonical flag set.
+//
+// "Backend" is in the name on purpose. In the conformance report,
+// "configuration" is the provider's own mode — flagd RPC against flagd
+// in-process — which is what WithName feeds. This is the other thing entirely:
+// the named flag configuration the backend is asked to serve.
+const DefaultBackendConfiguration = "default"
 
 // defaultControlTimeout bounds a single control-API request. Control calls are
 // local HTTP to a container on the same host; anything slower than this is a
@@ -51,9 +56,9 @@ const defaultControlTimeout = 30 * time.Second
 // flag state rather than to start a stopped backend. HTTPControl tracks that
 // and uses /start for the scenario following any disconnect.
 type HTTPControl struct {
-	baseURL       string
-	configuration string
-	client        *http.Client
+	baseURL              string
+	backendConfiguration string
+	client               *http.Client
 
 	mu sync.Mutex
 	// resetSupported is nil until the first /reset call tells us.
@@ -78,10 +83,14 @@ type HTTPControlOptions struct {
 	// pin host ports.
 	BaseURL string
 
-	// Configuration is the named flag configuration to seed. Defaults to
-	// DefaultConfiguration, which is the only name every backend must support
-	// and the one serving the canonical flag set.
-	Configuration string
+	// BackendConfiguration is the named flag configuration the backend is
+	// asked to serve. Defaults to DefaultBackendConfiguration, which is the
+	// only name every backend must support and the one serving the canonical
+	// flag set.
+	//
+	// Not to be confused with the provider's own configuration — its mode,
+	// which the report calls "configuration" and WithName supplies.
+	BackendConfiguration string
 
 	// Client is the HTTP client to use. Defaults to one with a 30 second
 	// timeout.
@@ -98,9 +107,9 @@ func NewHTTPControl(opts HTTPControlOptions) (*HTTPControl, error) {
 		return nil, fmt.Errorf("HTTPControlOptions.BaseURL %q is not a valid URL: %w", opts.BaseURL, err)
 	}
 
-	configuration := opts.Configuration
-	if configuration == "" {
-		configuration = DefaultConfiguration
+	backendConfiguration := opts.BackendConfiguration
+	if backendConfiguration == "" {
+		backendConfiguration = DefaultBackendConfiguration
 	}
 
 	client := opts.Client
@@ -109,9 +118,9 @@ func NewHTTPControl(opts HTTPControlOptions) (*HTTPControl, error) {
 	}
 
 	return &HTTPControl{
-		baseURL:       strings.TrimSuffix(opts.BaseURL, "/"),
-		configuration: configuration,
-		client:        client,
+		baseURL:              strings.TrimSuffix(opts.BaseURL, "/"),
+		backendConfiguration: backendConfiguration,
+		client:               client,
 	}, nil
 }
 
@@ -126,10 +135,20 @@ func NewHTTPControl(opts HTTPControlOptions) (*HTTPControl, error) {
 //
 // This is the only wait in the suite that is a wait rather than an assertion,
 // and it is deliberately the only one. There is no settle after a control call:
-// the control API's promise is that a command has taken effect when it returns,
-// and a suite that sleeps instead of holding it to that promise stops being able
-// to detect when it breaks. If a scenario is flaky immediately after a control
-// call, that is a defect in the backend's control API and worth an issue there.
+// the control API's promise is that a command has taken effect when it returns
+// — stated for /start, /change and /reset alike in control-api.yaml, each of
+// which must not return until the new state is being served — and a suite that
+// sleeps instead of holding it to that promise stops being able to detect when
+// it breaks. If a scenario is flaky immediately after a control call, that is a
+// defect in the backend's control API and worth an issue there.
+//
+// Note which side of the line that promise sits on. It is the backend's: a
+// fresh evaluation against the backend must resolve the new state once the call
+// returns. How long the provider under test takes to notice is a property of
+// its transport — streaming sees a change in milliseconds, a poller may need
+// most of an interval — and that is what the event timeout is for. Confusing
+// the two makes the provider's detection latency unmeasurable, because the
+// clock starts before there is anything to detect.
 func (c *HTTPControl) AwaitReady(ctx context.Context, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	var last error
@@ -185,6 +204,12 @@ func (c *HTTPControl) probe(ctx context.Context) (int, error) {
 func (c *HTTPControl) Description() string {
 	return fmt.Sprintf("the backend at %s, driven over the control API", c.baseURL)
 }
+
+// ControlAPI implements BackendControl.
+//
+// Always ControlAPIHTTP: this type exists to speak the normative HTTP control
+// API, and it has no other mode to be in.
+func (c *HTTPControl) ControlAPI() ControlAPI { return ControlAPIHTTP }
 
 // PrepareScenario implements BackendControl.
 func (c *HTTPControl) PrepareScenario(ctx context.Context) error {
@@ -264,7 +289,7 @@ func (c *HTTPControl) Reconnect(ctx context.Context) error {
 }
 
 func (c *HTTPControl) start(ctx context.Context) error {
-	return c.require(ctx, "/start", url.Values{"config": []string{c.configuration}})
+	return c.require(ctx, "/start", url.Values{"config": []string{c.backendConfiguration}})
 }
 
 // require performs a control call and fails on any non-2xx response.
