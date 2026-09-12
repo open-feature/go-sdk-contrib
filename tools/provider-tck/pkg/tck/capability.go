@@ -104,6 +104,45 @@ const (
 	// rather than an oversight.
 	Variants Capability = "@variants"
 
+	// DisabledFlags means the provider resolves a flag that is disabled in the
+	// flag management system to the caller's default value, with no error.
+	//
+	// Gated, because the answer depends on where the substitution happens
+	// rather than on provider quality. A provider that evaluates locally — the
+	// flagd in-process resolver, an in-memory flag set — holds the flag's state
+	// and can hand back the value the caller passed in. A provider whose
+	// backend decides, and OFREP is the clear case, cannot: the caller's
+	// default never leaves the process, the server has never seen it, and no
+	// response it could send would carry it. The same flag cannot behave the
+	// same way across those two architectures and neither of them is wrong,
+	// which is precisely what a capability is for.
+	//
+	// Nothing in the specification says what a provider owes a disabled flag.
+	// Requirement 1.4.7 is about the SDK propagating whatever reason arrived,
+	// and 2.2.5 only lists DISABLED among the reason strings a provider may
+	// use. So the behaviour is stated by Appendix F, the way @numeric-coercion
+	// is, and gated rather than made mandatory.
+	//
+	// The four scenarios assert the value and the absence of an error, and
+	// deliberately not the reason: each row's caller default differs from the
+	// flag's configured value, so a provider that ignores the state returns the
+	// configured value and is caught on the value alone, which rests on 2.2.3,
+	// a MUST. Pinning reason "DISABLED" would rest on 2.2.5, a SHOULD that
+	// permits "some other string".
+	//
+	// It does not compose with Variants, and that is not an omission: a
+	// disabled flag has resolved no variant, so there is no name for the
+	// resolution to carry and nothing for a variant assertion to be about.
+	//
+	// Declare it when a disabled flag comes back as the code default with no
+	// error code. The Go SDK's memprovider.InMemoryProvider does not manage
+	// that — it returns the default value but attaches a GENERAL resolution
+	// error alongside reason DISABLED, so the error-code assertion fails —
+	// which is why none of the in-memory self-tests declares this. See
+	// TestCanonicalFlagSetDisabledFlagsCarryAnError, which is the evidence for
+	// that and will fail if the SDK stops doing it.
+	DisabledFlags Capability = "@disabled-flags"
+
 	// UnavailableInit means the provider reports an error state promptly,
 	// rather than hanging or panicking, when initialised against a backend it
 	// cannot reach.
@@ -230,6 +269,7 @@ var allCapabilities = []Capability{
 	ConfigurationChange,
 	Object,
 	Variants,
+	DisabledFlags,
 	UnavailableInit,
 	NumericCoercion,
 	LargeIntegers,

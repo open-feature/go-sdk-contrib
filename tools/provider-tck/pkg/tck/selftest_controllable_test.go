@@ -64,6 +64,15 @@ func TestControllableProvider(t *testing.T) {
 		// rather than about this provider: tck.CanonicalFlagSet ignores
 		// targeting-key-flag's rule, so the flag resolves to its miss variant
 		// whatever the context. See TestInMemoryProvider.
+		//
+		// DisabledFlags is not declared either, and for once the reason is
+		// neither the flag set nor a decision: every resolution here is still
+		// memprovider's, and memprovider returns the caller's default for a
+		// disabled flag with a GENERAL resolution error attached. The value is
+		// right and the error code is not, so the outline fails on the
+		// error-code step. Wrapping it changes nothing — this provider adds
+		// update-and-emit and delegates every resolution decision — which is
+		// why the omission matches TestInMemoryProvider's exactly.
 		Capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
