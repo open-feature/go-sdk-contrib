@@ -434,6 +434,12 @@ configuration validation, because it records that something is broken without sa
 then worth less than the bare skip it accompanies; so is one naming a reserved capability, because
 no scenario carries that tag and nothing was skipped for it to explain.
 
+## Adopters
+
+| Provider | Suite | Backend |
+| --- | --- | --- |
+| flagd (RPC and in-process resolvers) | [`providers/flagd/e2e/tck_test.go`](../../providers/flagd/e2e/tck_test.go) | the Compose harness, against the `flagd-testbed` launchpad |
+
 ## Controlling the backend
 
 `tck.BackendControl` is the single seam between the scenarios and whatever manipulates the backend.

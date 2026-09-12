@@ -56,6 +56,109 @@ Tests provider configuration validation and defaults.
 - **Implementation**: Table-driven tests (refactored from 132 lines with duplication to 70 lines)
 - **Status**: ✅ **PASS** - All passing reliably
 
+### Provider Conformance Suite (`tck_test.go`)
+
+Runs the cross-language [OpenFeature Provider TCK](../../../tools/tck/README.md) against
+flagd — the same Gherkin scenarios, canonical flag set and backend control API that every other
+language's TCK runs. It answers a different question from the suites above: not "does flagd work?"
+but "does the flagd provider implement the provider contract the same way every other provider
+does?".
+
+- **Subjects**: `TestFlagdRPCConformance` and `TestFlagdInProcessConformance`. The two resolvers are
+  separate suites because they are separately conformant.
+- **Backend**: the unmodified `flagd-testbed` image, described by
+  [`testdata/tck/docker-compose.yaml`](testdata/tck/docker-compose.yaml). The TCK drives its
+  launchpad through the standardised control API, which the launchpad already implements.
+- **Adopter-written infrastructure**: none. The suite owns the container lifecycle — it starts the
+  stack, discovers the dynamically mapped host ports, builds the HTTP control against the launchpad
+  and tears down after the last scenario. `tck_test.go` names the Compose file, names the
+  container-internal port each resolver connects to, and hands over a factory. The hand-rolled
+  wrapper it replaces went through `tests/flagd/testframework.NewFlagdContainer` with a temporary
+  bind-mounted flags directory, built the control client itself and looked up ports by name.
+- **Isolation**: the stack starts once per suite and is never restarted. Scenario isolation comes
+  from the control API, because container orchestrators cannot reliably preserve dynamically mapped
+  host ports across a restart.
+- **Relationship to the suites above**: none. They are untouched, they keep using the testbed
+  submodule's own Compose file, and so is `flagd-testbed` itself.
+
+The Compose file here is deliberately **not** the testbed submodule's. That one bind-mounts
+`${FLAGS_DIR}` — defaulting to its own directory, so an unset value has the launchpad write into the
+checked-out submodule — and runs an envoy sidecar that exists for the TLS and permission-denied
+scenarios of the suites above. The conformance suite needs neither. What it does need is a service
+called `backend`, which is the TCK's default and the same name Java's flagd adoption uses, so the two
+languages' stacks differ in nothing a reader has to reconcile. The cost is that the image tag is
+pinned in two places; bump it here as well when the submodule moves.
+
+Two differences between the resolvers show up as capability declarations rather than as failures:
+
+| | RPC | in-process |
+| --- | --- | --- |
+| emits `PROVIDER_STALE` on connection loss | **no** — goes straight to `PROVIDER_ERROR` | yes, then escalates to `PROVIDER_ERROR` after the retry grace period |
+| `@stale` scenario | skipped, with the reason reported | runs |
+
+That gap is a real behavioural difference between two modes of the same provider: an application
+that switches from in-process to RPC silently stops receiving stale events. `tck.Stale` is withheld
+from the RPC suite so the scenario is reported as skipped rather than failed, and it should be
+declared as soon as the RPC resolver emits `PROVIDER_STALE`.
+
+Both resolvers declare `@disabled-flags`, and that one is a difference that turned out **not** to
+exist. The capability is gated because what a disabled flag resolves to depends on where the
+caller's default is substituted, so the RPC resolver — which asks flagd to resolve every flag —
+looked like the side that could not have it. It can: flagd answers with reason `DISABLED`, an empty
+variant and a zero value, and the provider recognises that pair and keeps the caller's default
+(`isDefaultOrDisabledFallback` in `pkg/service/rpc/service.go`). The in-process resolver reads the
+state out of the ruleset it synced and arrives at the same answer. All four rows pass in both.
+
+Both suites run **56 scenarios: 54 pass and 2 fail.** The two failures are the same pair in both
+resolvers, and neither says anything about the provider: `large-integer-flag` is absent from
+`flagd-testbed`, so "A large integer resolves without loss of precision" fails with
+`FLAG_NOT_FOUND` and the last `@variants` row has no variant to name.
+[open-feature/flagd-testbed#392](https://github.com/open-feature/flagd-testbed/issues/392) adds the
+flag and both go green together. Neither gets a known-deviation entry, because the gap is in the
+fixture and an entry there would attribute it to the provider.
+
+**Re-run a red result before reading anything into it.** The launchpad's `POST /start` returns
+before flagd's file source has finished loading the regenerated flag file, so any scenario can fail
+with `FLAG_NOT_FOUND` or reason `ERROR` on a given run. Six consecutive runs against
+`flagd-testbed:v3.8.0` produced 2, 2, 3, 3, 17 and 20 failures, and the three runs with more than
+three had almost disjoint failing sets — every extra failure `FLAG_NOT_FOUND` on a flag the testbed
+definitely has. The 20-failure run was the hand-rolled container wrapper this file replaces and the
+17 was the harness, so the flapping belongs to the backend and not to either of them.
+
+That contradicts what this file used to say, which was that a provider with an initialisation to
+block on does not hit the race. It hits it less often than a stateless one, not never: flagd's RPC
+`Init` waits for the event stream, which flagd serves as soon as it is listening and before its file
+source has populated the store. The OFREP suite documents the race in full.
+
+**No sleep is being added to compensate.** The control API's promise is that a command has taken
+effect when it returns, and a suite that sleeps instead of holding it to that promise stops being
+able to detect when it breaks. This belongs in the testbed.
+
+**These two suites are excluded from the default build.** They skip unless `TCK_RUN` is set, and a
+maintainer runs them by hand before merge:
+
+```bash
+TCK_RUN=1 go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
+TCK_RUN=1 go test -tags=e2e -run Conformance -timeout=20m ./...
+```
+
+Why an adoption suite is excluded rather than gating a merge is the same argument in every language,
+and it is settled in Appendix F's
+["Running the suite in CI"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
+rather than restated here. The mechanism is Go's, and it is worth stating exactly because the
+appendix names two mistakes and this file had made the first of them:
+
+- The gate is a **runtime skip inside the test function**, reading `TCK_RUN`. Nothing in the build
+  re-enables it. A build tag would not have worked here — `make e2e` expands to a `go test
+  -tags=e2e` over every module in the workspace, so the tag is applied to everything and both these
+  suites were in fact running, red, on every pull request before the gate existed.
+- Because it is a runtime skip rather than `//go:build e2e && tck`, CI still compiles this file
+  against `tools/tck` under `-tags=e2e`, which is what the appendix asks for: a suite that has
+  quietly stopped building against its own harness is worse than one that runs and fails. Only the
+  container work is skipped, and the skip message names the variable.
+- It is written down here and in the harness's own README, which is the appendix's second mistake
+  avoided.
+
 ## Test Framework Components
 
 ### Core Architecture (`tests/flagd/testframework/`)

@@ -1,11 +1,13 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagd/e2e
 
-go 1.25.9
+go 1.26.0
 
 require (
 	github.com/cucumber/godog v0.15.1
+	github.com/open-feature/go-sdk v1.18.0
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.3.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.6.0
+	github.com/open-feature/go-sdk-contrib/tools/tck v0.1.0
 )
 
 require (
@@ -101,8 +103,8 @@ require (
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/open-feature/flagd-schemas v0.2.13 // indirect
-	github.com/open-feature/flagd/core v0.16.0 // indirect
-	github.com/open-feature/go-sdk v1.18.0 // indirect
+	github.com/open-feature/flagd/core v0.17.0 // indirect
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260912211427-ccdb88790bb4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.1 // indirect
@@ -177,3 +179,5 @@ require (
 replace github.com/open-feature/go-sdk-contrib/tests/flagd => ../../../tests/flagd
 
 replace github.com/open-feature/go-sdk-contrib/providers/flagd => ../
+
+replace github.com/open-feature/go-sdk-contrib/tools/tck => ../../../tools/tck
