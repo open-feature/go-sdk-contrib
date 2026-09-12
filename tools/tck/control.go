@@ -105,7 +105,7 @@ func unsupportedControl(control BackendControl, operation string) error {
 		"%w: %s does not support %q. This is a test-configuration bug rather than a provider "+
 			"defect: a scenario needing connection control ran, so the suite declared "+
 			"tck.Stale or tck.UnavailableInit for a backend that cannot simulate an outage. "+
-			"Remove those capabilities from Config.Capabilities, or supply a BackendControl "+
+			"Remove those capabilities from tck.WithCapabilities, or supply a BackendControl "+
 			"that implements tck.ConnectionControl",
 		ErrUnsupportedControl, control.Description(), operation)
 }

@@ -9,29 +9,44 @@
 //
 // # What a provider author writes
 //
-// One test function and a [Config] literal. Everything else — registering the
-// provider with the OpenFeature API, waiting for it to become ready, awaiting
-// events, resetting the backend between scenarios, tearing down — belongs to
-// the TCK. If you find yourself writing test infrastructure, that is a defect
-// in this package rather than something for you to work around.
+// One test function and a Docker Compose file. Everything else — starting the
+// stack, discovering its host ports, driving the backend's control API,
+// registering the provider with the OpenFeature API, waiting for it to become
+// ready, awaiting events, resetting the backend between scenarios, tearing down
+// — belongs to the TCK. If you find yourself writing test infrastructure, that
+// is a defect in this package rather than something for you to work around.
 //
 //	func TestMyProviderConformance(t *testing.T) {
-//	    control := myBackendControl()
-//	    tck.Run(t, tck.Config{
-//	        Name:    "my-provider",
-//	        Control: control,
-//	        NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
-//	            return myprovider.New(control.Address()), nil
-//	        },
-//	        Capabilities: []tck.Capability{tck.Events, tck.Object},
-//	    })
+//	    tck.Run(t,
+//	        tck.WithName("my-provider"),
+//	        tck.WithComposeFile("testdata/tck/docker-compose.yaml"),
+//	        tck.WithBackendPorts(8013),
+//	        tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
+//	            return myprovider.New(e.Host(), e.Port(8013)), nil
+//	        }),
+//	        tck.WithUnavailableProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+//	            return myprovider.New("localhost", 9999), nil
+//	        }),
+//	        tck.WithCapabilities(tck.Events, tck.Object),
+//	    )
 //	}
+//
+// See [WithComposeFile]. A provider with no backend to contain — in-memory,
+// in-process — supplies its own control and builds its provider without an
+// endpoint instead, through [WithControl] and [WithProvider].
+//
+// # Options rather than a struct
+//
+// Every setting is one [Option], so the suite can gain a capability without
+// every adoption having to be edited, and so that a required setting is named in
+// one place rather than being a zero value someone has to remember means
+// "unset". A missing required option is reported by name before anything starts.
 //
 // # Capabilities
 //
 // Not every provider implements every optional part of the contract. Scenarios
 // exercising an optional part carry a Gherkin tag, and a provider declares which
-// of those it supports through [Config.Capabilities]. A scenario whose tag was
+// of those it supports through [WithCapabilities]. A scenario whose tag was
 // not declared is reported as skipped with the reason printed — never as
 // passed. See [Capability].
 //
@@ -40,15 +55,15 @@
 // A provider with behaviour the specification does not describe — flagd's
 // fractional targeting, a vendor's segment rules — can run scenarios of its own
 // inside this suite rather than in a harness beside it, through
-// [Config.ExtensionFeatures] and [Config.ExtensionSteps]:
+// [WithFeatures] and [WithSteps]:
 //
-//	tck.Run(t, tck.Config{
+//	tck.Run(t,
 //	    // ... as above ...
-//	    ExtensionFeatures: os.DirFS("testdata/tck-extensions"),
-//	    ExtensionSteps: func(ctx *godog.ScenarioContext) {
+//	    tck.WithFeatures(os.DirFS("testdata/tck-extensions")),
+//	    tck.WithSteps(func(ctx *godog.ScenarioContext) {
 //	        ctx.Step(`^the fractional bucket is "([^"]*)"$`, theBucketIs)
-//	    },
-//	})
+//	    }),
+//	)
 //
 // Extension scenarios get the same provider registration, readiness wait and
 // per-scenario backend reset the canonical ones get, and an extension step
@@ -59,7 +74,7 @@
 //
 // Java and Python discover extensions by convention — a classpath scan, a
 // conftest.py — because those languages can scan. Go cannot, so extension here
-// is two fields rather than none.
+// is two options rather than none.
 //
 // # Which control path to use
 //

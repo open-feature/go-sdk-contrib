@@ -77,7 +77,7 @@ type lifecycleCall struct {
 // scenarioState is everything one scenario accumulates. A fresh instance is
 // created per scenario and carried through the step definitions in the context.
 type scenarioState struct {
-	cfg *Config
+	cfg *config
 
 	// provider is the provider under test, held so that the lifecycle and
 	// metadata steps can address it directly. Evaluations go through client.
@@ -103,7 +103,7 @@ type scenarioState struct {
 	recorders map[openfeature.EventType]*eventRecorder
 }
 
-func newScenarioState(cfg *Config) *scenarioState {
+func newScenarioState(cfg *config) *scenarioState {
 	return &scenarioState{
 		cfg:       cfg,
 		recorders: map[openfeature.EventType]*eventRecorder{},
@@ -175,7 +175,7 @@ func (s *scenarioState) recorder(eventType openfeature.EventType) (*eventRecorde
 // teardown detaches every handler this scenario registered.
 //
 // The provider itself is left registered: the next scenario replaces it, which
-// is what makes the SDK shut this one down. See Config.domain. That holds for a
+// is what makes the SDK shut this one down. See config.domain. That holds for a
 // provider a lifecycle step already shut down directly, too — the SDK's
 // Shutdown on replacement is then the second call, which requirement 2.5.3
 // says must have no further effect — and for one that was shut down and
@@ -246,7 +246,7 @@ func (r *eventRecorder) await(ctx context.Context, timeout time.Duration) (openf
 	case <-timer.C:
 		return openfeature.EventDetails{}, fmt.Errorf(
 			"timed out after %s waiting for a %s event. If the provider is simply slower than this "+
-				"to notice, raise Config.EventTimeout rather than treating it as a failure",
+				"to notice, raise tck.WithEventTimeout rather than treating it as a failure",
 			timeout, r.eventType)
 	case <-ctx.Done():
 		return openfeature.EventDetails{}, fmt.Errorf("cancelled while waiting for a %s event: %w", r.eventType, ctx.Err())
@@ -272,7 +272,7 @@ func withState(ctx context.Context, s *scenarioState) context.Context {
 func stateFrom(ctx context.Context) (*scenarioState, error) {
 	s, ok := ctx.Value(stateKey{}).(*scenarioState)
 	if !ok || s == nil {
-		return nil, errors.New("provider-tck: no scenario state in context; this is a bug in the TCK itself")
+		return nil, errors.New("tck: no scenario state in context; this is a bug in the TCK itself")
 	}
 	return s, nil
 }

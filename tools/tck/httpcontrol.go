@@ -115,6 +115,72 @@ func NewHTTPControl(opts HTTPControlOptions) (*HTTPControl, error) {
 	}, nil
 }
 
+// AwaitReady blocks until the control API is willing to accept commands, or
+// until timeout expires.
+//
+// It probes GET /healthz, which the control API specification marks optional:
+// a 404 means the control port is answering HTTP but does not serve that path,
+// which is the reference implementation's behaviour and is ready enough — the
+// TCP wait the stack already passed is the documented fallback. Anything else
+// is retried until the deadline.
+//
+// This is the only wait in the suite that is a wait rather than an assertion,
+// and it is deliberately the only one. There is no settle after a control call:
+// the control API's promise is that a command has taken effect when it returns,
+// and a suite that sleeps instead of holding it to that promise stops being able
+// to detect when it breaks. If a scenario is flaky immediately after a control
+// call, that is a defect in the backend's control API and worth an issue there.
+func (c *HTTPControl) AwaitReady(ctx context.Context, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var last error
+
+	for attempt := 0; ; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("gave up waiting for the control API at %s: %w", c.baseURL, ctx.Err())
+			case <-time.After(controlProbeInterval):
+			}
+		}
+
+		status, err := c.probe(ctx)
+		switch {
+		case err != nil:
+			last = err
+		case status == http.StatusOK || status == http.StatusNotFound:
+			return nil
+		default:
+			last = fmt.Errorf("GET /healthz on %s returned %d", c.baseURL, status)
+		}
+
+		if !time.Now().Before(deadline) {
+			return fmt.Errorf(
+				"the control API at %s did not become ready within %s: %w. It must be reachable "+
+					"before the first scenario, and must stay reachable even while the backend is "+
+					"deliberately down, otherwise an outage cannot be ended",
+				c.baseURL, timeout, last)
+		}
+	}
+}
+
+// probe performs one readiness request and returns its status code.
+func (c *HTTPControl) probe(ctx context.Context) (int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/healthz", nil)
+	if err != nil {
+		return 0, fmt.Errorf("could not build a readiness request for %s: %w", c.baseURL, err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("control API not reachable at %s: %w", c.baseURL, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	return resp.StatusCode, nil
+}
+
 // Description implements BackendControl.
 func (c *HTTPControl) Description() string {
 	return fmt.Sprintf("the backend at %s, driven over the control API", c.baseURL)

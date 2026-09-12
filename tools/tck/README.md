@@ -59,31 +59,39 @@ these — or disabling anything else — breaks those quietly rather than loudly
 
 ## Adopting it
 
-One test function and one struct literal. The TCK owns the whole lifecycle: it registers each
+One test function and one Docker Compose file. The TCK owns the whole lifecycle: it starts the stack,
+discovers its dynamically mapped host ports, drives the backend's control API, registers each
 provider with the OpenFeature API under a suite-scoped domain, waits for it to become ready, awaits
-events, resets the backend between scenarios and releases the provider at the end. **If you find
-yourself writing test infrastructure, that is a defect here rather than something for you to work
-around.**
+events, resets the backend between scenarios, releases the provider at the end and tears the stack
+down. **If you find yourself writing test infrastructure, that is a defect here rather than
+something for you to work around.**
 
 ```go
 func TestMyProviderConformance(t *testing.T) {
-	control := myBackendControl()
-
-	tck.Run(t, tck.Config{
-		Name:    "my-provider",
-		Control: control,
-		NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
-			return myprovider.New(control.Address()), nil
-		},
-		Capabilities: []tck.Capability{tck.Events, tck.Lifecycle, tck.Object, tck.NumericCoercion, tck.LargeIntegers},
-	})
+	tck.Run(t,
+		tck.WithName("my-provider"),
+		tck.WithComposeFile("testdata/tck/docker-compose.yaml"),
+		tck.WithBackendPorts(8013),
+		tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
+			return myprovider.New(e.Host(), e.Port(8013)), nil
+		}),
+		tck.WithUnavailableProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+			return myprovider.New("localhost", 9999), nil
+		}),
+		tck.WithCapabilities(tck.Events, tck.Lifecycle, tck.Object, tck.NumericCoercion, tck.LargeIntegers),
+	)
 }
 ```
 
-Three fields are required — `Name`, `NewProvider`, `Control` — and everything else has a working
-default. `NewProvider` is a factory rather than an instance because each scenario gets its own
-provider, and because a provider often cannot be configured before the suite starts: a container
-stack's host ports do not exist until it is up.
+Configuration is functional options rather than a struct, so the suite can gain a capability without
+every adoption having to be edited, and so a required option is named in one place rather than being
+a zero value someone has to remember means "unset". A missing one is reported by name before
+anything starts.
+
+Two options are always required — `tck.WithName` and a provider factory — and one more depends on
+how the backend is run. The factory is a factory rather than an instance because each scenario gets
+its own provider, and because a provider cannot be configured before the stack is up: its host ports
+do not exist until then.
 
 Each scenario becomes a Go subtest, so `-run` selects one the usual way and failures name a
 scenario.
@@ -92,9 +100,55 @@ The canonical feature files and flag set arrive as an ordinary dependency, so **
 module needs no git submodule** — `go get` it and everything the suite runs comes with it. Where
 they come from and how the pin moves is described under [The spec module](#the-spec-module).
 
+### The Compose contract
+
+An adopter names a Compose file, says which service and ports to expose, and supplies a factory that
+builds a provider from a discovered endpoint. The suite does the rest.
+
+| option | required | default | meaning |
+| --- | --- | --- | --- |
+| `tck.WithComposeFile(path)` | yes | — | the Compose file, resolved relative to the package directory |
+| `tck.WithBackendService(name)` | no | `backend` | the Compose service hosting both the control API and the backend |
+| `tck.WithBackendPorts(ports...)` | yes | — | container-internal ports the *provider* connects to. The control port is exposed automatically and must not be listed here |
+| `tck.WithControlPort(port)` | no | `8080` | container-internal port of the control API |
+| `tck.WithAdditionalPorts(service, ports...)` | no | none | extra service → ports, for stacks with more than one service. Resolved through the endpoint by service name |
+| `tck.WithConfiguration(name)` | no | `default` | the configuration name passed to `POST /start` |
+| `tck.WithStartupTimeout(d)` | no | 60s | how long to wait for the stack and its control API to become reachable |
+| `tck.BackendEndpoint` | — | — | what the factory receives: `Host()` and `Port(internal)`, plus `ServiceHost`/`ServicePort` for a named service |
+
+Three rules are not negotiable, because they are the reasons the design is shaped this way.
+
+**The stack must not pin host ports.** Docker assigns them dynamically and the suite discovers them
+after startup; a pinned host port makes the suite unrunnable in parallel and collides with whatever
+the developer already has listening.
+
+**The stack starts once per suite and is never restarted.** Testcontainers cannot reliably preserve
+dynamically mapped host ports across a restart, so a restart would silently invalidate every
+provider already pointed at the old port, and the failure would look like a flaky provider. Backend
+unavailability is *always* simulated inside the running stack through the control API.
+
+**The control API is the normative contract.** Another language's suite drives the same endpoints
+against the same stack and must get the same answers, so do not substitute an in-process control
+that reaches an external backend through a side channel — see
+[Controlling the backend](#controlling-the-backend).
+
+The suite waits for the control API once, before the first scenario, by probing `GET /healthz`
+bounded by the startup timeout; a `404` counts as ready, because that path is optional and the TCP
+port wait the stack already passed is the documented fallback. There is **no settle after a control
+call**: the control API's promise is that a command has taken effect when it returns, and a suite
+that sleeps instead of holding it to that promise stops being able to detect when it breaks. If a
+scenario is flaky immediately after a control call, that is a defect in the backend's control API
+and worth an issue there rather than a sleep here.
+
+Compose does not replace the manual path. A provider with no backend keeps supplying its own
+`tck.WithControl` and building its provider with `tck.WithProvider` — see
+[Providers with no backend](#providers-with-no-backend). Mixing the two paths is refused rather than
+silently resolved, because either half of the mix would leave a provider pointed at a stack whose
+control the suite is not driving.
+
 ### Timings
 
-`Config.EventTimeout` is the knob that matters. Providers observe backend changes on wildly
+`tck.WithEventTimeout` is the knob that matters. Providers observe backend changes on wildly
 different timescales — a streaming provider sees a configuration change in milliseconds, one that
 polls every 30 seconds may need most of a poll interval. Set it to comfortably exceed your
 worst-case detection latency, or the suite reports timeouts that are really just impatience.
@@ -104,19 +158,19 @@ worst-case detection latency, or the suite reports timeouts that are really just
 A provider often has behaviour the specification does not describe and cannot — flagd's `fractional`
 targeting, a vendor's segment rules. Those scenarios still need a provider registered per scenario,
 a backend reset between them and the event plumbing this suite already owns, so they run *in* the
-suite rather than beside it. Two optional fields:
+suite rather than beside it. Two optional options:
 
 ```go
-tck.Run(t, tck.Config{
-	// ... Name, NewProvider, Control, Capabilities as above ...
-	ExtensionFeatures: os.DirFS("testdata/tck-extensions"),
-	ExtensionSteps: func(ctx *godog.ScenarioContext) {
+tck.Run(t,
+	// ... name, provider factory, control and capabilities as above ...
+	tck.WithFeatures(os.DirFS("testdata/tck-extensions")),
+	tck.WithSteps(func(ctx *godog.ScenarioContext) {
 		ctx.Step(`^the fractional bucket for "([^"]*)" is "([^"]*)"$`, theBucketIs)
-	},
-})
+	}),
+)
 ```
 
-`ExtensionFeatures` is any `fs.FS`; every `.feature` file in it is picked up. `ExtensionSteps` is
+`tck.WithFeatures` takes any `fs.FS`; every `.feature` file in it is picked up. `tck.WithSteps` is
 called during scenario initialisation, after the TCK's own step definitions, so an extension step
 sees the same scenario context and the same hooks. It reaches the provider under test through
 `tck.ClientFromContext(ctx)` — the provider is registered under a suite-scoped domain the adopter
@@ -132,7 +186,7 @@ told apart from a canonical result. A filesystem holding no `.feature` file is r
 quietly running the canonical suite alone, that being how mis-wired extensions otherwise go
 unnoticed.
 
-**Both fields are optional, and a `Config` without them runs exactly what it ran before they
+**Both are optional, and a configuration without them runs exactly what it ran before they
 existed.**
 
 Where Java and Python discover extensions by convention — a classpath scan, a `conftest.py` beside
@@ -168,18 +222,19 @@ to be inferred from a scenario count.
 | `tck.Targeting` | `@targeting` | resolves a flag differently for a matching evaluation context |
 | `tck.Caching` | `@caching` | reserved; **not declarable** — no scenarios yet |
 
-Untagged scenarios are mandatory and always run. `Capabilities` defaults to `tck.AllCapabilities()`
-— narrow it rather than widening it: start from the default, run the suite, and remove only what
-your provider genuinely cannot do.
+Untagged scenarios are mandatory and always run. Omitting `tck.WithCapabilities` declares
+`tck.AllCapabilities()` — narrow it rather than widening it: start from the default, run the suite,
+and remove only what your provider genuinely cannot do. Passing it with no capability at all is a
+declaration too, and says this provider supports none of the optional parts.
 
 A **reserved** capability is named by the vocabulary so there is a place for it once scenarios
 exist, but it **must not be declared**. No scenario carries the tag, so declaring it cannot be
 verified, cannot even produce a skip, and tells a reader of a report only that something was claimed
 and nothing examined. `tck.AllCapabilities()` therefore excludes the reserved capabilities, and
-naming one in `Capabilities` is rejected by configuration validation rather than passed into a
-report — an unverifiable claim is a configuration mistake, not a conformance result. `@caching` is
-the only reserved tag left: `@targeting` became declarable, with three scenarios, in spec
-`26362f85`.
+naming one in `tck.WithCapabilities` is rejected by configuration validation rather than passed
+into a report — an unverifiable claim is a configuration mistake, not a conformance result.
+`@caching` is the only reserved tag left: `@targeting` became declarable, with three scenarios, in
+spec `26362f85`.
 
 That is easy to reintroduce by accident rather than by intent: an adoption that declares everything
 and then removes what it cannot do collects every reserved tag on the way past, which is how a Java
@@ -289,18 +344,18 @@ tag undeclared. Nothing above 2^53 − 1 is asked for.
 
 ### Known deviations
 
-Narrowing `Capabilities` says a scenario was not run. It cannot say **why**, and the two reasons are
-not alike: a provider with no streaming transport declining `@configuration-change` has made a
+Narrowing `tck.WithCapabilities` says a scenario was not run. It cannot say **why**, and the two
+reasons are not alike: a provider with no streaming transport declining `@configuration-change` has made a
 decision, while one declining `@numeric-coercion` because it narrows `0.5` to `0` with no error code
 has a bug. In the results they are indistinguishable — the same skip, carrying the same reason — so
 unless the provider author says which happened, a consumer comparing providers reads a defect as a
 design choice. The TCK cannot infer it: from the outside, a capability withheld by choice and one
 withheld because it is broken are the same absence.
 
-`Config.KnownDeviations` is where that gets said.
+`tck.WithKnownDeviations` is where that gets said.
 
 ```go
-KnownDeviations: []tck.KnownDeviation{
+tck.WithKnownDeviations(
 	tck.TrackedDeviation(
 		tck.NumericCoercion,
 		"https://github.com/open-feature/flagd/issues/1996",
@@ -314,7 +369,7 @@ KnownDeviations: []tck.KnownDeviation{
 			"the transport error instead of emitting PROVIDER_STALE, so an application sees "+
 			"last-known values with no signal that they are last-known.",
 	),
-},
+)
 ```
 
 **Check the requirement before you write one.** A scenario failed is not yet a deviation, and a
@@ -387,7 +442,22 @@ Two of its requirements are easy to get wrong:
 
 An in-memory, environment-variable or file-based provider has nothing to connect to and no control
 API to expose. Those may control the backend in-process, where flag operations are direct
-manipulations of the provider's own state. `tck.InProcessControl` is the reference.
+manipulations of the provider's own state. `tck.InProcessControl` is the reference, and the adoption
+is the manual path — no Compose file, the control supplied directly, and the provider built without
+an endpoint:
+
+```go
+control := tck.NewInProcessControl()
+
+tck.Run(t,
+	tck.WithName("in-memory"),
+	tck.WithControl(control),
+	tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+		return control.NewProvider(), nil
+	}),
+	tck.WithCapabilities(tck.Events, tck.ConfigurationChange, tck.Object, tck.LargeIntegers),
+)
+```
 
 This is a narrow allowance and the obvious thing to abuse. **A provider with an external backend
 must use the control API.** Reaching into an external backend from inside the test process — a
@@ -423,7 +493,7 @@ Changing a scenario, a flag or a control endpoint means changing it in `open-fea
 then moving the pin here, by tag or by commit:
 
 ```console
-cd tools/provider-tck
+cd tools/tck
 go get github.com/open-feature/spec/specification/assets/provider-tck@<commit-or-tag>
 ```
 
@@ -454,7 +524,7 @@ the client still routes to that instance and still holds it as `READY`, which is
 evaluation after "the provider is initialized again" reach it. A provider that does not implement
 `openfeature.StateHandler` has nothing to call, and the steps are no-ops — the `@lifecycle` gate
 keeps such a provider out of those scenarios anyway. Each direct call is bounded by
-`Config.ReadyTimeout`, so a shutdown that never returns fails its step rather than hanging `go test`.
+`tck.WithReadyTimeout`, so a shutdown that never returns fails its step rather than hanging `go test`.
 
 **Providers are registered under a suite-scoped domain, not a per-scenario one.** Registering a
 provider in a domain replaces and shuts down the previous one; a fresh domain per scenario would

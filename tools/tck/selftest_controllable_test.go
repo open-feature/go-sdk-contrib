@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -24,12 +24,12 @@ import (
 func TestControllableProvider(t *testing.T) {
 	control := tck.NewInProcessControl()
 
-	tck.Run(t, tck.Config{
-		Name:    "controllable-in-memory",
-		Control: control,
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("controllable-in-memory"),
+		tck.WithControl(control),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return control.NewProvider(), nil
-		},
+		}),
 		// Stale and UnavailableInit stay undeclared: there is still no
 		// connection to lose, and tck.InProcessControl does not implement
 		// tck.ConnectionControl. ConfigurationChange is the one this suite adds
@@ -73,7 +73,7 @@ func TestControllableProvider(t *testing.T) {
 		// error-code step. Wrapping it changes nothing — this provider adds
 		// update-and-emit and delegates every resolution decision — which is
 		// why the omission matches TestInMemoryProvider's exactly.
-		Capabilities: []tck.Capability{
+		tck.WithCapabilities(
 			tck.Events,
 			tck.Lifecycle,
 			tck.Reinitialization,
@@ -81,6 +81,6 @@ func TestControllableProvider(t *testing.T) {
 			tck.Object,
 			tck.Variants,
 			tck.LargeIntegers,
-		},
-	})
+		),
+	)
 }

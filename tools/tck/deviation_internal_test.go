@@ -15,18 +15,18 @@ import (
 // records a defect without describing it is worth less than the skip it
 // accompanies — and that it cannot be about a tag no scenario carries.
 
-// deviationConfig is a Config that validates, so that a test naming one bad
+// deviationConfig is a configuration that validates, so that a test naming one bad
 // deviation sees that deviation's error and not a pile of unrelated ones.
-func deviationConfig(deviations ...KnownDeviation) *Config {
-	return &Config{
-		Name:    "deviation",
-		Control: stubControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+func deviationConfig(deviations ...KnownDeviation) *config {
+	return newConfig([]Option{
+		WithName("deviation"),
+		WithControl(stubControl{}),
+		WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return openfeature.NoopProvider{}, nil
-		},
-		Capabilities:    []Capability{Object},
-		KnownDeviations: deviations,
-	}
+		}),
+		WithCapabilities(Object),
+		WithKnownDeviations(deviations...),
+	})
 }
 
 func TestTheDeviationConstructorsDifferOnlyInWhetherTheGapIsTracked(t *testing.T) {
