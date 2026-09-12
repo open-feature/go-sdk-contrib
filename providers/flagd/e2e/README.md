@@ -58,7 +58,7 @@ Tests provider configuration validation and defaults.
 
 ### Provider Conformance Suite (`tck_test.go`)
 
-Runs the cross-language [OpenFeature Provider TCK](../../../tools/provider-tck/README.md) against
+Runs the cross-language [OpenFeature Provider TCK](../../../tools/tck/README.md) against
 flagd — the same Gherkin scenarios, canonical flag set and backend control API that every other
 language's TCK runs. It answers a different question from the suites above: not "does flagd work?"
 but "does the flagd provider implement the provider contract the same way every other provider
@@ -66,12 +66,28 @@ does?".
 
 - **Subjects**: `TestFlagdRPCConformance` and `TestFlagdInProcessConformance`. The two resolvers are
   separate suites because they are separately conformant.
-- **Backend**: the same `flagd-testbed` container, unmodified. The TCK drives its launchpad through
-  the standardised control API, which the launchpad already implements.
+- **Backend**: the unmodified `flagd-testbed` image, described by
+  [`testdata/tck/docker-compose.yaml`](testdata/tck/docker-compose.yaml). The TCK drives its
+  launchpad through the standardised control API, which the launchpad already implements.
+- **Adopter-written infrastructure**: none. The suite owns the container lifecycle — it starts the
+  stack, discovers the dynamically mapped host ports, builds the HTTP control against the launchpad
+  and tears down after the last scenario. `tck_test.go` names the Compose file, names the
+  container-internal port each resolver connects to, and hands over a factory. The hand-rolled
+  wrapper it replaces went through `tests/flagd/testframework.NewFlagdContainer` with a temporary
+  bind-mounted flags directory, built the control client itself and looked up ports by name.
 - **Isolation**: the stack starts once per suite and is never restarted. Scenario isolation comes
   from the control API, because container orchestrators cannot reliably preserve dynamically mapped
   host ports across a restart.
-- **Relationship to the suites above**: none. They are untouched, and so is `flagd-testbed`.
+- **Relationship to the suites above**: none. They are untouched, they keep using the testbed
+  submodule's own Compose file, and so is `flagd-testbed` itself.
+
+The Compose file here is deliberately **not** the testbed submodule's. That one bind-mounts
+`${FLAGS_DIR}` — defaulting to its own directory, so an unset value has the launchpad write into the
+checked-out submodule — and runs an envoy sidecar that exists for the TLS and permission-denied
+scenarios of the suites above. The conformance suite needs neither. What it does need is a service
+called `backend`, which is the TCK's default and the same name Java's flagd adoption uses, so the two
+languages' stacks differ in nothing a reader has to reconcile. The cost is that the image tag is
+pinned in two places; bump it here as well when the submodule moves.
 
 Two differences between the resolvers show up as capability declarations rather than as failures:
 
@@ -103,10 +119,20 @@ fixture and an entry there would attribute it to the provider.
 
 **Re-run a red result before reading anything into it.** The launchpad's `POST /start` returns
 before flagd's file source has finished loading the regenerated flag file, so any scenario can fail
-with `FLAG_NOT_FOUND` or reason `ERROR` on a given run. It was seen here on the `@disabled-flags`
-outline and the object scenario in one pass and on neither in the next three. The OFREP suite
-documents the race in full, because a provider with no initialisation to block on hits it far more
-often.
+with `FLAG_NOT_FOUND` or reason `ERROR` on a given run. Six consecutive runs against
+`flagd-testbed:v3.8.0` produced 2, 2, 3, 3, 17 and 20 failures, and the three runs with more than
+three had almost disjoint failing sets — every extra failure `FLAG_NOT_FOUND` on a flag the testbed
+definitely has. The 20-failure run was the hand-rolled container wrapper this file replaces and the
+17 was the harness, so the flapping belongs to the backend and not to either of them.
+
+That contradicts what this file used to say, which was that a provider with an initialisation to
+block on does not hit the race. It hits it less often than a stateless one, not never: flagd's RPC
+`Init` waits for the event stream, which flagd serves as soon as it is listening and before its file
+source has populated the store. The OFREP suite documents the race in full.
+
+**No sleep is being added to compensate.** The control API's promise is that a command has taken
+effect when it returns, and a suite that sleeps instead of holding it to that promise stops being
+able to detect when it breaks. This belongs in the testbed.
 
 ```bash
 go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
