@@ -1,6 +1,6 @@
 # OFREP Provider Conformance Suite
 
-Runs the cross-language [OpenFeature Provider TCK](../../../tools/provider-tck/README.md) against
+Runs the cross-language [OpenFeature Provider TCK](../../../tools/tck/README.md) against
 the [OFREP provider](../) — the same Gherkin scenarios, the same canonical flag set and the same
 backend control API that every other language's TCK runs.
 
