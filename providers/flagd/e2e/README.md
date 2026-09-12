@@ -134,9 +134,20 @@ source has populated the store. The OFREP suite documents the race in full.
 effect when it returns, and a suite that sleeps instead of holding it to that promise stops being
 able to detect when it breaks. This belongs in the testbed.
 
+**These two suites are excluded from the default build.** `make e2e` runs every module's
+`e2e`-tagged tests, so without a gate each pull request would start a Docker stack per resolver —
+and, while the fixture gap above stands, go red on two scenarios that say nothing about the
+provider. The policy is exclusion with a maintainer running them by hand before merge, so they skip
+unless `PROVIDER_TCK_RUN` is set:
+
 ```bash
-go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
+PROVIDER_TCK_RUN=1 go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
+PROVIDER_TCK_RUN=1 go test -tags=e2e -run Conformance -timeout=20m ./...
 ```
+
+The gate is a runtime skip rather than a second build tag, so CI still compiles this file against
+`tools/tck` under `-tags=e2e` and a signature change in the harness cannot rot the adoption
+unnoticed. Only the container work is skipped, and the skip names the variable.
 
 ## Test Framework Components
 
