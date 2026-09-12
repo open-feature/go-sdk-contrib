@@ -36,7 +36,7 @@ import (
 //
 // The run fails unless every canonical scenario produced an outcome — see
 // checkCanonicalCoverage. A scenario the provider declines through
-// Config.Capabilities has produced one; a scenario filtered out of the run has
+// tck.WithCapabilities has produced one; a scenario filtered out of the run has
 // not, and a report describing a subset of the canonical set is not a
 // conformance result.
 //
@@ -95,7 +95,7 @@ func Run(t *testing.T, opts ...Option) {
 		skipReason: r.skipReason,
 		executed:   r.recordExecuted,
 	}) {
-		t.Fatalf("provider-tck: two suites named %q are running at once; suite names must be "+
+		t.Fatalf("tck: two suites named %q are running at once; suite names must be "+
 			"unique within a test binary, since they also scope the OpenFeature domain and the "+
 			"report filenames", cfg.Name)
 	}
@@ -364,7 +364,7 @@ func (r *runner) reportControlAPIGap() {
 	if _, reports := r.cfg.Control.(controlAPIReporter); reports {
 		return
 	}
-	r.t.Logf("provider-tck [%s]: %s does not implement ControlAPI() string, so the conformance "+
+	r.t.Logf("tck [%s]: %s does not implement ControlAPI() string, so the conformance "+
 		"report cannot say whether the backend was driven over HTTP or in process. Add the method, "+
 		"returning \"http\" or \"in-process\".",
 		r.cfg.Name, r.cfg.Control.Description())

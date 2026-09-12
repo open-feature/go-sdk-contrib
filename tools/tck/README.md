@@ -623,7 +623,7 @@ $ jq . reports/in-memory.json
   "provider": { "name": "InMemoryProvider", "language": "go", "configuration": "in-memory" },
   "sdk": { "name": "github.com/open-feature/go-sdk", "version": "v1.18.0" },
   "tck": {
-    "implementation": "go-sdk-contrib/tools/provider-tck",
+    "implementation": "go-sdk-contrib/tools/tck",
     "version": "v0.1.0",
     "specRevision": "v0.0.0-20260912100158-009afe061794"
   },
@@ -661,7 +661,7 @@ embedded assets compile to — parsed by godog's own parser, so the expectation 
 run would have produced — and fails the test if any of them produced no outcome:
 
 ```
-provider-tck [in-memory]: 27 canonical scenario(s) did not run, so this is not a conformance run
+tck [in-memory]: 27 canonical scenario(s) did not run, so this is not a conformance run
 and its report must not be published:
   - gherkin/errors.feature: Requesting the wrong type returns the code default: 0 of 11
     executed (11 announced but never run, which is what a -run selector or a tag filter leaves behind)

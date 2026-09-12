@@ -560,12 +560,12 @@ func TestTheCanonicalScenariosCarryNoReservedTag(t *testing.T) {
 // actually reads: a future change that built a declaration by some other route
 // would satisfy the constructor test and still publish the claim.
 func TestTheReportDeclarationCannotClaimAReservedCapability(t *testing.T) {
-	caps, err := newCapabilitySet((&Config{}).capabilities())
+	caps, err := newCapabilitySet(newConfig(nil).capabilities())
 	if err != nil {
 		t.Fatalf("the default capability set does not validate: %v", err)
 	}
 
-	r := &runner{cfg: Config{Name: "gate", Control: stubControl{}}, caps: caps}
+	r := &runner{cfg: config{Name: "gate", Control: stubControl{}}, caps: caps}
 	report := r.buildReport("gate.ndjson", "sha256:0")
 
 	if report.Declaration.Declared == nil {

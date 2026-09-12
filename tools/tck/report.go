@@ -12,7 +12,7 @@ import (
 
 // ReportDirEnv names the directory a conformance report is written to.
 //
-// It is an environment variable rather than a Config field so that emitting a
+// It is an environment variable rather than an option so that emitting a
 // report is a property of the run and not of the code: CI sets it, a developer
 // running the suite locally does not, and no adopter has to change a line to
 // publish one. A suite writes <dir>/<name>.json and <dir>/<name>.ndjson, so
@@ -48,7 +48,7 @@ type Report struct {
 	Declaration   ReportDeclaration `json:"declaration"`
 
 	// KnownDeviations are the gaps the provider author acknowledges, carried
-	// verbatim from Config.KnownDeviations.
+	// verbatim from tck.WithKnownDeviations.
 	//
 	// It sits beside the declaration rather than inside it because it is not a
 	// claim about capabilities: an entry may concern a capability that was
@@ -219,8 +219,8 @@ func controlAPIOf(control BackendControl) string {
 
 const (
 	goSDKModule       = "github.com/open-feature/go-sdk"
-	tckImplementation = "go-sdk-contrib/tools/provider-tck"
-	tckModule         = "github.com/open-feature/go-sdk-contrib/tools/provider-tck"
+	tckImplementation = "go-sdk-contrib/tools/tck"
+	tckModule         = "github.com/open-feature/go-sdk-contrib/tools/tck"
 )
 
 // writeReport emits the report if ReportDirEnv is set.
@@ -240,14 +240,14 @@ func (r *runner) writeReport() {
 
 	results := r.messagesBytes()
 	if len(results) == 0 {
-		r.t.Errorf("provider-tck [%s]: the Cucumber Messages formatter produced nothing, so there "+
+		r.t.Errorf("tck [%s]: the Cucumber Messages formatter produced nothing, so there "+
 			"are no results to report; an envelope pointing at an empty payload would be worse "+
 			"than no report", r.cfg.Name)
 		return
 	}
 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		r.t.Errorf("provider-tck [%s]: could not create the report directory %s: %v", r.cfg.Name, dir, err)
+		r.t.Errorf("tck [%s]: could not create the report directory %s: %v", r.cfg.Name, dir, err)
 		return
 	}
 
@@ -256,7 +256,7 @@ func (r *runner) writeReport() {
 
 	resultsPath := filepath.Join(dir, location)
 	if err := os.WriteFile(resultsPath, results, 0o644); err != nil {
-		r.t.Errorf("provider-tck [%s]: could not write the results payload to %s: %v",
+		r.t.Errorf("tck [%s]: could not write the results payload to %s: %v",
 			r.cfg.Name, resultsPath, err)
 		return
 	}
@@ -266,19 +266,19 @@ func (r *runner) writeReport() {
 
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
-		r.t.Errorf("provider-tck [%s]: could not encode the conformance report: %v", r.cfg.Name, err)
+		r.t.Errorf("tck [%s]: could not encode the conformance report: %v", r.cfg.Name, err)
 		return
 	}
 	data = append(data, '\n')
 
 	path := filepath.Join(dir, base+".json")
 	if err := os.WriteFile(path, data, 0o644); err != nil {
-		r.t.Errorf("provider-tck [%s]: could not write the conformance report to %s: %v",
+		r.t.Errorf("tck [%s]: could not write the conformance report to %s: %v",
 			r.cfg.Name, path, err)
 		return
 	}
 
-	r.t.Logf("provider-tck [%s]: conformance report written to %s, results to %s",
+	r.t.Logf("tck [%s]: conformance report written to %s, results to %s",
 		r.cfg.Name, path, resultsPath)
 }
 
