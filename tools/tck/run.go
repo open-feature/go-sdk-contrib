@@ -154,6 +154,16 @@ func (r *runner) initializeScenario(ctx *godog.ScenarioContext) {
 // undeclared capability calls for: the scenario is reported, visibly, as not
 // run.
 func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
+	if capability, expired := expiredReservation(sc); expired {
+		return ctx, fmt.Errorf(
+			"scenario %q carries %s, which this suite still lists as a reserved capability. A "+
+				"reserved capability cannot be declared, so without this check the scenario would "+
+				"be reported as skipped for a capability no adopter is able to claim -- a question "+
+				"put and silently withdrawn. The specification has grown scenarios for %s: delete "+
+				"it from reservedCapabilities in capability.go, which is the only change needed",
+			sc.Name, capability.Tag(), capability)
+	}
+
 	if capability, missing := r.missingCapability(sc); missing {
 		r.recordSkip(sc.Name, capability)
 		return ctx, fmt.Errorf(
@@ -192,6 +202,34 @@ func (r *runner) missingCapability(sc *godog.Scenario) (Capability, bool) {
 			continue
 		}
 		if !r.caps.has(capability) {
+			return capability, true
+		}
+	}
+	return "", false
+}
+
+// expiredReservation reports whether a scenario carries the tag of a capability
+// this suite still treats as reserved.
+//
+// It is the expiry check on reservedCapabilities, and it exists because the
+// failure it catches is silent in both directions. A reserved capability cannot
+// be declared -- newCapabilitySet refuses it -- so when the specification adds
+// the first scenario for one, every adopter's run reports that scenario as
+// skipped for a capability they are not permitted to claim. The report is
+// well-formed, the suite is green, and the new scenario is never executed by
+// anybody. That is the unclaimable-capability failure Appendix F describes, and
+// nothing else in the suite would notice it: the under-collection guard is
+// satisfied, because the scenario was collected and gated rather than dropped,
+// and a capability-gated skip is explicitly not a gap.
+//
+// So a reserved tag on a real scenario fails the run. The tags come from the
+// scenario godog parsed, which is the parser the runner itself uses, so the
+// check cannot disagree with the run about which tags a scenario carries --
+// including tags inherited from the feature and tags on an Examples block.
+func expiredReservation(sc *godog.Scenario) (Capability, bool) {
+	for _, tag := range sc.Tags {
+		capability, known := CapabilityForTag(tag.Name)
+		if known && capability.IsReserved() {
 			return capability, true
 		}
 	}
