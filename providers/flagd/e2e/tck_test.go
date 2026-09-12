@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -391,9 +392,29 @@ type conformanceSuite struct {
 	gracePeriod     int
 }
 
+// runEnv gates the conformance suites out of a default build.
+//
+// `make e2e` runs every module's e2e-tagged tests, so without this the two
+// suites below would start a Docker stack each on every pull request. They are
+// also expected to be red while the fixture gap described in the README stands,
+// and a conformance report that records a deviation plus a CI job that fails on
+// it are two answers to the same question. The policy is therefore exclusion,
+// with a maintainer running these by hand before merge, and this is where it is
+// enforced rather than merely described.
+//
+// A runtime skip rather than a second build tag on purpose: the adoption stays
+// compiled under -tags=e2e, so CI still typechecks it against tools/tck and a
+// signature change there cannot rot this file unnoticed. Only the container
+// work is skipped, and the skip names the variable that turns it on.
+const runEnv = "PROVIDER_TCK_RUN"
+
 func runConformance(t *testing.T, suite conformanceSuite) {
 	if testing.Short() {
 		t.Skip("skipping e2e tests in short mode")
+	}
+	if os.Getenv(runEnv) == "" {
+		t.Skipf("the provider conformance suite is excluded from the default build: set %s=1 to "+
+			"run it (it needs Docker and takes minutes). See README.md", runEnv)
 	}
 
 	tck.Run(t,
