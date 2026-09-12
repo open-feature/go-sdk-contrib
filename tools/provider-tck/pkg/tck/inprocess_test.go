@@ -9,7 +9,25 @@ import (
 
 	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
 	"github.com/open-feature/go-sdk/openfeature"
+	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
+
+// disabledFlagKeys is every flag the canonical set disables, which is the only
+// group in it whose configured variant is not what an evaluation resolves.
+//
+// Named once because two tests need the same list from opposite sides: the
+// table in TestCanonicalFlagSetMatchesTheFile asserts that each of these
+// decoded as DISABLED, and TestOnlyTheDisabledFlagsAreDisabled asserts that
+// nothing else did. Appendix F states that these four are the only ones, and a
+// fifth appearing in a later revision of the assets breaks the untagged
+// scenarios that expect every flag to serve its own value — which is a thing to
+// find out from a failing test here rather than from a provider suite.
+var disabledFlagKeys = []string{
+	"disabled-boolean-flag",
+	"disabled-string-flag",
+	"disabled-integer-flag",
+	"disabled-float-flag",
+}
 
 // The Gherkin cannot assert these things about itself, so they are pinned here.
 // Each one is a way the in-process control path could look correct while
@@ -151,6 +169,17 @@ func TestCanonicalFlagSetOmitsMissingFlag(t *testing.T) {
 // to arrive as an int64 rather than through a float. The falsy rows pin that
 // false, 0 and "" are values rather than absences, which is what their
 // scenarios are about.
+//
+// The state column is load-bearing for the same kind of reason. Every row here
+// names the variant the flag is configured to serve, and for the four disabled
+// rows that configuration is exactly what must NOT reach an evaluation: the
+// variant is in the file, the decoder has to preserve it, and the provider has
+// to ignore it in favour of the caller's default. A decoder that dropped State
+// would leave those four resolving their configured value, which is the one
+// thing the @disabled-flags scenarios are built to catch, and every assertion
+// in this test would still pass. So the state each flag was written with is
+// asserted here rather than assumed, and disabledFlagKeys below is the same
+// statement in the other direction: nothing outside that set is disabled.
 func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 	flags := tck.CanonicalFlagSet()
 
@@ -158,20 +187,25 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 		key     string
 		variant string
 		value   any
+		state   memprovider.State
 	}{
-		{"boolean-flag", "on", true},
-		{"string-flag", "greeting", "hi"},
-		{"integer-flag", "ten", int64(10)},
-		{"float-flag", "half", 0.5},
-		{"large-integer-flag", "max-int32", int64(2147483647)},
-		{"huge-integer-flag", "max-safe", int64(9007199254740991)},
-		{"integral-float-flag", "ten", 10.0},
-		{"boolean-zero-flag", "zero", false},
-		{"integer-zero-flag", "zero", int64(0)},
-		{"string-zero-flag", "zero", ""},
-		{"wrong-flag", "one", "uno"},
-		{"targeting-key-flag", "miss", "miss"},
-		{tck.ChangingFlagKey, "foo", "foo"},
+		{"boolean-flag", "on", true, memprovider.Enabled},
+		{"string-flag", "greeting", "hi", memprovider.Enabled},
+		{"integer-flag", "ten", int64(10), memprovider.Enabled},
+		{"float-flag", "half", 0.5, memprovider.Enabled},
+		{"large-integer-flag", "max-int32", int64(2147483647), memprovider.Enabled},
+		{"huge-integer-flag", "max-safe", int64(9007199254740991), memprovider.Enabled},
+		{"integral-float-flag", "ten", 10.0, memprovider.Enabled},
+		{"boolean-zero-flag", "zero", false, memprovider.Enabled},
+		{"integer-zero-flag", "zero", int64(0), memprovider.Enabled},
+		{"string-zero-flag", "zero", "", memprovider.Enabled},
+		{"wrong-flag", "one", "uno", memprovider.Enabled},
+		{"targeting-key-flag", "miss", "miss", memprovider.Enabled},
+		{tck.ChangingFlagKey, "foo", "foo", memprovider.Enabled},
+		{"disabled-boolean-flag", "on", true, memprovider.Disabled},
+		{"disabled-string-flag", "greeting", "hi", memprovider.Disabled},
+		{"disabled-integer-flag", "ten", int64(10), memprovider.Disabled},
+		{"disabled-float-flag", "half", 0.5, memprovider.Disabled},
 	} {
 		flag, present := flags[want.key]
 		if !present {
@@ -183,6 +217,11 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 		}
 		if flag.DefaultVariant != want.variant {
 			t.Errorf("%s resolves to variant %q, want %q", want.key, flag.DefaultVariant, want.variant)
+		}
+		if flag.State != want.state {
+			t.Errorf("%s decoded with state %q, want %q: the state is what decides whether the "+
+				"variant below is served or stood in for by the caller's default",
+				want.key, flag.State, want.state)
 		}
 		got, present := flag.Variants[want.variant]
 		if !present {
@@ -215,6 +254,83 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 	}
 	if got := template["imagesPerPage"]; !reflect.DeepEqual(got, int64(100)) {
 		t.Errorf("object-flag's imagesPerPage is %v (%T), want int64(100)", got, got)
+	}
+}
+
+// TestOnlyTheDisabledFlagsAreDisabled pins the other half of the state
+// property: the four disabled-* flags are disabled, and nothing else is.
+//
+// Every scenario outside @disabled-flags assumes the flag it asks for serves
+// its own configured value. Disabling any other flag would break those
+// quietly — the resolved value becomes whatever default the row passes in,
+// which for several rows is a plausible value — so the set is asserted whole
+// rather than flag by flag.
+func TestOnlyTheDisabledFlagsAreDisabled(t *testing.T) {
+	expected := make(map[string]bool, len(disabledFlagKeys))
+	for _, key := range disabledFlagKeys {
+		expected[key] = true
+	}
+
+	for key, flag := range tck.CanonicalFlagSet() {
+		disabled := flag.State == memprovider.Disabled
+		switch {
+		case disabled && !expected[key]:
+			t.Errorf("%s is disabled but is not one of the four flags Appendix F says are: every "+
+				"other scenario assumes the flag it asks for serves its own value, so this breaks "+
+				"them with a plausible-looking result rather than an error", key)
+		case !disabled && expected[key]:
+			t.Errorf("%s is not disabled, but the @disabled-flags scenarios ask it for the "+
+				"caller's default; enabled, it serves its own value and the row fails", key)
+		}
+	}
+}
+
+// TestCanonicalFlagSetDisabledFlagsCarryAnError is the evidence behind every
+// in-memory suite leaving tck.DisabledFlags undeclared, and it is the
+// uncomfortable kind: the gap is in the Go SDK rather than in this suite or in
+// the flag set.
+//
+// memprovider.InMemoryProvider does return the caller's default for a disabled
+// flag, which is the value half of the capability and the half that matters
+// most. But it attaches a GENERAL resolution error to it while setting reason
+// DISABLED (Resolve in openfeature/memprovider/in_memory_provider.go), and the
+// two do not go together: DISABLED is one of the reason strings 2.2.5 lists for
+// a resolution that worked, and an error code alongside it tells the
+// application something went wrong when nothing did. So "the error-code should
+// be \"\"" fails, all four rows of the outline with it, and the capability is
+// withheld.
+//
+// Pinned here because the withholding is otherwise invisible — it is an
+// absence from three Config literals — and because this is a bug rather than a
+// property of in-memory evaluation: an in-memory provider is the architecture
+// that CAN satisfy this capability, since the caller's default never has to
+// leave the process. When the SDK stops attaching the error this test fails,
+// and the fix is to declare the capability in the self-test suites rather than
+// to relax the assertion.
+func TestCanonicalFlagSetDisabledFlagsCarryAnError(t *testing.T) {
+	ctx := context.Background()
+	provider := tck.NewInProcessControl().NewProvider()
+
+	result := provider.BooleanEvaluation(ctx, "disabled-boolean-flag", false, nil)
+
+	if result.Value {
+		t.Errorf("disabled-boolean-flag resolved to true, so the state was ignored and its "+
+			"configured variant was served; the caller passed false")
+	}
+	code := result.ResolutionDetail().ErrorCode
+	if code == "" {
+		t.Fatal("disabled-boolean-flag now resolves with no error code, which is the whole of " +
+			"tck.DisabledFlags: declare the capability in the in-memory self-test suites and " +
+			"delete this test")
+	}
+	if code != openfeature.GeneralCode {
+		t.Errorf("disabled-boolean-flag resolved with error code %q; the capability is withheld "+
+			"on the strength of it being %q, so a different code means the reason for "+
+			"withholding has changed", code, openfeature.GeneralCode)
+	}
+	if result.Reason != openfeature.DisabledReason {
+		t.Errorf("disabled-boolean-flag resolved with reason %q, want %q", result.Reason,
+			openfeature.DisabledReason)
 	}
 }
 

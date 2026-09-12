@@ -79,6 +79,18 @@ func TestInMemoryProvider(t *testing.T) {
 		//     exist to stop. Until the flag set contained an integral float
 		//     this suite declared the capability on the strength of the lossy
 		//     scenario alone, which is the gap the spec closed.
+		//   - DisabledFlags is omitted, and this is the one omission here that
+		//     records a defect rather than an absence. An in-memory provider is
+		//     the architecture that can satisfy the capability — the caller's
+		//     default never leaves the process, so there is nothing to ask a
+		//     server for — and memprovider does return that default. It just
+		//     attaches a GENERAL resolution error to it while reporting reason
+		//     DISABLED, and those contradict each other: 2.2.5 lists DISABLED
+		//     among the reasons a resolution that worked may carry. So all four
+		//     rows fail on "the error-code should be """, measured rather than
+		//     inferred, and the tag is withheld. See
+		//     TestCanonicalFlagSetDisabledFlagsCarryAnError, which fails when
+		//     the SDK stops doing it so that the declaration can be added.
 		//
 		// LargeIntegers is declared: the accessor is int64 and memprovider
 		// hands the int64 it was seeded with straight back, so 2^53-1
