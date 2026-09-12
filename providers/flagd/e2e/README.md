@@ -134,20 +134,30 @@ source has populated the store. The OFREP suite documents the race in full.
 effect when it returns, and a suite that sleeps instead of holding it to that promise stops being
 able to detect when it breaks. This belongs in the testbed.
 
-**These two suites are excluded from the default build.** `make e2e` runs every module's
-`e2e`-tagged tests, so without a gate each pull request would start a Docker stack per resolver —
-and, while the fixture gap above stands, go red on two scenarios that say nothing about the
-provider. The policy is exclusion with a maintainer running them by hand before merge, so they skip
-unless `PROVIDER_TCK_RUN` is set:
+**These two suites are excluded from the default build.** They skip unless `TCK_RUN` is set, and a
+maintainer runs them by hand before merge:
 
 ```bash
-PROVIDER_TCK_RUN=1 go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
-PROVIDER_TCK_RUN=1 go test -tags=e2e -run Conformance -timeout=20m ./...
+TCK_RUN=1 go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
+TCK_RUN=1 go test -tags=e2e -run Conformance -timeout=20m ./...
 ```
 
-The gate is a runtime skip rather than a second build tag, so CI still compiles this file against
-`tools/tck` under `-tags=e2e` and a signature change in the harness cannot rot the adoption
-unnoticed. Only the container work is skipped, and the skip names the variable.
+Why an adoption suite is excluded rather than gating a merge is the same argument in every language,
+and it is settled in Appendix F's
+["Running the suite in CI"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
+rather than restated here. The mechanism is Go's, and it is worth stating exactly because the
+appendix names two mistakes and this file had made the first of them:
+
+- The gate is a **runtime skip inside the test function**, reading `TCK_RUN`. Nothing in the build
+  re-enables it. A build tag would not have worked here — `make e2e` expands to a `go test
+  -tags=e2e` over every module in the workspace, so the tag is applied to everything and both these
+  suites were in fact running, red, on every pull request before the gate existed.
+- Because it is a runtime skip rather than `//go:build e2e && tck`, CI still compiles this file
+  against `tools/tck` under `-tags=e2e`, which is what the appendix asks for: a suite that has
+  quietly stopped building against its own harness is worse than one that runs and fails. Only the
+  container work is skipped, and the skip message names the variable.
+- It is written down here and in the harness's own README, which is the appendix's second mistake
+  avoided.
 
 ## Test Framework Components
 
