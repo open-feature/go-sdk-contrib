@@ -4,13 +4,11 @@ package e2e
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
-	"github.com/open-feature/go-sdk-contrib/tests/flagd/testframework"
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -24,9 +22,42 @@ import (
 // switches resolver, which is exactly the kind of thing the suite exists to
 // surface.
 //
+// There is no container code in this file. The suite owns the stack: it is
+// handed the Compose file below, told which container-internal port each
+// resolver connects to, and given a factory that builds a provider from the
+// host ports it discovered. Everything else — starting the stack once, waiting
+// for the launchpad to accept commands, resetting the backend between
+// scenarios, tearing down — belongs to tck.Run. The hand-rolled wrapper this
+// replaces read the testbed's compose file through
+// tests/flagd/testframework.NewFlagdContainer, created a temporary flags
+// directory for it to bind-mount, built the HTTP control itself and looked up
+// two named ports by string; all of that is now the harness's, and every future
+// adopter gets it without writing it.
+//
 // The existing e2e suites in this package are untouched, and so is
 // flagd-testbed. The TCK drives the testbed's launchpad through the
 // standardised control API, which the launchpad already implements.
+
+const (
+	// composeFile describes the backend stack. Resolved relative to this
+	// package directory, which is where `go test` runs.
+	//
+	// Deliberately not the testbed submodule's own compose file — see the
+	// comment at the top of it for why.
+	composeFile = "testdata/tck/docker-compose.yaml"
+
+	// rpcPort and inProcessPort are the container-internal ports the two
+	// resolvers connect to. The launchpad's control port is exposed by the
+	// harness and is not named here.
+	rpcPort       = 8013
+	inProcessPort = 8015
+
+	// unavailablePort is a port on localhost that nothing listens on, for the
+	// initialisation-failure scenarios. Deliberately not a port on the stack:
+	// the stack must stay up for the whole suite, and simulated outages belong
+	// to the control API.
+	unavailablePort = 9999
+)
 
 // The gaps this provider is known to have, as opposed to the capabilities it
 // simply does not implement.
@@ -87,9 +118,9 @@ var (
 // TestFlagdRPCConformance runs the suite against the RPC resolver.
 func TestFlagdRPCConformance(t *testing.T) {
 	runConformance(t, conformanceSuite{
-		name:     "flagd-rpc",
-		portName: "rpc",
-		resolver: flagd.WithRPCResolver(),
+		name:        "flagd-rpc",
+		backendPort: rpcPort,
+		resolver:    flagd.WithRPCResolver(),
 
 		// tck.Lifecycle IS declared, and legitimately so. The RPC resolver
 		// reaches flagd during initialisation -- Init builds the client, starts
@@ -275,9 +306,9 @@ func TestFlagdRPCConformance(t *testing.T) {
 // TestFlagdInProcessConformance runs the suite against the in-process resolver.
 func TestFlagdInProcessConformance(t *testing.T) {
 	runConformance(t, conformanceSuite{
-		name:     "flagd-in-process",
-		portName: "in-process",
-		resolver: flagd.WithInProcessResolver(),
+		name:        "flagd-in-process",
+		backendPort: inProcessPort,
+		resolver:    flagd.WithInProcessResolver(),
 
 		// Everything except tck.NumericCoercion, tck.LargeIntegers and
 		// tck.Reinitialization. Unlike RPC, the in-process resolver emits
@@ -348,10 +379,11 @@ func TestFlagdInProcessConformance(t *testing.T) {
 	})
 }
 
-// conformanceSuite is the per-resolver configuration.
+// conformanceSuite is the per-resolver configuration: everything the two
+// suites differ in, and nothing else.
 type conformanceSuite struct {
 	name            string
-	portName        string
+	backendPort     int
 	resolver        flagd.ProviderOption
 	capabilities    []tck.Capability
 	knownDeviations []tck.KnownDeviation
@@ -364,58 +396,25 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 		t.Skip("skipping e2e tests in short mode")
 	}
 
-	ctx := context.Background()
+	tck.Run(t,
+		tck.WithName(suite.name),
 
-	// The launchpad rewrites flag files into this directory. It is per-suite so
-	// the two resolver suites cannot disturb each other.
-	flagsDir, err := os.MkdirTemp("", "flagd-tck-*")
-	if err != nil {
-		t.Fatalf("could not create a flags directory: %v", err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(flagsDir) })
+		// The suite starts this stack once, discovers the host port Docker
+		// mapped to suite.backendPort, builds the HTTP control against the
+		// launchpad on 8080 and waits until it accepts commands. Scenario
+		// isolation comes from the control API, never from restarting a
+		// container: mapped host ports do not survive a restart, so a restart
+		// would invalidate every provider already pointed at the old one.
+		tck.WithComposeFile(composeFile),
+		tck.WithBackendPorts(suite.backendPort),
 
-	// The stack is started once for the whole suite and never restarted.
-	// Scenario isolation comes from the control API instead — see the
-	// no-container-restart invariant in the control API specification.
-	container, err := testframework.NewFlagdContainer(ctx, testframework.FlagdContainerConfig{
-		TestbedDir:    "../flagd-testbed",
-		FlagsDir:      flagsDir,
-		ExtraWaitTime: 2 * time.Second,
-	})
-	if err != nil {
-		t.Fatalf("could not start the flagd testbed: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := container.Stop(); err != nil {
-			t.Logf("could not stop the flagd testbed: %v", err)
-		}
-	})
-
-	control, err := tck.NewHTTPControl(tck.HTTPControlOptions{
-		BaseURL: container.GetLaunchpadURL(),
-	})
-	if err != nil {
-		t.Fatalf("could not build the backend control: %v", err)
-	}
-
-	// Read once, after the stack is up: the testbed maps host ports
-	// dynamically, so these do not exist until now, and they stay valid for the
-	// whole suite because nothing restarts a container.
-	host := container.GetHost()
-	port := uint16(container.GetPort(suite.portName))
-	if port == 0 {
-		t.Fatalf("the testbed exposed no %q port", suite.portName)
-	}
-
-	tck.Run(t, tck.Config{
-		Name:    suite.name,
-		Control: control,
-
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+		// Called once per scenario, because the mapped port does not exist
+		// until the stack is up.
+		tck.WithProviderFromEndpoint(func(_ context.Context, endpoint tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
 			provider, err := flagd.NewProvider(
 				suite.resolver,
-				flagd.WithHost(host),
-				flagd.WithPort(port),
+				flagd.WithHost(endpoint.Host()),
+				flagd.WithPort(uint16(endpoint.Port(suite.backendPort))),
 				flagd.WithDeadline(1000),
 				flagd.WithRetryGracePeriod(suite.gracePeriod),
 				flagd.WithRetryBackoffMs(500),
@@ -424,7 +423,7 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 				return nil, err
 			}
 			return provider, nil
-		},
+		}),
 
 		// Pointed at a closed port on localhost, never at the backend under
 		// test — that has to stay up, and simulated outages belong to the
@@ -432,11 +431,11 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 		// asserts that failure is reported promptly, so a provider that took
 		// 30 seconds to give up would pass a test about eventual failure and
 		// fail the one that matters.
-		NewUnavailableProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+		tck.WithUnavailableProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			provider, err := flagd.NewProvider(
 				suite.resolver,
 				flagd.WithHost("localhost"),
-				flagd.WithPort(9999),
+				flagd.WithPort(unavailablePort),
 				flagd.WithDeadline(500),
 				flagd.WithRetryGracePeriod(1),
 				flagd.WithRetryBackoffMs(100),
@@ -445,18 +444,18 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 				return nil, err
 			}
 			return provider, nil
-		},
+		}),
 
-		Capabilities: suite.capabilities,
+		tck.WithCapabilities(suite.capabilities...),
 
 		// Without this the per-suite knownDeviations would be collected and
 		// then dropped on the floor, which is the quietest possible way for a
 		// conformance report to lose the one field that tells a defect apart
 		// from a design choice. It read as wired because the struct field was
 		// populated.
-		KnownDeviations: suite.knownDeviations,
+		tck.WithKnownDeviations(suite.knownDeviations...),
 
-		ReadyTimeout: suite.readyTimeout,
-		EventTimeout: 15 * time.Second,
-	})
+		tck.WithReadyTimeout(suite.readyTimeout),
+		tck.WithEventTimeout(15*time.Second),
+	)
 }
