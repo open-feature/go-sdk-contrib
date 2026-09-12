@@ -1125,6 +1125,32 @@ func TestADeviationMayNotNameAnInexpressibleCapability(t *testing.T) {
 	}
 }
 
+// TestTheReportDeclarationCannotClaimAReservedCapability checks the emitted
+// declaration rather than only the configuration that feeds it.
+//
+// The test above pins the constructor, which is what makes this guarantee
+// structural. This one pins the document, because that is what a consumer
+// actually reads: a future change that built a declaration by some other route
+// would satisfy the constructor test and still publish the claim.
+func TestTheReportDeclarationCannotClaimAReservedCapability(t *testing.T) {
+	caps, err := newCapabilitySet(newConfig(nil).capabilities())
+	if err != nil {
+		t.Fatalf("the default capability set does not validate: %v", err)
+	}
+
+	r := &runner{cfg: config{Name: "gate", Control: stubControl{}}, caps: caps}
+	report := r.buildReport("gate.ndjson", "sha256:0")
+
+	if report.Declaration.Declared == nil {
+		t.Fatal("declared is nil; the schema requires an array")
+	}
+	for _, tag := range report.Declaration.Declared {
+		if capability, known := CapabilityForTag(tag); known && capability.IsReserved() {
+			t.Errorf("declaration.declared contains the reserved tag %s", tag)
+		}
+	}
+}
+
 // stubControl is a BackendControl that does nothing, for tests that only need
 // a non-nil one.
 type stubControl struct{}

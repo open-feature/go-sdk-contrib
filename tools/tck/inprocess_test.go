@@ -340,7 +340,7 @@ func TestCanonicalFlagSetDisabledFlagsCarryAnError(t *testing.T) {
 // deviation.
 //
 // Pinned here because it is otherwise invisible: the capability is simply
-// absent from four Config literals, and a future decoder that started honouring
+// absent from four capability declarations, and a future decoder that started honouring
 // the targeting member would make those omissions wrong with nothing failing to
 // say so.
 func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
@@ -356,7 +356,7 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 	if flag.ContextEvaluator != nil {
 		t.Fatalf("%s carries a ContextEvaluator: the in-memory suites declare no Targeting "+
 			"capability on the strength of it having none, so declaring it is now the honest "+
-			"report and those Config literals have to say so", key)
+			"report and those declarations have to say so", key)
 	}
 
 	ctx := context.Background()
