@@ -14,7 +14,7 @@ import (
 // A conformance report is a claim that a provider was asked the canonical
 // questions. Nothing in the machinery so far establishes that it was asked all
 // of them. A `go test -run` selector matching one scenario name, a mis-wired
-// extension filesystem, a future Config field carrying a tag filter — each
+// extension filesystem, a future option carrying a tag filter — each
 // produces a green suite and a well-formed report describing a subset, and
 // there is no field in the report a consumer could read to notice.
 //
@@ -102,7 +102,7 @@ func canonicalExpectation() (map[canonicalScenario]int, error) {
 func (r *runner) checkCanonicalCoverage() {
 	expected, err := canonicalExpectation()
 	if err != nil {
-		r.t.Errorf("provider-tck [%s]: could not establish which canonical scenarios this run "+
+		r.t.Errorf("tck [%s]: could not establish which canonical scenarios this run "+
 			"should have executed, so its result cannot be trusted: %v", r.cfg.Name, err)
 		return
 	}
@@ -115,15 +115,15 @@ func (r *runner) checkCanonicalCoverage() {
 	gaps, canonical, extensions := canonicalGaps(expected, executed)
 
 	if len(gaps) == 0 {
-		r.t.Logf("provider-tck [%s]: all %d canonical scenarios executed%s",
+		r.t.Logf("tck [%s]: all %d canonical scenarios executed%s",
 			r.cfg.Name, canonical, extensionSuffix(extensions))
 		return
 	}
 
-	r.t.Errorf("provider-tck [%s]: %d canonical scenario(s) did not run, so this is not a "+
+	r.t.Errorf("tck [%s]: %d canonical scenario(s) did not run, so this is not a "+
 		"conformance run and its report must not be published:\n%s\n"+
 		"Every scenario in the embedded assets under %s has to execute. A scenario the provider "+
-		"does not support is declined through Config.Capabilities, which still runs the gate and "+
+		"does not support is declined through tck.WithCapabilities, which still runs the gate and "+
 		"records the skip with its reason; one that is filtered out of the run instead leaves "+
 		"nothing behind to read.",
 		r.cfg.Name, len(gaps), strings.Join(gaps, "\n"), featuresPath)
