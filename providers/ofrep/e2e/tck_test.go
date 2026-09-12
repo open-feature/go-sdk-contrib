@@ -28,12 +28,15 @@ import (
 // THIS SUITE IS CURRENTLY NON-DETERMINISTIC, and the cause is worth reading
 // before trusting a run of it.
 //
-// Two failures are stable, and both are gaps in the fixture rather than in the
-// provider: integral-float-flag and large-integer-flag are absent from
+// Three failures are stable, and all three are gaps in the fixture rather than
+// in the provider: integral-float-flag and large-integer-flag are absent from
 // flagd-testbed (grep the testbed's flags/ directory -- number-zero-flag and
 // huge-integer-flag are missing too), so the scenarios that ask for them fail
-// with FLAG_NOT_FOUND against any provider. open-feature/flagd-testbed#392 adds
-// them.
+// with FLAG_NOT_FOUND against any provider. The third is the last row of the
+// @variants outline, which asks large-integer-flag for its max-int32 variant
+// and gets "" -- a flag that is not there has no variant to name, so it is the
+// same absence counted twice rather than a new defect.
+// open-feature/flagd-testbed#392 adds them.
 //
 // Every other failure moves between runs. Two consecutive runs of this file
 // produced 13 failures and then 12, with almost disjoint failing sets, and
@@ -201,9 +204,30 @@ func TestOFREPConformance(t *testing.T) {
 		// The failure gets no deviation entry, because the gap is in the
 		// fixture and an entry there would attribute it to the provider.
 		// open-feature/flagd-testbed#392.
+		//
+		// tck.Variants IS declared. OFREP's evaluation response carries a
+		// variant field and this provider passes it straight into
+		// ResolutionDetail, so seven of the eight rows pass -- booleans,
+		// strings, integers, floats and all three falsy flags. The eighth is
+		// large-integer-flag, which the testbed does not serve, so it is the
+		// fixture gap above rather than a variant defect; the same reasoning
+		// that keeps tck.NumericCoercion declared keeps this one declared.
+		//
+		// tck.Targeting IS declared, and for a JSON-over-HTTP provider it is
+		// the cheapest capability here to get right: the evaluation context IS
+		// the request body, so there is no separate passthrough path to get
+		// wrong. All three scenarios pass -- targeting-key-flag resolves to
+		// "hit" for the matching key and "miss" for a non-matching one or none
+		// at all -- and so does the new untagged scenario that supplies a
+		// context to an untargeted flag. Worth having: until this revision no
+		// scenario supplied a context at all, so a provider that serialised it
+		// into a malformed body passed the whole suite, and for this provider
+		// that body is the entire request.
 		Capabilities: []tck.Capability{
 			tck.Object,
 			tck.NumericCoercion,
+			tck.Variants,
+			tck.Targeting,
 		},
 
 		// The provider has no initialisation to wait for, so this bounds the
