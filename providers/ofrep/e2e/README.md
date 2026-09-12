@@ -35,14 +35,25 @@ methods and `Hooks`; it implements neither `openfeature.EventHandler` nor
 | --- | --- | --- |
 | `@object` | yes | `ObjectEvaluation` passes the decoded JSON object through, and every scalar request against it reports `TYPE_MISMATCH`. |
 | `@numeric-coercion` | yes | `ResolveInt` round-trips the decoded `float64` through `int64` and reports `TYPE_MISMATCH` when that is lossy, so `float-flag` requested as an integer is a mismatch rather than a silent `0`. |
+| `@variants` | yes | OFREP's evaluation response carries `variant`, and the provider passes it into `ResolutionDetail`. Seven of the eight rows pass; the eighth asks `large-integer-flag`, which the testbed does not serve. |
+| `@targeting` | yes | The evaluation context is the OFREP request body, so `targeting-key-flag`'s rule resolves to its `hit` variant for a matching key and `miss` otherwise. All three scenarios pass. |
 | `@events` | no | No `EventChannel`; the provider can never publish a provider event. |
 | `@configuration-change` | no | Follows from `@events`. Values do change on the next evaluation — nothing signals that they did. |
 | `@stale` | no | Follows from `@events`. No state handling means no state to transition. |
+| `@lifecycle` | no | Nothing to initialise or shut down. `Init`, `Status` and `Shutdown` do not exist on this provider, so the whole of `lifecycle.feature` asserts SDK behaviour rather than provider behaviour. |
 | `@unavailable` | no | No `Init` to fail. The SDK reports `READY` unconditionally for a provider with no `StateHandler`, so an unreachable backend never produces the `ERROR` state the scenario asserts. |
+| `@large-integers` | no | Not a provider property: `huge-integer-flag` is absent from `flagd-testbed`, so the capability cannot be exercised against this backend at all. See open-feature/flagd-testbed#392. |
 
-`@events` is a feature-level tag on both `events.feature` and `lifecycle.feature`, so withholding it
-skips 5 scenarios and runs the remaining **24 of 29** — the evaluation and error-code matrix, which
-is the part that catches cross-language disagreements.
+`@events` gates `events.feature` and `@lifecycle` gates `lifecycle.feature`, so withholding both,
+plus `@large-integers`, skips 9 of the 52 canonical scenarios. The remaining **43 run: 40 pass and
+3 fail** — the evaluation and error-code matrix, which is the part that catches cross-language
+disagreements.
+
+All three failures are the backend fixture rather than the provider: `flagd-testbed` serves neither
+`integral-float-flag` nor `large-integer-flag`, so the two scenarios that ask for them fail with
+`FLAG_NOT_FOUND`, and the last `@variants` row fails because a flag that is not there has no variant
+to name. open-feature/flagd-testbed#392 adds the flags and all three go green together. None gets a
+known-deviation entry, because an entry there would attribute a fixture gap to the provider.
 
 Declaring `@events` would make one more scenario go green for the wrong reason: the SDK synthesises
 `PROVIDER_READY` for any provider without a `StateHandler` ("a provider without state handling
@@ -54,5 +65,7 @@ suite.
 
 `float-flag` requested as an integer is correctly a `TYPE_MISMATCH`, but `integer-flag` requested as
 a float returns `10.0` with no error, because JSON has one number type and `10` decodes to
-`float64`. No scenario covers that direction, and for a JSON protocol it is arguably right — but it
-means "strict numeric typing" here is strict in one direction only.
+`float64`. That direction now has a scenario of its own — "An integer requested as a float is
+widened without loss", under `@numeric-coercion` — and it passes, because widening is the lossless
+direction. So the asymmetry is deliberate rather than untested: "strict numeric typing" here is
+strict only where being loose would lose information.
