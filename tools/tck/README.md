@@ -112,7 +112,7 @@ builds a provider from a discovered endpoint. The suite does the rest.
 | `tck.WithBackendPorts(ports...)` | yes | — | container-internal ports the *provider* connects to. The control port is exposed automatically and must not be listed here |
 | `tck.WithControlPort(port)` | no | `8080` | container-internal port of the control API |
 | `tck.WithAdditionalPorts(service, ports...)` | no | none | extra service → ports, for stacks with more than one service. Resolved through the endpoint by service name |
-| `tck.WithConfiguration(name)` | no | `default` | the configuration name passed to `POST /start` |
+| `tck.WithBackendConfiguration(name)` | no | `default` | the *backend's* named flag configuration, passed to `POST /start`. Not the provider's configuration — the report's `configuration` field is the provider's mode and comes from `tck.WithName` |
 | `tck.WithStartupTimeout(d)` | no | 60s | how long to wait for the stack and its control API to become reachable |
 | `tck.BackendEndpoint` | — | — | what the factory receives: `Host()` and `Port(internal)`, plus `ServiceHost`/`ServicePort` for a named service |
 
@@ -441,22 +441,50 @@ control, err := tck.NewHTTPControl(tck.HTTPControlOptions{
 ```
 
 `BaseURL` is the only required field, and it must be built from the **dynamically mapped** host port
-discovered after the stack is up — a stack under test must not pin host ports. `Configuration`
-defaults to `tck.DefaultConfiguration`, the one name Appendix F requires every backend under test to
-serve, and the one that serves the canonical flag set.
+discovered after the stack is up — a stack under test must not pin host ports.
+`BackendConfiguration` defaults to `tck.DefaultBackendConfiguration`, the one name Appendix F
+requires every backend under test to serve, and the one that serves the canonical flag set. It is
+the backend's config file and not the provider's mode; the report's `configuration` field is the
+latter and comes from `tck.WithName`.
 
 If you find yourself writing a control client of your own, that is a defect here rather than
 something for you to work around.
 
-Two of its requirements are easy to get wrong:
+Three of its requirements are easy to get wrong:
 
 - **Containers are never stopped or restarted mid-suite.** Unavailability is simulated *inside* the
   running stack — a process kill, a proxy toxic, a socket block. This is portability, not
   preference: container orchestrators assign host ports dynamically and cannot reliably preserve
   them across a restart, so restarting silently invalidates every provider already pointed at the
   old port, and the failure looks like a flaky provider.
+- **A state-changing call has taken effect when it returns.** `POST /start`, `/change` and `/reset`
+  must not return until the new state is actually being served. That is the *backend's* promise: how
+  long the provider under test takes to notice is a property of its transport, and that is what
+  `tck.WithEventTimeout` covers. The suite never sleeps after a control call, so a backend that
+  returns early makes the provider's detection latency unmeasurable — and turns a control-API
+  defect into what looks like a flaky provider.
 - **`/start` resets flag state; `/restart` preserves it.** An outage must be observable as a change
-  in availability, never as a change in flag values.
+  in availability, never as a change in flag values. `/restart` is optional and no shipped scenario
+  reaches it — see [What this suite does not cover](#what-this-suite-does-not-cover).
+
+### A control says which path it took
+
+`tck.BackendControl` requires one more thing of a control than the operations above:
+
+```go
+func (c *myControl) ControlAPI() tck.ControlAPI { return tck.ControlAPIHTTP }
+```
+
+`tck.ControlAPIHTTP` means the normative HTTP control API; `tck.ControlAPIInProcess` means the narrow
+allowance below for a provider with no backend. There is no default and nothing is inferred from the
+control's concrete type. The same scenarios passing over the control API and passing through
+in-process manipulation of a provider that *does* have a backend are not the same claim, and this is
+the only field in the conformance report that separates them — so an absent value would not be "no
+claim made" but an unfalsifiable one.
+
+Both controls shipped here answer it already, so an adopter using `tck.WithComposeFile` or
+`tck.InProcessControl` writes nothing. The only author who has to state it is the one writing a
+control of their own, which is exactly the case where it cannot be guessed.
 
 ### Providers with no backend
 
@@ -495,7 +523,7 @@ The Gherkin, the canonical flag set and the control API are not owned by this re
 the language-agnostic definitions in [open-feature/spec][spec], and that directory is also a Go
 module, `github.com/open-feature/spec/specification/assets/provider-tck`, whose only content is an
 `embed.FS` of them. This package depends on it like on any other module. Nothing is copied and
-nothing is generated: `pkg/tck/assets.go` reads the embedded files out of the dependency, so the
+nothing is generated: `assets.go` reads the embedded files out of the dependency, so the
 specification revision this suite conforms to is the version pinned in `go.mod` and nothing else,
 and `go.sum` guarantees that version always resolves to the same bytes.
 
@@ -551,6 +579,20 @@ provider in a domain replaces and shuts down the previous one; a fresh domain pe
 leave every provider of the suite registered and running, which for a provider holding a network
 connection means leaking one connection per scenario.
 
+And one packaging decision, recorded because its cost is visible in a `go.sum`:
+
+**The Compose harness lives in this module rather than in a second one.** An adopter therefore has
+one import path and one version to track, and testcontainers-go and `docker/compose` are ordinary
+dependencies of package `tck`. The cost is that a provider with no container to start — in-memory,
+environment-variable, file-based — still takes those `go.sum` entries and the ~40 transitive pins
+behind them. It compiles nothing it does not import and no application binary links this module, so
+the cost is confined to `go test` of an adopting module. A `tools/tck/compose` module was weighed
+and declined: it would need its own version and release-please entry, and a home for
+`tck.BackendEndpoint` that both modules can see — which is this package, so the second module would
+import the first and the split would buy nothing but a second coordinate to publish. After the
+Compose decision, containerised adopters are the overwhelming majority, and Java keeps
+testcontainers inside its `tck` artifact for the same reason.
+
 ## The self-tests
 
 Three suites run against providers from the SDK itself. They need no Docker and finish in
@@ -589,6 +631,31 @@ than a degenerate one: the correct answer is precisely what `TestControllablePro
 asserts about the child alone, so any difference between the two suites is attributable to the
 multi-provider and nothing else — a variant that does not survive the hop, a reason rewritten to
 `DEFAULT`, an error code flattened to `GENERAL`, an event that never reaches the client.
+
+### What a default build runs, and what it does not
+
+The three self-tests are the whole of what the default build executes for the TCK: they are this
+module's own tests, they need no Docker, and they finish in milliseconds.
+
+The **containerised conformance suites are excluded from the default build** — `providers/flagd/e2e`
+and `providers/ofrep/e2e` here, and your own adoption if you follow them. They are gated on an
+explicit opt-in and a maintainer runs them by hand before merging:
+
+```console
+PROVIDER_TCK_RUN=1 go test -tags=e2e -timeout=20m -run Conformance ./...
+```
+
+This is a decision rather than an oversight, which is exactly why it is written down here: an
+exclusion nobody wrote down is indistinguishable from a job somebody forgot to add. `make e2e` runs
+every module's `e2e`-tagged tests, so without the gate every pull request would start a Docker stack
+per resolver — minutes of runtime — and a conformance suite that is *expected* to be red while a
+known deviation stands would make the whole build red with it. A report that records a deviation and
+a CI job that fails on it are two answers to the same question, and only one of them is readable.
+
+The gate is a runtime skip rather than a second build tag on purpose. The adoption stays compiled
+under `-tags=e2e`, so CI still typechecks it against this package and a signature change here cannot
+rot an adoption unnoticed; only the container work is skipped, and the skip prints the variable that
+turns it on.
 
 ## Findings
 
@@ -646,6 +713,11 @@ capability rather than to relax the assertion.
   custom attribute.
 - **`POST /restart` is unused.** No current scenario needs a bounded outage — the stale scenario
   uses an explicit disconnect and reconnect — so `tck.ConnectionControl` has no `DisconnectFor`.
+  The specification now marks the endpoint `[OPTIONAL]` for that reason: it had been `[REQUIRED]` on
+  the strength of a claim, in its own description, that a TCK used it for the disconnect/reconnect
+  scenarios, and no language's TCK ever did. It stays specified because a future `@caching` scenario
+  asserting what a stale provider serves *during* an outage needs its flag-state preservation, which
+  `/start` on reconnect does not give.
 - **Hooks and flag metadata** are not covered. Provider metadata is, but only as far as a non-empty
   name.
 - **Caching is not covered, and the suite is quietly exposed to it.** `@caching` is reserved and
