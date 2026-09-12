@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/open-feature/go-sdk-contrib/providers/ofrep"
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -92,11 +92,11 @@ func TestOFREPConformance(t *testing.T) {
 		t.Fatalf("could not build the backend control: %v", err)
 	}
 
-	tck.Run(t, tck.Config{
-		Name:    "ofrep",
-		Control: control,
+	tck.Run(t,
+		tck.WithName("ofrep"),
+		tck.WithControl(control),
 
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			// NewProvider never fails: it only builds an http.Client and a
 			// base URI, and does not contact the backend. See
 			// providers/ofrep/provider.go:25-40.
@@ -105,11 +105,11 @@ func TestOFREPConformance(t *testing.T) {
 			// wedged backend surfaces as a resolution error attributable to
 			// this provider rather than as a suite-level timeout.
 			return ofrep.NewProvider(baseURI, ofrep.WithTimeout(5*time.Second)), nil
-		},
+		}),
 
-		// Config.NewUnavailableProvider is deliberately absent, which is the
-		// configuration tck.Config documents for a provider that cannot
-		// declare tck.UnavailableInit. See the capability notes below.
+		// tck.WithUnavailableProvider is deliberately absent, which is the
+		// configuration the TCK documents for a provider that cannot declare
+		// tck.UnavailableInit. See the capability notes below.
 
 		// The declared set is Object and NumericCoercion, and every
 		// omission is a property of the provider's code rather than a
@@ -254,23 +254,23 @@ func TestOFREPConformance(t *testing.T) {
 		// whose response says nothing about state leaves a provider no way to
 		// answer -- but this is not a property OFREP providers lack, and there
 		// is nothing here to record as a deviation.
-		Capabilities: []tck.Capability{
+		tck.WithCapabilities(
 			tck.Object,
 			tck.NumericCoercion,
 			tck.Variants,
 			tck.Targeting,
 			tck.DisabledFlags,
-		},
+		),
 
 		// The provider has no initialisation to wait for, so this bounds the
 		// SDK's registration round trip and nothing else.
-		ReadyTimeout: 30 * time.Second,
+		tck.WithReadyTimeout(30*time.Second),
 
 		// Unused in practice — every event-bearing scenario is gated behind
 		// tck.Events — but set explicitly so the value does not silently change
 		// meaning if the provider grows eventing.
-		EventTimeout: 15 * time.Second,
-	})
+		tck.WithEventTimeout(15*time.Second),
+	)
 }
 
 // startTestbed brings up the flagd testbed for the whole suite and returns the
