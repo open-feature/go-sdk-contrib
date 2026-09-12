@@ -310,8 +310,8 @@ func TestComposeDefaultsMatchTheCrossLanguageContract(t *testing.T) {
 	if got := cc.control(); got != 8080 {
 		t.Errorf("default control port is %d, want 8080", got)
 	}
-	if got := cc.config(); got != DefaultConfiguration {
-		t.Errorf("default configuration is %q, want %q", got, DefaultConfiguration)
+	if got := cc.backendConfig(); got != DefaultBackendConfiguration {
+		t.Errorf("default backend configuration is %q, want %q", got, DefaultBackendConfiguration)
 	}
 	if got := cc.timeout(); got != 60*time.Second {
 		t.Errorf("default startup timeout is %s, want 60s", got)
@@ -469,3 +469,4 @@ type stubControl struct{}
 func (stubControl) PrepareScenario(context.Context) error { return nil }
 func (stubControl) ChangeFlag(context.Context) error      { return nil }
 func (stubControl) Description() string                   { return "stub" }
+func (stubControl) ControlAPI() ControlAPI                { return ControlAPIInProcess }
