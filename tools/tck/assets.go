@@ -52,7 +52,7 @@ func CanonicalFlags() []byte {
 	if err != nil {
 		// Unreachable: the file is embedded at compile time, so a failure here
 		// means the spec module's embed directives and this path disagree.
-		panic("provider-tck: canonical flag set missing from embedded assets: " + err.Error())
+		panic("tck: canonical flag set missing from embedded assets: " + err.Error())
 	}
 	return b
 }
@@ -67,7 +67,7 @@ func CanonicalFlags() []byte {
 func ControlAPISpec() []byte {
 	b, err := assets.ReadFile("openapi/control-api.yaml")
 	if err != nil {
-		panic("provider-tck: control API spec missing from embedded assets: " + err.Error())
+		panic("tck: control API spec missing from embedded assets: " + err.Error())
 	}
 	return b
 }

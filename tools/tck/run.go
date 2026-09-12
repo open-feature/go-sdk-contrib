@@ -14,7 +14,22 @@ import (
 )
 
 // Run executes the OpenFeature Provider Conformance Suite against the provider
-// described by cfg.
+// the options describe.
+//
+// Two required options and a third that depends on how the backend is run:
+//
+//	tck.Run(t,
+//	    tck.WithName("my-provider"),
+//	    tck.WithComposeFile("testdata/tck/docker-compose.yaml"),
+//	    tck.WithBackendPorts(8013),
+//	    tck.WithProviderFromEndpoint(newProvider),
+//	    tck.WithCapabilities(tck.Events, tck.Object),
+//	)
+//
+// A provider with no backend supplies its own control and builds its provider
+// without an endpoint — see WithControl and WithProvider. Everything else has a
+// working default, and a missing required option is reported here by name rather
+// than failing later inside a step.
 //
 // Each scenario becomes a Go subtest, so failures point at a scenario by name
 // and -run selects one the usual way.
@@ -25,26 +40,44 @@ import (
 // scenario's reconnect restores the backend underneath another's disconnect
 // assertion. The resulting failure looks like a flaky provider rather than a
 // broken test, which makes it expensive to diagnose.
-func Run(t *testing.T, cfg Config) {
+func Run(t *testing.T, opts ...Option) {
 	t.Helper()
 
+	cfg := newConfig(opts)
+
 	if err := cfg.validate(); err != nil {
-		t.Fatalf("provider-tck: invalid configuration:\n%v", err)
+		t.Fatalf("tck: invalid configuration:\n%v", err)
 	}
 
 	caps, err := newCapabilitySet(cfg.capabilities())
 	if err != nil {
-		t.Fatalf("provider-tck: invalid configuration:\n%v", err)
+		t.Fatalf("tck: invalid configuration:\n%v", err)
 	}
 
 	features, err := cfg.featureSources()
 	if err != nil {
-		t.Fatalf("provider-tck: invalid configuration:\n%v", err)
+		t.Fatalf("tck: invalid configuration:\n%v", err)
 	}
 
-	r := &runner{cfg: cfg, caps: caps, t: t}
+	if cfg.compose != nil {
+		// The stack outlives every scenario and is brought down once, after
+		// the last one. See WithComposeFile for why it is never restarted.
+		endpoint, control, stop, err := startCompose(context.Background(), cfg.compose)
+		if err != nil {
+			t.Fatalf("tck [%s]: %v", cfg.Name, err)
+		}
+		t.Cleanup(stop)
 
-	t.Logf("provider-tck [%s]: backend under test is %s; declared capabilities %s",
+		cfg.Control = control
+		factory := cfg.NewProviderFromEndpoint
+		cfg.NewProvider = func(ctx context.Context) (openfeature.FeatureProvider, error) {
+			return factory(ctx, endpoint)
+		}
+	}
+
+	r := &runner{cfg: *cfg, caps: caps, t: t}
+
+	t.Logf("tck [%s]: backend under test is %s; declared capabilities %s",
 		cfg.Name, cfg.Control.Description(), formatCapabilities(caps.sorted()))
 
 	defer r.shutdown()
@@ -57,7 +90,7 @@ func Run(t *testing.T, cfg Config) {
 			Output: os.Stdout,
 			// The canonical Gherkin comes embedded in the spec module this
 			// package depends on, so an adopting module needs no submodule and
-			// no particular directory layout. With Config.ExtensionFeatures
+			// no particular directory layout. With tck.WithFeatures
 			// set, the adopter's filesystem is mounted alongside it and both
 			// are parsed in one pass. See featureSources.
 			FS:    features.fsys,
@@ -77,13 +110,13 @@ func Run(t *testing.T, cfg Config) {
 	r.reportSkips()
 
 	if status != 0 && !t.Failed() {
-		t.Fatalf("provider-tck [%s]: suite failed with exit status %d", cfg.Name, status)
+		t.Fatalf("tck [%s]: suite failed with exit status %d", cfg.Name, status)
 	}
 }
 
 // runner holds everything that outlives a single scenario.
 type runner struct {
-	cfg  Config
+	cfg  config
 	caps capabilitySet
 	t    *testing.T
 
@@ -182,7 +215,7 @@ func (r *runner) reportSkips() {
 	defer r.mu.Unlock()
 
 	if len(r.skips) == 0 {
-		r.t.Logf("provider-tck [%s]: every applicable scenario ran; no capability was left undeclared",
+		r.t.Logf("tck [%s]: every applicable scenario ran; no capability was left undeclared",
 			r.cfg.Name)
 		return
 	}
@@ -197,7 +230,7 @@ func (r *runner) reportSkips() {
 	})
 
 	report := []string{
-		fmt.Sprintf("provider-tck [%s]: %d scenario(s) skipped because a capability was not declared.",
+		fmt.Sprintf("tck [%s]: %d scenario(s) skipped because a capability was not declared.",
 			r.cfg.Name, len(sorted)),
 		"These were NOT run and are NOT part of the conformance result:",
 	}
@@ -219,6 +252,6 @@ func (r *runner) reportSkips() {
 // network connection or a background goroutine.
 func (r *runner) shutdown() {
 	if err := openfeature.SetNamedProvider(r.cfg.domain(), openfeature.NoopProvider{}); err != nil {
-		r.t.Logf("provider-tck [%s]: could not release the provider under test: %v", r.cfg.Name, err)
+		r.t.Logf("tck [%s]: could not release the provider under test: %v", r.cfg.Name, err)
 	}
 }

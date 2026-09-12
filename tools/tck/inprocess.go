@@ -57,7 +57,7 @@ func CanonicalFlagSet() map[string]memprovider.InMemoryFlag {
 		// compile time, so a failure here means the pinned assets and this
 		// decoder disagree about the file's shape, which moving the pin should
 		// have surfaced.
-		panic("provider-tck: canonical flag set could not be decoded: " + err.Error())
+		panic("tck: canonical flag set could not be decoded: " + err.Error())
 	}
 	return flags
 }
@@ -224,14 +224,14 @@ func changingFlag(defaultVariant string) memprovider.InMemoryFlag {
 // through one control:
 //
 //	control := tck.NewInProcessControl()
-//	tck.Run(t, tck.Config{
-//	    Name:    "in-memory",
-//	    Control: control,
-//	    NewProvider: func(ctx context.Context) (openfeature.FeatureProvider, error) {
+//	tck.Run(t,
+//	    tck.WithName("in-memory"),
+//	    tck.WithControl(control),
+//	    tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 //	        return control.NewProvider(), nil
-//	    },
-//	    Capabilities: []tck.Capability{tck.Events, tck.ConfigurationChange, tck.Object, tck.LargeIntegers},
-//	})
+//	    }),
+//	    tck.WithCapabilities(tck.Events, tck.ConfigurationChange, tck.Object, tck.LargeIntegers),
+//	)
 type InProcessControl struct {
 	mu sync.Mutex
 
