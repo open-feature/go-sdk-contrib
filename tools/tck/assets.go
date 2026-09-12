@@ -60,10 +60,21 @@ func CanonicalFlags() []byte {
 // ControlAPISpec returns the OpenAPI document describing the HTTP control API
 // that a containerised backend under test must expose.
 //
-// It is the normative contract for providers with a real backend. Two of its
+// It is the normative contract for providers with a real backend. Three of its
 // requirements are easy to get wrong and worth reading before implementing a
-// testbed: containers are never stopped or restarted to simulate an outage, and
-// POST /start resets flag state while POST /restart preserves it.
+// testbed:
+//
+//   - Containers are never stopped or restarted to simulate an outage.
+//     Unavailability happens inside the running stack, through POST /stop.
+//   - Every state-changing endpoint — POST /start, /change and /reset —
+//     must not return until the new state is actually being served. That is
+//     the backend's promise and not the provider's: how long the provider
+//     under test takes to notice is what the suite's event timeout covers.
+//   - POST /restart is optional, and no shipped scenario reaches it. The
+//     disconnect/reconnect scenario is an unbounded outage, which this suite
+//     drives with /stop followed by /start. Implement /restart if you want a
+//     future caching scenario — which needs its flag-state preservation —
+//     testable against your backend.
 func ControlAPISpec() []byte {
 	b, err := assets.ReadFile("openapi/control-api.yaml")
 	if err != nil {
