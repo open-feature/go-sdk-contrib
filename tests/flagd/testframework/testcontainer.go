@@ -94,6 +94,10 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 		return nil, err
 	}
 	envoy, err := composeStack.ServiceContainer(ctx, "envoy")
+	if err != nil {
+		composeStack.Down(ctx)
+		return nil, fmt.Errorf("failed to get the envoy service container: %w", err)
+	}
 	envoyPort, err := getMappedPort(ctx, composeStack, envoy, "9211")
 	if err != nil {
 		return nil, err
