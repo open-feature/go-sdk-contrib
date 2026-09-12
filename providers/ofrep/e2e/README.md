@@ -5,8 +5,18 @@ the [OFREP provider](../) — the same Gherkin scenarios, the same canonical fla
 backend control API that every other language's TCK runs.
 
 ```bash
-go test -tags=e2e -run TestOFREPConformance -timeout=10m ./...
+PROVIDER_TCK_RUN=1 go test -tags=e2e -run TestOFREPConformance -timeout=10m ./...
 ```
+
+**This suite is excluded from the default build.** `make e2e` runs every module's `e2e`-tagged
+tests, so without a gate every pull request would start a Docker stack here — and a run that is red
+for the launchpad reset race described below would read as an OFREP provider defect. The policy is
+exclusion with a maintainer running it by hand before merge, so the suite skips unless
+`PROVIDER_TCK_RUN` is set, and the skip message names the variable.
+
+The gate is a runtime skip rather than a second build tag, so CI still compiles this file against
+`tools/tck` under `-tags=e2e` and a signature change in the harness cannot rot the adoption
+unnoticed. Only the container work is skipped.
 
 ## Backend
 
