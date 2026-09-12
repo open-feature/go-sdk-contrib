@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/multi"
 )
@@ -35,10 +35,10 @@ import (
 func TestMultiProvider(t *testing.T) {
 	control := tck.NewInProcessControl()
 
-	tck.Run(t, tck.Config{
-		Name:    "multi-provider",
-		Control: control,
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+	tck.Run(t,
+		tck.WithName("multi-provider"),
+		tck.WithControl(control),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			provider, err := multi.NewProvider(
 				multi.StrategyFirstMatch,
 				multi.WithProvider("in-memory", control.NewProvider()),
@@ -47,7 +47,7 @@ func TestMultiProvider(t *testing.T) {
 				return nil, err
 			}
 			return provider, nil
-		},
+		}),
 		// Lifecycle is omitted although TestControllableProvider declares it for
 		// the very same child, and the asymmetry is intentional. There is no
 		// backend to reach on either side; what makes the child's readiness
@@ -82,12 +82,12 @@ func TestMultiProvider(t *testing.T) {
 		// the hop is one of the failure modes this suite exists to see — so
 		// this is a scenario to declare here as soon as the child can pass it,
 		// not one to leave withheld.
-		Capabilities: []tck.Capability{
+		tck.WithCapabilities(
 			tck.Events,
 			tck.ConfigurationChange,
 			tck.Object,
 			tck.Variants,
 			tck.LargeIntegers,
-		},
-	})
+		),
+	)
 }
