@@ -85,7 +85,7 @@ type scenarioState struct {
 
 	// providerName is the name the provider reports through its own metadata,
 	// captured so the conformance report identifies the provider rather than the
-	// suite. Config.Name is chosen to read well in failure messages -- "flagd-rpc"
+	// suite. tck.WithName is chosen to read well in failure messages -- "flagd-rpc"
 	// -- and is the configuration, not the provider.
 	providerName string
 

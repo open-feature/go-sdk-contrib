@@ -10,7 +10,7 @@ import (
 
 	"github.com/cucumber/godog"
 	messages "github.com/cucumber/messages/go/v21"
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
@@ -18,8 +18,8 @@ import (
 // An adopter with provider-specific behaviour has to be able to add scenarios
 // that run in the TCK's backend lifecycle — same provider registration, same
 // per-scenario reset — rather than in a harness of their own. These tests are
-// the end-to-end proof that Config.ExtensionFeatures and Config.ExtensionSteps
-// do that, and that they change nothing when unset.
+// the end-to-end proof that tck.WithFeatures and tck.WithSteps do that, and
+// that they change nothing when unset.
 
 // extensionFeatureURI is where testdata/tck-extensions/vendor.feature appears
 // once the suite has mounted it. The prefix is what tells an extension result
@@ -83,28 +83,34 @@ func (v *vendorSteps) count() int {
 }
 
 // vendorConfig is the reference adoption with extensions: the in-memory suite
-// plus two fields. Passing nil steps gives the same suite without them.
+// plus two options. Passing nil steps gives the same suite without them.
 //
 // The capabilities come from inMemoryCapabilities rather than a list of their
 // own, because the backend is the same memprovider.InMemoryProvider that
 // TestInMemoryProvider drives and it can do neither more nor less here. These
-// tests are about ExtensionFeatures and ExtensionSteps; what the fixture
-// provider is capable of is not their question to answer, and answering it
-// separately is how the two lists came to disagree.
-func vendorConfig(name string, steps *vendorSteps) tck.Config {
-	cfg := tck.Config{
-		Name:    name,
-		Control: plainMemoryControl{},
-		NewProvider: func(context.Context) (openfeature.FeatureProvider, error) {
+// tests are about tck.WithFeatures and tck.WithSteps; what the fixture provider
+// is capable of is not their question to answer, and answering it separately is
+// how the two lists came to disagree.
+//
+// It returns the options rather than applying them, so a caller can append one
+// that overrides an earlier one -- which is how the shadowing test points the
+// same suite at a different extension filesystem.
+func vendorConfig(name string, steps *vendorSteps) []tck.Option {
+	opts := []tck.Option{
+		tck.WithName(name),
+		tck.WithControl(plainMemoryControl{}),
+		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
-		},
-		Capabilities: inMemoryCapabilities(),
+		}),
+		tck.WithCapabilities(inMemoryCapabilities()...),
 	}
 	if steps != nil {
-		cfg.ExtensionFeatures = os.DirFS("testdata/tck-extensions")
-		cfg.ExtensionSteps = steps.register
+		opts = append(opts,
+			tck.WithFeatures(os.DirFS("testdata/tck-extensions")),
+			tck.WithSteps(steps.register),
+		)
 	}
-	return cfg
+	return opts
 }
 
 // TestExtensionsRunInTheCanonicalSuite is the end-to-end proof.
@@ -117,7 +123,7 @@ func TestExtensionsRunInTheCanonicalSuite(t *testing.T) {
 	t.Setenv(tck.ReportDirEnv, dir)
 
 	steps := newVendorSteps()
-	tck.Run(t, vendorConfig("with-extensions", steps))
+	tck.Run(t, vendorConfig("with-extensions", steps)...)
 
 	if steps.count() == 0 {
 		t.Fatal("the extension step never ran, so the extension feature did not enter the suite")
@@ -158,17 +164,17 @@ func TestExtensionsRunInTheCanonicalSuite(t *testing.T) {
 	t.Logf("one suite ran %d canonical and %d extension scenario(s)", canonical, extension)
 }
 
-// TestNoExtensionsChangesNothing is the other half: a Config without them must
-// produce exactly the run it produced before the fields existed.
+// TestNoExtensionsChangesNothing is the other half: a configuration without
+// them must produce exactly the run it produced before the options existed.
 func TestNoExtensionsChangesNothing(t *testing.T) {
 	baselineDir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, baselineDir)
-	tck.Run(t, vendorConfig("baseline", nil))
+	tck.Run(t, vendorConfig("baseline", nil)...)
 	baseline := readRun(t, baselineDir, "baseline")
 
 	extendedDir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, extendedDir)
-	tck.Run(t, vendorConfig("extended", newVendorSteps()))
+	tck.Run(t, vendorConfig("extended", newVendorSteps())...)
 	extended := readRun(t, extendedDir, "extended")
 
 	// Same canonical scenarios, in the same order, with the same outcomes. An
@@ -193,7 +199,7 @@ func TestNoExtensionsChangesNothing(t *testing.T) {
 	// is what says the extension mount did not change what was parsed.
 	for uri, data := range baseline.sources {
 		if !isCanonicalURI(uri) {
-			t.Errorf("a Config with no extensions parsed %s", uri)
+			t.Errorf("a configuration with no extensions parsed %s", uri)
 			continue
 		}
 		if extended.sources[uri] != data {
@@ -202,7 +208,7 @@ func TestNoExtensionsChangesNothing(t *testing.T) {
 	}
 	for _, tc := range baseline.cases {
 		if !isCanonicalURI(tc.uri) {
-			t.Errorf("a Config with no extensions ran %q from %s", tc.name, tc.uri)
+			t.Errorf("a configuration with no extensions ran %q from %s", tc.name, tc.uri)
 		}
 	}
 
@@ -220,14 +226,16 @@ func TestNoExtensionsChangesNothing(t *testing.T) {
 func TestAnExtensionCannotShadowACanonicalScenario(t *testing.T) {
 	baselineDir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, baselineDir)
-	tck.Run(t, vendorConfig("shadow-baseline", nil))
+	tck.Run(t, vendorConfig("shadow-baseline", nil)...)
 	baseline := readRun(t, baselineDir, "shadow-baseline")
 
 	dir := t.TempDir()
 	t.Setenv(tck.ReportDirEnv, dir)
-	cfg := vendorConfig("shadow", newVendorSteps())
-	cfg.ExtensionFeatures = os.DirFS("testdata/tck-shadow")
-	tck.Run(t, cfg)
+	// A later option wins over an earlier one, so this points the same suite at
+	// the shadowing filesystem instead of the ordinary extension one.
+	opts := append(vendorConfig("shadow", newVendorSteps()),
+		tck.WithFeatures(os.DirFS("testdata/tck-shadow")))
+	tck.Run(t, opts...)
 	shadowed := readRun(t, dir, "shadow")
 
 	// The canonical feature the fixture impersonates was parsed from the
