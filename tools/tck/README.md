@@ -625,7 +625,7 @@ $ jq . reports/in-memory.json
   "tck": {
     "implementation": "go-sdk-contrib/tools/provider-tck",
     "version": "v0.1.0",
-    "specRevision": "v0.0.0-20260911211750-26362f85b7fc"
+    "specRevision": "v0.0.0-20260912100158-009afe061794"
   },
   "backend": { "description": "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario" },
   "declaration": { "declared": ["@events", "@large-integers", "@object", "@variants"] },
@@ -661,7 +661,7 @@ embedded assets compile to — parsed by godog's own parser, so the expectation 
 run would have produced — and fails the test if any of them produced no outcome:
 
 ```
-provider-tck [in-memory]: 12 canonical scenario(s) did not run, so this is not a conformance run
+provider-tck [in-memory]: 27 canonical scenario(s) did not run, so this is not a conformance run
 and its report must not be published:
   - gherkin/errors.feature: Requesting the wrong type returns the code default: 0 of 11
     executed (11 announced but never run, which is what a -run selector or a tag filter leaves behind)
@@ -687,8 +687,8 @@ most severe of its step results, which is how Cucumber itself derives it.
 ```console
 $ jq -c 'select(.testStepFinished) | .testStepFinished.testStepResult.status' reports/in-memory.ndjson \
     | sort | uniq -c
-    182 "PASSED"
-     26 "SKIPPED"
+    270 "PASSED"
+    125 "SKIPPED"
 ```
 
 ### Why this exists in Go before the other languages
@@ -697,17 +697,17 @@ Because Go is the language that needs it most. godog counts a capability-gated s
 tally:
 
 ```
-29 scenarios (29 passed)
+56 scenarios (56 passed)
 ```
 
-Five of those twenty-nine did not run. Appendix F is unambiguous that a scenario skipped for an
+Eighteen of those fifty-six did not run. Appendix F is unambiguous that a scenario skipped for an
 undeclared capability is reported as skipped with the reason and *never* as passed, and the harness
 does say so in a separate log line — but the headline number still says something false, and a
 number is what gets read. pytest and jest-cucumber both report skips correctly, so this is a property
 of the runner rather than of the suite's design.
 
 The report does not fix godog's summary. It makes the summary stop mattering. The stream above
-accounts for all twenty-nine scenarios and reports five of them as `SKIPPED`, each carrying the
+accounts for all fifty-six scenarios and reports eighteen of them as `SKIPPED`, each carrying the
 capability that gated it in `testStepResult.message`, so a consumer can check the rule instead of
 trusting the runner to have applied it.
 
