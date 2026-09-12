@@ -387,6 +387,12 @@ naming the defect is what separates it from a capability withheld by choice, and
 merely omits the tag cannot say which of the two happened. Move it to `tck.TrackedDeviation` as soon
 as there is an issue to point at, and delete the entry once the defect is fixed.
 
+The rest of this section is the normative wording from
+[Appendix F's "Rules for declaring"][appendix-f-deviations], not a Go restatement of it: the field
+means the same thing in all four languages, and the appendix is where it is settled. It is repeated
+here rather than only linked because it is what an adopter needs at the moment they are writing one.
+If the two ever disagree, the appendix wins and this file is wrong.
+
 **An entry says one thing: this provider fails to do something it is required to do.** The
 requirement has to be a numbered `MUST`, or a rule the implementation bound itself to elsewhere —
 flagd measured against its own accepted numeric-coercion ADR is the worked example. Where the
@@ -634,28 +640,48 @@ multi-provider and nothing else — a variant that does not survive the hop, a r
 
 ### What a default build runs, and what it does not
 
-The three self-tests are the whole of what the default build executes for the TCK: they are this
-module's own tests, they need no Docker, and they finish in milliseconds.
+The default build executes this module's own tests and nothing else: the three self-tests above, the
+unit tests over configuration validation, capability gating and extension mounting, and the
+**control-API request-sequence tests** in `httpcontrol_internal_test.go`. None of them needs Docker
+and all of them finish in about a second.
+
+That last file is worth naming because of what it replaced. Three rules in `control-api.yaml`
+constrain the *sequence* of control calls rather than any single call — `/reset` is preferred over
+`/start`, the `/start` fallback is probed once per suite and then remembered, and the scenario after
+a disconnect must be prepared with `/start` because `/reset` is specified not to start a stopped
+backend. None is visible in the code of one method, and until now all three were reachable only by
+starting Docker and reading a container's logs, which means in practice they were unchecked. The
+control API is HTTP, so a recording `httptest.Server` is a complete stand-in for a backend — and it
+answers things a real launchpad cannot be asked for on demand: a `501`, a single `500`, a `/healthz`
+that is unready for exactly three probes.
 
 The **containerised conformance suites are excluded from the default build** — `providers/flagd/e2e`
 and `providers/ofrep/e2e` here, and your own adoption if you follow them. They are gated on an
 explicit opt-in and a maintainer runs them by hand before merging:
 
 ```console
-PROVIDER_TCK_RUN=1 go test -tags=e2e -timeout=20m -run Conformance ./...
+TCK_RUN=1 go test -tags=e2e -timeout=20m -run Conformance ./...
 ```
 
-This is a decision rather than an oversight, which is exactly why it is written down here: an
-exclusion nobody wrote down is indistinguishable from a job somebody forgot to add. `make e2e` runs
-every module's `e2e`-tagged tests, so without the gate every pull request would start a Docker stack
-per resolver — minutes of runtime — and a conformance suite that is *expected* to be red while a
-known deviation stands would make the whole build red with it. A report that records a deviation and
-a CI job that fails on it are two answers to the same question, and only one of them is readable.
+**Why an adoption suite is excluded rather than gating a merge** is the same argument in every
+language, so it is not restated here: see ["Running the suite in CI"][appendix-f-ci] in Appendix F.
+What is Go-specific is where the exclusion lives, and that is this:
 
-The gate is a runtime skip rather than a second build tag on purpose. The adoption stays compiled
-under `-tags=e2e`, so CI still typechecks it against this package and a signature change here cannot
-rot an adoption unnoticed; only the container work is skipped, and the skip prints the variable that
-turns it on.
+- **The exclusion is a runtime skip inside the test function**, reading `TCK_RUN`, and nothing in the
+  build re-enables it. That is the first of the two mistakes Appendix F names, and it is the one this
+  repository was already making: `make e2e` expands to
+  `go list -f '{{.Dir}}/...' -m | xargs -I{} go test -timeout=3m -tags=e2e {}` over every module in
+  the workspace, so the `e2e` build tag is applied to everything and a tag is therefore not an
+  exclusion here — it is the opposite. Both adoptions were running, red, on every pull request before
+  the gate was added.
+- **A runtime skip rather than a second build tag** (`//go:build e2e && tck`) also satisfies the
+  appendix's requirement that the suite keep compiling when it does not run: the adoption stays
+  typechecked against this package under `-tags=e2e`, so a signature change here cannot rot an
+  adoption unnoticed. Only the container work is skipped, and the skip message names the variable
+  that turns it on.
+- **It is written down** — here, and in each adoption's own README — which is the appendix's second
+  mistake avoided. No scheduled or path-filtered workflow was added; the three self-tests below still
+  run in the default build and are the fast canary.
 
 ## Findings
 
@@ -720,19 +746,29 @@ capability rather than to relax the assertion.
   `/start` on reconnect does not give.
 - **Hooks and flag metadata** are not covered. Provider metadata is, but only as far as a non-empty
   name.
-- **Caching is not covered, and the suite is quietly exposed to it.** `@caching` is reserved and
-  therefore not declarable, but flagd's RPC resolver enables an LRU cache *by default* and rewrites the
-  reason to `CACHED` on a hit. The adoption does not turn it off, so the suite already runs against a
-  caching provider while asserting `STATIC` everywhere. It passes only because no scenario evaluates
-  the same flag twice in a way that hits the cache — so a scenario added later that does will fail
-  against flagd RPC with `CACHED`, and the failure will look like a provider defect rather than a
-  test-design one. Note also that the configuration-change scenario already depends on cache
-  invalidation working without saying so: against flagd RPC it reads `changing-flag`, changes it, and
-  reads again, which only gives the right answer because the change event evicts the entry.
+- **Caching is not covered, and the constraint that follows is not Go's to state.** `@caching` is
+  reserved and therefore not declarable. The reason a provider's own client-side cache can rewrite
+  the reason under a scenario's feet — flagd's RPC resolver runs an LRU cache by default and reports
+  `CACHED` on a repeat evaluation — used to be written out here, and it is now Appendix F's
+  ["Caching" gap entry][appendix-f-gaps], with the constraint on scenario authors spelled out
+  there: no scenario may evaluate the same flag twice without a configuration change in between.
+  It is a constraint on new scenarios and not a defect in any provider, which is why it belongs with
+  the scenarios rather than in one language's README.
+
+  What is left for this file is the Go adoption's own position: `providers/flagd/e2e` does not turn
+  the cache off, so the suite here really does run against a caching provider while asserting
+  `STATIC` everywhere, and it passes only because the canonical set respects that constraint. One
+  consequence is worth recording because the appendix does not: the configuration-change scenario
+  already depends on cache invalidation working, without saying so — against flagd RPC it reads
+  `changing-flag`, changes it and reads again, which gives the right answer only because the change
+  event evicts the entry.
 
 [appendix-a]: https://github.com/open-feature/spec/blob/main/specification/appendix-a-included-utilities.md
 [appendix-b]: https://github.com/open-feature/spec/blob/main/specification/appendix-b-gherkin-suites.md
 [appendix-f]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md
+[appendix-f-ci]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci
+[appendix-f-deviations]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring
+[appendix-f-gaps]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#open-questions
 [control-api]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/openapi/control-api.yaml
 [numeric-coercion-adr]: https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md
 [reinit-fix]: https://github.com/open-feature/spec/commit/fc99d5ace4da472a5fea0595fa4db8034bbbc769
