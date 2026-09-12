@@ -90,6 +90,29 @@ var (
 			"fractional check -- the usual narrowing defect -- but Flagsmith has no float type so "+
 			"that branch is unreachable through this backend. Both modes are affected: the "+
 			"accessors are in the shared provider layer, above the transport.")
+
+	// @object IS declared and mostly holds -- structured values resolve, and three of the four
+	// structured-as-scalar rows report TYPE_MISMATCH correctly. This entry exists for the fourth.
+	//
+	// A deviation against a *declared* capability is the case the Config docs call out: the
+	// capability holds, but one of the scenarios it gates does not. Without it the suite reports
+	// a bare failure and a reader cannot tell an unimplemented feature from a backend that cannot
+	// express the distinction.
+	//
+	// Withholding @object instead would be worse. Object resolution genuinely works, and dropping
+	// the capability would skip five scenarios to hide one failure -- trading a visible, explained
+	// defect for four silent non-results.
+	objectAsStringDeviation = tck.UntrackedDeviation(
+		tck.Object,
+		"object-flag requested as a String resolves to the raw JSON text rather than reporting "+
+			"TYPE_MISMATCH. Flagsmith stores an object as a string -- feature_state_value is "+
+			"natively boolean, integer or string only -- so on this backend the request is not a "+
+			"type mismatch at all and correctly succeeds. The other three rows of the outline "+
+			"(Boolean, Integer, Float) pass, and structured resolution itself passes. The same "+
+			"cause fails one untagged row, float-flag requested as a String, which has no "+
+			"capability to hang a deviation on: whether the type-mismatch matrix is satisfiable "+
+			"against a backend with a coarser type system is an open question for the suite, not "+
+			"a defect this provider can fix.")
 )
 
 // TestFlagsmithRemoteConformance runs the suite against remote evaluation: the
@@ -312,6 +335,7 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 
 		KnownDeviations: []tck.KnownDeviation{
 			numericCoercionDeviation,
+			objectAsStringDeviation,
 		},
 
 		// Both modes poll. Remote evaluation is a single hop and could be
