@@ -137,3 +137,8 @@ func (plainMemoryControl) ChangeFlag(context.Context) error {
 func (plainMemoryControl) Description() string {
 	return "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario"
 }
+
+// ControlAPI is in-process because this control manipulates a provider in this
+// process rather than a backend over HTTP. It is required rather than optional
+// precisely so that a custom control like this one has to say.
+func (plainMemoryControl) ControlAPI() tck.ControlAPI { return tck.ControlAPIInProcess }
