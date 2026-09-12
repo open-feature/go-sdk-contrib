@@ -1,0 +1,39 @@
+# Backend stack for the OpenFeature Provider Conformance Suite, wrapping the unmodified flagd
+# testbed image.
+#
+# flagd serves the OFREP API on container port 8016 alongside its own protocols, and the same image
+# serves the "launchpad" control API on 8080 -- the endpoints the TCK's control API contract was
+# derived from. So the OFREP provider is exercised against a real, conformant OFREP backend seeded
+# with the canonical flag set, with no new image and no change to the flagd suites.
+#
+# Only two ports are published, which is the whole difference from the flagd adoption's otherwise
+# identical file: the OFREP provider speaks HTTP to 8016 and nothing here speaks flagd's gRPC
+# protocols, so 8013 and 8015 would be exposed for nothing. The TCK exposes 8080 itself.
+#
+# THIS IS NOT THE TESTBED SUBMODULE'S COMPOSE FILE, on purpose, and this suite no longer needs the
+# submodule checked out at all. That file bind-mounts ${FLAGS_DIR} into the container and runs an
+# envoy sidecar; the conformance suite needs neither. The launchpad writes its combined flag file
+# inside the container when nothing is mounted, and envoy exists for the TLS and permission-denied
+# scenarios of the flagd package's own e2e suites. An unset FLAGS_DIR defaults to the compose
+# file's own directory, so using that file would have the launchpad write into the checked-out
+# submodule -- which is what the hand-rolled wrapper this replaces worked around with a temporary
+# directory and a WithEnv call.
+#
+# The service is called "backend" because that is the TCK's default, and the same name the flagd
+# adoption here and Java's flagd adoption use, so the stacks differ in nothing a reader has to
+# reconcile.
+#
+# The image is pinned to the same tag as providers/flagd/e2e/testdata/tck/docker-compose.yaml. Bump
+# both together: a cross-provider disagreement is only evidence if both providers answered the same
+# backend. v3.8.0 serves neither large-integer-flag nor integral-float-flag, which is why two
+# scenarios here fail against it -- see open-feature/flagd-testbed#392 and the README.
+#
+# Note there are no host port bindings. The TCK requires dynamically mapped ports and discovers them
+# after startup -- a pinned host port would make the suite unrunnable in parallel and would collide
+# with a developer's local flagd.
+services:
+  backend:
+    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    ports:
+      - 8016   # flagd's OFREP endpoint (HTTP)
+      - 8080   # launchpad control API
