@@ -20,7 +20,7 @@ import (
 // say — each produce their own pair of files without colliding.
 //
 // Unset means no report, which is the default and is not an error.
-const ReportDirEnv = "PROVIDER_TCK_REPORT_DIR"
+const ReportDirEnv = "TCK_REPORT_DIR"
 
 // reportSchemaVersion is the major version of the report schema this emitter
 // produces. See specification/assets/provider-tck/report/.
