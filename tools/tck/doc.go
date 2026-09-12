@@ -84,7 +84,27 @@
 // specification/assets/provider-tck/openapi/control-api.yaml; providers
 // with no backend at all may use an in-process implementation such as
 // [InProcessControl]. The distinction matters and is not a matter of taste —
-// see the documentation on [BackendControl].
+// see the documentation on [BackendControl] — and a control states which of the
+// two it is, through [ControlAPI], rather than leaving it to be inferred.
+//
+// # One module, container harness included
+//
+// The Compose harness lives in this package rather than in a second module
+// beside it, so an adopter has one import path and one version to track. The
+// cost is visible and worth naming: testcontainers-go and docker/compose are
+// ordinary dependencies of package tck, so a provider with no container to
+// start — in-memory, environment-variable, file-based — still takes those
+// go.sum entries and the ~40 transitive pins behind them. It compiles nothing
+// it does not import, and this is a test-only module that no application binary
+// links, so the cost is confined to `go test` of an adopting module.
+//
+// The alternative was weighed and declined. A tools/tck/compose module would
+// need its own version and release-please entry, and a home for
+// [BackendEndpoint] that both modules can see — which is this package, so the
+// second module would import the first and the split would buy nothing but a
+// second coordinate to publish. After the Compose decision, containerised
+// adopters are the overwhelming majority, and Java keeps testcontainers in its
+// tck artifact for the same reason.
 //
 // [Appendix F]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md
 package tck
