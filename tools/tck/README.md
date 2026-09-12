@@ -439,6 +439,11 @@ no scenario carries that tag and nothing was skipped for it to explain.
 | Provider | Suite | Backend |
 | --- | --- | --- |
 | flagd (RPC and in-process resolvers) | [`providers/flagd/e2e/tck_test.go`](../../providers/flagd/e2e/tck_test.go) | the Compose harness, against the `flagd-testbed` launchpad |
+| OFREP | [`providers/ofrep/e2e/tck_test.go`](../../providers/ofrep/e2e/tck_test.go) | the Compose harness, against `flagd-testbed`'s OFREP endpoint and the same launchpad |
+
+Both adoptions take the Compose path and neither contains a line of container code. That is the
+measure this harness is meant to be judged by: an adopter names a Compose file, a port and a
+factory, and everything between `docker compose up` and the provider under test belongs here.
 
 ## Controlling the backend
 
