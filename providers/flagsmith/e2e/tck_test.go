@@ -38,7 +38,7 @@ const (
 	// makes it a gap in Appendix F rather than a quirk of Flagsmith.
 	serverSideKey = "ser.provider-tck-server-key"
 
-	composeFile = "testbed-compose.yaml"
+	composeFile = "testdata/tck/docker-compose.yaml"
 	proxyPort   = 8000
 )
 
