@@ -609,6 +609,205 @@ import the first and the split would buy nothing but a second coordinate to publ
 Compose decision, containerised adopters are the overwhelming majority, and Java keeps
 testcontainers inside its `tck` artifact for the same reason.
 
+## Conformance reports
+
+Set `TCK_REPORT_DIR` and each suite writes two files: an envelope at `<dir>/<name>.json`,
+conforming to the [report schema][report-schema] in the specification, and the results it references
+at `<dir>/<name>.ndjson`, which is a [Cucumber Messages][cucumber-messages] stream.
+
+```console
+$ TCK_REPORT_DIR=./reports go test ./...
+$ jq . reports/in-memory.json
+{
+  "schemaVersion": "1",
+  "provider": { "name": "InMemoryProvider", "language": "go", "configuration": "in-memory" },
+  "sdk": { "name": "github.com/open-feature/go-sdk", "version": "v1.18.0" },
+  "tck": {
+    "implementation": "go-sdk-contrib/tools/tck",
+    "version": "v0.1.0",
+    "specRevision": "v0.0.0-20260912211427-ccdb88790bb4"
+  },
+  "backend": {
+    "description": "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario",
+    "controlApi": "in-process"
+  },
+  "declaration": { "declared": ["@events", "@large-integers", "@object", "@variants"] },
+  "results": {
+    "format": "cucumber-messages",
+    "formatVersion": "21.0.1",
+    "location": "in-memory.ndjson",
+    "digest": "sha256:4754d458ac5a1a137080082b7947f8f1eafc5df9f6d54551440da9f8ac6a0dce"
+  }
+}
+```
+
+The envelope says what was tested and what the provider claims. It does not contain the results: a
+Messages stream carries the feature sources and so is far larger than the envelope, and a consumer
+deciding whether it cares about a report should not have to fetch a whole run to find out.
+`results.digest` covers the payload byte for byte, so a consumer can tell that what it fetched is
+what the envelope describes.
+
+Two fields next to each other mean different things and are worth reading carefully.
+`provider.configuration` is the provider's own **mode** — which of several materially different
+configurations of one provider was tested, `flagd-rpc` against `flagd-in-process` — and it comes
+from `tck.WithName`. `backend.controlApi` is how the suite drove the backend: `http` for the
+normative control API, `in-process` for the narrow allowance made for a provider with no backend.
+The backend block is always present and `controlApi` is always set, because `tck.BackendControl`
+requires the control to state it. Nothing infers it, and an absent value would not be "no claim
+made" but an unfalsifiable one — the same scenarios passing over the control API and passing through
+in-process manipulation of a provider that *does* have a backend are not the same claim, and this is
+the only field that separates them. The backend's own named flag configuration, if you set one, is
+`tck.WithBackendConfiguration` and does not appear in the report at all.
+
+`TCK_REPORT_DIR` is an environment variable rather than a `Config` field so that emitting a
+report is a property of the run and not of the code: CI sets it, a developer running the suite
+locally does not, and no adopter changes a line to publish one. Unset means no report, which is not
+an error. Several suites in one test binary each write their own pair of files, so flagd's two
+resolvers do not collide.
+
+### The canonical set has to have run
+
+A report is a claim that the provider was asked the canonical questions, and nothing in the format
+establishes that it was asked all of them. `go test -run` matching one scenario name produces a
+green suite and a well-formed report describing a single scenario; so does a mis-wired extension
+filesystem. There is no field in the envelope a consumer could read to notice.
+
+So the suite checks itself. After the run it compares what executed against the scenarios the
+embedded assets compile to — parsed by godog's own parser, so the expectation is exactly what a full
+run would have produced — and fails the test if any of them produced no outcome:
+
+```
+tck [in-memory]: 27 canonical scenario(s) did not run, so this is not a conformance run
+and its report must not be published:
+  - gherkin/errors.feature: Requesting the wrong type returns the code default: 0 of 11
+    executed (11 announced but never run, which is what a -run selector or a tag filter leaves behind)
+```
+
+A capability-gated scenario is not a gap: it ran the gate and is in the results as `SKIPPED` with
+its reason, so the question was put and declined. What this catches is the question that was never
+put. Extension scenarios are counted and reported but can never close a gap — an adopter's feature
+is an addition to the canonical set, not a substitute for part of it.
+
+### Why the results are Cucumber Messages
+
+Because the alternative was a second format to maintain. The per-scenario outcome, the tags, the
+executed feature source and the identity of a Scenario Outline row are all already specified by
+Messages, which is maintained, cross-language, schema'd, and emitted natively by cucumber-jvm.
+Restating them in the report schema would have meant versioning them and giving the same fact two
+places to disagree.
+
+Reading the results needs no bespoke tooling. Every scenario is a `pickle`; every result is a
+`testCase` with a `testCaseStarted` and one `testStepFinished` per step; a scenario's outcome is the
+most severe of its step results, which is how Cucumber itself derives it.
+
+```console
+$ jq -c 'select(.testStepFinished) | .testStepFinished.testStepResult.status' reports/in-memory.ndjson \
+    | sort | uniq -c
+    270 "PASSED"
+    125 "SKIPPED"
+```
+
+### Why this exists in Go before the other languages
+
+Because Go is the language that needs it most. godog counts a capability-gated skip in its **passed**
+tally:
+
+```
+56 scenarios (56 passed)
+```
+
+Eighteen of those fifty-six did not run. Appendix F is unambiguous that a scenario skipped for an
+undeclared capability is reported as skipped with the reason and *never* as passed, and the harness
+does say so in a separate log line — but the headline number still says something false, and a
+number is what gets read. pytest and jest-cucumber both report skips correctly, so this is a property
+of the runner rather than of the suite's design.
+
+The report does not fix godog's summary. It makes the summary stop mattering. The stream above
+accounts for all fifty-six scenarios and reports eighteen of them as `SKIPPED`, each carrying the
+capability that gated it in `testStepResult.message`, so a consumer can check the rule instead of
+trusting the runner to have applied it.
+
+godog 0.15.1 has no Messages formatter — it registers `cucumber` (the legacy relishapp JSON),
+`events`, `junit`, `pretty` and `progress` — so [`messages.go`](./messages.go) is one,
+registered through the public `godog.Format` plugin interface. Its JUnit output was not a usable
+fallback: a capability-gated skip comes out as `skipped="0"` on the suite, in a non-standard
+`<error type="skipped">` element, with the step text where the skip reason should be.
+
+That difference is not incidental. godog's formatter *events* report a gated scenario correctly, as
+`Skipped` for every step; its internal *storage* additionally holds a `FAILED` result for the first
+step of such a scenario, which is what the built-in formatters read and where the malformed JUnit
+comes from. A formatter built on the events is right for the same reason the built-in ones are wrong.
+
+One thing the formatter interface cannot supply: `Skipped(pickle, step, definition)` carries no
+error, so the capability that gated a scenario is unrecoverable from the events alone. The reason
+therefore comes from the capability gate itself and lands in `TestStepResult.message`.
+
+### What identifies a report
+
+`tck.specRevision` comes from [`revision.go`](./revision.go), and it is the module version
+pinned in [`go.mod`](./go.mod) — the assets arrive as a Go module, so the pin *is* the revision.
+
+It is written by hand, which needs a guard rather than an apology. Nothing generates it and nothing
+can: a library package's test binary carries no module build information at all, so
+`runtime/debug.ReadBuildInfo` reports no dependencies from one, in a Go workspace and in a plain
+module alike — and the TCK always runs inside a library test binary, both its own self-tests and an
+adopter's `TestConformance`. So `TestSpecRevisionIsRecorded` reads `go.mod` and fails if the constant
+disagrees with the pin. Moving the pin without updating the constant breaks the suite's own tests
+rather than a consumer's report.
+
+A git tree hash over the artifact directory used to be carried beside it, so that a consumer could
+tell which questions a report answers without trusting the recorded commit. The results now carry the
+executed feature text itself, in the stream's `source` messages, which answers the same question with
+the source rather than with a hash of it — and unlike the hash it cannot be asserted wrongly, because
+it is the input godog parsed.
+
+`declaration.declared` is what the provider claims, and it stays in the envelope because it is an
+*input* to reading the results rather than a summary of them. A `SKIPPED` scenario says the question
+was not put to this provider; only the declaration says whether that is because the provider declines
+the capability. Given the declaration and a scenario's tags — which the stream carries — the reason
+for a skip follows.
+
+`provider.name` is what the provider reports through its own metadata, not `Config.Name`.
+`Config.Name` is chosen to read well in a failure message — `flagd-rpc` — which makes it the
+*configuration*, and it is reported as such. One provider with two materially different modes
+produces two reports that are not interchangeable. No standard results format has a slot for the
+subject under test — Messages records the runner, the runtime and the machine — which is why the
+envelope has to name it.
+
+### What identifies a scenario
+
+`feature` and `name` together do not. Every row of a Scenario Outline shares one name, and the
+type-mismatch matrix in `errors.feature` is eleven rows, so eleven results carry the same feature and
+the same name. Anything that stopped there could not say which row failed, and a consumer keying on
+the pair would keep whichever row it read last.
+
+Messages identifies the row exactly, and always has. A pickle's `astNodeIds` end with the id of the
+Examples `TableRow` it was expanded from, and the stream carries the `gherkinDocument` those ids
+belong to, so the row's cells are recoverable from the stream alone:
+
+```console
+$ jq -c 'select(.pickle) | select(.pickle.name | startswith("Requesting the wrong type"))
+         | .pickle.astNodeIds' reports/in-memory.ndjson
+["25","9"]
+["25","10"]
+["25","11"]
+...
+```
+
+A skipped row is identified the same way, which matters because the capability gate stops a scenario
+before its first step: the four rows of the `@object` outline would otherwise be four `SKIPPED`
+results differing in nothing — exactly as ambiguous as four failures.
+
+The report used to carry the row's parameters in a field of its own. Messages had them all along, as
+node ids, so the field was removed — four implementations had each reinvented it independently, one
+of them by reverse-engineering how its runner maps a pickle back to a table row.
+
+Removing it removed a coupling as well. Recovering the row from a `*godog.Scenario` meant reparsing
+the embedded feature files and reproducing the node ids godog assigns, which come from a counter
+godog shares across the files it parses — so reproducing them meant reproducing godog's whole parse.
+A formatter is handed the same `gherkinDocument` godog compiled the pickles from, so the ids agree by
+construction rather than by imitation.
+
 ## The self-tests
 
 Three suites run against providers from the SDK itself. They need no Docker and finish in
@@ -780,8 +979,10 @@ capability rather than to relax the assertion.
 [appendix-f-deviations]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring
 [appendix-f-gaps]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#open-questions
 [control-api]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/openapi/control-api.yaml
+[cucumber-messages]: https://github.com/cucumber/messages
 [numeric-coercion-adr]: https://github.com/open-feature/flagd/blob/main/docs/architecture-decisions/numeric-coercion.md
 [reinit-fix]: https://github.com/open-feature/spec/commit/fc99d5ace4da472a5fea0595fa4db8034bbbc769
+[report-schema]: https://github.com/open-feature/spec/blob/main/specification/assets/provider-tck/report/conformance-report.schema.json
 [req-147]: https://github.com/open-feature/spec/blob/main/specification/sections/01-flag-evaluation.md#requirement-147
 [req-223]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-223
 [req-224]: https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-224
