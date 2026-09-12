@@ -16,7 +16,7 @@ import (
 // declaration — so the difference has to be stated, or a consumer cannot tell
 // a design decision from a defect.
 //
-// Declared by the provider author through Config.KnownDeviations, which is the
+// Declared by the provider author through tck.WithKnownDeviations, which is the
 // only place that knows the difference. The TCK cannot infer it: from the
 // outside, a capability the provider chose to withhold and one it withheld
 // because it is broken are the same absence.
@@ -27,7 +27,7 @@ import (
 // reason — which is worth saying precisely because a passing scenario hides it.
 //
 // Part of the declaration vocabulary rather than of any one consumer of it.
-// This is something an adopter writes, alongside Config.Capabilities, so it
+// This is something an adopter writes, alongside tck.WithCapabilities, so it
 // belongs to the suite an adopter adopts. Whatever reads the declaration — a
 // machine-readable conformance report, a build check, a human — is downstream
 // of it and does not widen it.

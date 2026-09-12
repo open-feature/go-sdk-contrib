@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-feature/go-sdk-contrib/tools/provider-tck/pkg/tck"
+	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
@@ -314,7 +314,7 @@ func TestCanonicalFlagSetDisabledFlagsCarryAnError(t *testing.T) {
 	result := provider.BooleanEvaluation(ctx, "disabled-boolean-flag", false, nil)
 
 	if result.Value {
-		t.Errorf("disabled-boolean-flag resolved to true, so the state was ignored and its "+
+		t.Errorf("disabled-boolean-flag resolved to true, so the state was ignored and its " +
 			"configured variant was served; the caller passed false")
 	}
 	code := result.ResolutionDetail().ErrorCode

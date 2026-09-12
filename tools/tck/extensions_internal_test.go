@@ -8,7 +8,7 @@ import (
 	"testing/fstest"
 )
 
-// The extension mechanism is two fields and one overlay filesystem. These tests
+// The extension mechanism is two options and one overlay filesystem. These tests
 // pin the filesystem, because godog reaches it through an interface that only
 // forwards Open — see storage.FS — so a missing method is a runtime failure
 // deep inside the parser rather than a compile error here.
@@ -23,7 +23,7 @@ func extensionFixture() fs.FS {
 }
 
 func TestNoExtensionsUsesTheEmbeddedAssetsUnchanged(t *testing.T) {
-	set, err := (&Config{}).featureSources()
+	set, err := newConfig(nil).featureSources()
 	if err != nil {
 		t.Fatalf("featureSources: %v", err)
 	}
@@ -36,13 +36,13 @@ func TestNoExtensionsUsesTheEmbeddedAssetsUnchanged(t *testing.T) {
 	// property of the code rather than of a test.
 	got, ok := set.fsys.(embed.FS)
 	if !ok || got != assets {
-		t.Errorf("a Config with no extensions handed godog a %T rather than the embedded assets",
+		t.Errorf("a configuration with no extensions handed godog a %T rather than the embedded assets",
 			set.fsys)
 	}
 }
 
 func TestExtensionFeaturesAreMountedBesideTheCanonicalOnes(t *testing.T) {
-	set, err := (&Config{ExtensionFeatures: extensionFixture()}).featureSources()
+	set, err := newConfig([]Option{WithFeatures(extensionFixture())}).featureSources()
 	if err != nil {
 		t.Fatalf("featureSources: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestExtensionFeaturesAreMountedBesideTheCanonicalOnes(t *testing.T) {
 // on: it wraps the filesystem in a type that forwards Open and nothing else, so
 // fs.WalkDir has to work through the directory handles Open returns.
 func TestOverlayIsUsableThroughOpenAlone(t *testing.T) {
-	set, err := (&Config{ExtensionFeatures: extensionFixture()}).featureSources()
+	set, err := newConfig([]Option{WithFeatures(extensionFixture())}).featureSources()
 	if err != nil {
 		t.Fatalf("featureSources: %v", err)
 	}
@@ -136,9 +136,9 @@ type openOnlyFS struct{ inner fs.FS }
 func (o openOnlyFS) Open(name string) (fs.File, error) { return o.inner.Open(name) }
 
 func TestExtensionFilesystemWithoutFeaturesIsRefused(t *testing.T) {
-	_, err := (&Config{ExtensionFeatures: fstest.MapFS{
+	_, err := newConfig([]Option{WithFeatures(fstest.MapFS{
 		"README.md": &fstest.MapFile{Data: []byte("nothing to run\n")},
-	}}).featureSources()
+	})}).featureSources()
 
 	if err == nil {
 		t.Fatal("an extension filesystem holding no .feature file was accepted")
@@ -194,7 +194,7 @@ func TestAnExtensionCannotReachTheCanonicalPrefix(t *testing.T) {
 		},
 	}
 
-	set, err := (&Config{ExtensionFeatures: hostile}).featureSources()
+	set, err := newConfig([]Option{WithFeatures(hostile)}).featureSources()
 	if err != nil {
 		t.Fatalf("featureSources: %v", err)
 	}

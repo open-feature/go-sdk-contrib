@@ -26,10 +26,10 @@ import (
 // is explicit configuration. The goal is that it stays small: two fields, and
 // no test infrastructure of the adopter's own.
 //
-// See Config.ExtensionFeatures and Config.ExtensionSteps.
+// See tck.WithFeatures and tck.WithSteps.
 
 // ClientFromContext returns the OpenFeature client for the provider under test,
-// for use from a step definition registered through Config.ExtensionSteps.
+// for use from a step definition registered through tck.WithSteps.
 //
 // This is the seam that makes an extension step worth running inside the TCK
 // rather than beside it. The provider is registered under a suite-scoped domain
@@ -75,7 +75,7 @@ type featureSet struct {
 // into a single filesystem for godog.
 //
 // With no extensions configured this returns the embedded assets and the
-// canonical path unchanged, so a Config without them behaves exactly as it did
+// canonical path unchanged, so a configuration without them behaves exactly as it did
 // before this existed.
 //
 // godog 0.15.1 also has Options.FeatureContents, which would let extension
@@ -86,7 +86,7 @@ type featureSet struct {
 // skip reason and its Messages test case by pickle id, and the report's whole
 // claim to identify a Scenario Outline row rests on those ids being unique
 // within a run. One filesystem and one parse keeps them so.
-func (c *Config) featureSources() (featureSet, error) {
+func (c *config) featureSources() (featureSet, error) {
 	canonical := featureSet{fsys: assets, paths: []string{featuresPath}}
 
 	if c.ExtensionFeatures == nil {

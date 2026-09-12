@@ -188,9 +188,9 @@
       "versioning": "default",
       "extra-files": []
     },
-    "tools/provider-tck": {
+    "tools/tck": {
       "release-type": "go",
-      "package-name": "tools/provider-tck",
+      "package-name": "tools/tck",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",

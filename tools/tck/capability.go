@@ -13,7 +13,7 @@ import (
 // backed by a static file has no meaningful notion of going stale; a provider
 // with no streaming transport cannot emit configuration-change events. Rather
 // than forcing such providers to fail scenarios they were never going to
-// satisfy, each one declares what it supports through Config.Capabilities.
+// satisfy, each one declares what it supports through tck.WithCapabilities.
 //
 // Every capability corresponds to exactly one Gherkin tag. A scenario carrying
 // a tag whose capability was not declared is skipped before its first step runs
@@ -298,7 +298,7 @@ var reservedCapabilities = []Capability{
 // the report only that something was claimed and nothing examined — the vacuous
 // conformance claim this whole vocabulary exists to prevent.
 //
-// So AllCapabilities does not return one, and naming one in Config.Capabilities
+// So AllCapabilities does not return one, and naming one in tck.WithCapabilities
 // is a configuration error rather than a conformance result.
 func (c Capability) IsReserved() bool {
 	for _, reserved := range reservedCapabilities {
@@ -311,7 +311,7 @@ func (c Capability) IsReserved() bool {
 
 // AllCapabilities returns every capability the TCK recognises **except the
 // reserved ones**, which no scenario carries and which therefore must not be
-// declared. It is the default when Config.Capabilities is unset.
+// declared. It is the default when tck.WithCapabilities is unset.
 //
 // It is a reasonable starting point for a new adoption: declare everything, run
 // the suite, and remove only what your provider genuinely cannot do. Narrowing
@@ -368,9 +368,9 @@ type capabilitySet map[Capability]struct{}
 // newCapabilitySet turns a declared capability list into lookup form, rejecting
 // anything that cannot legitimately be declared.
 //
-// The reserved check lives here rather than in Config.validate so that the set
+// The reserved check lives here rather than in config.validate so that the set
 // the conformance report's declaration is built from cannot be constructed with
-// a reserved capability in it at all. Config.validate calls this, so an adopter
+// a reserved capability in it at all. config.validate calls this, so an adopter
 // still sees the problem reported as a configuration error before any scenario
 // runs; the point of putting it here is that there is no second path to a
 // declaration that could drift from the rule.

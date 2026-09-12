@@ -86,14 +86,14 @@ func theEventHandlerShouldHaveBeenExecuted(ctx context.Context, name string) err
 // The scenarios that use it are asserting promptness, not just eventual
 // arrival: a provider that cannot reach its backend has to report that fact
 // quickly, because an application blocked on provider registration is down.
-// This bound therefore overrides Config.EventTimeout rather than being clamped
+// This bound therefore overrides tck.WithEventTimeout rather than being clamped
 // by it.
 func theEventHandlerShouldHaveBeenExecutedWithin(ctx context.Context, name string, millis int) error {
 	return awaitEvent(ctx, name, time.Duration(millis)*time.Millisecond)
 }
 
 // awaitEvent consumes the next event of the named type. A timeout of zero means
-// Config.EventTimeout.
+// tck.WithEventTimeout.
 func awaitEvent(ctx context.Context, name string, timeout time.Duration) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
