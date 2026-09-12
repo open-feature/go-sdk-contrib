@@ -207,6 +207,38 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// which is why the capability is declared rather than withheld -- a
 		// withheld tag would skip seven working rows to hide one missing flag.
 		//
+		// tck.DisabledFlags IS declared, on the evidence of the run, and the
+		// run is the only thing that could have settled it. The capability is
+		// gated because what a disabled flag resolves to depends on where the
+		// substitution happens: a provider that evaluates locally can hand
+		// back the caller's default, and one whose backend decides cannot,
+		// because the default never left the process. The RPC resolver is on
+		// the wrong side of that line by construction -- it asks flagd to
+		// resolve every flag -- so the honest expectation was that it would
+		// fail and the in-process resolver would pass.
+		//
+		// It passes in both, and running it is what showed why: flagd's
+		// evaluation response does not have to carry the caller's default. It
+		// reports reason DISABLED with an empty variant and a zero value, and
+		// isDefaultOrDisabledFallback in pkg/service/rpc/service.go recognises
+		// that pair and keeps defaultValue instead of taking the response's.
+		// So the line is not "does the server see the caller's default" but
+		// "does the response distinguish a disabled flag from a resolved one".
+		// The zero value is not what carries it: only the boolean row's
+		// default (false) coincides with its zero, and the other three -- "bye"
+		// against "", 1 against 0, 0.1 against 0.0 -- fail if the response
+		// value is taken. An OFREP response carries no such distinction, which
+		// is what makes the tag worth having.
+		//
+		// All four rows pass in both resolvers. Two verification passes were
+		// needed to say so: one earlier run failed this outline with
+		// FLAG_NOT_FOUND and failed the object scenario with reason ERROR at
+		// the same time, and both went away on re-running. That is the
+		// launchpad reset race the OFREP suite documents at length -- POST
+		// /start returns before flagd's file source has loaded the flags -- and
+		// not a property of this outline. A single red run here means re-run
+		// before concluding anything.
+		//
 		// tck.Targeting IS declared, and it was reserved rather than declarable
 		// until spec 26362f85. All three scenarios pass in both resolvers, and
 		// they assert something this suite could not otherwise see: that the
@@ -224,6 +256,7 @@ func TestFlagdRPCConformance(t *testing.T) {
 			tck.ConfigurationChange,
 			tck.Object,
 			tck.Variants,
+			tck.DisabledFlags,
 			tck.Targeting,
 			tck.UnavailableInit,
 		},
@@ -275,14 +308,18 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		// A skip that says "not offered" is more honest than a pass that says
 		// nothing.
 		//
-		// tck.Variants and tck.Targeting are declared here as well, and both
-		// resolvers produce the identical result: 52 scenarios, 50 passed, 2
-		// failed, and the two failures are the same pair of large-integer-flag
-		// assertions the fixture cannot serve. Running both mattered rather
-		// than being a formality -- in-process evaluates the JsonLogic rule
-		// itself while RPC has flagd evaluate it, so the @targeting scenarios
-		// exercise genuinely different code, and agreement between them is
-		// evidence rather than duplication.
+		// tck.Variants, tck.Targeting and tck.DisabledFlags are declared here
+		// as well, and both resolvers produce the identical result: 56
+		// scenarios, 54 passed, 2 failed, and the two failures are the same
+		// pair of large-integer-flag assertions the fixture cannot serve.
+		// Running both mattered rather than being a formality -- in-process
+		// evaluates the JsonLogic rule itself while RPC has flagd evaluate it,
+		// so the @targeting scenarios exercise genuinely different code, and
+		// agreement between them is evidence rather than duplication. The same
+		// goes double for @disabled-flags, where the two resolvers were
+		// expected to disagree: in-process reads the state out of the ruleset
+		// it synced, RPC gets reason DISABLED back over the wire, and both
+		// arrive at the caller's default. See the RPC suite above.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
@@ -290,6 +327,7 @@ func TestFlagdInProcessConformance(t *testing.T) {
 			tck.ConfigurationChange,
 			tck.Object,
 			tck.Variants,
+			tck.DisabledFlags,
 			tck.Targeting,
 			tck.UnavailableInit,
 		},
