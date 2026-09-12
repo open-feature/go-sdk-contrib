@@ -98,7 +98,7 @@ require (
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/ohler55/ojg v1.28.1 // indirect
-	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260912100158-009afe061794 // indirect
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260912211427-ccdb88790bb4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.1 // indirect
