@@ -5,32 +5,60 @@ the [OFREP provider](../) — the same Gherkin scenarios, the same canonical fla
 backend control API that every other language's TCK runs.
 
 ```bash
-PROVIDER_TCK_RUN=1 go test -tags=e2e -run TestOFREPConformance -timeout=10m ./...
+TCK_RUN=1 go test -tags=e2e -run TestOFREPConformance -timeout=10m ./...
 ```
 
-**This suite is excluded from the default build.** `make e2e` runs every module's `e2e`-tagged
-tests, so without a gate every pull request would start a Docker stack here — and a run that is red
-for the launchpad reset race described below would read as an OFREP provider defect. The policy is
-exclusion with a maintainer running it by hand before merge, so the suite skips unless
-`PROVIDER_TCK_RUN` is set, and the skip message names the variable.
+Docker is the only prerequisite. There is **no submodule to check out** and no container code in
+`tck_test.go`: the suite owns the stack.
 
-The gate is a runtime skip rather than a second build tag, so CI still compiles this file against
-`tools/tck` under `-tags=e2e` and a signature change in the harness cannot rot the adoption
-unnoticed. Only the container work is skipped.
+**This suite is excluded from the default build.** It skips unless `TCK_RUN` is set, and a
+maintainer runs it by hand before merge. Why an adoption suite is excluded rather than gating a
+merge is settled in Appendix F's
+["Running the suite in CI"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
+rather than restated here. The mechanism is Go's:
+
+- The gate is a **runtime skip inside the test function**, reading `TCK_RUN`, and nothing in the
+  build re-enables it. A build tag would not have worked — `make e2e` applies `-tags=e2e` to every
+  module in the workspace, so the tag is applied to everything and this suite was in fact running,
+  red, on every pull request before the gate existed. That is the first of the two mistakes the
+  appendix names.
+- Because it is a runtime skip, CI still compiles this file against `tools/tck` under `-tags=e2e`,
+  which is what the appendix asks for: a suite that has quietly stopped building against its own
+  harness is worse than one that runs and fails. Only the container work is skipped, and the skip
+  names the variable.
 
 ## Backend
 
-The existing `flagd-testbed`, unmodified. flagd serves the OFREP API on container port **8016**
-alongside its own protocols, and the testbed's `docker-compose.yaml` already publishes 8016 next to
-8013/8015/8080. So the OFREP provider is exercised against a real, conformant OFREP backend seeded
-with the canonical flag set, driven by the launchpad control API that is already there — no new
-image, no new compose file, and no change to the flagd suites.
+The unmodified `flagd-testbed` image, described by
+[`testdata/tck/docker-compose.yaml`](testdata/tck/docker-compose.yaml). flagd serves the OFREP API
+on container port **8016** alongside its own protocols, and the same image serves the launchpad
+control API on **8080**, so the OFREP provider is exercised against a real, conformant OFREP backend
+seeded with the canonical flag set — no new image and no change to the flagd suites.
 
-The testbed lives in the flagd provider's submodule, so check it out first:
+**Adopter-written infrastructure: none.** `tck_test.go` names the Compose file, names the one
+container-internal port the provider connects to, and hands over a factory. The suite starts the
+stack once, discovers the dynamically mapped host ports, builds the HTTP control against the
+launchpad, waits until it accepts commands, constructs a provider per scenario and tears down after
+the last one. The module does not even require `testcontainers-go` directly any more — it arrives as
+an indirect dependency of `tools/tck`.
 
-```bash
-git submodule update --init --recursive
-```
+What that replaced is worth recording, because this was the last of the eight adoptions across four
+languages still driving containers by hand. The old `startTestbed` called
+`compose.NewDockerCompose` on the testbed submodule's own Compose file, created a temporary flags
+directory and passed it in as `FLAGS_DIR` because that file bind-mounts `${FLAGS_DIR}` and an unset
+value defaults to the submodule's own directory, registered two `t.Cleanup`s, declared its own wait
+strategy, looked up two mapped ports by string, built the `tck.HTTPControl` itself, hard-coded
+`localhost` as the host, and slept two seconds for the launchpad. All of it is gone; the harness
+does each of those things, and `endpoint.Host()` is correct where the hard-coded `localhost` was
+merely usually correct.
+
+The Compose file here is deliberately **not** the testbed submodule's, for the same reasons the
+flagd adoption's is not: no `${FLAGS_DIR}` bind mount, no envoy sidecar, and a service called
+`backend`, which is the TCK's default and the name both the flagd adoption here and Java's use. It
+publishes only 8016 and 8080, since nothing here speaks flagd's gRPC protocols. The image tag is
+pinned in this file and in `providers/flagd/e2e/testdata/tck/docker-compose.yaml`; bump both
+together, because a cross-provider disagreement is only evidence if both providers answered the same
+backend.
 
 The stack starts once per suite and is never restarted; scenario isolation comes from the control
 API. Host ports are read back after the stack is up, because compose assigns them dynamically.
@@ -56,15 +84,32 @@ methods and `Hooks`; it implements neither `openfeature.EventHandler` nor
 | `@large-integers` | no | Not a provider property: `huge-integer-flag` is absent from `flagd-testbed`, so the capability cannot be exercised against this backend at all. See open-feature/flagd-testbed#392. |
 
 `@events` gates `events.feature` and `@lifecycle` gates `lifecycle.feature`, so withholding both,
-plus `@large-integers`, skips 9 of the 56 canonical scenarios. The remaining **47 run: 44 pass and
-3 fail** — the evaluation and error-code matrix, which is the part that catches cross-language
-disagreements.
+plus `@large-integers`, skips 9 of the 56 canonical scenarios. The remaining **47 run** — the
+evaluation and error-code matrix, which is the part that catches cross-language disagreements.
 
-All three failures are the backend fixture rather than the provider: `flagd-testbed` serves neither
-`integral-float-flag` nor `large-integer-flag`, so the two scenarios that ask for them fail with
-`FLAG_NOT_FOUND`, and the last `@variants` row fails because a flag that is not there has no variant
-to name. open-feature/flagd-testbed#392 adds the flags and all three go green together. None gets a
-known-deviation entry, because an entry there would attribute a fixture gap to the provider.
+**Three failures are the floor, and all three are the backend fixture rather than the provider:**
+`flagd-testbed` serves neither `integral-float-flag` nor `large-integer-flag`, so the two scenarios
+that ask for them fail with `FLAG_NOT_FOUND`, and the last `@variants` row fails because a flag that
+is not there has no variant to name. open-feature/flagd-testbed#392 adds the flags and all three go
+green together. None gets a known-deviation entry, because an entry there would attribute a fixture
+gap to the provider.
+
+**Every run has more than three, and the number moves.** Eight consecutive runs against
+`flagd-testbed:v3.8.0` on one machine produced 41, 12, 11, 33, 5, 19, 21 and 40 failures — the last
+three of those from the hand-rolled container wrapper this suite replaced, which is how we know the
+flapping belongs to the backend and not to the harness. Every extra failure is `FLAG_NOT_FOUND`, or
+a stale value, on a flag the testbed demonstrably serves: `curl` the OFREP endpoint directly and
+`boolean-flag` answers `{"value":true,…,"reason":"STATIC","variant":"on"}` every time.
+
+The cause is in the control API rather than here. `POST /start` — which is what isolates each
+scenario, because the testbed's launchpad answers `404` to `/reset` — stops flagd, regenerates the
+combined flag file, restarts flagd and polls `:8014/readyz` until flagd answers; flagd answers
+before its file source has loaded the flags. A stateless provider fires its first evaluation the
+instant `/start` returns and races that load, every scenario. **No sleep or retry is being added to
+compensate**: the control API's promise is that a command has taken effect when it returns, and a
+suite that sleeps instead of holding it to that promise stops being able to detect when it breaks.
+So read a red run against the three-failure floor before attributing anything to the provider, and
+re-run before concluding.
 
 Declaring `@events` would make one more scenario go green for the wrong reason: the SDK synthesises
 `PROVIDER_READY` for any provider without a `StateHandler` ("a provider without state handling
