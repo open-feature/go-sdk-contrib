@@ -74,11 +74,29 @@ const (
 	composeService = "flagd"
 )
 
+// runEnv gates this suite out of a default build.
+//
+// `make e2e` runs every module's e2e-tagged tests, so without this the suite
+// would start a Docker stack on every pull request, and a run that is red for
+// the launchpad reset race described above would read as an OFREP provider
+// defect. The policy across the four languages is exclusion from the default
+// build, with a maintainer running the suite by hand before merge, and this is
+// where it is enforced rather than merely described.
+//
+// A runtime skip rather than a second build tag on purpose: the adoption stays
+// compiled under -tags=e2e, so CI still typechecks it against tools/tck and a
+// signature change there cannot rot this file unnoticed.
+const runEnv = "PROVIDER_TCK_RUN"
+
 // TestOFREPConformance runs the suite against the OFREP provider pointed at
 // flagd's OFREP endpoint.
 func TestOFREPConformance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping e2e tests in short mode")
+	}
+	if os.Getenv(runEnv) == "" {
+		t.Skipf("the provider conformance suite is excluded from the default build: set %s=1 to "+
+			"run it (it needs Docker and takes minutes). See README.md", runEnv)
 	}
 
 	ctx := context.Background()
