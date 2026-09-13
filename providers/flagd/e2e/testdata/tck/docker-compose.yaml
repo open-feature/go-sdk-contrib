@@ -6,11 +6,17 @@
 # before it begins listening, so a wait on 8080 implies flagd is already coming up on 8013 and 8015.
 #
 # It does not yet serve the whole canonical flag set: v3.8.0 has none of large-integer-flag,
-# huge-integer-flag or integral-float-flag. Only large-integer-flag is reached by scenarios that run
-# here -- the other two sit behind @large-integers and @numeric-coercion, which this provider does
-# not declare -- and it is reached twice: the untagged 32-bit precision scenario, and the @variants
-# row that asks for its "max-int32" variant and is answered with none. Both fail until
-# open-feature/flagd-testbed#392 lands. Bump the tag then.
+# huge-integer-flag or integral-float-flag. Two of the three are reached by scenarios that run here,
+# and account for three of this suite's four failures:
+#
+#   - large-integer-flag, twice: the untagged 32-bit precision scenario, and the @variants row that
+#     asks for its "max-int32" variant and is answered with none.
+#   - integral-float-flag, once: the lossless integer-direction @numeric-coercion scenario. That tag
+#     is declared for both resolvers -- the provider does coerce, and gets the lossy direction wrong
+#     -- so this scenario runs and fails on the missing flag rather than skipping.
+#
+# huge-integer-flag sits behind @large-integers, which is not declared, so nothing reaches it.
+# All three failures go away when open-feature/flagd-testbed#392 lands. Bump the tag then.
 #
 # THIS IS NOT THE TESTBED SUBMODULE'S COMPOSE FILE, on purpose. That one bind-mounts ${FLAGS_DIR}
 # into the container and runs an envoy sidecar, neither of which the conformance suite needs: the
