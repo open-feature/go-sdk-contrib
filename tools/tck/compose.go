@@ -63,11 +63,11 @@ type composeConfig struct {
 // container code at all.
 //
 // The path is resolved relative to the package directory, which is where `go
-// test` runs, so "testdata/tck/docker-compose.yaml" is the idiomatic form.
+// test` runs, so "testdata/docker-compose.yaml" is the idiomatic form.
 //
 //	tck.Run(t,
 //	    tck.WithName("my-provider"),
-//	    tck.WithComposeFile("testdata/tck/docker-compose.yaml"),
+//	    tck.WithComposeFile("testdata/docker-compose.yaml"),
 //	    tck.WithBackendPorts(8013),
 //	    tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
 //	        return myprovider.New(e.Host(), e.Port(8013)), nil
