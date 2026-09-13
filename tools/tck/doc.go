@@ -19,7 +19,7 @@
 //	func TestMyProviderConformance(t *testing.T) {
 //	    tck.Run(t,
 //	        tck.WithName("my-provider"),
-//	        tck.WithComposeFile("testdata/tck/docker-compose.yaml"),
+//	        tck.WithComposeFile("testdata/docker-compose.yaml"),
 //	        tck.WithBackendPorts(8013),
 //	        tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
 //	            return myprovider.New(e.Host(), e.Port(8013)), nil
@@ -31,12 +31,16 @@
 //	    )
 //	}
 //
-// Name the test so that a conformance filter selects it. In this repository the
-// suite has a step of its own — `make tck` runs every test whose name matches
-// "Conformance" and `make e2e` skips exactly those — so a suite named anything
-// else would run in the wrong one of the two. A conformance run and an e2e run
-// mean different things by a red result, which is why they are separate; see
-// tools/tck/README.md.
+// Put it in a module of its own, at providers/<name>/tck, beside the provider's
+// e2e suite rather than inside it, and give the file a //go:build tck
+// constraint. In this repository the suite has a step of its own — `make tck`
+// runs the modules named tck under a component directory and `make e2e` runs the
+// others, then builds these under -tags=tck without running them — so the
+// directory is what selects the suite and the test's name is free. The tag is
+// not what selects it either; it is what keeps the suite out of an untagged
+// build, so `make test` and a bare `go test ./...` start no containers. A
+// conformance run and an e2e run mean different things by a red result, which is
+// why they are separate; see tools/tck/README.md.
 //
 // See [WithComposeFile]. A provider with no backend to contain — in-memory,
 // in-process — supplies its own control and builds its provider without an

@@ -20,7 +20,7 @@ import (
 //
 //	tck.Run(t,
 //	    tck.WithName("my-provider"),
-//	    tck.WithComposeFile("testdata/tck/docker-compose.yaml"),
+//	    tck.WithComposeFile("testdata/docker-compose.yaml"),
 //	    tck.WithBackendPorts(8013),
 //	    tck.WithProviderFromEndpoint(newProvider),
 //	    tck.WithCapabilities(tck.Events, tck.Object),

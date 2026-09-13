@@ -74,11 +74,16 @@ scenarios get a step of their own rather than riding along with `make e2e`:
 make tck
 ```
 
-`make e2e` compiles the conformance suites but skips them, because they need Docker, take minutes,
-and — unlike an e2e suite, which is expected green — fail scenarios by design wherever the adoption
-declares a known deviation. Keeping the two apart keeps "you broke something" and "this is the known
-state" on separate signals. The split is a test-name filter, so a conformance suite must be named so
-that `Conformance` selects it.
+`make e2e` compiles the conformance suites but does not run them, because they need Docker, take
+minutes, and — unlike an e2e suite, which is expected green — fail scenarios by design wherever the
+adoption declares a known deviation. Keeping the two apart keeps "you broke something" and "this is
+the known state" on separate signals. The split is by directory: an adoption is a module of its own
+at `providers/<name>/tck`, `make tck` runs those modules and `make e2e` runs the others, so what
+selects a suite is where its files live rather than what its tests are called.
+
+The adoptions also carry `//go:build tck`, which does a different job: it keeps them out of any
+invocation that asks for no tags, including `make test` and a bare `go test ./...`. `make e2e`
+builds them with `-tags=tck` and runs nothing, so they stay typechecked against the harness.
 
 ## Developer Certificate of Origin
 Developer Certificate of Origin
