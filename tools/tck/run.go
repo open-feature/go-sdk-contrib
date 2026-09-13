@@ -124,11 +124,19 @@ type runner struct {
 	skips []skippedScenario
 }
 
-// skippedScenario records a scenario that did not run because the provider did
-// not declare the capability it needs.
+// skippedScenario records a scenario that did not run because the capability it
+// needs was not declared.
+//
+// inexpressible carries the property of the Go SDK that made the declaration
+// impossible, and is empty for the ordinary case where the provider simply did
+// not declare the capability. The two are kept apart all the way to the printed
+// reason because they say different things: one is the provider declining, the
+// other is no provider in this language being able to be asked. Only the first
+// describes the provider. See inexpressibleCapabilities.
 type skippedScenario struct {
-	name       string
-	capability Capability
+	name          string
+	capability    Capability
+	inexpressible string
 }
 
 func (r *runner) initializeScenario(ctx *godog.ScenarioContext) {
@@ -165,7 +173,16 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 	}
 
 	if capability, missing := r.missingCapability(sc); missing {
-		r.recordSkip(sc.Name, capability)
+		reason, inexpressible := capability.IsInexpressible()
+		r.recordSkip(sc.Name, capability, reason)
+		if inexpressible {
+			return ctx, fmt.Errorf(
+				"%w: scenario requires capability %s (Gherkin tag %s), which the Go SDK cannot express: %s. "+
+					"This skip says nothing about the provider under test -- no provider written against this "+
+					"SDK can be asked the question, and the suite refuses the declaration rather than leaving "+
+					"it to adopters. Declared capabilities: %s",
+				godog.ErrSkip, capability, capability.Tag(), reason, formatCapabilities(r.caps.sorted()))
+		}
 		return ctx, fmt.Errorf(
 			"%w: scenario requires capability %s (Gherkin tag %s), which this provider does not declare. Declared capabilities: %s",
 			godog.ErrSkip, capability, capability.Tag(), formatCapabilities(r.caps.sorted()))
@@ -236,10 +253,14 @@ func expiredReservation(sc *godog.Scenario) (Capability, bool) {
 	return "", false
 }
 
-func (r *runner) recordSkip(scenario string, capability Capability) {
+func (r *runner) recordSkip(scenario string, capability Capability, inexpressible string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.skips = append(r.skips, skippedScenario{name: scenario, capability: capability})
+	r.skips = append(r.skips, skippedScenario{
+		name:          scenario,
+		capability:    capability,
+		inexpressible: inexpressible,
+	})
 }
 
 // reportSkips prints every capability-gated skip with its reason.
@@ -267,15 +288,40 @@ func (r *runner) reportSkips() {
 		return sorted[i].name < sorted[j].name
 	})
 
+	withheld, unaskable := 0, 0
+	for _, s := range sorted {
+		if s.inexpressible == "" {
+			withheld++
+		} else {
+			unaskable++
+		}
+	}
+
+	// The headline splits the two only when both are present, so the common
+	// case reads as it always did. Conflating them would tell a reader that a
+	// provider declined something no provider in this language can be asked.
+	headline := fmt.Sprintf("tck [%s]: %d scenario(s) skipped because a capability was not declared.",
+		r.cfg.Name, len(sorted))
+	if unaskable > 0 {
+		headline = fmt.Sprintf(
+			"tck [%s]: %d scenario(s) skipped -- %d because this provider does not declare the "+
+				"capability, %d because the Go SDK cannot express it and no provider here could.",
+			r.cfg.Name, len(sorted), withheld, unaskable)
+	}
+
 	report := []string{
-		fmt.Sprintf("tck [%s]: %d scenario(s) skipped because a capability was not declared.",
-			r.cfg.Name, len(sorted)),
+		headline,
 		"These were NOT run and are NOT part of the conformance result:",
 	}
 	for _, s := range sorted {
 		report = append(report,
 			fmt.Sprintf("  - %s", s.name),
 			fmt.Sprintf("      needs %s (tag %s)", s.capability, s.capability.Tag()))
+		if s.inexpressible != "" {
+			report = append(report,
+				fmt.Sprintf("      the Go SDK cannot express it, so this says nothing about the provider: %s",
+					s.inexpressible))
+		}
 	}
 	report = append(report, "Declared capabilities: "+formatCapabilities(r.caps.sorted()))
 
