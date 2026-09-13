@@ -192,7 +192,7 @@ default, which is silence rather than a claim.
 
 | Provider | Suite | Backend |
 | --- | --- | --- |
-| flagd (RPC and in-process resolvers) | [`providers/flagd/e2e/tck_test.go`](../../providers/flagd/e2e/tck_test.go) | the Compose harness, against the `flagd-testbed` launchpad |
+| flagd (RPC and in-process resolvers) | [`providers/flagd/tck`](../../providers/flagd/tck/README.md) | the Compose harness, against the `flagd-testbed` launchpad |
 
 ## Controlling the backend
 
