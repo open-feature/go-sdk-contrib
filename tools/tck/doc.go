@@ -31,6 +31,13 @@
 //	    )
 //	}
 //
+// Name the test so that a conformance filter selects it. In this repository the
+// suite has a step of its own — `make tck` runs every test whose name matches
+// "Conformance" and `make e2e` skips exactly those — so a suite named anything
+// else would run in the wrong one of the two. A conformance run and an e2e run
+// mean different things by a red result, which is why they are separate; see
+// tools/tck/README.md.
+//
 // See [WithComposeFile]. A provider with no backend to contain — in-memory,
 // in-process — supplies its own control and builds its provider without an
 // endpoint instead, through [WithControl] and [WithProvider].
