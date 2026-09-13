@@ -67,6 +67,19 @@ You can run all tests, including e2e tests using the command:
 make e2e
 ```
 
+If your provider adopts the [OpenFeature Provider Conformance Suite](./tools/tck/README.md), its
+scenarios get a step of their own rather than riding along with `make e2e`:
+
+```shell
+make tck
+```
+
+`make e2e` compiles the conformance suites but skips them, because they need Docker, take minutes,
+and — unlike an e2e suite, which is expected green — fail scenarios by design wherever the adoption
+declares a known deviation. Keeping the two apart keeps "you broke something" and "this is the known
+state" on separate signals. The split is a test-name filter, so a conformance suite must be named so
+that `Conformance` selects it.
+
 ## Developer Certificate of Origin
 Developer Certificate of Origin
 The Developer Certificate of Origin (DCO) is a lightweight way for contributors to certify that they wrote or otherwise have the right to submit the code they are contributing to the project. To sign off that they adhere to these requirements, all commits need to have a Signed-off-by line, like:
