@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -191,8 +192,25 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 	return of.BoolResolutionDetail{
 		Value: resp.Enabled,
 		ProviderResolutionDetail: of.ProviderResolutionDetail{
-			Reason: of.TargetingMatchReason,
+			Reason: booleanReason(resp),
 		},
+	}
+}
+
+// booleanReason maps a Flipt boolean evaluation onto the OpenFeature reason
+// model. A Flipt boolean flag matched by a targeting rule reports its segments;
+// a threshold-only resolution is a static configuration.
+func booleanReason(resp *evaluation.BooleanEvaluationResponse) of.Reason {
+	switch resp.Reason {
+	case evaluation.EvaluationReason_FLAG_DISABLED_EVALUATION_REASON:
+		return of.DisabledReason
+	case evaluation.EvaluationReason_MATCH_EVALUATION_REASON:
+		if len(resp.SegmentKeys) > 0 {
+			return of.TargetingMatchReason
+		}
+		return of.StaticReason
+	default:
+		return of.StaticReason
 	}
 }
 
@@ -262,19 +280,22 @@ func evaluateVariantFlag[T any](ctx context.Context, svc Service, environment st
 		return value, detail
 	}
 
-	if resp.Match || resp.Reason == evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON {
-		value, err = transform(resp, defaultValue)
-		if err != nil {
-			detail.ResolutionError = of.NewTypeMismatchResolutionError(err.Error())
-			detail.Reason = of.ErrorReason
-			return value, detail
-		}
+	value, err = transform(resp, defaultValue)
+	if err != nil {
+		detail.ResolutionError = of.NewTypeMismatchResolutionError(err.Error())
+		detail.Reason = of.ErrorReason
+		return value, detail
 	}
 
-	if resp.Match {
+	switch resp.Reason {
+	case evaluation.EvaluationReason_MATCH_EVALUATION_REASON:
 		detail.Reason = of.TargetingMatchReason
+	default:
+		// Flipt resolves statically configured flags (no matching rule, or no
+		// rule at all) with DEFAULT_EVALUATION_REASON; report that as the
+		// OpenFeature STATIC reason rather than the fallback DEFAULT reason.
+		detail.Reason = of.StaticReason
 	}
-
 	return value, detail
 }
 
@@ -293,11 +314,20 @@ func transformToFloat64(resp *evaluation.VariantEvaluationResponse, defaultValue
 }
 
 func transformToInt64(resp *evaluation.VariantEvaluationResponse, defaultValue int64) (int64, error) {
-	iv, err := strconv.ParseInt(resp.VariantKey, 10, 64)
-	if err != nil {
+	if iv, err := strconv.ParseInt(resp.VariantKey, 10, 64); err == nil {
+		return iv, nil
+	}
+	// Lossless numeric coercion (@numeric-coercion): a float-formatted key
+	// that is integral ("10.0") narrows to 10, while anything with a
+	// fractional part ("0.5") is still a type mismatch. ParseInt stays first
+	// so exact integer strings never round-trip through a float64, which
+	// cannot represent every int64 exactly (huge-integer-flag's 2^53-1
+	// included).
+	fv, err := strconv.ParseFloat(resp.VariantKey, 64)
+	if err != nil || fv != math.Trunc(fv) || fv < float64(math.MinInt64) || fv >= float64(math.MaxInt64) {
 		return defaultValue, errors.New("value is not an integer")
 	}
-	return iv, nil
+	return int64(fv), nil
 }
 
 func transformToObject(resp *evaluation.VariantEvaluationResponse, defaultValue any) (any, error) {
