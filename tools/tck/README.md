@@ -785,32 +785,68 @@ answers things a real launchpad cannot be asked for on demand: a `501`, a single
 that is unready for exactly three probes.
 
 The **containerised conformance suites are excluded from the default build** — `providers/flagd/e2e`
-and `providers/ofrep/e2e` here, and your own adoption if you follow them. They are gated on an
-explicit opt-in and a maintainer runs them by hand before merging:
+and `providers/ofrep/e2e` here, and your own adoption if you follow them. They have a target of their
+own, and it is the single documented command:
 
 ```console
-TCK_RUN=1 go test -tags=e2e -timeout=20m -run Conformance ./...
+make tck
 ```
 
-**Why an adoption suite is excluded rather than gating a merge** is the same argument in every
-language, so it is not restated here: see ["Running the suite in CI"][appendix-f-ci] in Appendix F.
-What is Go-specific is where the exclusion lives, and that is this:
+It expands to `go test -count=1 -timeout=20m -tags=e2e -run 'Conformance'` over every module in the
+workspace. `make e2e` is the same sweep with `-skip 'Conformance'` in place of `-run`, so the two
+targets are the two halves of one filter: every e2e-tagged test runs in exactly one of them, and the
+conformance suites are the ones that run in `tck`.
 
-- **The exclusion is a runtime skip inside the test function**, reading `TCK_RUN`, and nothing in the
-  build re-enables it. That is the first of the two mistakes Appendix F names, and it is the one this
-  repository was already making: `make e2e` expands to
-  `go list -f '{{.Dir}}/...' -m | xargs -I{} go test -timeout=3m -tags=e2e {}` over every module in
-  the workspace, so the `e2e` build tag is applied to everything and a tag is therefore not an
-  exclusion here — it is the opposite. Both adoptions were running, red, on every pull request before
-  the gate was added.
-- **A runtime skip rather than a second build tag** (`//go:build e2e && tck`) also satisfies the
-  appendix's requirement that the suite keep compiling when it does not run: the adoption stays
-  typechecked against this package under `-tags=e2e`, so a signature change here cannot rot an
-  adoption unnoticed. Only the container work is skipped, and the skip message names the variable
-  that turns it on.
-- **It is written down** — here, and in each adoption's own README — which is the appendix's second
-  mistake avoided. No scheduled or path-filtered workflow was added; the three self-tests below still
-  run in the default build and are the fast canary.
+**Why the suite gets a step of its own** rather than a slice of `make e2e` is the same argument in
+every language and is settled in ["Running the suite in CI"][appendix-f-ci] in Appendix F, so only
+its shape is restated here: a red `make tck` reports that *conformance* failed, where the same
+scenarios inside `make e2e` report that *a test* failed. The two mean different things. An e2e suite
+is expected green, so a failure there is a regression; a conformance suite fails scenarios by design
+wherever a known deviation is declared, and that failure is correct output until the defect is fixed
+upstream. One signal cannot carry both meanings without somebody eventually silencing the
+informative half.
+
+What is Go-specific is the mechanism, and it is worth stating exactly, because the two obvious
+choices are both wrong here:
+
+- **Not a build tag.** `//go:build e2e && tck` would take the adoption out of the build, and
+  Appendix F asks for the opposite: the suite must keep *compiling* in the default build even when it
+  does not execute, because a conformance suite that has quietly stopped building against its own
+  harness is a worse failure than one that runs and fails. A test-name filter excludes the **run**
+  and keeps the **build** — `make e2e` and `make tck` both compile every module under `-tags=e2e`, so
+  an adoption stays typechecked against this package on every pull request and a signature change
+  here cannot rot one unnoticed. A second tag would also not have excluded anything by itself:
+  `make e2e` applies `-tags=e2e` to every module in the workspace, so a tag is not an exclusion in
+  this repository, it is the opposite. Both adoptions were in fact running, red, on every pull
+  request before any of this existed.
+- **Not an environment variable.** The suites used to skip unless `TCK_RUN` was set. That gate is
+  gone, because the target does its whole job: it excludes the run without touching the build, it is
+  visible in `make -n e2e` rather than hidden inside a test function, and it is the step Appendix F
+  asks for, which an environment variable is not. Keeping both would have been two mechanisms for one
+  exclusion, and the next person to touch the pipeline gets to guess which one is load-bearing.
+- **Not `-short` alone, and not the env var alone either** — the reason is the default each one
+  picks. `-short` defaults the wrong way: without the flag the suite *runs*, so every invocation in
+  every pipeline would have to remember to opt out, and the one that forgets starts Docker silently.
+  An environment variable defaults to off, which is the right way round, but it is invisible from the
+  build: nothing in `make e2e` says the suite exists, so an exclusion nobody wrote down is
+  indistinguishable from an oversight — the second of the two mistakes Appendix F names.
+  `testing.Short()` is nevertheless still checked in both adoptions. It is not the exclusion any
+  more; it is the one guard that still fires for a developer who names the package directly, and it
+  costs a line.
+- **The filter is a naming contract, and a test holds it.** `-run`/`-skip` match test names, so a
+  conformance suite renamed to something without `Conformance` in it would silently start running
+  under `make e2e` and stop running under `make tck` — the same class of mistake as an exclusion
+  something else undoes, in a new form. Each adoption therefore carries a test that parses its own
+  package and fails unless the tests that call `tck.Run` are exactly the tests the filter selects.
+  That test is untagged, so it runs in `make test` and needs neither Docker nor `-tags=e2e`.
+- **It is written down** — here, in `CONTRIBUTING.md` next to `make test` and `make e2e`, and in each
+  adoption's own README. No scheduled or path-filtered workflow was added; the three self-tests below
+  still run in the default build and are the fast canary.
+
+One gap is left open deliberately: `go test -tags=e2e ./providers/flagd/e2e/` typed by hand still
+runs the suite, because it names the package and asks for exactly that. Only `-short` stands in the
+way. The exclusion is against pipelines running the suite by accident, not against a developer
+running it on purpose.
 
 ## Findings
 
