@@ -5,18 +5,24 @@ FLAGD_SYNC = sync-testbed
 GOLANGCI_LINT_VERSION := v2.13.2
 GOBIN := $(or $(shell go env GOBIN),$(shell go env GOPATH | cut -d: -f1)/bin)
 
-# The OpenFeature Provider Conformance Suite is selected by test name, and `e2e`
-# and `tck` below are the two halves of that one filter: `e2e` skips every test
-# whose name matches, `tck` runs those and nothing else. Every conformance suite
-# in this repository must therefore be named so that this pattern selects it;
-# each adoption has a test that fails if one is not.
+# A provider's adoption of the OpenFeature Provider Conformance Suite is a
+# module of its own, a sibling of the provider's e2e suite rather than a package
+# inside it: providers/<name>/tck. `e2e` and `tck` below are the two halves of
+# one partition of the module list, and the directory is the whole of the
+# selector -- a suite runs in the conformance step because of where its files
+# live, not because of what its tests are called.
 #
-# Both targets still compile every module under -tags=e2e, which is the reason
-# the split is a test-name filter and not a second build tag: a tag would take
-# the adoption out of the build, and CI would stop typechecking it against
-# tools/tck. See tools/tck/README.md, "What a default build runs, and what it
-# does not".
-TCK_FILTER := Conformance
+# tools/tck is the harness, not an adoption. Its own tests are unit tests, they
+# need no Docker, and `make test` and `make e2e` run them; it stays on the e2e
+# side of the partition.
+#
+# The adoptions also carry `//go:build tck`, which is a different job from the
+# one above and not a second way of doing it. The module path decides which of
+# the two targets runs a suite; the tag keeps the suite out of every invocation
+# that asks for no tags at all -- `make test`, and a bare `go test ./...` typed
+# in the module. Neither substitutes for the other.
+TCK_GO_MOD_DIRS := $(filter-out ./tools/%,$(filter %/tck,$(ALL_GO_MOD_DIRS)))
+E2E_GO_MOD_DIRS := $(filter-out $(TCK_GO_MOD_DIRS),$(ALL_GO_MOD_DIRS))
 TCK_TIMEOUT ?= 20m
 
 workspace-init:
@@ -30,8 +36,17 @@ test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}
 
 # call with TESTCONTAINERS_RYUK_DISABLED="true" to avoid problems with podman on Macs
+#
+# The second command is the conformance modules, compiled and not run, and it is
+# what makes the `tck` build tag safe. Appendix F asks for a suite that keeps
+# compiling against tools/tck even when it does not execute, so that a signature
+# change in the harness cannot rot an adoption unnoticed -- and a build tag only
+# breaks that if nothing in the pipeline builds with the tag. This does: -tags=tck
+# builds the test binary, and the empty -run pattern matches no test in it.
 e2e:
-	go clean -testcache && go list -f '{{.Dir}}/...' -m | xargs -I{} go test -timeout=3m -tags=e2e -skip '$(TCK_FILTER)' {}
+	go clean -testcache
+	status=0; for dir in $(E2E_GO_MOD_DIRS); do go test -timeout=3m -tags=e2e $$dir/... || status=1; done; exit $$status
+	status=0; for dir in $(TCK_GO_MOD_DIRS); do go test -timeout=3m -tags=tck -run '^$$' $$dir/... || status=1; done; exit $$status
 
 # The OpenFeature Provider Conformance Suite, and nothing else. Needs Docker and
 # takes minutes, so it is not part of `e2e` and is not run on every pull request;
@@ -40,7 +55,7 @@ e2e:
 # different things, because a conformance suite fails a scenario by design
 # wherever a known deviation is declared.
 tck:
-	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -count=1 -timeout=$(TCK_TIMEOUT) -tags=e2e -run '$(TCK_FILTER)' {}
+	status=0; for dir in $(TCK_GO_MOD_DIRS); do go test -count=1 -timeout=$(TCK_TIMEOUT) -tags=tck $$dir/... || status=1; done; exit $$status
 
 lint:
 	go install -v github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
