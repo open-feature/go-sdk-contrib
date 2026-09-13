@@ -103,17 +103,15 @@ func TestInMemoryProvider(t *testing.T) {
 //     DISABLED, and those contradict each other: 2.2.5 lists DISABLED
 //     among the reasons a resolution that worked may carry. So all four
 //     rows fail on "the error-code should be """, measured rather than
-//     inferred, and the tag is withheld.
-//
-//     Withholding for an identified defect is what Appendix F's
-//     known-deviation rule otherwise forbids, and it is allowed here by
-//     the self-test carve-out the appendix added in spec 045950ca: a
-//     TCK implementation's own suites are a fixture for the harness
-//     rather than a report about a third party, and they run in the
-//     ordinary build, where a permanently failing scenario is a broken
-//     build rather than a finding. The carve-out has one condition --
-//     that the defect be pinned by a test of its own -- and that is the
-//     condition met here, by
+//     inferred, and the tag is withheld. Withholding for an identified
+//     defect is what Appendix F's known-deviation rule otherwise
+//     forbids, and it is allowed here by the self-test carve-out the
+//     appendix added in spec 045950ca: a TCK implementation's own suites
+//     are a fixture for the harness rather than a report about a third
+//     party, and they run in the ordinary build, where a permanently
+//     failing scenario is a broken build rather than a finding. The
+//     carve-out has one condition -- that the defect be pinned by a test
+//     of its own -- and that is the condition met here, by
 //     TestCanonicalFlagSetDisabledFlagsCarryAnError, which asserts the
 //     behaviour directly and fails when the SDK stops doing it, so that
 //     the declaration can be added. An adoption has no such licence.
