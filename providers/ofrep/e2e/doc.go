@@ -8,7 +8,9 @@
 // provider. Keeping them apart also keeps the replace directives the suite needs
 // out of a module that is actually released.
 //
-// The suite itself is behind the e2e build tag, matching the repository's
-// `make e2e` target. This file carries no build tag so that the package still
-// has a buildable file when that tag is absent.
+// The suite itself is behind the e2e build tag, so it is compiled by both
+// `make e2e` and `make tck` and run only by the latter, which selects it by
+// test name. This file carries no build tag so that the package still has a
+// buildable file when that tag is absent; conformance_naming_test.go carries
+// none either, so that the guard on that name runs in the default build.
 package e2e
