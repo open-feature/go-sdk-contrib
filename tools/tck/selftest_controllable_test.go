@@ -73,6 +73,10 @@ func TestControllableProvider(t *testing.T) {
 		// error-code step. Wrapping it changes nothing — this provider adds
 		// update-and-emit and delegates every resolution decision — which is
 		// why the omission matches TestInMemoryProvider's exactly.
+		//
+		// StandardReasons is declared for the same reason TestInMemoryProvider
+		// declares it: every resolution decision is still memprovider's, and it
+		// reports STATIC for a rule-less flag.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.Lifecycle,
@@ -81,6 +85,7 @@ func TestControllableProvider(t *testing.T) {
 			tck.Object,
 			tck.Variants,
 			tck.LargeIntegers,
+			tck.StandardReasons,
 		),
 	)
 }

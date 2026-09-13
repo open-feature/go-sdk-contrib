@@ -82,12 +82,19 @@ func TestMultiProvider(t *testing.T) {
 		// the hop is one of the failure modes this suite exists to see — so
 		// this is a scenario to declare here as soon as the child can pass it,
 		// not one to leave withheld.
+		//
+		// StandardReasons is declared, and it is the most interesting of these
+		// here: the reason has to survive the hop through the multi-provider
+		// intact, and a wrapper that rewrote STATIC to DEFAULT or lost ERROR on
+		// a type mismatch would be caught by reason.feature and by nothing
+		// else.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.ConfigurationChange,
 			tck.Object,
 			tck.Variants,
 			tck.LargeIntegers,
+			tck.StandardReasons,
 		),
 	)
 }

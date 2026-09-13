@@ -99,11 +99,19 @@ func TestInMemoryProvider(t *testing.T) {
 		// Variants is declared: memprovider resolves a named variant and
 		// reports its name, so every row of the variant outline resolves the
 		// name the canonical set gives it.
+		//
+		// StandardReasons is declared: memprovider reports STATIC for a
+		// rule-less flag and the SDK reports ERROR for the unknown-flag and
+		// type-mismatch cases, which is the whole of reason.feature that is
+		// reachable here. Its two @targeting rows and its one @disabled-flags
+		// row compose with capabilities this suite withholds, so they are
+		// skipped for those rather than for this one.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.Object,
 			tck.Variants,
 			tck.LargeIntegers,
+			tck.StandardReasons,
 		),
 	)
 }

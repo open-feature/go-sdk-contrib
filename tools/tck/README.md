@@ -22,9 +22,9 @@ mechanism once, not exhaustive coverage. Breaking changes should be expected.
 
 ## What it tests
 
-- mapping backend responses onto typed resolution details: value, reason, error code, and no error
-  message on a normal evaluation — plus the variant, under `@variants`, because a variant is a
-  `SHOULD` and some backends have no such concept
+- mapping backend responses onto typed resolution details: value, error code, and no error
+  message on a normal evaluation — plus the variant, under `@variants`, and the resolution reason,
+  under `@standard-reasons`, because both are `SHOULD`s and some backends have no such concept
 - the values most often mistaken for an absence — `false`, `0` and `""` — resolving as values
 - under `@disabled-flags`, that a flag disabled in the management system resolves to the caller's
   default with no error, which only a provider that evaluates locally can do at all
@@ -220,6 +220,7 @@ to be inferred from a scenario count.
 | `tck.LargeIntegers` | `@large-integers` | resolves integers up to 2^53 − 1 exactly; undeclarable where the SDK's integer accessor is 32-bit |
 | `tck.Reinitialization` | `@reinitialization` | can be initialised again after `shutdown`, which [Requirement 2.5.2][req-252] permits rather than requires |
 | `tck.Targeting` | `@targeting` | resolves a flag differently for a matching evaluation context |
+| `tck.StandardReasons` | `@standard-reasons` | reports the standard resolution reasons, with the meanings Appendix F gives them |
 | `tck.Caching` | `@caching` | reserved; **not declarable** — no scenarios yet |
 
 Untagged scenarios are mandatory and always run. Omitting `tck.WithCapabilities` declares
@@ -251,6 +252,15 @@ naming the one line to delete (`reservedCapabilities` in `capability.go`).
 `TestTheCanonicalScenariosCarryNoReservedTag` is the same check against the pinned assets, so moving
 the pin trips it here rather than in an adopter's run.
 
+**The other half of that is under-collection, and it has its own tripwire.** The assets arrive
+through an `embed.FS` built from `//go:embed gherkin/*.feature` in the spec module, and a pattern is
+not a guarantee: a feature file added, renamed or moved one directory down is picked up silently or
+not at all, and "not at all" is a suite that stays green while asking fewer questions than it
+advertises. `TestEveryCanonicalFeatureFileIsCollected` spells the set out rather than deriving it,
+so moving the pin fails here and somebody reads the new file. That is how `reason.feature` and
+`@standard-reasons` arrived: the collected scenario count went from 56 to 65 across the pin, and the
+nine are the four rows of the reason outline plus its five single scenarios.
+
 **Declare a capability only on evidence from running the suite, never from reading the provider's
 source.** Source inspection is unreliable in both directions and demonstrably so: flagd's RPC
 resolver clears its own initialised flag on shutdown, which reads as support for reuse, and then
@@ -262,9 +272,36 @@ a variant, which reads as obviously correct until a backend with no variant conc
 is put under test: its response carries no such key, the provider never receives one, and no seeding
 can produce one. Ten scenarios failed a conformant provider for something its author could not fix,
 with nothing to record as a known deviation because there was no capability to hang one on. The
-value and reason assertions stay untagged, because [Requirement 2.2.3][req-223] makes the value a
-`MUST`. The `reason` field is *not* modelled this way even though [Requirement 2.2.5][req-225] is
-also a `SHOULD` — Appendix F records that as a deliberate narrowing rather than an oversight.
+value assertions stay untagged, because [Requirement 2.2.3][req-223] makes the value a `MUST`.
+
+`@standard-reasons` is a claim, not an exemption, and it is modelled the same way `@variants` is for
+a stronger version of the same argument. [Requirement 2.2.5][req-225] is a `SHOULD` that goes
+further than 2.2.4 does: it lets a provider populate `reason` with one of the listed values *"or
+some other string indicating the semantic reason for the returned flag value"*. A provider whose
+backend reports vendor-specific reasons is therefore conformant, and asserting an exact reason
+against it would fail it for something the specification permits. An earlier revision of this suite
+did exactly that, in thirteen places across three feature files; the reasons now live in
+`reason.feature`, gated as a whole.
+
+**Declaring it is a provider saying "I use the standard vocabulary with the standard meanings", and
+that file is what checks the claim.** A provider that does not declare it loses nothing — its
+values, variants and error codes are asserted everywhere else, on `MUST`s. What the declaration adds
+is something a report's reader can act on: anyone building telemetry, dashboards or debugging on
+`reason` can see that the vocabulary was verified rather than assumed. Appendix F carries the
+normative wording and the meanings the claim commits to; the short form is `STATIC` for a rule-less
+flag, `TARGETING_MATCH` for a matching rule, `DEFAULT` for a rule that exists and did not match,
+`DISABLED` for a disabled flag, and `ERROR` for a failed evaluation reporting an error code.
+
+`STATIC` for the rule-less flag is the row worth flagging. `types.md` types `DEFAULT` as *"no
+dynamic evaluation occurred **or** dynamic evaluation yielded no result"*, which a rule-less flag
+satisfies as readily as `STATIC` does — two providers can disagree and both conform. A provider that
+answers `DEFAULT` there is not defective; it does not use the standard meanings and should not
+declare the tag.
+
+Tags compose, and here that is load-bearing: `TARGETING_MATCH` cannot be observed without targeting
+and `DISABLED` cannot be observed unless the backend distinguishes a disabled flag, so those
+scenarios carry `@targeting` and `@disabled-flags` as well. Declaring `@standard-reasons` alone runs
+the other four and skips those two with their reason.
 
 `@disabled-flags` is gated for a reason no other capability here has: the answer depends on **where
 the substitution happens**, not on provider quality. A provider that evaluates locally — flagd's
@@ -281,7 +318,9 @@ Nothing in the specification says what a provider owes a disabled flag either. [
 four scenarios assert the value and the absence of an error and **not** the reason: each row's
 caller default differs from the flag's configured value, so a provider that ignores the state is
 caught on the value alone, which rests on [Requirement 2.2.3][req-223], a `MUST`. Pinning reason
-`DISABLED` would rest on 2.2.5, a `SHOULD` that permits *"some other string"*. It does not compose
+`DISABLED` there would rest on 2.2.5, a `SHOULD` that permits *"some other string"* — it is pinned
+in `reason.feature` instead, which composes this capability with `@standard-reasons` so a provider
+opts into the narrowing rather than inheriting it. It does not compose
 with `@variants`, and that is not an omission: a disabled flag has resolved no variant, so there is
 no name for a variant assertion to be about.
 

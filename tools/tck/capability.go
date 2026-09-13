@@ -99,9 +99,10 @@ const (
 	// reason; the value and reason assertions are untagged and unaffected,
 	// because 2.2.3 makes the value a MUST.
 	//
-	// The reason field is deliberately *not* modelled this way even though
-	// 2.2.5 is also a SHOULD — see Appendix F, which records that as a decision
-	// rather than an oversight.
+	// The reason field is modelled the same way, for the same reason and one
+	// more: 2.2.5 is also a SHOULD, and it goes further than 2.2.4 by letting a
+	// provider populate reason with one of the listed values "or some other
+	// string". See StandardReasons.
 	Variants Capability = "@variants"
 
 	// DisabledFlags means the provider resolves a flag that is disabled in the
@@ -127,8 +128,10 @@ const (
 	// deliberately not the reason: each row's caller default differs from the
 	// flag's configured value, so a provider that ignores the state returns the
 	// configured value and is caught on the value alone, which rests on 2.2.3,
-	// a MUST. Pinning reason "DISABLED" would rest on 2.2.5, a SHOULD that
-	// permits "some other string".
+	// a MUST. Pinning reason "DISABLED" there would rest on 2.2.5, a SHOULD
+	// that permits "some other string"; it is pinned in reason.feature instead,
+	// which composes this capability with StandardReasons so that a provider
+	// opts into the narrowing rather than inheriting it.
 	//
 	// It does not compose with Variants, and that is not an omission: a
 	// disabled flag has resolved no variant, so there is no name for the
@@ -251,6 +254,72 @@ const (
 	// in every language; see Appendix F's known gaps.
 	Targeting Capability = "@targeting"
 
+	// StandardReasons means the provider reports the standard resolution
+	// reasons, with the meanings Appendix F gives them.
+	//
+	// It is a claim, not an exemption. Requirement 2.2.5 is a SHOULD, and it
+	// goes further than 2.2.4 does: it lets a provider populate reason with one
+	// of the listed values "or some other string indicating the semantic reason
+	// for the returned flag value". A provider whose backend reports
+	// vendor-specific reasons is therefore conformant, and asserting an exact
+	// reason against it would fail it for something the specification permits.
+	//
+	// An earlier revision of the suite did exactly that, in thirteen places
+	// across three feature files. It bought very little: every canonical flag
+	// resolves to a value distinct from the caller's default, so a provider
+	// that silently falls back is already caught by the value assertion, and
+	// the reason only said why it failed. The reasons now live in
+	// reason.feature, gated as a whole -- declaring this capability is a
+	// provider saying "I use the standard vocabulary with the standard
+	// meanings", and that file is what checks the claim.
+	//
+	// A provider that does not declare it loses nothing: its values, variants
+	// and error codes are asserted everywhere else, on MUST requirements. What
+	// the declaration adds is something a report's reader can act on -- anyone
+	// building telemetry, dashboards or debugging on reason can see that the
+	// vocabulary was verified rather than assumed.
+	//
+	// The meanings are the content of the claim, and constrain nobody who does
+	// not make it:
+	//
+	//	resolved from configuration, no targeting rule   STATIC
+	//	a targeting rule matched the evaluation context  TARGETING_MATCH
+	//	a targeting rule exists and did not match        DEFAULT
+	//	the flag is disabled in the management system    DISABLED
+	//	the evaluation failed, with an error code        ERROR
+	//
+	// STATIC for the first row is the call worth flagging. types.md types
+	// DEFAULT as "no dynamic evaluation occurred or dynamic evaluation yielded
+	// no result", which a rule-less flag satisfies as readily as STATIC does --
+	// two providers can disagree here and both conform. A provider that answers
+	// DEFAULT for a rule-less flag is not defective; it does not use the
+	// standard meanings, and should not declare the tag.
+	//
+	// ERROR is the row where the suite's subject is blurred, and it is asserted
+	// anyway. The other four rest on Requirement 1.4.7, which makes the SDK
+	// propagate the provider's reason -- but only "in cases of normal
+	// execution". Abnormal execution is 1.4.9, a SHOULD on the SDK, and nothing
+	// requires the provider's reason to survive. So a passing ERROR scenario
+	// establishes that the value reaching the application is coherent, not that
+	// the provider produced it. It is still worth asserting: the error code
+	// alone is already covered for every provider by errors.feature on a MUST,
+	// the reason alone could have been written by the SDK, and an evaluation
+	// reporting FLAG_NOT_FOUND with reason STATIC is incoherent whoever wrote
+	// it.
+	//
+	// SPLIT, UNKNOWN, CACHED and STALE are not asserted. The first two have no
+	// scenario that produces them; CACHED needs a repeat evaluation, which
+	// nothing here performs without a configuration change in between (see
+	// Caching); and STALE needs a scenario asserting what a provider serves
+	// during an outage, which is the same gap.
+	//
+	// Tags compose, and here that is load-bearing. TARGETING_MATCH cannot be
+	// observed without targeting and DISABLED cannot be observed unless the
+	// backend distinguishes a disabled flag, so those scenarios carry
+	// @targeting and @disabled-flags as well. A provider declaring this alone
+	// runs the rest and skips those two with their reason.
+	StandardReasons Capability = "@standard-reasons"
+
 	// Caching is reserved and must not be declared — see IsReserved. No
 	// scenario carries this tag yet, and it is the only reserved tag left.
 	// Whether a stale provider keeps serving last-known values during an outage
@@ -275,6 +344,7 @@ var allCapabilities = []Capability{
 	LargeIntegers,
 	Reinitialization,
 	Targeting,
+	StandardReasons,
 	Caching,
 }
 
