@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -554,6 +556,67 @@ func TestTheCanonicalScenariosCarryNoReservedTag(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestEveryCanonicalFeatureFileIsCollected is the under-collection tripwire on
+// the pin.
+//
+// The assets arrive through an embed.FS built in the spec module from
+// `//go:embed gherkin/*.feature`, and this package reads whatever that pattern
+// matched. A pattern is not a guarantee: a file added to the canonical set in a
+// later revision, renamed, or moved into a subdirectory is picked up silently
+// or not at all, and the failure mode of "not at all" is a suite that stays
+// green while asking fewer questions than it advertises. Every count in this
+// package's README, and every adopter's expectation about what a run covers,
+// rests on the set below.
+//
+// So it is spelled out rather than derived. A pin that changes it fails here,
+// which is the point at which somebody reads the new file and decides what it
+// means for this suite -- rather than at the point where an adopter wonders why
+// a scenario they read about never ran.
+func TestEveryCanonicalFeatureFileIsCollected(t *testing.T) {
+	want := []string{
+		"errors.feature",
+		"evaluation.feature",
+		"events.feature",
+		"lifecycle.feature",
+		"metadata.feature",
+		"reason.feature",
+	}
+
+	entries, err := fs.ReadDir(assets, featuresPath)
+	if err != nil {
+		t.Fatalf("could not list the canonical features: %v", err)
+	}
+
+	var got []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			t.Errorf("%s/%s is a directory; the embed pattern is one level deep, so anything "+
+				"below it is not collected at all", featuresPath, entry.Name())
+			continue
+		}
+		got = append(got, entry.Name())
+
+		// A collected but empty file is the same failure wearing a different
+		// hat: the name is there and the scenarios are not.
+		source, err := fs.ReadFile(assets, featuresPath+"/"+entry.Name())
+		if err != nil {
+			t.Errorf("could not read %s: %v", entry.Name(), err)
+			continue
+		}
+		if !strings.Contains(string(source), "Scenario") {
+			t.Errorf("%s carries no scenario", entry.Name())
+		}
+	}
+
+	sort.Strings(got)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("the canonical feature set is %v, want %v. If the pin moved and this is the new "+
+			"set, update the list here -- and check that the capability vocabulary in "+
+			"capability.go covers whatever the new file is gated on, since an undeclarable tag "+
+			"skips its scenarios for every adopter", got, want)
 	}
 }
 
