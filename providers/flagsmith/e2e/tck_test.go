@@ -93,6 +93,29 @@ var (
 			"capability to hang a deviation on: whether the type-mismatch matrix is satisfiable "+
 			"against a backend with a coarser type system is an open question for the suite, not "+
 			"a defect this provider can fix.")
+
+	// The defect this suite was written to catch, and could not until @standard-reasons existed.
+	//
+	// resolveFlag sets reason = of.TargetingMatchReason as soon as a targeting key is present in
+	// the evaluation context, before any evaluation happens, and never revises it. So a targeting
+	// rule that does not match still reports TARGETING_MATCH, telling the caller a rule matched
+	// when none did.
+	//
+	// It was recorded as a finding long before it failed anything: the evaluation-context scenarios
+	// deliberately do not assert the reason, because 2.2.5 lets a provider populate it with "some
+	// other string" and both STATIC and DEFAULT are defensible for an unmatched rule. That made it
+	// a blind spot the suite had chosen rather than missed. @standard-reasons closes it by making
+	// the reason a claim a provider opts into, and this is the scenario that catches it.
+	targetingMatchDeviation = tck.UntrackedDeviation(
+		tck.StandardReasons,
+		"A targeting rule that does not match still reports TARGETING_MATCH rather than DEFAULT. "+
+			"resolveFlag sets the reason from the mere presence of a targeting key in the "+
+			"evaluation context, before evaluating anything, and never revises it -- so the "+
+			"provider tells the caller a rule matched when none did. The other scenarios this "+
+			"capability gates pass: STATIC for an untargeted resolution, DISABLED for a disabled "+
+			"flag, and TARGETING_MATCH for a genuine match. The capability is declared rather than "+
+			"withheld so that those keep running and this one failure stays visible with its "+
+			"reason attached.")
 )
 
 // TestFlagsmithRemoteConformance runs the suite against remote evaluation: the provider calls
@@ -202,14 +225,22 @@ func runConformance(t *testing.T, name string, local bool) {
 		// as. @large-integers holds: ResolveIntValue is int64, and 2^53-1 survives the JSON number
 		// -> float64 -> int64 trip exactly. @targeting holds via identity overrides: a targeting
 		// key IS a Flagsmith identifier, since the provider calls GetIdentityFlags(targetingKey).
+		// @standard-reasons IS declared, and one of its scenarios fails -- see
+		// targetingMatchDeviation. Declaring it is still right: this provider reports STATIC for an
+		// untargeted resolution, DISABLED for a disabled flag and TARGETING_MATCH for a genuine
+		// match, so withholding would skip several scenarios it satisfies in order to hide one it
+		// does not. The Java and JavaScript Flagsmith providers are in a different position
+		// entirely -- Java leaves the reason null and JavaScript reports TARGETING_MATCH for every
+		// enabled flag -- which is the difference this capability exists to make visible.
 		tck.WithCapabilities(
 			tck.Object,
 			tck.LargeIntegers,
 			tck.Targeting,
 			tck.DisabledFlags,
+			tck.StandardReasons,
 		),
 
-		tck.WithKnownDeviations(numericCoercionDeviation, objectAsStringDeviation),
+		tck.WithKnownDeviations(numericCoercionDeviation, objectAsStringDeviation, targetingMatchDeviation),
 
 		// Both modes poll. Remote is a single hop; local waits on two -- the testbed's upstream
 		// poll and the SDK's environment refresh, each 1s -- and the scenarios are shared.
