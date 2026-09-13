@@ -436,6 +436,12 @@ which of several materially different configurations was tested — and comes fr
 the field is ever omitted. The backend's named flag configuration, `tck.WithBackendConfiguration`,
 does not appear in a report at all.
 
+It selects an **output** and is not a run gate. Which suites run is the `make tck` / `make e2e`
+split above, and setting or unsetting this variable changes nothing about it: `make tck` with no
+`TCK_REPORT_DIR` runs the same scenarios and simply writes no report. That is worth saying because
+the suites once did have an environment variable deciding whether they ran, and it is gone — the
+target replaced it.
+
 ### The canonical set has to have run
 
 [Appendix F requires a run that did not execute the canonical set in full to fail][appendix-f-extending],
