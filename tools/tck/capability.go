@@ -171,8 +171,16 @@ const (
 	// provider that behaves differently is not violating the specification
 	// (open-feature/spec#430). What is true regardless is that narrowing 0.5 to
 	// 0 with no error code is the worst failure mode a feature flag has: the
-	// application sees a plausible value and no signal. A provider withholding
-	// this capability should say whether that is a choice or a tracked defect.
+	// application sees a plausible value and no signal.
+	//
+	// A provider that does that should DECLARE this capability, let the lossy
+	// scenario fail and record a KnownDeviation beside it — it coerces and gets
+	// one direction wrong, which is exactly what a skip cannot express.
+	// Withholding is for a provider that cannot attempt the coercion at all.
+	// An earlier revision of this comment said a withholding provider should
+	// say whether the absence was a choice or a defect; that mirrored Appendix
+	// F's own wording, which was corrected in spec 045950ca because it taught
+	// the withhold-plus-deviate combination the known-deviation rule forbids.
 	//
 	// All three directions have a scenario, and a provider declaring the tag
 	// has to satisfy every one of them: rejecting every float passes the lossy

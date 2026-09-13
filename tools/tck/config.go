@@ -204,10 +204,15 @@ func WithCapabilities(capabilities ...Capability) Option {
 // Narrowing WithCapabilities is how a provider says a scenario was not run, but
 // it cannot say why, and the two reasons are not alike: a provider with no
 // streaming transport declining ConfigurationChange has made a decision, while
-// one declining NumericCoercion because it narrows 0.5 to 0 with no error code
-// has a bug. In the results both are a skip with the same reason, so unless the
-// provider author says which happened, a consumer comparing providers reads a
-// defect as a design choice.
+// the Go SDK's memprovider declines the same capability because it cannot update
+// its flag set at all, which Appendix A requires it to support — one capability,
+// one absence, two meanings. In the results both are a skip with the same
+// reason, so unless the provider author says which happened, a consumer
+// comparing providers reads a defect as a design choice.
+//
+// A provider that narrows 0.5 to 0 with no error code is not an example of
+// either: it attempts the coercion, so it declares NumericCoercion and records
+// the deviation against the scenario that then fails. See KnownDeviation.
 //
 // Empty by default, which is silence rather than a claim. See KnownDeviation,
 // TrackedDeviation and UntrackedDeviation for what belongs here and what does

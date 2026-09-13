@@ -228,6 +228,17 @@ Untagged scenarios are mandatory and always run. Omitting `tck.WithCapabilities`
 and remove only what your provider genuinely cannot do. Passing it with no capability at all is a
 declaration too, and says this provider supports none of the optional parts.
 
+**"Genuinely cannot do" is judged per scenario, not per tag.** That is the first of
+[Appendix F's rules for declaring][appendix-f-deviations], and it is not restated here because it is
+settled there: declare a capability when at least one scenario gating it can actually be put to the
+provider, and withhold it only when none can. Two consequences come with it — a scenario that fails
+because the backend cannot serve its fixture is not a provider defect and must not be recorded as
+one, and a capability withheld for a backend gap is temporary in a way one withheld by choice is not,
+so say why or it outlives its reason. Both adoptions in this repository turn on that rule:
+`@large-integers` has one scenario and `flagd-testbed` serves no flag for it, so nothing can be
+established and it is withheld; `@numeric-coercion` has three and the same backend can still be asked
+two of them, so it is declared — which is how flagd's two resolvers were found to disagree.
+
 A **reserved** capability is named by the vocabulary so there is a place for it once scenarios
 exist, but it **must not be declared**. No scenario carries the tag, so declaring it cannot be
 verified, cannot even produce a skip, and tells a reader of a report only that something was claimed
@@ -406,12 +417,17 @@ It comes from flagd's [numeric coercion ADR][numeric-coercion-adr]
 flagd's own implementations, and the tag took that name — it was `@strict-numeric-typing` — because
 flagd's testbed is gaining `@numeric-coercion` scenarios and two vocabularies for one observable
 property is worse than one borrowed name. **A provider that behaves differently is not violating the
-specification.** Withholding this capability may be a deliberate choice or a tracked defect; a
-report's `knownDeviations` is where the second is recorded.
+specification.** Withholding it is for a provider that cannot attempt the coercion at all — one whose
+SDK has a single numeric type, where the distinction does not exist to get wrong.
 
 What remains true is that flagd narrows `0.5` to `0` with no error code at all, in Go and in Java and
 in both resolvers, so an application sees a plausible value and no signal — which is what
-flagd#1996 fixes.
+flagd#1996 fixes. **A provider in that position declares the capability**, lets the lossy scenario
+fail, and records a `knownDeviations` entry beside it: it does coerce, and gets one direction wrong,
+which is precisely what a skip cannot express. An earlier version of this paragraph said such a
+provider should withhold the tag and say whether the absence was a choice or a tracked defect; it
+mirrored Appendix F's own wording, which was corrected in spec `045950ca` for teaching the
+withhold-plus-deviate shape the known-deviation rule below forbids.
 
 Both halves of the rule have scenarios. The lossy half asks for `float-flag` (`0.5`) as an integer
 and expects `TYPE_MISMATCH`; the lossless half asks for `integral-float-flag` (`10.0`) as an integer
@@ -432,12 +448,20 @@ tag undeclared. Nothing above 2^53 − 1 is asked for.
 ### Known deviations
 
 Narrowing `tck.WithCapabilities` says a scenario was not run. It cannot say **why**, and the two
-reasons are not alike: a provider with no streaming transport declining `@configuration-change` has made a
-decision, while one declining `@numeric-coercion` because it narrows `0.5` to `0` with no error code
-has a bug. In the results they are indistinguishable — the same skip, carrying the same reason — so
+reasons are not alike, and the sharpest illustration is one capability withheld twice: a provider
+with no streaming transport declining `@configuration-change` has made a decision, while the Go SDK's
+`memprovider` declines the same tag because it cannot update its flag set at all — which
+[Appendix A][appendix-a] requires an SDK's in-memory provider to support, so that absence is a
+defect. In the results they are indistinguishable — the same skip, carrying the same reason — so
 unless the provider author says which happened, a consumer comparing providers reads a defect as a
 design choice. The TCK cannot infer it: from the outside, a capability withheld by choice and one
 withheld because it is broken are the same absence.
+
+A provider that narrows `0.5` to `0` with no error code is **not** an example of either, and this
+section used to say it was. It attempts the coercion and gets one direction wrong, so it declares
+`@numeric-coercion`, lets the lossy scenario fail, and records the deviation against that failure —
+shape 1 below. The old wording mirrored Appendix F's `@numeric-coercion` note, corrected in spec
+`045950ca`; the distinction it was drawing is right, only the example was.
 
 `tck.WithKnownDeviations` is where that gets said.
 
@@ -832,6 +856,16 @@ in-memory provider is architecturally guaranteed to be able to satisfy: there is
 so the default is right there. `TestCanonicalFlagSetDisabledFlagsCarryAnError` pins the current
 behaviour and fails when the SDK stops attaching the error, at which point the fix is to declare the
 capability rather than to relax the assertion.
+
+**This is a self-test withholding a capability for a defect it has identified, which
+[Appendix F][appendix-f-deviations] sanctions by a carve-out** rather than by the ordinary rule: a
+TCK implementation's own suites are a fixture for the harness rather than a report about a third
+party, and they run in the ordinary build, where a permanently failing scenario is a broken build and
+not a finding — nobody downstream can act on it, because the fix is an SDK release away. The carve-out
+carries one condition, **that the defect is pinned by a test of its own**, and that is the condition
+these suites meet: `TestCanonicalFlagSetDisabledFlagsCarryAnError` asserts the behaviour directly, so
+the skip is not the only record of it. An adoption has no such licence — a skip there is a claim
+about the provider being reported on.
 
 ## Known gaps
 
