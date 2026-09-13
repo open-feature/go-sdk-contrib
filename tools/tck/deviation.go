@@ -124,6 +124,13 @@ func (d KnownDeviation) IsTracked() bool { return d.Issue != "" }
 // capability it names exists. A reserved capability is rejected for the same
 // reason declaring one is: no scenario carries the tag, so there is no skip for
 // the deviation to explain and nothing it could be about.
+//
+// A capability the Go SDK cannot express is rejected too, and for a different
+// reason worth keeping separate: its scenarios do exist and are skipped, but
+// they are skipped for every provider in this language regardless of what any
+// of them does. A deviation there would attribute a property of the SDK to the
+// provider, which is the opposite of what the field is for. See
+// inexpressibleCapabilities.
 func validateDeviations(deviations []KnownDeviation) error {
 	var problems []error
 
@@ -146,6 +153,16 @@ func validateDeviations(deviations []KnownDeviation) error {
 				"tck.WithKnownDeviations deviation %d names unknown capability %q: capabilities are the constants "+
 					"declared in this package, one of %s",
 				i, d.Capability, formatCapabilities(AllCapabilities())))
+			continue
+		}
+
+		if reason, inexpressible := d.Capability.IsInexpressible(); inexpressible {
+			problems = append(problems, fmt.Errorf(
+				"tck.WithKnownDeviations deviation %d names %q, which the Go SDK cannot express: %s. Its "+
+					"scenarios are skipped for every provider written against this SDK whatever the "+
+					"provider does, so a deviation here would record a property of the SDK as a defect "+
+					"of your provider. Remove it",
+				i, d.Capability, reason))
 			continue
 		}
 

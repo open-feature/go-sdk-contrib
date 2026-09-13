@@ -393,17 +393,19 @@ func TestAllCapabilitiesOmitsReservedCapabilities(t *testing.T) {
 		}
 	}
 
-	// The exclusion must be exactly the reserved set, not a convenient subset:
-	// a capability quietly dropped from the default is a gap an adopter never
-	// sees reported.
+	// The exclusion must be exactly the two undeclarable sets, not a convenient
+	// subset: a capability quietly dropped from the default is a gap an adopter
+	// never sees reported.
 	returned := make(map[Capability]bool, len(allCapabilities))
 	for _, c := range AllCapabilities() {
 		returned[c] = true
 	}
 	for _, c := range allCapabilities {
-		if c.IsReserved() == returned[c] {
-			t.Errorf("AllCapabilities is wrong about %s: reserved=%v, returned=%v",
-				c, c.IsReserved(), returned[c])
+		_, inexpressible := c.IsInexpressible()
+		undeclarable := c.IsReserved() || inexpressible
+		if undeclarable == returned[c] {
+			t.Errorf("AllCapabilities is wrong about %s: reserved=%v, inexpressible=%v, returned=%v",
+				c, c.IsReserved(), inexpressible, returned[c])
 		}
 	}
 }
@@ -617,6 +619,278 @@ func TestEveryCanonicalFeatureFileIsCollected(t *testing.T) {
 			"set, update the list here -- and check that the capability vocabulary in "+
 			"capability.go covers whatever the new file is gated on, since an undeclarable tag "+
 			"skips its scenarios for every adopter", got, want)
+	}
+}
+
+// A capability the language's SDK cannot express is a different refusal from a
+// reserved one, and Appendix F requires it to be the implementation's job
+// rather than every adopter's. Go has no instance of it, so these tests do two
+// separate things: they pin *why* Go has none, against the SDK rather than
+// against a comment, and they exercise the refusal itself by installing one,
+// so the path is not dead code waiting for the first adopter to discover it.
+
+// withInexpressible installs a capability the SDK is said not to express, for
+// the duration of one test.
+//
+// Go has no real instance, so every test of the refusal has to make one. The
+// map is replaced rather than mutated so the original is restored exactly, and
+// nothing in this package runs tests in parallel.
+func withInexpressible(t *testing.T, c Capability, reason string) {
+	t.Helper()
+
+	original := inexpressibleCapabilities
+	replacement := make(map[Capability]string, len(original)+1)
+	for k, v := range original {
+		replacement[k] = v
+	}
+	replacement[c] = reason
+	inexpressibleCapabilities = replacement
+
+	t.Cleanup(func() { inexpressibleCapabilities = original })
+}
+
+// TestGoExpressesEveryCapability is the claim the empty map makes, stated where
+// it will be read if it ever stops being true.
+//
+// It is not a tautology: it fails the moment somebody adds an entry, which
+// forces the two evidence tests below to be revisited and the table in
+// Appendix F to gain a row. The rule exists precisely because a fact about a
+// language, left as documentation, gets remembered wrongly somewhere.
+func TestGoExpressesEveryCapability(t *testing.T) {
+	if len(inexpressibleCapabilities) != 0 {
+		t.Errorf("inexpressibleCapabilities is %v, and Go is recorded as having none. If the SDK "+
+			"changed, this is the right place to say so -- but update Appendix F's table too, "+
+			"and check the evidence tests below, which measure the two properties the other "+
+			"languages fail on", inexpressibleCapabilities)
+	}
+}
+
+// TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger is why Go can declare
+// @large-integers and Java cannot.
+//
+// Java's integer accessor is a 32-bit Integer, so 2^53-1 cannot be passed to it
+// or returned from it and the question the scenario asks is unaskable. Go's is
+// int64. Measured off the SDK's own method signature rather than off its
+// documentation, so a narrowing in a future SDK fails here instead of turning
+// into a provider's apparent defect.
+func TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger(t *testing.T) {
+	const maxSafeInteger = int64(9007199254740991) // 2^53-1, the value the scenario asks for
+
+	accessor := reflect.TypeOf((*openfeature.Client).IntValueDetails)
+	// (receiver, ctx, flag, defaultValue, evalCtx, ...options)
+	defaultValue := accessor.In(3)
+	if defaultValue.Kind() != reflect.Int64 {
+		t.Fatalf("Client.IntValueDetails takes a %s default value; @large-integers is only "+
+			"expressible because it takes an int64", defaultValue)
+	}
+
+	details := accessor.Out(0)
+	value, ok := details.FieldByName("Value")
+	if !ok || value.Type.Kind() != reflect.Int64 {
+		t.Fatalf("Client.IntValueDetails returns %s, whose Value is not an int64; the value could "+
+			"not survive the round trip the scenario asserts", details)
+	}
+
+	// The round trip the scenario performs, on the accessor's own types.
+	if got := int64(maxSafeInteger); got != maxSafeInteger {
+		t.Fatalf("2^53-1 does not survive the integer accessor's type: %d", got)
+	}
+}
+
+// TestTheIntegerAndFloatAccessorsAreDistinctTypes is why Go can declare
+// @numeric-coercion and JavaScript cannot.
+//
+// JavaScript has one numeric type, so "a float flag requested as an integer" is
+// not a question its API can put -- typeof 10 and typeof 0.5 are both 'number'
+// and there is no second accessor to ask through. Go has two accessors over two
+// types, which is the entire reason the three coercion scenarios mean anything
+// here.
+func TestTheIntegerAndFloatAccessorsAreDistinctTypes(t *testing.T) {
+	integer := reflect.TypeOf((*openfeature.Client).IntValueDetails).In(3)
+	float := reflect.TypeOf((*openfeature.Client).FloatValueDetails).In(3)
+
+	if integer == float {
+		t.Fatalf("the integer and float accessors both take %s, so \"a float requested as an "+
+			"integer\" is not a question this SDK can put and @numeric-coercion would be "+
+			"inexpressible", integer)
+	}
+	if integer.Kind() != reflect.Int64 || float.Kind() != reflect.Float64 {
+		t.Fatalf("the accessors take %s and %s, want int64 and float64", integer, float)
+	}
+
+	// The distinction has to survive into the resolved value as well, or a
+	// provider could not report a coercion it refused to perform.
+	intValue, _ := reflect.TypeOf((*openfeature.Client).IntValueDetails).Out(0).FieldByName("Value")
+	floatValue, _ := reflect.TypeOf((*openfeature.Client).FloatValueDetails).Out(0).FieldByName("Value")
+	if intValue.Type == floatValue.Type {
+		t.Fatalf("both accessors resolve a %s, so the two directions of the coercion rule are "+
+			"indistinguishable", intValue.Type)
+	}
+}
+
+// TestTheInexpressibleSetIsWellFormed pins the shape of an entry, so that the
+// first one anybody adds is usable by every message that reads it.
+func TestTheInexpressibleSetIsWellFormed(t *testing.T) {
+	for c, reason := range inexpressibleCapabilities {
+		if _, known := CapabilityForTag(string(c)); !known {
+			t.Errorf("%s is listed as inexpressible but is not a capability, so no scenario and "+
+				"no message would ever reach it", c)
+		}
+		if c.IsReserved() {
+			t.Errorf("%s is both reserved and inexpressible; the two refusals say different "+
+				"things and a capability carried by no scenario cannot also be one this "+
+				"language fails to ask", c)
+		}
+		if strings.TrimSpace(reason) == "" {
+			t.Errorf("%s is listed as inexpressible with no reason: the refusal exists to tell an "+
+				"adopter which property of their SDK it is, and an empty one tells them "+
+				"nothing", c)
+		}
+	}
+}
+
+func TestAnInexpressibleCapabilityCannotBeDeclared(t *testing.T) {
+	const reason = "the integer accessor is 32 bits wide, so 2^53-1 cannot be asked for"
+	withInexpressible(t, LargeIntegers, reason)
+
+	_, err := newCapabilitySet([]Capability{Object, LargeIntegers})
+	if err == nil {
+		t.Fatal("a capability the SDK cannot express was accepted; it would reach a conformance " +
+			"report as a claim no scenario in this language could have verified")
+	}
+	if !strings.Contains(err.Error(), LargeIntegers.Tag()) {
+		t.Errorf("the error does not name the capability: %v", err)
+	}
+	if !strings.Contains(err.Error(), reason) {
+		t.Errorf("the error does not say which property of the SDK makes it impossible, which is "+
+			"the only part an adopter can act on: %v", err)
+	}
+}
+
+// TestValidateRejectsAnInexpressibleCapability pins that an adopter meets the
+// refusal as a configuration error, before the stack starts and before any
+// scenario runs, rather than as a puzzling skip afterwards.
+func TestValidateRejectsAnInexpressibleCapability(t *testing.T) {
+	withInexpressible(t, NumericCoercion, "the language has a single numeric type")
+
+	if err := validConfig(WithCapabilities(Object, NumericCoercion)).validate(); err == nil {
+		t.Fatal("tck.Run would have started the stack with an undeclarable capability declared")
+	}
+}
+
+func TestAllCapabilitiesOmitsAnInexpressibleCapability(t *testing.T) {
+	withInexpressible(t, NumericCoercion, "the language has a single numeric type")
+
+	for _, c := range AllCapabilities() {
+		if c == NumericCoercion {
+			t.Fatal("AllCapabilities returned a capability the SDK cannot express; an adoption " +
+				"starting from the full set would be refused for something it did not choose")
+		}
+	}
+
+	// The default when tck.WithCapabilities is unset is the same set, and it is
+	// the shape that put unverifiable claims into a published report before.
+	for _, c := range newConfig(nil).capabilities() {
+		if c == NumericCoercion {
+			t.Fatal("the default capability set contains a capability the SDK cannot express")
+		}
+	}
+}
+
+// TestTheTwoRefusalsAreDistinguishable is the part of Appendix F's rule that is
+// easy to lose by tidying, and the reason the two checks are not one predicate.
+//
+// A reader seeing a capability absent from a report has to be able to tell
+// "this provider declined" from "no provider in this language can be asked",
+// because only the first says anything about the provider.
+func TestTheTwoRefusalsAreDistinguishable(t *testing.T) {
+	withInexpressible(t, LargeIntegers, "the integer accessor is 32 bits wide")
+
+	_, inexpressibleErr := newCapabilitySet([]Capability{LargeIntegers})
+	_, reservedErr := newCapabilitySet([]Capability{Caching})
+	if inexpressibleErr == nil || reservedErr == nil {
+		t.Fatal("one of the two refusals did not fire")
+	}
+
+	if inexpressibleErr.Error() == reservedErr.Error() {
+		t.Fatal("the two refusals produce the same message, so an adopter cannot tell a global " +
+			"reservation that expires from a permanent property of their language")
+	}
+	if strings.Contains(inexpressibleErr.Error(), "is reserved") {
+		t.Errorf("the inexpressibility refusal describes itself as a reservation: %v", inexpressibleErr)
+	}
+	if strings.Contains(reservedErr.Error(), "cannot be expressed") {
+		t.Errorf("the reservation refusal describes itself as an SDK limitation: %v", reservedErr)
+	}
+}
+
+// TestAnInexpressibleCapabilitySkipsWithItsOwnReason is the same distinction at
+// the other end: a skipped scenario has to say which of the two it is.
+func TestAnInexpressibleCapabilitySkipsWithItsOwnReason(t *testing.T) {
+	const reason = "the integer accessor is 32 bits wide, so 2^53-1 cannot be asked for"
+	withInexpressible(t, LargeIntegers, reason)
+
+	caps, err := newCapabilitySet([]Capability{Object})
+	if err != nil {
+		t.Fatalf("newCapabilitySet: %v", err)
+	}
+	r := &runner{caps: caps, cfg: config{Name: "gate", Control: stubControl{}}, t: t}
+
+	_, hookErr := r.beforeScenario(context.Background(), scenarioWithTags("huge", "@large-integers"))
+	if hookErr == nil {
+		t.Fatal("a scenario needing a capability the SDK cannot express was allowed to run")
+	}
+	if !strings.Contains(hookErr.Error(), godog.ErrSkip.Error()) {
+		t.Fatalf("the scenario was failed rather than skipped: %v", hookErr)
+	}
+	if !strings.Contains(hookErr.Error(), reason) {
+		t.Errorf("the skip reason does not say the SDK cannot ask the question: %v", hookErr)
+	}
+	if strings.Contains(hookErr.Error(), "this provider does not declare") {
+		t.Errorf("the skip reason blames the provider for a property of the SDK: %v", hookErr)
+	}
+
+	// The ordinary case must not pick up the new wording, or every withheld
+	// capability starts reading as a language limitation.
+	_, plainErr := r.beforeScenario(context.Background(), scenarioWithTags("outage", "@stale"))
+	if plainErr == nil {
+		t.Fatal("an undeclared capability did not skip its scenario")
+	}
+	if strings.Contains(plainErr.Error(), "cannot express") {
+		t.Errorf("a capability the provider simply withheld was reported as inexpressible: %v", plainErr)
+	}
+
+	// And the end-of-run summary keeps them apart too, since that is what an
+	// operator actually reads.
+	r.reportSkips()
+	if len(r.skips) != 2 {
+		t.Fatalf("recorded %d skips, want 2", len(r.skips))
+	}
+	var recorded int
+	for _, s := range r.skips {
+		if s.capability == LargeIntegers && s.inexpressible == reason {
+			recorded++
+		}
+		if s.capability == Stale && s.inexpressible != "" {
+			t.Errorf("a withheld capability was recorded as inexpressible: %+v", s)
+		}
+	}
+	if recorded != 1 {
+		t.Error("the skip record did not carry the SDK property, so the summary cannot print it")
+	}
+}
+
+func TestADeviationMayNotNameAnInexpressibleCapability(t *testing.T) {
+	const reason = "the language has a single numeric type"
+	withInexpressible(t, NumericCoercion, reason)
+
+	err := deviationConfig(UntrackedDeviation(NumericCoercion, "narrows 0.5 to 0")).validate()
+	if err == nil {
+		t.Fatal("a deviation named a capability the SDK cannot express; it would record a " +
+			"property of the SDK as a defect of the provider")
+	}
+	if !strings.Contains(err.Error(), reason) {
+		t.Errorf("the error does not say why the capability is undeclarable: %v", err)
 	}
 }
 

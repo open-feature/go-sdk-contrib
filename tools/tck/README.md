@@ -242,6 +242,44 @@ and then removes what it cannot do collects every reserved tag on the way past, 
 conformance report came to assert `@targeting` and `@caching` as declared — back when both were
 reserved.
 
+A second kind of capability is undeclarable, and it is **not the same thing**: one the language's
+SDK cannot express. The scenarios exist and pass elsewhere, but no provider written against this SDK
+can be asked the question, so declaring it would put a claim in a report that nothing here could
+have verified. Two exist across the four implementations — `@large-integers` in Java, whose integer
+accessor is a 32-bit `Integer` with no room for 2^53-1, and `@numeric-coercion` in JavaScript, which
+has a single numeric type and so cannot ask "this float, as an integer?" at all.
+
+**Go has neither, and that is measured rather than assumed.** `Client.IntValueDetails` takes and
+returns an `int64`, and `Client.FloatValueDetails` a `float64` — two accessors over two types, which
+is the whole reason the coercion scenarios mean anything here.
+`TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger` and
+`TestTheIntegerAndFloatAccessorsAreDistinctTypes` pin both against the SDK's own method signatures,
+so a narrowing in a future SDK fails there rather than surfacing as an apparent provider defect.
+Both capabilities are declared and satisfied in practice: the `@large-integers` scenario runs and
+passes in all three self-test suites, and the OFREP provider declares `@numeric-coercion` and
+satisfies all three of its scenarios.
+
+So `inexpressibleCapabilities` in `capability.go` is empty. The refusal it drives exists anyway,
+because Appendix F requires the implementation to make this call rather than every adopter: leaving
+it to adopters means each of them has to know a property of their language and remember to act on
+it, and the first one who gets it wrong publishes a claim no scenario could have verified. Adding a
+line to that map is the whole change — the configuration error, the default set, the known-deviation
+check and the skip reason all follow from it. It is exercised rather than dead: the tests install an
+entry and drive every one of those paths, and every one of them dies under mutation.
+
+**The two refusals are deliberately kept apart**, in the message and in the skip reason, because
+they say different things about a provider — nothing, and nothing *in this language*:
+
+| | reserved (`@caching`) | inexpressible (none in Go) |
+| --- | --- | --- |
+| Why | no scenario anywhere carries the tag | scenarios exist and pass in other languages |
+| Scope | every language | this language only |
+| Lifetime | expires when the specification adds scenarios | until the SDK changes |
+| The skip says | the capability has no scenarios yet | this SDK cannot ask the question |
+
+A reader seeing a capability absent from a report has to be able to tell *"this provider declined"*
+from *"no provider in this language can be asked"*, because only the first describes the provider.
+
 **The reservation expires by itself, and the suite fails when it should have.** The day the
 specification adds the first scenario carrying `@caching`, every adoption would otherwise report
 that scenario as skipped for a capability no adopter is permitted to declare: a green suite, a
@@ -471,7 +509,10 @@ the wrong reason in one of a provider's modes and hide the gap there.
 Empty by default, which is silence rather than a claim. A deviation with no summary is rejected by
 configuration validation, because it records that something is broken without saying what and is
 then worth less than the bare skip it accompanies; so is one naming a reserved capability, because
-no scenario carries that tag and nothing was skipped for it to explain.
+no scenario carries that tag and nothing was skipped for it to explain. A deviation naming a
+capability the SDK cannot express is rejected too, for a different reason: those scenarios *are*
+skipped, but for every provider in this language whatever any of them does, so an entry there would
+record a property of the SDK as a defect of your provider. Go has none of those today.
 
 ## Controlling the backend
 

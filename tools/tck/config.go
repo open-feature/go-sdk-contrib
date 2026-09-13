@@ -174,15 +174,23 @@ func WithUnavailableProvider(factory ProviderFactory) Option {
 // provider supports. Scenarios tagged with an undeclared capability are
 // reported as skipped with the reason, never as passed.
 //
-// Omitting the option declares AllCapabilities, which excludes the reserved
-// ones. Narrow rather than widen: start from the default, run the suite, and
-// remove only what your provider genuinely cannot do. Passing no capability at
-// all is a declaration too — it says this provider supports none of the
-// optional parts — and is not the same as omitting the option.
+// Omitting the option declares AllCapabilities, which excludes the ones no
+// provider may declare. Narrow rather than widen: start from the default, run
+// the suite, and remove only what your provider genuinely cannot do. Passing no
+// capability at all is a declaration too — it says this provider supports none
+// of the optional parts — and is not the same as omitting the option.
 //
-// Naming a reserved capability is rejected rather than passed into a report. No
-// scenario carries a reserved tag, so declaring it cannot be verified — it is a
-// configuration mistake, not a conformance result.
+// Two kinds of capability are rejected here rather than passed into a report,
+// and the error says which is which because they mean different things:
+//
+//   - A reserved capability, which no scenario anywhere carries. Declaring it
+//     cannot be verified and cannot even produce a skip. See IsReserved.
+//   - A capability the Go SDK cannot express, whose scenarios exist and pass in
+//     other languages but which no provider written against this SDK can be
+//     asked. Go has none today. See IsInexpressible.
+//
+// Either way an unverifiable claim is a configuration mistake, not a
+// conformance result.
 func WithCapabilities(capabilities ...Capability) Option {
 	return func(c *config) {
 		c.Capabilities = capabilities
@@ -387,7 +395,8 @@ func (c *config) validateProviderSource() []error {
 }
 
 // capabilities returns the declared capability list, defaulting to everything
-// declarable — AllCapabilities, which omits the reserved capabilities.
+// declarable — AllCapabilities, which omits the reserved capabilities and any
+// the Go SDK cannot express.
 func (c *config) capabilities() []Capability {
 	if !c.capabilitiesDeclared {
 		return AllCapabilities()
