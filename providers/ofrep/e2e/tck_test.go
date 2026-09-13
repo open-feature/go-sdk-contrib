@@ -286,12 +286,29 @@ func TestOFREPConformance(t *testing.T) {
 		// whose response says nothing about state leaves a provider no way to
 		// answer -- but this is not a property OFREP providers lack, and there
 		// is nothing here to record as a deviation.
+		//
+		// tck.StandardReasons IS declared, and for OFREP it is the thinnest
+		// claim of the six: the provider passes the server's reason string
+		// straight into ResolutionDetail, so what the suite verifies here is a
+		// property of flagd's OFREP endpoint plus this provider's refusal to
+		// rewrite it. That is still worth verifying -- a provider that mapped
+		// reasons onto an enumeration and dropped the ones it did not know
+		// would fail exactly here, and python-sdk-contrib#418 is that bug in
+		// another language's OFREP provider.
+		//
+		// Measured over three runs: all six scenarios pass twice, and in the
+		// third two rows of the STATIC outline report reason ERROR. That is the
+		// launchpad race the README describes -- the same FLAG_NOT_FOUND every
+		// other flapping failure is, showing up in the reason field instead of
+		// the value -- and not a vocabulary disagreement. Judge this capability
+		// on whether its scenarios fail consistently.
 		tck.WithCapabilities(
 			tck.Object,
 			tck.NumericCoercion,
 			tck.Variants,
 			tck.Targeting,
 			tck.DisabledFlags,
+			tck.StandardReasons,
 		),
 
 		// The provider has no initialisation to wait for, so this bounds the
