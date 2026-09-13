@@ -224,11 +224,6 @@ func (s *Service) Boolean(ctx context.Context, environmentKey, namespaceKey, fla
 
 	ec := convertMapInterface(evalCtx)
 
-	targetingKey := ec[of.TargetingKey]
-	if targetingKey == "" {
-		return nil, of.NewTargetingKeyMissingResolutionError("targetingKey is missing")
-	}
-
 	conn, err := s.instance()
 	if err != nil {
 		return nil, err
@@ -237,7 +232,7 @@ func (s *Service) Boolean(ctx context.Context, environmentKey, namespaceKey, fla
 		EnvironmentKey: environmentKey,
 		NamespaceKey:   namespaceKey,
 		FlagKey:        flagKey,
-		EntityId:       targetingKey,
+		EntityId:       ec[of.TargetingKey],
 		RequestId:      ec[requestID],
 		Context:        ec,
 	}
@@ -257,11 +252,6 @@ func (s *Service) Variant(ctx context.Context, environmentKey, namespaceKey, fla
 
 	ec := convertMapInterface(evalCtx)
 
-	targetingKey := ec[of.TargetingKey]
-	if targetingKey == "" {
-		return nil, of.NewTargetingKeyMissingResolutionError("targetingKey is missing")
-	}
-
 	conn, err := s.instance()
 	if err != nil {
 		return nil, err
@@ -270,7 +260,7 @@ func (s *Service) Variant(ctx context.Context, environmentKey, namespaceKey, fla
 		EnvironmentKey: environmentKey,
 		NamespaceKey:   namespaceKey,
 		FlagKey:        flagKey,
-		EntityId:       targetingKey,
+		EntityId:       ec[of.TargetingKey],
 		RequestId:      ec[requestID],
 		Context:        ec,
 	}
@@ -320,6 +310,9 @@ func gRPCToOpenFeatureError(err error) of.ResolutionError {
 	case codes.NotFound:
 		return of.NewFlagNotFoundResolutionError(s.Message())
 	case codes.InvalidArgument:
+		if strings.Contains(s.Message(), "flag type") && strings.Contains(s.Message(), "invalid") {
+			return of.NewTypeMismatchResolutionError(s.Message())
+		}
 		return of.NewInvalidContextResolutionError(s.Message())
 	case codes.Unavailable:
 		return of.NewProviderNotReadyResolutionError(s.Message())

@@ -31,8 +31,9 @@ func TestBooleanEvaluation(t *testing.T) {
 			flagKey:      "boolean-false",
 			defaultValue: true,
 			mockRespEvaluation: &evaluation.BooleanEvaluationResponse{
-				Enabled: false,
-				Reason:  evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
+				Enabled:     false,
+				Reason:      evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
+				SegmentKeys: []string{"segment-a"},
 			},
 			expected: of.BoolResolutionDetail{Value: false, ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.TargetingMatchReason}},
 		},
@@ -80,6 +81,7 @@ func TestStringEvaluation(t *testing.T) {
 			defaultValue: "false",
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "true",
 			},
 			expected: of.StringResolutionDetail{Value: "true", ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.TargetingMatchReason}},
@@ -126,9 +128,10 @@ func TestStringEvaluation(t *testing.T) {
 
 			defaultValue: "default",
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
-				Match: false,
+				Match:      false,
+				VariantKey: "default",
 			},
-			expected: of.StringResolutionDetail{Value: "default", ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.DefaultReason}},
+			expected: of.StringResolutionDetail{Value: "default", ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.StaticReason}},
 		},
 		{
 			name:    "match",
@@ -137,6 +140,7 @@ func TestStringEvaluation(t *testing.T) {
 			defaultValue: "default",
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "abc",
 			},
 			expected: of.StringResolutionDetail{
@@ -152,6 +156,7 @@ func TestStringEvaluation(t *testing.T) {
 			defaultValue: "default",
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "abc",
 			},
 			expected: of.StringResolutionDetail{
@@ -173,7 +178,7 @@ func TestStringEvaluation(t *testing.T) {
 			expected: of.StringResolutionDetail{
 				Value: "abc",
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
+					Reason: of.StaticReason,
 				},
 			},
 		},
@@ -209,6 +214,7 @@ func TestFloatEvaluation(t *testing.T) {
 			defaultValue: 1.0,
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "1.0",
 			},
 			expected: of.FloatResolutionDetail{Value: 1.0, ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.TargetingMatchReason}},
@@ -273,9 +279,10 @@ func TestFloatEvaluation(t *testing.T) {
 
 			defaultValue: 1.0,
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
-				Match: false,
+				Match:      false,
+				VariantKey: "1.0",
 			},
-			expected: of.FloatResolutionDetail{Value: 1.0, ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.DefaultReason}},
+			expected: of.FloatResolutionDetail{Value: 1.0, ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.StaticReason}},
 		},
 		{
 			name:    "match",
@@ -284,6 +291,7 @@ func TestFloatEvaluation(t *testing.T) {
 			defaultValue: 1.0,
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "2.0",
 			},
 			expected: of.FloatResolutionDetail{
@@ -306,7 +314,7 @@ func TestFloatEvaluation(t *testing.T) {
 			expected: of.FloatResolutionDetail{
 				Value: 2.0,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
+					Reason: of.StaticReason,
 				},
 			},
 		},
@@ -341,6 +349,7 @@ func TestIntEvaluation(t *testing.T) {
 			defaultValue: 1,
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "1",
 			},
 			expected: of.IntResolutionDetail{Value: 1, ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.TargetingMatchReason}},
@@ -405,9 +414,10 @@ func TestIntEvaluation(t *testing.T) {
 
 			defaultValue: 1,
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
-				Match: false,
+				Match:      false,
+				VariantKey: "1",
 			},
-			expected: of.IntResolutionDetail{Value: 1, ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.DefaultReason}},
+			expected: of.IntResolutionDetail{Value: 1, ProviderResolutionDetail: of.ProviderResolutionDetail{Reason: of.StaticReason}},
 		},
 		{
 			name:    "match",
@@ -416,6 +426,7 @@ func TestIntEvaluation(t *testing.T) {
 			defaultValue: 1,
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "2",
 			},
 			expected: of.IntResolutionDetail{
@@ -431,6 +442,7 @@ func TestIntEvaluation(t *testing.T) {
 			defaultValue: 1,
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey: "2",
 			},
 			expected: of.IntResolutionDetail{
@@ -452,7 +464,7 @@ func TestIntEvaluation(t *testing.T) {
 			expected: of.IntResolutionDetail{
 				Value: 2,
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
+					Reason: of.StaticReason,
 				},
 			},
 		},
@@ -497,6 +509,7 @@ func TestObjectEvaluation(t *testing.T) {
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:             true,
+				Reason:            evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantAttachment: attachmentJSON,
 			},
 			expected: of.InterfaceResolutionDetail{
@@ -604,6 +617,7 @@ func TestObjectEvaluation(t *testing.T) {
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:             true,
+				Reason:            evaluation.EvaluationReason_MATCH_EVALUATION_REASON,
 				VariantKey:        "2",
 				VariantAttachment: "{\"foo\": \"bar\"}",
 			},
@@ -612,7 +626,8 @@ func TestObjectEvaluation(t *testing.T) {
 					"foo": "bar",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.TargetingMatchReason,
+					Reason:  of.TargetingMatchReason,
+					Variant: "2",
 				},
 			},
 		},
@@ -625,6 +640,7 @@ func TestObjectEvaluation(t *testing.T) {
 			},
 			mockRespEvaluation: &evaluation.VariantEvaluationResponse{
 				Match:      true,
+				Reason:     evaluation.EvaluationReason_DEFAULT_EVALUATION_REASON,
 				VariantKey: "2",
 			},
 			expected: of.InterfaceResolutionDetail{
@@ -632,7 +648,8 @@ func TestObjectEvaluation(t *testing.T) {
 					"baz": "qux",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
+					Reason:  of.StaticReason,
+					Variant: "2",
 				},
 			},
 		},
@@ -654,7 +671,8 @@ func TestObjectEvaluation(t *testing.T) {
 					"foo": "bar",
 				},
 				ProviderResolutionDetail: of.ProviderResolutionDetail{
-					Reason: of.DefaultReason,
+					Reason:  of.StaticReason,
+					Variant: "2",
 				},
 			},
 		},
@@ -678,4 +696,42 @@ func TestWithHTTPClientOption(t *testing.T) {
 	client := &http.Client{}
 	p := NewProvider(WithHTTPClient(client))
 	assert.Equal(t, client, p.config.httpClient)
+}
+
+func TestTransformToInt64(t *testing.T) {
+	tests := []struct {
+		name        string
+		variantKey  string
+		expected    int64
+		expectError bool
+	}{
+		{name: "integer", variantKey: "10", expected: 10},
+		{name: "zero", variantKey: "0", expected: 0},
+		{name: "negative", variantKey: "-3", expected: -3},
+		{name: "integral float coerces without loss", variantKey: "10.0", expected: 10},
+		{name: "fractional float is a mismatch", variantKey: "0.5", expectError: true},
+		{name: "non-numeric is a mismatch", variantKey: "hi", expectError: true},
+		{name: "empty is a mismatch", variantKey: "", expectError: true},
+		{name: "32-bit maximum", variantKey: "2147483647", expected: 2147483647},
+		// 2^53-1 must survive exactly: float64 cannot represent it, so it
+		// has to take the ParseInt path rather than the float fallback.
+		{name: "huge integer stays exact", variantKey: "9007199254740991", expected: 9007199254740991},
+		{name: "out of int64 range is a mismatch", variantKey: "1e30", expectError: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &evaluation.VariantEvaluationResponse{VariantKey: tt.variantKey}
+
+			actual, err := transformToInt64(resp, 1)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Equal(t, int64(1), actual)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
 }
