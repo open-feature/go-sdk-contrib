@@ -25,25 +25,25 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     []Option
-		expected Service
+		expected *Service
 	}{
 		{
 			name: "default",
-			expected: Service{
+			expected: &Service{
 				address: "http://localhost:8080",
 			},
 		},
 		{
 			name: "with host",
 			opts: []Option{WithAddress("foo:9000")},
-			expected: Service{
+			expected: &Service{
 				address: "foo:9000",
 			},
 		},
 		{
 			name: "with certificate path",
 			opts: []Option{WithCertificatePath("foo")},
-			expected: Service{
+			expected: &Service{
 				address:         "http://localhost:8080",
 				certificatePath: "foo",
 			},
@@ -51,7 +51,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "with gRPC dial options",
 			opts: []Option{WithGRPCDialOptions(grpc.WithUserAgent("Flipt/1.0"))},
-			expected: Service{
+			expected: &Service{
 				address: "http://localhost:8080",
 				grpcDialOptions: []grpc.DialOption{
 					grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
@@ -61,7 +61,6 @@ func TestNew(t *testing.T) {
 		},
 	}
 
-	//nolint (copylocks)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := New(tt.opts...)
@@ -174,8 +173,24 @@ func TestEvaluateInvalidContext(t *testing.T) {
 	_, err := s.Variant(t.Context(), t.Name(), "foo-namespace", "foo", nil)
 	assert.EqualError(t, err, of.NewInvalidContextResolutionError("evalCtx is nil").Error())
 
+	// An evaluation context without a targeting key is allowed: Flipt accepts
+	// an empty entity id and resolves the default variant.
+	mockClient := offlipt.NewMockClient(t)
+
+	mockClient.EXPECT().Variant(mock.Anything, &evaluation.EvaluationRequest{
+		FlagKey:        "foo",
+		EnvironmentKey: t.Name(),
+		NamespaceKey:   "foo-namespace",
+		EntityId:       "",
+		Context:        map[string]string{},
+	}).Return(&evaluation.VariantEvaluationResponse{
+		VariantKey: "bar",
+	}, nil)
+
+	s.client = mockClient
+
 	_, err = s.Variant(t.Context(), t.Name(), "foo-namespace", "foo", map[string]any{})
-	assert.EqualError(t, err, of.NewTargetingKeyMissingResolutionError("targetingKey is missing").Error())
+	assert.NoError(t, err)
 }
 
 func TestLoadTLSCredentials(t *testing.T) {
@@ -214,6 +229,11 @@ func TestGRPCToOpenFeatureError(t *testing.T) {
 			name:        "invalid argument",
 			grpcStatus:  status.New(codes.InvalidArgument, "invalid argument"),
 			expectedErr: of.NewInvalidContextResolutionError("invalid argument"),
+		},
+		{
+			name:        "invalid flag type",
+			grpcStatus:  status.New(codes.InvalidArgument, "flag type BOOLEAN_FLAG_TYPE invalid"),
+			expectedErr: of.NewTypeMismatchResolutionError("flag type BOOLEAN_FLAG_TYPE invalid"),
 		},
 		{
 			name:        "not found",
