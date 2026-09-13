@@ -266,7 +266,7 @@ func TestAnExtensionCannotShadowACanonicalScenario(t *testing.T) {
 	}
 
 	// The fixture ran too, as an addition, under its own URI.
-	const shadowName = "Resolve values with reason"
+	const shadowName = "Resolve values"
 	fixture := 0
 	for _, tc := range shadowed.cases {
 		if tc.uri != "extensions/evaluation.feature" {
