@@ -103,17 +103,33 @@ var (
 	// issue to implement it, so the provider is measured against its own
 	// commitment. The summary says so, because a consumer should not read this
 	// as a specification violation.
+	//
+	// It accompanies a capability that IS declared, which is the shape Appendix
+	// F asks for: the scenario runs, it fails, and this entry says the failure
+	// is known and why. This file used to withhold @numeric-coercion and record
+	// this deviation at the same time -- the one combination the appendix
+	// singles out to avoid, because it asserts a defect at something the suite
+	// never put to the provider. See the RPC suite below for the measurement
+	// that settles which of the two shapes is right here.
 	numericCoercionDeviation = tck.TrackedDeviation(
 		tck.NumericCoercion,
 		"https://github.com/open-feature/flagd/issues/1996",
 		"The lossy half of the coercion rule is not enforced: evaluating float-flag (0.5) "+
 			"through GetIntDetails returns 0 with no error code, rather than TYPE_MISMATCH with "+
-			"the code default, so the fractional part is discarded silently. Lossless coercion is "+
-			"permitted and is not the defect. Both resolvers behave identically, which places it "+
-			"in the shared provider layer rather than in either transport. The rule is flagd's "+
-			"own accepted numeric-coercion ADR rather than a specification requirement -- the "+
-			"specification does not define numeric coercion at all (open-feature/spec#430) -- so "+
-			"this is a deviation from a commitment flagd made, not from the provider contract.")
+			"the code default, so the fractional part is discarded silently. The lossless half "+
+			"works and is not the defect: integer-flag (10) requested as a float is widened to 10 "+
+			"with reason STATIC and no error code, which is why the capability is declared rather "+
+			"than withheld -- this provider coerces, and gets one direction wrong. Both resolvers "+
+			"behave identically in both directions, which places it in the shared provider layer "+
+			"rather than in either transport. One further @numeric-coercion scenario fails here "+
+			"for a reason that is NOT the provider's, and is named so that a reader does not count "+
+			"it against flagd: the other lossless scenario asks for integral-float-flag (10.0) as "+
+			"an integer, and that flag is absent from flagd-testbed v3.8.0, so it fails with "+
+			"FLAG_NOT_FOUND (open-feature/flagd-testbed#392). That cost is accepted knowingly "+
+			"rather than used as a reason to withhold the tag. The rule is flagd's own accepted "+
+			"numeric-coercion ADR rather than a specification requirement -- the specification "+
+			"does not define numeric coercion at all (open-feature/spec#430) -- so this is a "+
+			"deviation from a commitment flagd made, not from the provider contract.")
 )
 
 // TestFlagdRPCConformance runs the suite against the RPC resolver.
@@ -187,33 +203,68 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// which is a reason to leave it withheld here, not a reason to copy
 		// them.
 		//
-		// tck.NumericCoercion is NOT declared either, and this one was found
-		// by running the suite rather than by reading the code. Evaluating
-		// float-flag (0.5) through GetIntDetails returns 0 with no error code
-		// at all -- not TYPE_MISMATCH with the code default. The application
-		// sees a plausible value and no indication anything went wrong, which
-		// is the worst failure mode a feature flag has.
+		// tck.NumericCoercion IS declared, and one of its three scenarios
+		// fails. That combination is the point of declaring it: this provider
+		// attempts the coercion and gets one direction wrong, and only a
+		// scenario that runs can say so.
 		//
-		// Both resolvers do it identically, so the defect is in this provider's
-		// shared layer rather than in either transport. The Java flagd provider
-		// does it too -- but the Python one does not, in either resolver: its
-		// RPC path asks flagd for an Int and gets INVALID_ARGUMENT for a
-		// float-valued flag, and its in-process path admits only int for an
-		// integer request. So this is a Go and Java provider issue, not a
-		// flagd-wide one, and the server is not the thing getting it wrong.
+		// Measured over three full runs, both resolvers, identically:
+		//
+		//   - "An integer requested as a float is widened without loss" PASSES.
+		//     integer-flag (10) through GetFloatDetails returns 10 with reason
+		//     STATIC and no error code. So this provider does coerce.
+		//   - "A float flag is not silently narrowed to an integer" FAILS.
+		//     float-flag (0.5) through GetIntDetails returns 0 with no error
+		//     code at all -- not TYPE_MISMATCH with the code default. The
+		//     application sees a plausible value and no indication anything
+		//     went wrong, which is the worst failure mode a feature flag has.
+		//     That is the deviation recorded above.
+		//   - "An integral float requested as an integer is coerced without
+		//     loss" FAILS, and this one is the backend's: integral-float-flag
+		//     is absent from flagd-testbed v3.8.0, so it fails with
+		//     FLAG_NOT_FOUND. Same fixture gap as tck.LargeIntegers below, not
+		//     a second provider defect, and the deviation summary says so.
+		//
+		// This file used to withhold the tag AND record the deviation, which is
+		// the one combination Appendix F's known-deviation guidance singles out
+		// to avoid: a withheld capability plus a deviation asserts that the
+		// provider is broken at something the suite never asked it. The three
+		// skips that produced could not distinguish "does not coerce" from
+		// "coerces, and loses information one way round" -- and the widening
+		// pass above is exactly that distinction. Declaring leaves the lossy
+		// failure visible with the deviation explaining it, which is the shape
+		// to prefer. Java's flagd adoption hit this and switched for the same
+		// reason.
+		//
+		// The fixture failure is the price of declaring, and it is paid rather
+		// than dodged: one red scenario that belongs to flagd-testbed is a
+		// smaller loss than three skips that misdescribe the provider. Worth
+		// noticing that withholding to avoid it would have been the capability
+		// field doing the fixture's work, which is the same error as recording
+		// a deviation against a permitted choice, in the other direction.
+		//
+		// Both resolvers narrow identically, so the defect is in this
+		// provider's shared layer rather than in either transport. The Java
+		// flagd provider does it too. The Python one splits, which is worth
+		// stating precisely because this comment used to claim otherwise: its
+		// in-process resolver refuses 0.5 correctly, and its RPC resolver
+		// narrows it to 0 exactly as this one does. Two resolvers of one
+		// provider disagreeing -- so the server is not the thing getting it
+		// wrong, and no language has it right in both paths.
 		//
 		// flagd's own fix is open-feature/flagd#1996, which implements flagd's
 		// numeric coercion ADR: coercion is permitted when lossless, so
-		// 10.0 -> 10 keeps working, and must return TYPE_MISMATCH when it
-		// would lose information, which 0.5 does.
+		// 10 -> 10.0 keeps working and 10.0 -> 10 becomes testable once the
+		// testbed serves the flag, and it must return TYPE_MISMATCH when
+		// coercion would lose information, which 0.5 does.
 		//
 		// Worth knowing when reading this: the specification does not actually
 		// require that. OpenFeature has one numeric type, of "unspecified type
 		// or size", and differentiating integers from floats is an optional
 		// language idiom -- so this capability is tested against a rule
 		// borrowed from flagd rather than a requirement, and the gap in the
-		// provider contract is open-feature/spec#430. Declare this once
-		// flagd#1996 lands.
+		// provider contract is open-feature/spec#430. That is a reason to read
+		// this deviation as flagd-against-flagd, not a reason to skip it.
 		//
 		// tck.LargeIntegers is NOT declared, and this absence is neither a
 		// choice nor a provider defect: huge-integer-flag is absent from
@@ -312,6 +363,7 @@ func TestFlagdRPCConformance(t *testing.T) {
 			tck.Lifecycle,
 			tck.ConfigurationChange,
 			tck.Object,
+			tck.NumericCoercion,
 			tck.Variants,
 			tck.DisabledFlags,
 			tck.Targeting,
@@ -337,17 +389,20 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		backendPort: inProcessPort,
 		resolver:    flagd.WithInProcessResolver(),
 
-		// Everything except tck.NumericCoercion, tck.LargeIntegers and
-		// tck.Reinitialization. Unlike RPC, the in-process resolver emits
-		// PROVIDER_STALE on connection loss, so it can satisfy the @stale
-		// scenario -- and does: the scenario passes here and would fail on RPC,
-		// which is the difference an application would see if it switched
-		// resolver.
+		// Everything except tck.LargeIntegers and tck.Reinitialization.
+		// Unlike RPC, the in-process resolver emits PROVIDER_STALE on
+		// connection loss, so it can satisfy the @stale scenario -- and does:
+		// the scenario passes here and would fail on RPC, which is the
+		// difference an application would see if it switched resolver.
 		//
-		// It narrows float-flag (0.5) to 0 on an integer request exactly as
-		// the RPC resolver does -- observed, not inferred -- which places that
-		// defect in the shared provider layer. See the RPC suite above, and
-		// the same for tck.LargeIntegers, which the testbed cannot exercise.
+		// tck.NumericCoercion IS declared here too, and the two resolvers agree
+		// in both directions -- observed, not inferred. This one widens
+		// integer-flag (10) to 10.0 correctly and narrows float-flag (0.5) to 0
+		// on an integer request exactly as the RPC resolver does, which places
+		// the defect in the shared provider layer and is why one deviation
+		// covers both suites. See the RPC suite above for why the tag is
+		// declared rather than withheld, and for tck.LargeIntegers, which the
+		// testbed cannot exercise at all.
 		//
 		// tck.Lifecycle holds here for the same reason it does on RPC, and more
 		// visibly: the in-process resolver syncs the whole ruleset before
@@ -368,9 +423,11 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		//
 		// tck.Variants, tck.Targeting, tck.DisabledFlags and tck.StandardReasons
 		// are declared here as well, and both resolvers produce the identical
-		// result: 65 scenarios, 63 passed, 2 failed, and the two failures are
-		// the same pair of large-integer-flag assertions the fixture cannot
-		// serve.
+		// result: 65 scenarios, 61 passed, 4 failed. The four failures are the
+		// same set in both. One is the provider's -- the lossy narrowing the
+		// deviation above records. The other three are the fixture's: two
+		// large-integer-flag assertions and the integral-float-flag coercion
+		// scenario, none of which flagd-testbed v3.8.0 can serve.
 		// Running both mattered rather than being a formality -- in-process
 		// evaluates the JsonLogic rule itself while RPC has flagd evaluate it,
 		// so the @targeting scenarios exercise genuinely different code, and
@@ -385,6 +442,7 @@ func TestFlagdInProcessConformance(t *testing.T) {
 			tck.Stale,
 			tck.ConfigurationChange,
 			tck.Object,
+			tck.NumericCoercion,
 			tck.Variants,
 			tck.DisabledFlags,
 			tck.Targeting,

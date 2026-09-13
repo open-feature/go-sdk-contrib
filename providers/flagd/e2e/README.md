@@ -118,13 +118,38 @@ withholding it would cost nothing in coverage of `MUST`s, so declaring it is a c
 vocabulary rather than a convenience. It composes with `@targeting` and `@disabled-flags`, both
 declared here, so all six of its scenarios run rather than three of them skipping.
 
-Both suites run **65 scenarios: 63 pass and 2 fail.** The two failures are the same pair in both
-resolvers, and neither says anything about the provider: `large-integer-flag` is absent from
-`flagd-testbed`, so "A large integer resolves without loss of precision" fails with
-`FLAG_NOT_FOUND` and the last `@variants` row has no variant to name.
-[open-feature/flagd-testbed#392](https://github.com/open-feature/flagd-testbed/issues/392) adds the
-flag and both go green together. Neither gets a known-deviation entry, because the gap is in the
-fixture and an entry there would attribute it to the provider.
+Both resolvers declare `@numeric-coercion`, and one of its three scenarios fails. That combination
+is deliberate, and it is the only known deviation either suite records. flagd **does** coerce —
+`integer-flag` (10) requested as a float comes back as 10 with reason `STATIC` and no error code, in
+both resolvers — and it gets the other direction wrong: `float-flag` (0.5) requested as an integer
+comes back as **0 with no error code at all**, rather than `TYPE_MISMATCH` with the caller's default,
+so the fractional part is discarded silently. That failure carries a known-deviation entry naming
+[open-feature/flagd#1996](https://github.com/open-feature/flagd/issues/1996), the issue that
+implements flagd's numeric-coercion ADR.
+
+Withholding the tag would turn that failure into three skips, and a skip cannot say which of "does
+not coerce" and "coerces, and loses information one way round" is true — the passing widening
+scenario is exactly that distinction. A withheld capability that *also* carries a deviation is the
+combination
+[Appendix F](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md)
+tells adopters to avoid, because it asserts a defect at something the suite never asked the provider
+to do. Declaring and letting the scenario fail is the shape to prefer; the Java adoption reached the
+same conclusion on the same evidence. This file did it the other way round until pass 7.
+
+The price of declaring is a second failure that is not flagd's: `integral-float-flag` is absent from
+`flagd-testbed` v3.8.0, so the remaining lossless scenario fails with `FLAG_NOT_FOUND`. It is the
+same fixture gap as `large-integer-flag` below, it is named in the deviation summary so a reader is
+not left counting it against the provider, and it is accepted rather than used as a reason to
+withhold.
+
+Both suites run **65 scenarios: 61 pass and 4 fail.** The four failures are the same set in both
+resolvers. **One is the provider's** — the lossy narrowing above. **Three are the fixture's:**
+`large-integer-flag` is absent from `flagd-testbed`, so "A large integer resolves without loss of
+precision" fails with `FLAG_NOT_FOUND` and the last `@variants` row has no variant to name; and
+`integral-float-flag` is absent for the coercion scenario just described.
+[open-feature/flagd-testbed#392](https://github.com/open-feature/flagd-testbed/issues/392) adds both
+flags and all three go green together. None of the three gets its own known-deviation entry, because
+the gap is in the fixture and an entry there would attribute it to the provider.
 
 **Re-run a red result before reading anything into it.** The launchpad's `POST /start` returns
 before flagd's file source has finished loading the regenerated flag file, so any scenario can fail
