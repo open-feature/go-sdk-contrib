@@ -182,30 +182,57 @@ source has populated the store. The OFREP suite documents the race in full.
 effect when it returns, and a suite that sleeps instead of holding it to that promise stops being
 able to detect when it breaks. This belongs in the testbed.
 
-**These two suites are excluded from the default build.** They skip unless `TCK_RUN` is set, and a
-maintainer runs them by hand before merge:
+**These two suites have a step of their own, and it is the one command to run them:**
 
 ```bash
-TCK_RUN=1 go test -tags=e2e -run TestFlagdRPCConformance -timeout=10m ./...
-TCK_RUN=1 go test -tags=e2e -run Conformance -timeout=20m ./...
+make tck                                  # from the repository root
+go test -tags=e2e -run Conformance -timeout=20m ./...    # equivalently, from here
 ```
 
-Why an adoption suite is excluded rather than gating a merge is the same argument in every language,
-and it is settled in Appendix F's
-["Running the suite in CI"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
-rather than restated here. The mechanism is Go's, and it is worth stating exactly because the
-appendix names two mistakes and this file had made the first of them:
+`make tck` is `go test -count=1 -timeout=20m -tags=e2e -run 'Conformance'` over every module in the
+workspace. `make e2e` is the same sweep with `-skip 'Conformance'` in place of `-run`, so these two
+suites do not run there and no pull request starts a Docker stack for them.
 
-- The gate is a **runtime skip inside the test function**, reading `TCK_RUN`. Nothing in the build
-  re-enables it. A build tag would not have worked here — `make e2e` expands to a `go test
-  -tags=e2e` over every module in the workspace, so the tag is applied to everything and both these
-  suites were in fact running, red, on every pull request before the gate existed.
-- Because it is a runtime skip rather than `//go:build e2e && tck`, CI still compiles this file
-  against `tools/tck` under `-tags=e2e`, which is what the appendix asks for: a suite that has
-  quietly stopped building against its own harness is worse than one that runs and fails. Only the
-  container work is skipped, and the skip message names the variable.
-- It is written down here and in the harness's own README, which is the appendix's second mistake
-  avoided.
+Why an adoption suite is excluded rather than gating a merge, and why it gets a step of its own
+rather than a slice of an existing e2e suite, is the same argument in every language and is settled
+in Appendix F's
+["Running the suite in CI"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
+rather than restated here. Its shape, because it is what decides the mechanism below: a red
+`make tck` says *conformance* failed, where the same scenarios inside `make e2e` would only say *a
+test* failed — and these two suites do carry failures by design, four of them today, each covered by
+a declared deviation above. That is correct output from a conformance run and it would be a
+regression in an e2e run.
+
+The mechanism is Go's, and it is worth stating exactly, because the two obvious choices are both
+wrong here and this file had made one of them:
+
+- **Not a build tag.** `//go:build e2e && tck` would take this file out of the build, and the
+  appendix asks for the opposite: the suite must keep *compiling* in the default build even when it
+  does not run, so a signature change in `tools/tck` cannot rot it unnoticed. A test-name filter
+  excludes the **run** and keeps the **build** — `make e2e` and `make tck` both compile this file
+  under `-tags=e2e`. A tag would also not have excluded anything on its own: `make e2e` applies
+  `-tags=e2e` to every module in the workspace, so a tag is not an exclusion in this repository, it
+  is the opposite, and both these suites were in fact running, red, on every pull request before any
+  gate existed.
+- **Not an environment variable.** These suites used to skip unless `TCK_RUN` was set. That is gone:
+  the target does the same job without hiding the exclusion inside a test function, and it is the
+  step the appendix asks for, which an environment variable is not. Keeping both would have left two
+  mechanisms for one exclusion and the next person to touch the pipeline guessing which is
+  load-bearing.
+- **`testing.Short()` is still checked**, and it is not the exclusion. Neither it nor an environment
+  variable is sufficient alone, and the reason is the default each one picks: `-short` defaults the
+  wrong way, since without the flag the suite *runs* and every pipeline would have to remember to opt
+  out, while a variable defaults to off but is invisible from the build — an exclusion nobody can see
+  is the appendix's second mistake. What the short-mode skip is now is the one guard left for a
+  developer who runs `go test -tags=e2e ./providers/flagd/e2e/` by hand, which is a deliberate gap:
+  naming this package is asking for it.
+- **The filter is a naming contract and `conformance_naming_test.go` holds it.** A `-run`/`-skip`
+  split matches names, so a suite renamed without `Conformance` in it would start running under
+  `make e2e` and stop running under `make tck`, silently. That test parses this package and fails
+  unless the tests that reach `tck.Run` are exactly the tests the pattern selects, in both
+  directions. It carries no build tag, so `make test` runs it with neither Docker nor `-tags=e2e`.
+- It is written down here, in the harness's own README and in `CONTRIBUTING.md` next to the two
+  targets it now sits beside, which is the appendix's second mistake avoided.
 
 ## Test Framework Components
 
