@@ -127,6 +127,16 @@ so the fractional part is discarded silently. That failure carries a known-devia
 [open-feature/flagd#1996](https://github.com/open-feature/flagd/issues/1996), the issue that
 implements flagd's numeric-coercion ADR.
 
+**Which way this goes is settled in Appendix F's
+["Rules for declaring"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring)
+rather than decided here**, and the rule is one sentence: declare a capability when at least one
+scenario gating it can actually be put to the provider, and withhold it only when none can — the
+unit of the decision is the *scenario*, not the tag. Both of this suite's answers fall out of it.
+`@numeric-coercion` has three scenarios and this backend can still be asked two of them, so it is
+declared. `@large-integers` has one, and the backend serves no flag for it, so nothing about it can
+be established and it is withheld. What follows is that rule applied to measurements, not a second
+argument for it.
+
 Withholding the tag would turn that failure into three skips, and a skip cannot say which of "does
 not coerce" and "coerces, and loses information one way round" is true — the passing widening
 scenario is exactly that distinction. A withheld capability that *also* carries a deviation is the
@@ -149,7 +159,11 @@ precision" fails with `FLAG_NOT_FOUND` and the last `@variants` row has no varia
 `integral-float-flag` is absent for the coercion scenario just described.
 [open-feature/flagd-testbed#392](https://github.com/open-feature/flagd-testbed/issues/392) adds both
 flags and all three go green together. None of the three gets its own known-deviation entry, because
-the gap is in the fixture and an entry there would attribute it to the provider.
+the gap is in the fixture and an entry there would attribute it to the provider — which is the first
+of the two consequences the appendix states alongside the rule above. The second is why
+`@large-integers` is withheld *with* that issue named: a capability withheld for a backend gap is
+temporary in a way one withheld by choice is not, and a withholding with no note saying why outlives
+its reason.
 
 **Re-run a red result before reading anything into it.** The launchpad's `POST /start` returns
 before flagd's file source has finished loading the regenerated flag file, so any scenario can fail
