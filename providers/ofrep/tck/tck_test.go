@@ -1,6 +1,6 @@
-//go:build e2e
+//go:build tck
 
-package e2e
+package tck
 
 import (
 	"context"
@@ -75,7 +75,7 @@ const (
 	// Deliberately not the testbed submodule's own compose file -- see the
 	// comment at the top of it for why -- which is also why this suite no
 	// longer needs the submodule checked out.
-	composeFile = "testdata/tck/docker-compose.yaml"
+	composeFile = "testdata/docker-compose.yaml"
 
 	// ofrepPort is the container-internal port flagd serves OFREP on, and the
 	// only port the provider connects to. The launchpad's control port is
@@ -86,15 +86,23 @@ const (
 // TestOFREPConformance runs the suite against the OFREP provider pointed at
 // flagd's OFREP endpoint.
 //
-// The name is load-bearing: `make tck` runs every test matching "Conformance"
-// and `make e2e` skips exactly those, which is what keeps a Docker stack out of
-// every pull request while leaving this file compiled -- and typechecked
-// against tools/tck -- in both. There is no environment variable and no second
-// build tag; conformance_naming_test.go is what stops a rename from quietly
-// swapping which of the two targets this runs in.
+// The name is not load-bearing, and nothing asserts it. Two other things keep a
+// Docker stack out of every pull request, doing two different jobs:
 //
-// The short-mode skip below is not that exclusion. It is the one guard left for
-// someone who names this package directly, and it stays for that.
+//   - The directory. This file is in providers/ofrep/tck, `make tck` runs that
+//     module and `make e2e` runs the others -- and then builds this one under
+//     -tags=tck with an empty -run pattern, so it stays compiled, and
+//     typechecked against tools/tck, without being executed.
+//   - The build tag above. It selects nothing between those two targets; it
+//     keeps this file out of every invocation that asks for no tags at all,
+//     which is what `make test` and a bare `go test ./...` do.
+//
+// There is no environment variable any more, and the tag is not a second one of
+// those: it is visible in the file rather than hidden in a test function.
+//
+// The short-mode skip below is not the exclusion either. It is the one guard
+// left for someone who names this package directly and asks for the tag, and it
+// stays for that.
 func TestOFREPConformance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping e2e tests in short mode")

@@ -1,4 +1,4 @@
-module github.com/open-feature/go-sdk-contrib/providers/ofrep/e2e
+module github.com/open-feature/go-sdk-contrib/providers/ofrep/tck
 
 go 1.25.9
 
