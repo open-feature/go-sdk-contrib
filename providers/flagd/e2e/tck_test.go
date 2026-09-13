@@ -230,6 +230,14 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// entry on purpose, because the gap is in the fixture and an entry
 		// there would attribute it to the provider.
 		//
+		// Worth separating from the refusal the suite itself performs, now that
+		// there is one: tck.LargeIntegers is inexpressible in Java, where the
+		// integer accessor is 32 bits, and a Java suite is refused the
+		// declaration outright. Nothing like that applies here -- Go can ask
+		// the question and this provider would answer it. The tag is withheld
+		// because the backend has no flag to ask about, which is a third thing
+		// again, and the one a reader of this report should take it as.
+		//
 		// tck.Variants IS declared, on the evidence of the run rather than on
 		// the reasoning that flagd obviously has variants. Seven of the eight
 		// rows pass in both resolvers: the variant name survives the trip from
