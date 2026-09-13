@@ -592,6 +592,21 @@ does not: a Go module is distributed as a zip of the VCS tree, in which a submod
 gitlink, so an embed from a submodule compiles in this repository and arrives empty for anyone
 running `go get`.
 
+**The consequence worth stating on its own is that the pin cannot silently go stale: the assets are
+source here, so a rebase moves `go.mod` and `go.sum` the way it moves any other line and leaves no
+checked-out copy behind to disagree with them.** There is no working tree of the Gherkin to update,
+and nothing to remember to run after a rebase. The version named in `go.mod` is resolved from a
+per-version, read-only module cache and verified against `go.sum` before a single scenario is
+collected, so the ways to get this wrong are all loud: moving the pin without its hashes is
+`missing go.sum entry for module providing package ...`, and a hash that does not match the bytes
+is `SECURITY ERROR ... checksum mismatch`. A suite that runs against the previous pin's assets and
+reports a result is not a state the toolchain can be in — short of a `replace` directive, which is
+a line an adopter has to write in `go.mod` and can be read there. The hazard is not hypothetical
+and the contrast is one directory away: the four non-TCK flagd suites in `providers/flagd/e2e` read
+their Gherkin from `../flagd-testbed/gherkin`, a submodule working tree that a rebase moves the
+gitlink of and does not check out, so the files those suites parse can lag what the commit says
+they are with nothing failing.
+
 Changing a scenario, a flag or a control endpoint means changing it in `open-feature/spec` first and
 then moving the pin here, by tag or by commit:
 
