@@ -84,6 +84,17 @@ methods and `Hooks`; it implements neither `openfeature.EventHandler` nor
 | `@unavailable` | no | No `Init` to fail. The SDK reports `READY` unconditionally for a provider with no `StateHandler`, so an unreachable backend never produces the `ERROR` state the scenario asserts. |
 | `@large-integers` | no | Not a provider property: `huge-integer-flag` is absent from `flagd-testbed`, so the capability cannot be exercised against this backend at all. See open-feature/flagd-testbed#392. |
 
+The two rows that turn on a *backend* gap rather than on a provider property — `@numeric-coercion`
+declared, `@large-integers` withheld — are decided by Appendix F's
+["Rules for declaring"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring)
+and not argued out here: declare a capability when at least one scenario gating it can actually be
+put to the provider, withhold it only when none can, because the unit of the decision is the
+*scenario* rather than the tag. `@numeric-coercion` has three scenarios and `flagd-testbed` can
+answer two of them; `@large-integers` has one and the testbed serves no flag for it. The appendix's
+two consequences apply as written: neither fixture failure gets a known-deviation entry, and the
+withholding names open-feature/flagd-testbed#392 so that it is revisited when the backend gains the
+flag instead of outliving its reason.
+
 `@events` gates `events.feature` and `@lifecycle` gates `lifecycle.feature`, so withholding both,
 plus `@large-integers`, skips 9 of the 65 canonical scenarios. The remaining **56 run** — the
 evaluation, reason and error-code matrices, which are the part that catches cross-language
