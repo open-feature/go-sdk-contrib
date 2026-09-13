@@ -282,6 +282,23 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// The flag has been in flagd-testbed since flagd-testbed#103, released
 		// in v0.5.1 in February 2024, so this needs no image bump -- unlike
 		// tck.LargeIntegers above, which is waiting on one.
+		//
+		// tck.StandardReasons IS declared, and it is the one capability here
+		// whose scenarios were all new in spec c342461a. flagd reports STATIC
+		// for a rule-less flag, TARGETING_MATCH for a matching rule, DEFAULT
+		// for a rule that exists and did not match, DISABLED for a disabled
+		// flag and ERROR for a failed evaluation -- which is Appendix F's
+		// mapping exactly. Measured rather than read off the source: all nine
+		// executed rows of reason.feature pass in both resolvers.
+		//
+		// It composes with tck.Targeting and tck.DisabledFlags, both declared
+		// above, so all six of its scenarios run here; a suite declaring this
+		// alone would skip the two @targeting rows and the @disabled-flags one
+		// with their reason. Withholding it would cost nothing in coverage of
+		// MUSTs -- values, variants and error codes are asserted elsewhere --
+		// so declaring it is a claim rather than a convenience: flagd uses the
+		// standard vocabulary with the standard meanings, and reason.feature
+		// is what checks that.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
@@ -290,6 +307,7 @@ func TestFlagdRPCConformance(t *testing.T) {
 			tck.Variants,
 			tck.DisabledFlags,
 			tck.Targeting,
+			tck.StandardReasons,
 			tck.UnavailableInit,
 		},
 
@@ -340,10 +358,11 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		// A skip that says "not offered" is more honest than a pass that says
 		// nothing.
 		//
-		// tck.Variants, tck.Targeting and tck.DisabledFlags are declared here
-		// as well, and both resolvers produce the identical result: 56
-		// scenarios, 54 passed, 2 failed, and the two failures are the same
-		// pair of large-integer-flag assertions the fixture cannot serve.
+		// tck.Variants, tck.Targeting, tck.DisabledFlags and tck.StandardReasons
+		// are declared here as well, and both resolvers produce the identical
+		// result: 65 scenarios, 63 passed, 2 failed, and the two failures are
+		// the same pair of large-integer-flag assertions the fixture cannot
+		// serve.
 		// Running both mattered rather than being a formality -- in-process
 		// evaluates the JsonLogic rule itself while RPC has flagd evaluate it,
 		// so the @targeting scenarios exercise genuinely different code, and
@@ -361,6 +380,7 @@ func TestFlagdInProcessConformance(t *testing.T) {
 			tck.Variants,
 			tck.DisabledFlags,
 			tck.Targeting,
+			tck.StandardReasons,
 			tck.UnavailableInit,
 		},
 
