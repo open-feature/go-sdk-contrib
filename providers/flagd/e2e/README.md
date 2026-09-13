@@ -109,7 +109,16 @@ variant and a zero value, and the provider recognises that pair and keeps the ca
 (`isDefaultOrDisabledFallback` in `pkg/service/rpc/service.go`). The in-process resolver reads the
 state out of the ruleset it synced and arrives at the same answer. All four rows pass in both.
 
-Both suites run **56 scenarios: 54 pass and 2 fail.** The two failures are the same pair in both
+Both resolvers also declare `@standard-reasons`, which is new in spec `c342461a` and is the one
+capability here whose scenarios did not exist before. flagd reports `STATIC` for a rule-less flag,
+`TARGETING_MATCH` for a matching rule, `DEFAULT` for a rule that exists and did not match,
+`DISABLED` for a disabled flag and `ERROR` for a failed evaluation — Appendix F's mapping exactly.
+All nine executed rows of `reason.feature` pass in both resolvers, which is why it is declared;
+withholding it would cost nothing in coverage of `MUST`s, so declaring it is a claim about the
+vocabulary rather than a convenience. It composes with `@targeting` and `@disabled-flags`, both
+declared here, so all six of its scenarios run rather than three of them skipping.
+
+Both suites run **65 scenarios: 63 pass and 2 fail.** The two failures are the same pair in both
 resolvers, and neither says anything about the provider: `large-integer-flag` is absent from
 `flagd-testbed`, so "A large integer resolves without loss of precision" fails with
 `FLAG_NOT_FOUND` and the last `@variants` row has no variant to name.
