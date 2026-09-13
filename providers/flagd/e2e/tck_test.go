@@ -208,6 +208,15 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// attempts the coercion and gets one direction wrong, and only a
 		// scenario that runs can say so.
 		//
+		// The rule that decides it is Appendix F's first rule for declaring,
+		// and it is cited rather than re-derived here: declare a capability
+		// when at least one scenario gating it can actually be put to the
+		// provider, withhold it only when none can -- the unit is the scenario,
+		// not the tag. This tag has three scenarios and this backend can be
+		// asked two of them, so it is declared; tck.LargeIntegers below has one
+		// and the backend serves no flag for it, so it is withheld. One rule,
+		// both answers. What follows is that rule applied to measurements.
+		//
 		// Measured over three full runs, both resolvers, identically:
 		//
 		//   - "An integer requested as a float is widened without loss" PASSES.
@@ -280,6 +289,13 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// failures go away together once it lands. It gets no knownDeviations
 		// entry on purpose, because the gap is in the fixture and an entry
 		// there would attribute it to the provider.
+		//
+		// Both of those last two sentences are the consequences Appendix F
+		// states alongside the rule cited above, rather than judgements made
+		// here: a scenario failing for a missing fixture is not a provider
+		// defect and must not be recorded as one, and a capability withheld for
+		// a backend gap is temporary in a way one withheld by choice is not, so
+		// the issue is named or the withholding outlives its reason.
 		//
 		// Worth separating from the refusal the suite itself performs, now that
 		// there is one: tck.LargeIntegers is inexpressible in Java, where the
