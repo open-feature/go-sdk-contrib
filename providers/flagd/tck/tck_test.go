@@ -1,6 +1,6 @@
-//go:build e2e
+//go:build tck
 
-package e2e
+package tck
 
 import (
 	"context"
@@ -34,9 +34,14 @@ import (
 // two named ports by string; all of that is now the harness's, and every future
 // adopter gets it without writing it.
 //
-// The existing e2e suites in this package are untouched, and so is
-// flagd-testbed. The TCK drives the testbed's launchpad through the
-// standardised control API, which the launchpad already implements.
+// The provider's e2e suites are untouched and stay where they are, in
+// providers/flagd/e2e — a sibling module, not a parent. They test flagd against
+// flagd's own harness and are expected green; this suite tests the provider
+// against the OpenFeature provider contract and fails scenarios by design
+// wherever a deviation below is declared, so filing it under theirs would put
+// two different meanings of red on one signal. flagd-testbed is untouched too:
+// the TCK drives its launchpad through the standardised control API, which the
+// launchpad already implements.
 
 const (
 	// composeFile describes the backend stack. Resolved relative to this
@@ -44,7 +49,7 @@ const (
 	//
 	// Deliberately not the testbed submodule's own compose file — see the
 	// comment at the top of it for why.
-	composeFile = "testdata/tck/docker-compose.yaml"
+	composeFile = "testdata/docker-compose.yaml"
 
 	// rpcPort and inProcessPort are the container-internal ports the two
 	// resolvers connect to. The launchpad's control port is exposed by the
@@ -493,16 +498,24 @@ type conformanceSuite struct {
 	gracePeriod     int
 }
 
-// runConformance is where both suites below come, and the name of the test that
-// calls it is load-bearing: `make tck` runs every test matching "Conformance"
-// and `make e2e` skips exactly those, so this is what keeps a Docker stack out
-// of every pull request while leaving the file compiled — and typechecked
-// against tools/tck — in both. There is no environment variable and no second
-// build tag; conformance_naming_test.go is what stops a rename from quietly
-// swapping which of the two targets these run in.
+// runConformance is where both suites below come, and what keeps a Docker stack
+// out of every pull request is no longer anything about what they are called.
+// Two things hold it, doing two different jobs:
 //
-// The short-mode skip below is not that exclusion. It is the one guard left for
-// someone who names this package directly, and it stays for that.
+//   - The directory. This file is in providers/flagd/tck, `make tck` runs that
+//     module and `make e2e` runs the others — and then builds this one under
+//     -tags=tck with an empty -run pattern, so it stays compiled, and
+//     typechecked against tools/tck, without being executed.
+//   - The build tag above. It selects nothing between those two targets; it
+//     keeps this file out of every invocation that asks for no tags at all,
+//     which is what `make test` and a bare `go test ./...` do.
+//
+// There is no environment variable any more, and the tag is not a second one of
+// those: it is visible in the file rather than hidden in a test function.
+//
+// The short-mode skip below is not the exclusion either. It is the one guard
+// left for someone who names this package directly and asks for the tag, and it
+// stays for that.
 func runConformance(t *testing.T, suite conformanceSuite) {
 	if testing.Short() {
 		t.Skip("skipping e2e tests in short mode")
