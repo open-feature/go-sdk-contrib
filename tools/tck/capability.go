@@ -23,8 +23,12 @@ import (
 //
 // Scenarios with no capability tag are mandatory and always run.
 //
-// One capability is reserved: it is part of the vocabulary but no scenario
-// carries its tag, so it must not be declared. See IsReserved.
+// Two kinds of capability cannot be declared, and the suite refuses both rather
+// than leaving them to adopters. One capability is reserved: it is part of the
+// vocabulary but no scenario carries its tag. See IsReserved. A capability the
+// language's SDK cannot express is refused separately and for a different
+// reason -- its scenarios exist and pass elsewhere, but no provider here can be
+// asked. Go has none of those; see IsInexpressible.
 type Capability string
 
 const (
@@ -179,14 +183,24 @@ const (
 	//
 	// Accessor width is a separate property, of the SDK rather than of the
 	// provider, with its own capability: see LargeIntegers.
+	//
+	// Whether the question can be asked at all is a property of the language:
+	// JavaScript has a single numeric type, so "this float, as an integer?" is
+	// not expressible there and its suites refuse the declaration. Go has two
+	// accessors over int64 and float64, which is why it is declarable here --
+	// measured by TestTheIntegerAndFloatAccessorsAreDistinctTypes rather than
+	// asserted. See inexpressibleCapabilities.
 	NumericCoercion Capability = "@numeric-coercion"
 
 	// LargeIntegers means the provider resolves integers up to 2^53-1 exactly.
 	//
 	// Whether such a value can be asked for at all is a property of the
 	// language's SDK rather than of the provider: Java's integer accessor is a
-	// 32-bit Integer and has no room for it, so a provider there leaves this
-	// undeclared. Go's ResolveIntValue is int64, so every Go provider can ask;
+	// 32-bit Integer and has no room for it, so a provider there cannot declare
+	// this and its suite refuses the declaration rather than leaving the fact to
+	// adopters -- see inexpressibleCapabilities. Go's ResolveIntValue is int64,
+	// measured by TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger rather
+	// than assumed, so every Go provider can ask;
 	// what it declares here is that the value survives the trip, which anything
 	// routed through a 32-bit integer, or through a float and back with
 	// rounding, does not. Nothing above 2^53-1 is asked for, JavaScript being
@@ -358,6 +372,72 @@ var reservedCapabilities = []Capability{
 	Caching,
 }
 
+// inexpressibleCapabilities names every capability whose question this
+// language's SDK cannot put to a provider, mapped to the property of the SDK
+// that prevents it.
+//
+// **It is empty, and that is a measurement rather than an assumption.** Go can
+// express both of the capabilities that are inexpressible somewhere else, and
+// each is checked by a test rather than argued from the SDK's source:
+//
+//   - @large-integers, which is inexpressible in Java because its integer
+//     accessor is a 32-bit Integer with no room for 2^53-1. Go's is int64 --
+//     see TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger, and the
+//     scenario runs and passes in all three self-test suites.
+//   - @numeric-coercion, which is inexpressible in JavaScript because the
+//     language has one numeric type, so "a float requested as an integer" is
+//     not a question its API can ask. Go has genuinely distinct accessors --
+//     see TestTheIntegerAndFloatAccessorsAreDistinctTypes -- and the OFREP
+//     provider declares the capability and satisfies all three scenarios.
+//
+// Appendix F requires the refusal below to exist whether or not a language has
+// an instance today, and this map is where a future one goes: adding a line
+// here is the whole change, and the message, the default set, the deviation
+// check and the skip reason all follow from it.
+//
+// A capability listed here is refused for a different reason than a reserved
+// one, and the two must stay distinguishable because they say different things
+// to a reader of a report:
+//
+//	               | reserved                      | inexpressible
+//	why            | no scenario carries the tag   | scenarios exist and pass elsewhere
+//	scope          | every language                | this language only
+//	lifetime       | until the specification adds  | until the SDK changes
+//	               | scenarios                     |
+//	what it says   | nothing about any provider    | nothing about any provider *here*
+//
+// A capability absent from a report has to be readable as either "this provider
+// declined" or "no provider in this language can be asked", because only the
+// first says anything about the provider. Collapsing the two refusals into one
+// predicate or one message destroys that distinction, so they are kept apart
+// deliberately -- see newCapabilitySet and runner.beforeScenario.
+//
+// It is a var rather than a const map so that the tests can install an entry
+// and exercise a path Go itself never takes. That is the point of testing it:
+// an unused refusal is discovered by the first adopter who needs it, and being
+// discovered that way means somebody already published a claim no scenario
+// could have verified.
+var inexpressibleCapabilities = map[Capability]string{}
+
+// IsInexpressible reports whether this language's SDK can put the question this
+// capability is about to a provider at all, returning the property of the SDK
+// that prevents it when it cannot.
+//
+// It is not a judgement about the provider and it is not a reservation. The
+// scenarios exist, they are carried by the canonical Gherkin, and they pass for
+// providers in other languages; what is missing is an API through which any
+// provider here could be asked. Java's integer accessor is a 32-bit Integer, so
+// 2^53-1 cannot be asked for; JavaScript has a single numeric type, so "a float
+// requested as an integer" cannot be expressed. Nothing a provider does changes
+// either.
+//
+// Go has none: the second return is always false. See inexpressibleCapabilities
+// for the evidence and for what to do when that stops being true.
+func (c Capability) IsInexpressible() (string, bool) {
+	reason, inexpressible := inexpressibleCapabilities[c]
+	return reason, inexpressible
+}
+
 // IsReserved reports whether this capability is reserved: part of the
 // vocabulary, carried by no scenario, and therefore not declarable.
 //
@@ -381,7 +461,9 @@ func (c Capability) IsReserved() bool {
 
 // AllCapabilities returns every capability the TCK recognises **except the
 // reserved ones**, which no scenario carries and which therefore must not be
-// declared. It is the default when tck.WithCapabilities is unset.
+// declared, **and the ones the Go SDK cannot express**, which no provider here
+// could satisfy however it is written. It is the default when
+// tck.WithCapabilities is unset.
 //
 // It is a reasonable starting point for a new adoption: declare everything, run
 // the suite, and remove only what your provider genuinely cannot do. Narrowing
@@ -396,10 +478,18 @@ func (c Capability) IsReserved() bool {
 // @caching, not by anyone's decision. A declare-everything shortcut must not
 // hand out tags nothing tests. That report named @targeting and @caching, back
 // when both were reserved; only @caching still is.
+//
+// Inexpressible capabilities are excluded for the same reason and by a separate
+// rule -- see inexpressibleCapabilities. Go has none, so today this returns
+// exactly the non-reserved set; the exclusion is here so that adding one is a
+// single line in one place rather than a fact every adopter has to know.
 func AllCapabilities() []Capability {
 	out := make([]Capability, 0, len(allCapabilities))
 	for _, c := range allCapabilities {
 		if c.IsReserved() {
+			continue
+		}
+		if _, inexpressible := c.IsInexpressible(); inexpressible {
 			continue
 		}
 		out = append(out, c)
@@ -443,7 +533,9 @@ type capabilitySet map[Capability]struct{}
 // a reserved capability in it at all. config.validate calls this, so an adopter
 // still sees the problem reported as a configuration error before any scenario
 // runs; the point of putting it here is that there is no second path to a
-// declaration that could drift from the rule.
+// declaration that could drift from the rule. The inexpressibility check is
+// here for the same reason and says a different thing -- see
+// inexpressibleCapabilities.
 func newCapabilitySet(caps []Capability) (capabilitySet, error) {
 	set := make(capabilitySet, len(caps))
 	for _, c := range caps {
@@ -451,6 +543,16 @@ func newCapabilitySet(caps []Capability) (capabilitySet, error) {
 			return nil, fmt.Errorf(
 				"unknown capability %q: capabilities are the constants declared in this package, one of %s",
 				c, formatCapabilities(AllCapabilities()))
+		}
+		if reason, inexpressible := c.IsInexpressible(); inexpressible {
+			return nil, fmt.Errorf(
+				"capability %q cannot be expressed by the Go SDK and so cannot be declared by any "+
+					"provider written against it: %s. This is not a judgement about your provider "+
+					"and it is not the reserved-capability rule -- the scenarios exist and pass in "+
+					"other languages, and no provider here can be asked, so declaring it would put "+
+					"a claim in a conformance report that no scenario could verify. Remove it; the "+
+					"declarable capabilities are %s",
+				c, reason, formatCapabilities(AllCapabilities()))
 		}
 		if c.IsReserved() {
 			return nil, fmt.Errorf(
