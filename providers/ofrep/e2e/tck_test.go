@@ -215,6 +215,13 @@ func TestOFREPConformance(t *testing.T) {
 		// numeric type, of "unspecified type or size" -- so the capability is
 		// tested against a borrowed rule; see open-feature/spec#430.
 		//
+		// This is also the capability JavaScript cannot express at all: one
+		// numeric type in the language means there is no second accessor to ask
+		// "this float, as an integer?" through, so a JS suite is refused the
+		// declaration rather than left to remember the fact. Go has int64 and
+		// float64 accessors and can ask, which is what makes the declaration
+		// here a claim about this provider rather than about the language.
+		//
 		// The converse — integer-flag requested as a Float — is accepted and
 		// returns 10.0, because ResolveFloat takes any float64
 		// (flags.go:141-155) and that is what a JSON 10 decodes to. That is the
