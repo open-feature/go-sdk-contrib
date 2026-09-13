@@ -23,7 +23,7 @@
 # launchpad writes its combined flag file inside the container when nothing is mounted, and envoy
 # exists for the flagd e2e suites' TLS and permission-denied scenarios. An unset FLAGS_DIR defaults
 # to the compose file's own directory, so using that file would have the launchpad write into the
-# checked-out submodule. The other e2e suites in this package keep using it and are untouched.
+# checked-out submodule. The e2e suites in providers/flagd/e2e keep using it and are untouched.
 #
 # The service is called "backend" because that is the TCK's default and the same name Java's flagd
 # adoption uses, so the two stacks differ in nothing a reader has to reconcile.
