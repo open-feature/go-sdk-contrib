@@ -5,17 +5,28 @@ the [OFREP provider](../) — the same Gherkin scenarios, the same canonical fla
 backend control API that every other language's TCK runs.
 
 ```bash
-make tck                                  # from the repository root
-go test -tags=e2e -run Conformance -timeout=20m ./...    # equivalently, from here
+make tck                                 # from the repository root
+go test -tags=tck -timeout=20m ./...     # equivalently, from here
 ```
 
 Docker is the only prerequisite. There is **no submodule to check out** and no container code in
 `tck_test.go`: the suite owns the stack.
 
+This is a **module of its own**, `providers/ofrep/tck`. It was `providers/ofrep/e2e`, a module that
+held nothing but this suite, and the name said it was a kind of e2e test — which is the conflation a
+separate step exists to undo. An e2e suite tests a provider against its backend's own harness and is
+expected green; this one tests the provider against the OpenFeature provider contract and fails
+scenarios by design wherever a known deviation is declared. It is a module rather than a directory
+under `providers/ofrep` because the provider module requires exactly one thing today, the Go SDK,
+and this suite needs testcontainers, a Compose client and `tools/tck`.
+
 **This suite has a step of its own, and `make tck` is it.** That target is
-`go test -count=1 -timeout=20m -tags=e2e -run 'Conformance'` over every module in the workspace;
-`make e2e` is the same sweep with `-skip 'Conformance'` in place of `-run`, so this suite does not
-run there and no pull request starts a Docker stack for it. Why an adoption suite is excluded rather
+`go test -count=1 -timeout=20m -tags=tck ./...` over the conformance modules, which are the modules
+named `tck` under a component directory — this one and `providers/flagd/tck`. `make e2e` is the same
+sweep over every other module under `-tags=e2e`, followed by these same modules again under
+`-tags=tck` with an empty `-run` pattern, which builds them and runs nothing. So this suite does not
+run on a pull request and no pull request starts a Docker stack for it, while it still compiles on
+every one. Why an adoption suite is excluded rather
 than gating a merge, and why it gets a step of its own rather than a slice of an existing e2e suite,
 is settled in Appendix F's
 ["Running the suite in CI"](https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci)
@@ -23,15 +34,22 @@ rather than restated here — in short, a red `make tck` says *conformance* fail
 scenarios inside `make e2e` would only say *a test* failed, and for a suite that is currently red for
 the reasons below, those are very different claims.
 
-The mechanism is Go's, and the two obvious choices are both wrong here:
+The mechanism is Go's, and the obvious single answers are all wrong on their own. What works is two
+mechanisms doing two jobs — the directory decides which target runs the suite, the build tag keeps
+it out of an untagged build — and neither substitutes for the other:
 
-- **Not a build tag.** `//go:build e2e && tck` would take this file out of the build, and the
-  appendix asks for the opposite: the suite must keep *compiling* in the default build even when it
-  does not run, so a signature change in `tools/tck` cannot rot it unnoticed. A test-name filter
-  excludes the **run** and keeps the **build**. A tag would also not have excluded anything on its
-  own — `make e2e` applies `-tags=e2e` to every module in the workspace, so a tag is not an exclusion
-  in this repository, it is the opposite, and this suite was in fact running, red, on every pull
-  request before any gate existed.
+- **A build tag, `//go:build tck`, and what makes it safe is the target rather than the tag.** The
+  standing objection to a build tag is that it takes `tck_test.go` out of the build, and the appendix
+  asks for the opposite: the suite must keep *compiling* in whatever a pull request builds, even when
+  it does not run, so a signature change in `tools/tck` cannot rot it unnoticed. That objection holds
+  only while nothing in the pipeline builds *with* the tag. `make e2e`'s second command does exactly
+  that — this module under `-tags=tck` with an empty `-run` pattern — excluding the **run** while
+  keeping the **build**. Note what the tag is *not* doing: it is not what keeps this suite out of
+  `make e2e`, because `make e2e` would apply `-tags=tck` as readily as it applies `-tags=e2e`, and
+  this suite was in fact running, red, on every pull request before any gate existed, under a tag.
+  What it is for is the untagged build: without it, `make test` and a bare `go test ./...` here would
+  start a Docker stack. The file carried `//go:build e2e` until it moved out of `providers/ofrep/e2e`,
+  which was right while the module was called that and a leftover the moment it was not.
 - **Not an environment variable.** This suite used to skip unless `TCK_RUN` was set; that is gone,
   because the target does the same job without hiding the exclusion inside a test function, and a
   variable is not the step the appendix asks for.
@@ -39,18 +57,26 @@ The mechanism is Go's, and the two obvious choices are both wrong here:
   sufficient alone: `-short` defaults the wrong way, since without the flag the suite *runs* and
   every pipeline would have to remember to opt out, while a variable defaults to off but is invisible
   from the build — an exclusion nobody can see is the appendix's second mistake. The short-mode skip
-  is now the one guard left for a developer who runs `go test -tags=e2e ./providers/ofrep/e2e/` by
-  hand, which is a deliberate gap: naming this package is asking for it.
-- **The filter is a naming contract and `conformance_naming_test.go` holds it.** A rename that drops
-  `Conformance` would start this suite running under `make e2e` and stop it running under `make tck`,
-  silently. That test parses this package and fails unless the tests that reach `tck.Run` are exactly
-  the tests the pattern selects, in both directions. It carries no build tag, so `make test` runs it
-  with neither Docker nor `-tags=e2e`.
+  is now the one guard left for a developer who runs `go test -tags=tck ./providers/ofrep/tck/` by
+  hand, which is a deliberate gap: naming this package and asking for the tag is asking for it.
+- **Not a test-name filter either, any more.** `make tck` was `-run 'Conformance'` and `make e2e` was
+  `-skip 'Conformance'` while this suite still lived in `providers/ofrep/e2e`. That worked, but it
+  made the *name* of a test load-bearing: a rename dropping `Conformance` would silently start it
+  running under `make e2e` and stop it running under `make tck`, so this package carried a test that
+  parsed it and checked the correspondence in both directions. The directory does that job now, and a
+  file is in it or it is not. `TestOFREPConformance` keeps its name because `-run` and a failure line
+  still read better with it, not because anything selects on it.
+- **`guard_test.go` is what is left of that test, and it holds the half a directory cannot.**
+  Selecting a module says which tests are *offered* to `make tck`; it cannot say that any of them
+  still runs the suite. A conformance module whose tests have stopped calling `tck.Run` leaves
+  `make tck` green by running nothing. The guard carries no build tag — which is the point, since it
+  has to run in the build the suite is absent from — so `make test` runs it with neither Docker nor
+  `-tags=tck`, and it parses `tck_test.go` off disk rather than importing it.
 
 ## Backend
 
 The unmodified `flagd-testbed` image, described by
-[`testdata/tck/docker-compose.yaml`](testdata/tck/docker-compose.yaml). flagd serves the OFREP API
+[`testdata/docker-compose.yaml`](testdata/docker-compose.yaml). flagd serves the OFREP API
 on container port **8016** alongside its own protocols, and the same image serves the launchpad
 control API on **8080**, so the OFREP provider is exercised against a real, conformant OFREP backend
 seeded with the canonical flag set — no new image and no change to the flagd suites.
@@ -76,7 +102,7 @@ The Compose file here is deliberately **not** the testbed submodule's, for the s
 flagd adoption's is not: no `${FLAGS_DIR}` bind mount, no envoy sidecar, and a service called
 `backend`, which is the TCK's default and the name both the flagd adoption here and Java's use. It
 publishes only 8016 and 8080, since nothing here speaks flagd's gRPC protocols. The image tag is
-pinned in this file and in `providers/flagd/e2e/testdata/tck/docker-compose.yaml`; bump both
+pinned in this file and in `providers/flagd/tck/testdata/docker-compose.yaml`; bump both
 together, because a cross-provider disagreement is only evidence if both providers answered the same
 backend.
 
