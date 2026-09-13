@@ -5,7 +5,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -84,28 +83,21 @@ const (
 	ofrepPort = 8016
 )
 
-// runEnv gates this suite out of a default build.
-//
-// `make e2e` runs every module's e2e-tagged tests, so without this the suite
-// would start a Docker stack on every pull request, and a run that is red for
-// the launchpad reset race described above would read as an OFREP provider
-// defect. The reasoning is Appendix F's "Running the suite in CI"; this is
-// where it is enforced rather than merely described.
-//
-// A runtime skip rather than a second build tag on purpose: the adoption stays
-// compiled under -tags=e2e, so CI still typechecks it against tools/tck and a
-// signature change there cannot rot this file unnoticed.
-const runEnv = "TCK_RUN"
-
 // TestOFREPConformance runs the suite against the OFREP provider pointed at
 // flagd's OFREP endpoint.
+//
+// The name is load-bearing: `make tck` runs every test matching "Conformance"
+// and `make e2e` skips exactly those, which is what keeps a Docker stack out of
+// every pull request while leaving this file compiled -- and typechecked
+// against tools/tck -- in both. There is no environment variable and no second
+// build tag; conformance_naming_test.go is what stops a rename from quietly
+// swapping which of the two targets this runs in.
+//
+// The short-mode skip below is not that exclusion. It is the one guard left for
+// someone who names this package directly, and it stays for that.
 func TestOFREPConformance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping e2e tests in short mode")
-	}
-	if os.Getenv(runEnv) == "" {
-		t.Skipf("the provider conformance suite is excluded from the default build: set %s=1 to "+
-			"run it (it needs Docker and takes minutes). See README.md", runEnv)
 	}
 
 	tck.Run(t,
