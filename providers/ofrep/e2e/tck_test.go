@@ -235,14 +235,27 @@ func TestOFREPConformance(t *testing.T) {
 		// One of those two cannot be verified against this backend, and it is
 		// the fixture's fault: flagd-testbed has no integral-float-flag, so the
 		// scenario fails with FLAG_NOT_FOUND no matter what the provider does.
-		// The capability is still declared, because the two scenarios that the
-		// backend CAN answer -- the lossy half, and the widening half through
-		// integer-flag -- both pass, and withholding the tag would skip the
-		// lossy scenario too. That is the one worth keeping: silently narrowing
-		// 0.5 to 0 is the failure mode flagd has and this provider does not.
-		// The failure gets no deviation entry, because the gap is in the
-		// fixture and an entry there would attribute it to the provider.
-		// open-feature/flagd-testbed#392.
+		// The capability is still declared, and the rule that says so is
+		// Appendix F's first rule for declaring rather than a judgement made
+		// here: declare when at least one scenario gating the tag can actually
+		// be put to the provider, withhold only when none can -- the unit is
+		// the scenario, not the tag. Two of the three can be answered by this
+		// backend -- the lossy half, and the widening half through integer-flag
+		// -- and both pass, so withholding to hide one fixture failure would
+		// cost two answers. The lossy one is the answer worth keeping: silently
+		// narrowing 0.5 to 0 is the failure mode flagd has and this provider
+		// does not.
+		//
+		// The failure gets no deviation entry, which is the first of the two
+		// consequences the appendix states with that rule: a scenario failing
+		// because the backend cannot serve its fixture is not a provider defect
+		// and recording it as one would attribute the gap to the provider.
+		// open-feature/flagd-testbed#392, named here so the second consequence
+		// is met too -- an absence owed to a backend gap is temporary, and one
+		// with no note saying why outlives its reason. The same rule decides
+		// @large-integers the other way, and the README's capability table says
+		// so: that tag has one scenario and the testbed serves no flag for it,
+		// so none of it can be put to the provider and it is withheld.
 		//
 		// tck.Variants IS declared. OFREP's evaluation response carries a
 		// variant field and this provider passes it straight into
