@@ -76,6 +76,7 @@ methods and `Hooks`; it implements neither `openfeature.EventHandler` nor
 | `@variants` | yes | OFREP's evaluation response carries `variant`, and the provider passes it into `ResolutionDetail`. Seven of the eight rows pass; the eighth asks `large-integer-flag`, which the testbed does not serve. |
 | `@targeting` | yes | The evaluation context is the OFREP request body, so `targeting-key-flag`'s rule resolves to its `hit` variant for a matching key and `miss` otherwise. All three scenarios pass. |
 | `@disabled-flags` | yes | flagd's OFREP endpoint answers `200` with `{"key":…,"reason":"DISABLED"}` and **no `value` member**, and the provider has an explicit `DISABLED` branch in each typed resolver that returns the caller's default with no error. All four rows pass. See below. |
+| `@standard-reasons` | yes | The provider passes the server's `reason` string straight into `ResolutionDetail`, and flagd's OFREP endpoint sends Appendix F's mapping: `STATIC`, `TARGETING_MATCH`, `DEFAULT`, `DISABLED`, and `ERROR` beside an error code. All six scenarios pass — it composes with `@targeting` and `@disabled-flags`, both declared here, so none of them skips. |
 | `@events` | no | No `EventChannel`; the provider can never publish a provider event. |
 | `@configuration-change` | no | Follows from `@events`. Values do change on the next evaluation — nothing signals that they did. |
 | `@stale` | no | Follows from `@events`. No state handling means no state to transition. |
@@ -84,8 +85,11 @@ methods and `Hooks`; it implements neither `openfeature.EventHandler` nor
 | `@large-integers` | no | Not a provider property: `huge-integer-flag` is absent from `flagd-testbed`, so the capability cannot be exercised against this backend at all. See open-feature/flagd-testbed#392. |
 
 `@events` gates `events.feature` and `@lifecycle` gates `lifecycle.feature`, so withholding both,
-plus `@large-integers`, skips 9 of the 56 canonical scenarios. The remaining **47 run** — the
-evaluation and error-code matrix, which is the part that catches cross-language disagreements.
+plus `@large-integers`, skips 9 of the 65 canonical scenarios. The remaining **56 run** — the
+evaluation, reason and error-code matrices, which are the part that catches cross-language
+disagreements. The count moved from 47 of 56 when spec `c342461a` added `reason.feature`; the nine
+skips are the same nine, because `@standard-reasons` is declared and the two capabilities its
+scenarios compose with are declared too.
 
 **Three failures are the floor, and all three are the backend fixture rather than the provider:**
 `flagd-testbed` serves neither `integral-float-flag` nor `large-integer-flag`, so the two scenarios
@@ -94,12 +98,20 @@ is not there has no variant to name. open-feature/flagd-testbed#392 adds the fla
 green together. None gets a known-deviation entry, because an entry there would attribute a fixture
 gap to the provider.
 
-**Every run has more than three, and the number moves.** Eight consecutive runs against
-`flagd-testbed:v3.8.0` on one machine produced 41, 12, 11, 33, 5, 19, 21 and 40 failures — the last
-three of those from the hand-rolled container wrapper this suite replaced, which is how we know the
-flapping belongs to the backend and not to the harness. Every extra failure is `FLAG_NOT_FOUND`, or
-a stale value, on a flag the testbed demonstrably serves: `curl` the OFREP endpoint directly and
-`boolean-flag` answers `{"value":true,…,"reason":"STATIC","variant":"on"}` every time.
+**Most runs have more than three, and the number moves.** Eleven consecutive runs against
+`flagd-testbed:v3.8.0` on one machine produced 41, 12, 11, 33, 5, 19, 21, 40, 20, 4 and 3 failures
+— the 19, 21 and 40 from the hand-rolled container wrapper this suite replaced, which is how we
+know the flapping belongs to the backend and not to the harness. Every extra failure is
+`FLAG_NOT_FOUND`, or a stale value, on a flag the testbed demonstrably serves: `curl` the OFREP
+endpoint directly and `boolean-flag` answers `{"value":true,…,"reason":"STATIC","variant":"on"}`
+every time.
+
+`reason.feature` is caught by the same race and in the same way, which is worth saying because a
+reason assertion failing looks at first like a vocabulary disagreement. It is not: the 20-failure
+run had two rows of "A flag with no targeting rules resolves statically" fail with reason `ERROR`
+rather than `STATIC`, which is the `FLAG_NOT_FOUND` above wearing the other field's clothes. The
+two quiet runs failed none of them. Judge `@standard-reasons` on whether its scenarios fail
+*consistently*, not on whether a red run contains one.
 
 The cause is in the control API rather than here. `POST /start` — which is what isolates each
 scenario, because the testbed's launchpad answers `404` to `/reset` — stops flagd, regenerates the
