@@ -59,18 +59,18 @@ these — or disabling anything else — breaks those quietly rather than loudly
 
 ## Adopting it
 
-One test function and one Docker Compose file. The TCK owns the whole lifecycle: it starts the stack,
-discovers its dynamically mapped host ports, drives the backend's control API, registers each
-provider with the OpenFeature API under a suite-scoped domain, waits for it to become ready, awaits
-events, resets the backend between scenarios, releases the provider at the end and tears the stack
-down. **If you find yourself writing test infrastructure, that is a defect here rather than
+One test function and one Docker Compose file, in a module of their own. The TCK owns the whole
+lifecycle: it starts the stack, discovers its dynamically mapped host ports, drives the backend's
+control API, registers each provider with the OpenFeature API under a suite-scoped domain, waits for
+it to become ready, awaits events, resets the backend between scenarios, releases the provider at
+the end and tears the stack down. **If you find yourself writing test infrastructure, that is a defect here rather than
 something for you to work around.**
 
 ```go
 func TestMyProviderConformance(t *testing.T) {
 	tck.Run(t,
 		tck.WithName("my-provider"),
-		tck.WithComposeFile("testdata/tck/docker-compose.yaml"),
+		tck.WithComposeFile("testdata/docker-compose.yaml"),
 		tck.WithBackendPorts(8013),
 		tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
 			return myprovider.New(e.Host(), e.Port(8013)), nil
@@ -100,6 +100,32 @@ The canonical feature files and flag set arrive as an ordinary dependency, so **
 module needs no git submodule** — `go get` it and everything the suite runs comes with it. Where
 they come from and how the pin moves is described under [The spec module](#the-spec-module).
 
+### Where it goes
+
+**`providers/<name>/tck`, a module of its own, beside the provider's e2e suite rather than inside
+it.** Both halves of that matter:
+
+- **Beside, not inside.** An e2e suite tests your provider against its backend's own harness and is
+  expected green; this suite tests it against the OpenFeature provider contract and fails scenarios
+  by design wherever the adoption declares a known deviation. Filing the second under the first says
+  it is a kind of e2e test, and a reader who believes that reads a declared deviation as a
+  regression. The directory is also what selects the suite here — `make tck` runs these modules and
+  `make e2e` runs the others — so nothing depends on what the tests inside are called.
+- **A module, not a directory.** A plain directory would fall under the provider's own module and
+  drag testcontainers, a Compose client and this package into the dependency graph of every
+  application that imports the provider. A module of its own also keeps the `replace` directives the
+  suite needs out of a module that is actually released. If the provider already has an e2e module,
+  the same argument applies to that one: the conformance dependencies do not belong in it either.
+
+`go mod init github.com/you/.../providers/<name>/tck` and a `replace` back to the provider is the
+whole of the setup; `make workspace-update` adds it to the workspace.
+
+Give the suite file a **`//go:build tck`** constraint. That is not what selects it — the directory
+is — and it is not what excludes it from `make e2e`, which builds the module under `-tags=tck`
+anyway. Its one job is the untagged build: without it, `make test` and a bare `go test ./...` in
+your module would start a Docker stack. Keep the guard test and any package doc file untagged, so
+they still compile when the suite does not.
+
 ### The Compose contract
 
 An adopter names a Compose file, says which service and ports to expose, and supplies a factory that
@@ -107,7 +133,7 @@ builds a provider from a discovered endpoint. The suite does the rest.
 
 | option | required | default | meaning |
 | --- | --- | --- | --- |
-| `tck.WithComposeFile(path)` | yes | — | the Compose file, resolved relative to the package directory |
+| `tck.WithComposeFile(path)` | yes | — | the Compose file, resolved relative to the package directory — `testdata/docker-compose.yaml` in the layout above |
 | `tck.WithBackendService(name)` | no | `backend` | the Compose service hosting both the control API and the backend |
 | `tck.WithBackendPorts(ports...)` | yes | — | container-internal ports the *provider* connects to. The control port is exposed automatically and must not be listed here |
 | `tck.WithControlPort(port)` | no | `8080` | container-internal port of the control API |
@@ -784,18 +810,25 @@ control API is HTTP, so a recording `httptest.Server` is a complete stand-in for
 answers things a real launchpad cannot be asked for on demand: a `501`, a single `500`, a `/healthz`
 that is unready for exactly three probes.
 
-The **containerised conformance suites are excluded from the default build** — `providers/flagd/e2e`
-and `providers/ofrep/e2e` here, and your own adoption if you follow them. They have a target of their
+The **containerised conformance suites are excluded from the default build** — `providers/flagd/tck`
+and `providers/ofrep/tck` here, and your own adoption if you follow them. They have a target of their
 own, and it is the single documented command:
 
 ```console
 make tck
 ```
 
-It expands to `go test -count=1 -timeout=20m -tags=e2e -run 'Conformance'` over every module in the
-workspace. `make e2e` is the same sweep with `-skip 'Conformance'` in place of `-run`, so the two
-targets are the two halves of one filter: every e2e-tagged test runs in exactly one of them, and the
-conformance suites are the ones that run in `tck`.
+It expands to `go test -count=1 -timeout=20m -tags=tck ./...` over the conformance modules, which
+are the modules named `tck` under a component directory. `make e2e` is the same sweep over the other
+modules under `-tags=e2e`, and then those same conformance modules again under `-tags=tck` with an
+empty `-run` pattern, which builds them and runs nothing. So the two targets are the two halves of
+one partition of the module list, and **the directory is the whole of the selector**: a suite runs
+in the conformance step because of where its files live, not because of what its tests are called.
+
+The `tck` build tag on the adoption's own files does a second, narrower job, and the two are worth
+keeping apart. The **module path** decides which of `make e2e` and `make tck` runs a suite. The
+**tag** decides nothing about that; it keeps the suite out of every invocation that asks for no tags
+at all — `make test`, and a bare `go test ./...` typed inside the module.
 
 **Why the suite gets a step of its own** rather than a slice of `make e2e` is the same argument in
 every language and is settled in ["Running the suite in CI"][appendix-f-ci] in Appendix F, so only
@@ -806,19 +839,21 @@ wherever a known deviation is declared, and that failure is correct output until
 upstream. One signal cannot carry both meanings without somebody eventually silencing the
 informative half.
 
-What is Go-specific is the mechanism, and it is worth stating exactly, because the two obvious
-choices are both wrong here:
+What is Go-specific is the mechanism, and it is worth stating exactly, because the obvious
+single answers are all wrong on their own and the working one is two mechanisms doing two jobs:
 
-- **Not a build tag.** `//go:build e2e && tck` would take the adoption out of the build, and
-  Appendix F asks for the opposite: the suite must keep *compiling* in the default build even when it
-  does not execute, because a conformance suite that has quietly stopped building against its own
-  harness is a worse failure than one that runs and fails. A test-name filter excludes the **run**
-  and keeps the **build** — `make e2e` and `make tck` both compile every module under `-tags=e2e`, so
-  an adoption stays typechecked against this package on every pull request and a signature change
-  here cannot rot one unnoticed. A second tag would also not have excluded anything by itself:
-  `make e2e` applies `-tags=e2e` to every module in the workspace, so a tag is not an exclusion in
-  this repository, it is the opposite. Both adoptions were in fact running, red, on every pull
-  request before any of this existed.
+- **A build tag, `//go:build tck` — and what makes it safe is the target, not the tag.** The
+  standing objection to a build tag is that it takes the suite out of compilation, and Appendix F
+  asks for the opposite: the suite must keep *compiling* in whatever a pull request builds, even when
+  it does not execute, because a conformance suite that has quietly stopped building against its own
+  harness is a worse failure than one that runs and fails. That objection holds only while nothing in
+  the pipeline builds *with* the tag. Something does: `make e2e`'s second command builds the
+  conformance modules under `-tags=tck` with an empty `-run` pattern, excluding the **run** while
+  keeping the **build**. Note also what a tag does *not* do here — it is not the thing that separates
+  the two targets, because `make e2e` applies `-tags=e2e` to every module it touches and would have
+  applied `tck` just as readily. Both adoptions were in fact running, red, on every pull request
+  before any of this existed, under a tag. What the tag *is* for is the untagged build: without it,
+  `make test` and a bare `go test ./...` would start a Docker stack.
 - **Not an environment variable.** The suites used to skip unless `TCK_RUN` was set. That gate is
   gone, because the target does its whole job: it excludes the run without touching the build, it is
   visible in `make -n e2e` rather than hidden inside a test function, and it is the step Appendix F
@@ -833,20 +868,27 @@ choices are both wrong here:
   `testing.Short()` is nevertheless still checked in both adoptions. It is not the exclusion any
   more; it is the one guard that still fires for a developer who names the package directly, and it
   costs a line.
-- **The filter is a naming contract, and a test holds it.** `-run`/`-skip` match test names, so a
-  conformance suite renamed to something without `Conformance` in it would silently start running
-  under `make e2e` and stop running under `make tck` — the same class of mistake as an exclusion
-  something else undoes, in a new form. Each adoption therefore carries a test that parses its own
-  package and fails unless the tests that call `tck.Run` are exactly the tests the filter selects.
-  That test is untagged, so it runs in `make test` and needs neither Docker nor `-tags=e2e`.
+- **Not a test-name filter either, any more.** `make tck` was `-run 'Conformance'` and `make e2e` was
+  `-skip 'Conformance'` until the adoptions moved into modules of their own. That worked, but it made
+  the *name* of a test load-bearing: a suite renamed without the word in it would silently start
+  running under `make e2e` and stop running under `make tck`, so each adoption needed a test that
+  parsed its own package and checked the correspondence in both directions. A directory needs no such
+  guard, because a file is in it or it is not.
+- **What each adoption still carries** is the other half of that guard, and only that half: a test
+  that fails if nothing in the module reaches `tck.Run`, because a conformance module whose tests
+  have stopped running the suite makes `make tck` green by running nothing. It is untagged — which is
+  the point, since it has to run in the build the suite is absent from — so `make test` runs it with
+  neither Docker nor `-tags=tck`, and it reads the tagged file from disk rather than importing it. It
+  no longer asserts anything about names; a rule defending a convention nothing selects on is a rule
+  with no consequence.
 - **It is written down** — here, in `CONTRIBUTING.md` next to `make test` and `make e2e`, and in each
   adoption's own README. No scheduled or path-filtered workflow was added; the three self-tests below
   still run in the default build and are the fast canary.
 
-One gap is left open deliberately: `go test -tags=e2e ./providers/flagd/e2e/` typed by hand still
-runs the suite, because it names the package and asks for exactly that. Only `-short` stands in the
-way. The exclusion is against pipelines running the suite by accident, not against a developer
-running it on purpose.
+One gap is left open deliberately: `go test -tags=tck ./providers/flagd/tck/` typed by hand still
+runs the suite, because it names the package, asks for the tag, and so asks for exactly that. Only
+`-short` stands in the way. The exclusion is against pipelines running the suite by accident, not
+against a developer running it on purpose.
 
 ## Findings
 
@@ -930,7 +972,7 @@ about the provider being reported on.
   It is a constraint on new scenarios and not a defect in any provider, which is why it belongs with
   the scenarios rather than in one language's README.
 
-  What is left for this file is the Go adoption's own position: `providers/flagd/e2e` does not turn
+  What is left for this file is the Go adoption's own position: `providers/flagd/tck` does not turn
   the cache off, so the suite here really does run against a caching provider while asserting
   `STATIC` everywhere, and it passes only because the canonical set respects that constraint. One
   consequence is worth recording because the appendix does not: the configuration-change scenario
