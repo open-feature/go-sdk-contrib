@@ -16,13 +16,24 @@ import (
 // one: a failed scenario is not yet a deviation, and a capability you cannot
 // satisfy is not yet a defect.
 //
-// Distinct from an undeclared capability, which on its own is a choice. A
-// provider that does not declare ConfigurationChange has no streaming transport
-// and is not pretending otherwise; a provider that does not declare
-// NumericCoercion because it narrows 0.5 to 0 with no error code has a bug. Both
-// look identical in the results — scenarios skipped, reason recoverable from the
-// declaration — so the difference has to be stated, or a consumer cannot tell a
-// design decision from a defect.
+// Distinct from an undeclared capability, which on its own is a choice. The
+// clearest illustration is one capability withheld twice for different reasons:
+// a provider with no streaming transport does not declare ConfigurationChange
+// and is not pretending otherwise, while the Go SDK's memprovider does not
+// declare it because it cannot update its flag set at all — which Appendix A of
+// the specification requires an SDK's in-memory provider to support, so that
+// absence is a defect. Both look identical in the results — scenarios skipped,
+// reason recoverable from the declaration — so the difference has to be stated,
+// or a consumer cannot tell a design decision from a defect.
+//
+// Note which example is deliberately not used here. A provider that narrows 0.5
+// to 0 with no error code does not belong on the withholding side at all: it
+// attempts the coercion and gets one direction wrong, so it declares
+// NumericCoercion, lets the lossy scenario fail, and records the deviation
+// against that failure. This comment used to name it as the defect half, which
+// mirrored Appendix F's own @numeric-coercion note; the appendix corrected
+// itself in spec 045950ca because the note taught the withhold-plus-deviate
+// combination the rules below exist to discourage.
 //
 // Declared by the provider author through tck.WithKnownDeviations, which is the
 // only place that knows the difference. The TCK cannot infer it: from the
