@@ -23,7 +23,7 @@
 # adoption here and Java's flagd adoption use, so the stacks differ in nothing a reader has to
 # reconcile.
 #
-# The image is pinned to the same tag as providers/flagd/e2e/testdata/tck/docker-compose.yaml. Bump
+# The image is pinned to the same tag as providers/flagd/tck/testdata/docker-compose.yaml. Bump
 # both together: a cross-provider disagreement is only evidence if both providers answered the same
 # backend. v3.8.0 serves neither large-integer-flag nor integral-float-flag, which is why two
 # scenarios here fail against it -- see open-feature/flagd-testbed#392 and the README.
