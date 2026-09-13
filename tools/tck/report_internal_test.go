@@ -1,6 +1,7 @@
 package tck
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -324,3 +325,54 @@ func parseStream(t *testing.T, data []byte) *parsedStream {
 type errSynthetic struct{}
 
 func (errSynthetic) Error() string { return "resolved to nil, expected an object" }
+
+// TestTheInexpressibleSkipReasonReachesTheReport is the report-side half of the
+// distinction Appendix F requires, and the half a consumer actually reads.
+//
+// A capability-gated skip carries its reason into the Messages stream as the
+// step result's message, so the two refusals have to differ there and not only
+// in the log. "This provider does not declare it" describes a choice; a
+// capability the Go SDK cannot express was never the provider's to choose, and
+// recording the first when the second is true attributes a defect to a provider
+// that has none.
+//
+// Go has no inexpressible capability, so the test installs one. See
+// inexpressibleCapabilities for why the mechanism exists regardless.
+func TestTheInexpressibleSkipReasonReachesTheReport(t *testing.T) {
+	const property = "the integer accessor is 32 bits wide"
+	withInexpressible(t, LargeIntegers, property)
+
+	caps, err := newCapabilitySet([]Capability{Object})
+	if err != nil {
+		t.Fatalf("newCapabilitySet: %v", err)
+	}
+	r := &runner{caps: caps, cfg: config{Name: "gate", Control: stubControl{}}, t: t}
+
+	unaskable := scenarioWithTags("an integer beyond 32 bits", "@large-integers")
+	unaskable.Id = "pickle-unaskable"
+	if _, err := r.beforeScenario(context.Background(), unaskable); err == nil {
+		t.Fatal("the gate let a scenario needing an inexpressible capability run")
+	}
+
+	withheld := scenarioWithTags("an outage is detected", "@stale")
+	withheld.Id = "pickle-withheld"
+	if _, err := r.beforeScenario(context.Background(), withheld); err == nil {
+		t.Fatal("the gate let a scenario needing an undeclared capability run")
+	}
+
+	unaskableReason := r.skipReason(unaskable.Id)
+	withheldReason := r.skipReason(withheld.Id)
+
+	if !strings.Contains(unaskableReason, property) {
+		t.Errorf("the reported reason does not name the property of the SDK: %q", unaskableReason)
+	}
+	if strings.Contains(unaskableReason, "which this provider does not declare") {
+		t.Errorf("the reported reason blames the provider for a property of the SDK: %q", unaskableReason)
+	}
+	if !strings.Contains(withheldReason, "which this provider does not declare") {
+		t.Errorf("an ordinary withheld capability lost its reason: %q", withheldReason)
+	}
+	if strings.Contains(withheldReason, "cannot express") {
+		t.Errorf("a capability the provider withheld was reported as inexpressible: %q", withheldReason)
+	}
+}
