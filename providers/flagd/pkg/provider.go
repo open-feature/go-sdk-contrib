@@ -91,9 +91,9 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		})
 	}
 
-	if provider.providerConfiguration.Resolver == inProcess {
-		provider.hooks = append(provider.hooks, NewSyncContextHook(service.ContextValues))
-	}
+	// Registered for every resolver; services without a sync-context return nil and
+	// the hook becomes a no-op.
+	provider.hooks = append(provider.hooks, NewSyncContextHook(service.ContextValues))
 	provider.service = service
 
 	return provider, nil

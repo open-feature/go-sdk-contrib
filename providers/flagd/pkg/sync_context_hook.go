@@ -2,20 +2,67 @@ package flagd
 
 import (
 	"context"
-	"github.com/open-feature/go-sdk/openfeature"
+
+	of "github.com/open-feature/go-sdk/openfeature"
 )
 
-type ContextEnricher func(map[string]any) *openfeature.EvaluationContext
+// ContextEnricher turns the sync-context flagd sends alongside the flag
+// configuration into an EvaluationContext that is mixed into every evaluation.
+// It is applied once per received sync payload, not once per evaluation.
+// Returning nil disables enrichment.
+type ContextEnricher func(map[string]any) *of.EvaluationContext
 
+// SyncContextHook mixes the enriched sync-context into each evaluation.
+// It mirrors the SyncMetadataHook of the Java reference implementation.
 type SyncContextHook struct {
-	openfeature.UnimplementedHook
-	contextEnricher func() *openfeature.EvaluationContext
+	of.UnimplementedHook
+	contextEnricher func() *of.EvaluationContext
 }
 
-func NewSyncContextHook(contextEnricher func() *openfeature.EvaluationContext) SyncContextHook {
+// NewSyncContextHook returns a hook that pulls the current enriched context from
+// the supplied accessor. The accessor may return nil, e.g. before the provider
+// received its first sync payload or when the resolver has no sync-context at all.
+func NewSyncContextHook(contextEnricher func() *of.EvaluationContext) SyncContextHook {
 	return SyncContextHook{contextEnricher: contextEnricher}
 }
 
-func (hook SyncContextHook) Before(ctx context.Context, hookContext openfeature.HookContext, hookHints openfeature.HookHints) (*openfeature.EvaluationContext, error) {
-	return hook.contextEnricher(), nil
+// Before returns the sync-context merged over the context accumulated by the hooks
+// that ran before this one.
+//
+// Merging is done here deliberately. The go-sdk replaces - rather than merges - the
+// HookContext's evaluation context with each before-hook result, so returning the
+// sync-context on its own would silently drop whatever earlier hooks contributed.
+// The resulting precedence matches the spec and the Java implementation:
+// sync-context > earlier before-hooks > invocation > client > transaction > global.
+func (hook SyncContextHook) Before(
+	_ context.Context, hookContext of.HookContext, _ of.HookHints,
+) (*of.EvaluationContext, error) {
+	enriched := hook.contextEnricher()
+	if enriched == nil {
+		return nil, nil
+	}
+
+	merged := mergeEvaluationContexts(*enriched, hookContext.EvaluationContext())
+
+	return &merged, nil
+}
+
+// mergeEvaluationContexts merges the given contexts, earlier ones taking precedence.
+func mergeEvaluationContexts(contexts ...of.EvaluationContext) of.EvaluationContext {
+	targetingKey := ""
+	attributes := map[string]any{}
+
+	for _, evalCtx := range contexts {
+		if targetingKey == "" {
+			targetingKey = evalCtx.TargetingKey()
+		}
+
+		for key, value := range evalCtx.Attributes() {
+			if _, ok := attributes[key]; !ok {
+				attributes[key] = value
+			}
+		}
+	}
+
+	return of.NewEvaluationContext(targetingKey, attributes)
 }

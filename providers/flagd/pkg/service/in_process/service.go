@@ -122,7 +122,7 @@ type Configuration struct {
 	RetryBackOffMs          int
 	RetryBackOffMaxMs       int
 	FatalStatusCodes        []string
-	ContextEnricher          func(map[string]any) *of.EvaluationContext
+	ContextEnricher         func(map[string]any) *of.EvaluationContext
 	DeadlineMs              int
 }
 

@@ -3,7 +3,6 @@ package process
 import (
 	"context"
 	"fmt"
-	"google.golang.org/protobuf/types/known/structpb"
 	"net"
 	"testing"
 	"time"
@@ -12,6 +11,7 @@ import (
 	v1 "buf.build/gen/go/open-feature/flagd/protocolbuffers/go/flagd/sync/v1"
 	"github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // shared flag for tests
@@ -139,8 +139,12 @@ func TestInProcessProviderEvaluation(t *testing.T) {
 		t.Fatalf("Wrong scope value. Expected %s, but got %s", scope, detail.FlagMetadata["scope"])
 	}
 
-	if inProcessService.ContextValues() == nil {
+	contextValues := inProcessService.ContextValues()
+	if contextValues == nil {
 		t.Fatal("Expected context_values to be present, but got none")
+	}
+	if contextValues.Attributes()["context"] != "set" {
+		t.Fatalf("Wrong context_values. Expected context=set, but got %v", contextValues.Attributes())
 	}
 }
 

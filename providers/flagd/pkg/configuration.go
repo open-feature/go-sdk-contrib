@@ -3,7 +3,6 @@ package flagd
 import (
 	"errors"
 	"fmt"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"os"
 	"strconv"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
+	of "github.com/open-feature/go-sdk/openfeature"
 	"google.golang.org/grpc"
 )
 
@@ -103,10 +103,10 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 			evaluationContext := of.NewTargetlessEvaluationContext(contextValues)
 			return &evaluationContext
 		},
-		RetryGracePeriod:                 defaultGracePeriod,
-		RetryBackoffMs:                   DefaultRetryBackoffMs,
-		RetryBackoffMaxMs:                DefaultRetryBackoffMaxMs,
-		DeadlineMs:                       defaultInitDeadlineMs,
+		RetryGracePeriod:  defaultGracePeriod,
+		RetryBackoffMs:    DefaultRetryBackoffMs,
+		RetryBackoffMaxMs: DefaultRetryBackoffMaxMs,
+		DeadlineMs:        defaultInitDeadlineMs,
 	}
 
 	p.updateFromEnvVar()
