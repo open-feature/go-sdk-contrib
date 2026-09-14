@@ -350,7 +350,13 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 		return
 	}
 
-	// Apply context enricher at sync time if configured
+	// Apply context enricher at sync time if configured.
+	//
+	// A payload without a sync context leaves the previous enrichment in place rather
+	// than clearing it, matching the Java implementation. flagd builds the sync context
+	// once per stream and sends the same value - an empty structpb.Struct when no context
+	// values are configured, never nil - with every payload, so a nil here means the sync
+	// source does not carry a sync context at all rather than that it has gone away.
 	if data.SyncContext != nil && i.configuration.ContextEnricher != nil {
 		enriched := i.configuration.ContextEnricher(data.SyncContext.AsMap())
 		func() {
