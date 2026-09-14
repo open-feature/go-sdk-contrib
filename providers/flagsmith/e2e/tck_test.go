@@ -48,7 +48,11 @@ const (
 // declines the capability or fails at it. Both appear as the same skip carrying the same reason, so
 // without an entry here a consumer comparing providers reads a defect as a design choice.
 var (
-	// Withholding @numeric-coercion is a defect, not a design choice, and it is not the usual one.
+	// @numeric-coercion is DECLARED, and its scenarios fail. That is the preferred shape: this
+	// provider attempts the coercion and gets it wrong, so withholding the tag would turn a visible
+	// failure into a skip -- the exact move KnownDeviation exists to discourage. An earlier pass of
+	// this adoption withheld it, following a worked example the base has since corrected.
+	//
 	// The familiar failure is a provider narrowing 0.5 to 0 -- that code exists here too,
 	// int64(value) with no fractional check -- but it is unreachable, because Flagsmith has no
 	// float type and the backend cannot produce a fractional JSON number.
@@ -93,6 +97,22 @@ var (
 			"capability to hang a deviation on: whether the type-mismatch matrix is satisfiable "+
 			"against a backend with a coarser type system is an open question for the suite, not "+
 			"a defect this provider can fix.")
+
+	// A deviation against no capability at all, which is what the empty Capability is for: the gap
+	// is against a mandatory, ungated scenario, so it belongs to no tag.
+	//
+	// An earlier pass said this failure had "no capability to hang a deviation on" and left it
+	// unexplained in the results. It does not need one -- it needs the ungated form.
+	floatAsStringDeviation = tck.UntrackedDeviation(
+		"",
+		"float-flag requested as a String resolves to \"0.5\" rather than reporting TYPE_MISMATCH, "+
+			"in an untagged row of the wrong-type outline. Flagsmith has no float type -- "+
+			"feature_state_value is natively boolean, integer or string -- so on this backend "+
+			"float-flag really is a string and the request is not a type mismatch at all. Recorded "+
+			"as a deviation because the scenario is mandatory and fails, not because the provider "+
+			"is wrong: whether the type-mismatch matrix is satisfiable against a backend with a "+
+			"coarser type system is an open question for the suite. All four language adoptions "+
+			"fail this row and the object-flag row beside it, for the same reason.")
 
 	// The defect this suite was written to catch, and could not until @standard-reasons existed.
 	//
@@ -238,9 +258,15 @@ func runConformance(t *testing.T, name string, local bool) {
 			tck.Targeting,
 			tck.DisabledFlags,
 			tck.StandardReasons,
+			tck.NumericCoercion,
 		),
 
-		tck.WithKnownDeviations(numericCoercionDeviation, objectAsStringDeviation, targetingMatchDeviation),
+		tck.WithKnownDeviations(
+			numericCoercionDeviation,
+			objectAsStringDeviation,
+			targetingMatchDeviation,
+			floatAsStringDeviation,
+		),
 
 		// Both modes poll. Remote is a single hop; local waits on two -- the testbed's upstream
 		// poll and the SDK's environment refresh, each 1s -- and the scenarios are shared.
