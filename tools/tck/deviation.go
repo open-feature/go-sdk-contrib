@@ -8,70 +8,38 @@ import (
 // KnownDeviation says one thing: this provider fails to do something it is
 // required to do.
 //
-// The requirement has to be a numbered MUST, or a rule the implementation bound
-// itself to elsewhere — flagd measured against its own accepted numeric-coercion
-// ADR is the worked example. Where the specification permits the choice,
-// withholding the capability *is* the honest report, and a deviation entry would
-// assert a defect that does not exist. So check the requirement before writing
-// one: a failed scenario is not yet a deviation, and a capability you cannot
-// satisfy is not yet a defect.
+// [Appendix F's rules] are normative and this type does not restate them; the
+// three an adopter trips over are that the requirement must be a numbered MUST
+// or a rule the implementation bound itself to elsewhere, that a declared
+// capability with a visibly failing scenario is the shape to prefer over a
+// withheld one, and that a scenario failing because the backend cannot serve
+// its fixture is not a provider defect at all. Check the requirement before
+// writing one: a failed scenario is not yet a deviation, and a capability you
+// cannot satisfy is not yet a defect.
 //
-// Distinct from an undeclared capability, which on its own is a choice. The
-// clearest illustration is one capability withheld twice for different reasons:
-// a provider with no streaming transport does not declare ConfigurationChange
-// and is not pretending otherwise, while the Go SDK's memprovider does not
-// declare it because it cannot update its flag set at all — which Appendix A of
-// the specification requires an SDK's in-memory provider to support, so that
-// absence is a defect. Both look identical in the results — scenarios skipped,
-// reason recoverable from the declaration — so the difference has to be stated,
-// or a consumer cannot tell a design decision from a defect.
-//
-// Note which example is deliberately not used here. A provider that narrows 0.5
-// to 0 with no error code does not belong on the withholding side at all: it
-// attempts the coercion and gets one direction wrong, so it declares
-// NumericCoercion, lets the lossy scenario fail, and records the deviation
-// against that failure. This comment used to name it as the defect half, which
-// mirrored Appendix F's own @numeric-coercion note; the appendix corrected
-// itself in spec 045950ca because the note taught the withhold-plus-deviate
-// combination the rules below exist to discourage.
+// Distinct from an undeclared capability, which on its own is a choice. The Go
+// SDK supplies the clearest illustration, one capability withheld twice for
+// different reasons: a provider with no streaming transport does not declare
+// ConfigurationChange and is not pretending otherwise, while the SDK's
+// memprovider does not declare it because it cannot update its flag set at all
+// — which Appendix A requires an SDK's in-memory provider to support, so that
+// absence is a defect. Both look identical in the results, so the difference
+// has to be stated or a consumer cannot tell a design decision from a defect.
 //
 // Declared by the provider author through tck.WithKnownDeviations, which is the
 // only place that knows the difference. The TCK cannot infer it: from the
 // outside, a capability the provider chose to withhold and one it withheld
 // because it is broken are the same absence.
 //
-// # The two legitimate shapes
+// It lives on the base rather than with the reporting machinery because it is
+// something an adopter writes, alongside tck.WithCapabilities. Whatever reads
+// the declaration — a machine-readable conformance report, a build check, a
+// human — is downstream of it and does not widen it. The JSON field names are
+// here for the same reason, and they are the names the Java TCK's report emits:
+// a cross-language consumer should not have to know which language produced a
+// report to read it.
 //
-// A report's results already distinguish them.
-//
-//  1. The capability is declared, the scenario runs, and it fails. Prefer this.
-//     The failure stays visible and the deviation says it is known and why.
-//  2. The capability is withheld, and its scenarios skip. Legitimate only when
-//     the provider cannot attempt the behaviour at all, so running the scenario
-//     would establish nothing. The deviation then explains the absence, so a
-//     reader can tell a defect from a design decision.
-//
-// Withdrawing a capability *in order to* turn a failing scenario into a skip is
-// the failure mode this field exists to prevent. If the provider attempts the
-// behaviour and gets it wrong, shape 1 is the honest report.
-//
-// Under shape 1 a deviation names a capability that is declared, which is also
-// how to record that the capability holds while one of the scenarios it gates
-// does not — worth saying precisely because the mode a provider runs in may
-// decide whether that scenario fails or passes for the wrong reason, and a
-// passing scenario hides it.
-//
-// Part of the declaration vocabulary rather than of any one consumer of it.
-// This is something an adopter writes, alongside tck.WithCapabilities, so it
-// belongs to the suite an adopter adopts. Whatever reads the declaration — a
-// machine-readable conformance report, a build check, a human — is downstream
-// of it and does not widen it.
-//
-// The JSON field names live here for the same reason. A deviation is meant to
-// be read by whoever compares providers across languages, so the wire form is
-// part of what the type means rather than a choice each consumer makes; these
-// are the names the Java TCK's report emits, and a cross-language consumer
-// should not have to know which language produced a report to read it.
+// [Appendix F's rules]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring
 type KnownDeviation struct {
 	// Capability is the capability the gap is against: declared, with the
 	// scenario failing visibly, which is the preferred shape; or withheld,
@@ -84,9 +52,7 @@ type KnownDeviation struct {
 	Capability Capability `json:"capability,omitempty"`
 
 	// Issue is a URI where the gap is tracked, empty when it is not tracked
-	// anywhere yet. Optional — there is a tracked and an untracked form, and
-	// naming an untracked defect is still what separates it from a choice.
-	// Prefer the tracked form as soon as there is an issue.
+	// anywhere yet. Optional.
 	//
 	// Use TrackedDeviation and UntrackedDeviation rather than setting this
 	// directly, so that which of the two a deviation is stays a decision
@@ -94,9 +60,7 @@ type KnownDeviation struct {
 	Issue string `json:"issue,omitempty"`
 
 	// Summary is what the gap is, in a form someone comparing providers can
-	// use. Required: a deviation whose summary is empty records that something
-	// is wrong without saying what, which is worth less than the skip it is
-	// trying to explain.
+	// use. Required.
 	Summary string `json:"summary"`
 }
 
@@ -110,10 +74,9 @@ func TrackedDeviation(capability Capability, issue, summary string) KnownDeviati
 
 // UntrackedDeviation records a deviation that is not tracked anywhere yet.
 //
-// Worth declaring even so. Naming the defect is what separates it from a
-// capability the provider chose to withhold, and a declaration that merely
-// omits the tag cannot say which of the two happened. Prefer TrackedDeviation
-// as soon as there is an issue to point at.
+// Worth declaring even so: naming the defect is what separates it from a
+// capability the provider chose to withhold. Prefer TrackedDeviation as soon as
+// there is an issue to point at.
 //
 // Pass an empty Capability when the gap is against a mandatory scenario and so
 // belongs to no capability.

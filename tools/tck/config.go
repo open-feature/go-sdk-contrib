@@ -181,16 +181,10 @@ func WithUnavailableProvider(factory ProviderFactory) Option {
 // of the optional parts — and is not the same as omitting the option.
 //
 // Two kinds of capability are rejected here rather than passed into a report,
-// and the error says which is which because they mean different things:
-//
-//   - A reserved capability, which no scenario anywhere carries. Declaring it
-//     cannot be verified and cannot even produce a skip. See IsReserved.
-//   - A capability the Go SDK cannot express, whose scenarios exist and pass in
-//     other languages but which no provider written against this SDK can be
-//     asked. Go has none today. See IsInexpressible.
-//
-// Either way an unverifiable claim is a configuration mistake, not a
-// conformance result.
+// and the error says which is which because they mean different things: a
+// reserved capability (see Capability.IsReserved) and one the Go SDK cannot
+// express (see Capability.IsInexpressible). Either way an unverifiable claim is
+// a configuration mistake, not a conformance result.
 func WithCapabilities(capabilities ...Capability) Option {
 	return func(c *config) {
 		c.Capabilities = capabilities
@@ -202,17 +196,8 @@ func WithCapabilities(capabilities ...Capability) Option {
 // of the specification that are not optional.
 //
 // Narrowing WithCapabilities is how a provider says a scenario was not run, but
-// it cannot say why, and the two reasons are not alike: a provider with no
-// streaming transport declining ConfigurationChange has made a decision, while
-// the Go SDK's memprovider declines the same capability because it cannot update
-// its flag set at all, which Appendix A requires it to support — one capability,
-// one absence, two meanings. In the results both are a skip with the same
-// reason, so unless the provider author says which happened, a consumer
-// comparing providers reads a defect as a design choice.
-//
-// A provider that narrows 0.5 to 0 with no error code is not an example of
-// either: it attempts the coercion, so it declares NumericCoercion and records
-// the deviation against the scenario that then fails. See KnownDeviation.
+// it cannot say why, and a design choice and a defect are the same skip with the
+// same reason. This is where the author says which.
 //
 // Empty by default, which is silence rather than a claim. See KnownDeviation,
 // TrackedDeviation and UntrackedDeviation for what belongs here and what does
