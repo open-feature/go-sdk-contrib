@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -19,7 +20,7 @@ import (
 type TestbedRunner struct {
 	container     *FlagdTestContainer
 	flagsDir      string
-	testbedDir    string
+	testbed       TestbedSource
 	testbedConfig string
 	resolverType  ProviderType
 	options       []flagd.ProviderOption
@@ -51,17 +52,12 @@ func NewTestbedRunner(config TestbedConfig) *TestbedRunner {
 		r.Close()
 	}()
 
-	testbedDir := config.TestbedDir
-	if testbedDir == "" {
-		testbedDir = "../flagd-testbed"
-	}
-
 	runner := &TestbedRunner{
 		resolverType:  config.ResolverType,
 		flagsDir:      config.FlagsDir,
 		testbedConfig: config.TestbedConfig,
 		options:       config.ExtraOptions,
-		testbedDir:    testbedDir,
+		testbed:       NewTestbedSource(config.TestbedDir),
 		Tag:           config.Tag,
 		Image:         config.Image,
 	}
@@ -105,7 +101,7 @@ func (tr *TestbedRunner) SetupContainer(ctx context.Context) error {
 	// Create container configuration
 	containerConfig := FlagdContainerConfig{
 		FlagsDir:      flagsDir,
-		TestbedDir:    tr.testbedDir,
+		Testbed:       tr.testbed,
 		ExtraWaitTime: 2 * time.Second,
 		Tag:           tr.Tag,
 		Image:         tr.Image,
@@ -169,13 +165,17 @@ func (tr *TestbedRunner) RunGherkinTestsWithSubtests(t *testing.T, featurePaths 
 		tr.createFileProviderSupplier(),
 	)
 
-	for i, path := range featurePaths {
-		featurePaths[i] = filepath.Join(tr.testbedDir, path)
+	// Configure godog with TestingT to create individual subtests
+	// Paths address the Gherkin FS, which wants slash separated, unrooted paths
+	for i, featurePath := range featurePaths {
+		featurePaths[i] = path.Clean(filepath.ToSlash(featurePath))
 	}
 
-	// Configure godog with TestingT to create individual subtests
 	opts := godog.Options{
-		Format:         "pretty",
+		Format: "pretty",
+		// The suites are read from the testbed module, so paths are relative to
+		// its gherkin directory
+		FS:             tr.testbed.Gherkin(),
 		Paths:          featurePaths,
 		Tags:           tags,
 		TestingT:       t, // This is the key! Creates individual Go subtests for each scenario
@@ -214,6 +214,7 @@ func (tr *TestbedRunner) setupScenario(ctx context.Context, sc *godog.Scenario) 
 		if testState, ok := state.(*TestState); ok {
 			// Set the container in the TestState so integration steps can use it
 			testState.Container = tr.container
+			testState.Testbed = tr.testbed
 		}
 	}
 	return ctx, nil

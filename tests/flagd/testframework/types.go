@@ -78,6 +78,9 @@ type TestState struct {
 	Container    TestContainer
 	LaunchpadURL string
 	FlagDir      string
+	// Testbed is where assets that have to be on disk - the certificate - come
+	// from. It is set by the runner.
+	Testbed TestbedSource
 }
 
 // Configuration-related types
@@ -120,7 +123,7 @@ type FlagdContainerConfig struct {
 	FlagsDir      string
 	Networks      []string
 	ExtraWaitTime time.Duration
-	TestbedDir    string
+	Testbed       TestbedSource
 }
 
 // ContainerInfo provides information about the running container

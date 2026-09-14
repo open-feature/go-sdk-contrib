@@ -11,7 +11,7 @@ This commit introduces a complete overhaul of the flagd E2E testing infrastructu
 ### Test Structure
 - **Step Definitions**: Located in `../../tests/flagd/testframework/` - reusable Gherkin step implementations with provider-agnostic design
 - **Test Runners**: Located in `./` - provider-specific test implementations that use the step definitions
-- **Gherkin Features**: Located in `./flagd-testbed/gherkin/` - official test scenarios from flagd testbed
+- **Gherkin Features**: Embedded in the `github.com/open-feature/flagd-testbed/v3` module - official test scenarios from flagd testbed
 - **Debug Utilities**: Comprehensive debugging infrastructure with `FLAGD_E2E_DEBUG` support
 
 ### Container-Based Testing with Testcontainers
@@ -21,7 +21,7 @@ All tests use the `ghcr.io/open-feature/flagd-testbed` container which includes:
 - **Launchpad API** - Test control interface for managing flagd lifecycle and configuration
 - **Test Data** - Pre-configured flag definitions for various test scenarios
 - **Multi-port support**: RPC (8013), InProcess (8015), Launchpad (8080), Health (8014)
-- **Version synchronization**: Automatic testbed version detection from submodule
+- **Version synchronization**: The image tag comes from the compose file embedded in the flagd-testbed module, so assets and image are pinned by a single `go.mod` entry
 
 ## Provider Types and Configuration
 
