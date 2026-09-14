@@ -75,6 +75,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			TLSEnabled:              provider.providerConfiguration.Tls,
 			CertificatePath:         provider.providerConfiguration.CertPath,
 			OfflineFlagSource:       provider.providerConfiguration.OfflineFlagSourcePath,
+			OfflinePollMs:           provider.providerConfiguration.OfflinePollMs,
 			CustomSyncProvider:      provider.providerConfiguration.CustomSyncProvider,
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
@@ -89,6 +90,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	default:
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
+			OfflinePollMs:     provider.providerConfiguration.OfflinePollMs,
 			DeadlineMs:        provider.providerConfiguration.DeadlineMs,
 		})
 	}
