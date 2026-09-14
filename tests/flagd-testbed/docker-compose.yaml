@@ -1,0 +1,23 @@
+# The backend stack the Go provider conformance adoptions run against: the
+# unmodified flagd testbed image, serving flagd and its launchpad control API.
+# What each suite makes of it is in providers/flagd/tck/README.md and
+# providers/ofrep/tck/README.md.
+#
+# One file for every adoption, so the image tag cannot drift between two suites
+# whose results are only comparable if both answered the same backend. All four
+# ports are published and each suite asks the harness for the subset it needs.
+#
+# NOT the testbed submodule's compose file, on purpose: that one bind-mounts
+# ${FLAGS_DIR} -- which defaults to its own directory, so an unset value has the
+# launchpad write into the checked-out submodule -- and runs an envoy sidecar
+# only the flagd e2e suites need.
+#
+# Add no host port bindings; the suite requires dynamically mapped ports.
+services:
+  backend:
+    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    ports:
+      - 8013   # flagd RPC evaluation (gRPC)
+      - 8015   # flagd in-process sync (gRPC)
+      - 8016   # flagd's OFREP endpoint (HTTP)
+      - 8080   # launchpad control API
