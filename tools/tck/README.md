@@ -188,12 +188,6 @@ a reserved capability, and so is one naming a capability the SDK cannot express 
 cases the entry would explain a skip that says nothing about your provider. The list is empty by
 default, which is silence rather than a claim.
 
-## Adopters
-
-| Provider | Suite | Backend |
-| --- | --- | --- |
-| flagd (RPC and in-process resolvers) | [`providers/flagd/tck`](../../providers/flagd/tck/README.md) | the Compose harness, against the `flagd-testbed` launchpad |
-
 ## Controlling the backend
 
 `tck.BackendControl` is the single seam between the scenarios and whatever manipulates the backend,
