@@ -333,8 +333,18 @@ wants it:
   domain replaces and shuts down the previous provider, so a fresh domain per scenario would leak a
   connection per scenario for any provider holding one.
 
-The package documentation also records why the Compose harness ships in this module rather than a
-`tools/tck/compose` beside it, and what that costs a backend-less adopter.
+### One module, container harness included
+
+The Compose harness is in package `tck` rather than in a `tools/tck/compose` beside it, so an adopter
+has one import path and one version to track. The cost is worth naming: `testcontainers-go` and
+`docker/compose` are ordinary dependencies of the package, so a provider with no container to start —
+in-memory, environment-variable, file-based — still takes those `go.sum` entries and the ~40
+transitive pins behind them. It compiles nothing it does not import, and this is a test-only module
+that no application binary links, so the cost is confined to `go test` of an adopting module.
+
+The split was weighed and declined: a second module needs its own version and release-please entry,
+and a home for `BackendEndpoint` that both modules can see — which is this package, so the second
+module would import the first and buy nothing but a second coordinate to publish.
 
 ## The self-tests
 
