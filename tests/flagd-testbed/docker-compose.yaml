@@ -15,7 +15,7 @@
 # Add no host port bindings; the suite requires dynamically mapped ports.
 services:
   backend:
-    image: ghcr.io/open-feature/flagd-testbed:v3.8.0
+    image: ghcr.io/open-feature/flagd-testbed:v3.10.1
     ports:
       - 8013   # flagd RPC evaluation (gRPC)
       - 8015   # flagd in-process sync (gRPC)
