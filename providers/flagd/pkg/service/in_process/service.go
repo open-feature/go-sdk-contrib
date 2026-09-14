@@ -110,6 +110,7 @@ type Configuration struct {
 	Selector                string
 	TLSEnabled              bool
 	OfflineFlagSource       string
+	OfflinePollMs           int
 	CustomSyncProvider      isync.ISync
 	CustomSyncProviderUri   string
 	GrpcDialOptionsOverride []googlegrpc.DialOption
@@ -733,11 +734,7 @@ func createSyncProvider(cfg Configuration, log *logger.Logger) (isync.ISync, str
 
 	if cfg.OfflineFlagSource != "" {
 		log.Info("using file sync provider with source: " + cfg.OfflineFlagSource)
-		return &file.Sync{
-			URI:    cfg.OfflineFlagSource,
-			Logger: log,
-			Mux:    &sync.RWMutex{},
-		}, cfg.OfflineFlagSource
+		return file.NewFileSync(cfg.OfflineFlagSource, file.FILEINFO, cfg.OfflinePollMs, log), cfg.OfflineFlagSource
 	}
 
 	// Default to gRPC sync provider

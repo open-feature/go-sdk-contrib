@@ -51,3 +51,55 @@ func TestInProcessOfflineMode(t *testing.T) {
 		t.Fatal("Expected scope to be present, but got none")
 	}
 }
+
+// TestInProcessOfflineModePolling verifies that the configured OfflinePollMs interval is used to
+// watch the offline flag source, so changes to the file are picked up.
+func TestInProcessOfflineModePolling(t *testing.T) {
+	// given
+	offlinePath := filepath.Join(t.TempDir(), "config.json")
+
+	if err := os.WriteFile(offlinePath, []byte(flagRsp), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	service := NewInProcessService(Configuration{OfflineFlagSource: offlinePath, OfflinePollMs: 100})
+
+	if err := service.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer service.Shutdown()
+
+	if detail := service.ResolveBoolean(context.Background(), "myBoolFlag", false, make(map[string]interface{})); !detail.Value {
+		t.Fatal("Expected true from the initial flag configuration, but got false")
+	}
+
+	// when - the flag configuration on disk changes
+	updated := `{
+		"flags": {
+		  "myBoolFlag": {
+			"state": "ENABLED",
+			"variants": {
+			  "on": true,
+			  "off": false
+			},
+			"defaultVariant": "off"
+		  }
+		}
+	}`
+	if err := os.WriteFile(offlinePath, []byte(updated), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// then - the change is detected within a few poll intervals
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		detail := service.ResolveBoolean(context.Background(), "myBoolFlag", true, make(map[string]interface{}))
+		if !detail.Value {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Flag configuration change was not detected within acceptable timeframe")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
