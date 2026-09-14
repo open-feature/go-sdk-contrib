@@ -37,6 +37,7 @@ const (
 	defaultInitDeadlineMs   = 500
 	defaultStreamDeadlineMs = 600000
 	defaultKeepAliveMs      = 0
+	defaultOfflinePollMs    = 5000
 
 	rpc       ResolverType = "rpc"
 	inProcess ResolverType = "in-process"
@@ -55,6 +56,7 @@ const (
 	flagdSourceProviderIDEnvironmentVariableName      = "FLAGD_PROVIDER_ID"
 	flagdSourceSelectorEnvironmentVariableName        = "FLAGD_SOURCE_SELECTOR"
 	flagdOfflinePathEnvironmentVariableName           = "FLAGD_OFFLINE_FLAG_SOURCE_PATH"
+	flagdOfflinePollMsEnvironmentVariableName         = "FLAGD_OFFLINE_POLL_MS"
 	flagdTargetUriEnvironmentVariableName             = "FLAGD_TARGET_URI"
 	flagdGracePeriodVariableName                      = "FLAGD_RETRY_GRACE_PERIOD"
 	flagdRetryBackoffMsVariableName                   = "FLAGD_RETRY_BACKOFF_MS"
@@ -72,6 +74,7 @@ type ProviderConfiguration struct {
 	Host                             string
 	MaxCacheSize                     int
 	OfflineFlagSourcePath            string
+	OfflinePollMs                    int
 	OtelIntercept                    bool
 	Port                             uint16
 	TargetUri                        string
@@ -101,6 +104,7 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 		Host:                             defaultHost,
 		log:                              log,
 		MaxCacheSize:                     defaultMaxCacheSize,
+		OfflinePollMs:                    defaultOfflinePollMs,
 		Resolver:                         defaultResolver,
 		Tls:                              defaultTLS,
 		RetryGracePeriod:                 defaultGracePeriod,
@@ -213,6 +217,9 @@ func (cfg *ProviderConfiguration) updateFromEnvVar() {
 	if offlinePath := os.Getenv(flagdOfflinePathEnvironmentVariableName); offlinePath != "" {
 		cfg.OfflineFlagSourcePath = offlinePath
 	}
+
+	cfg.OfflinePollMs = getIntFromEnvVarOrDefault(
+		flagdOfflinePollMsEnvironmentVariableName, defaultOfflinePollMs, cfg.log)
 
 	if providerId := os.Getenv(flagdSourceProviderIDEnvironmentVariableName); providerId != "" {
 		cfg.ProviderId = providerId
@@ -419,6 +426,13 @@ func WithInProcessResolver() ProviderOption {
 func WithOfflineFilePath(path string) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.OfflineFlagSourcePath = path
+	}
+}
+
+// WithOfflinePollMs sets the interval (in ms) for polling the offline flag source file. Defaults to 5000ms.
+func WithOfflinePollMs(offlinePollMs int) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.OfflinePollMs = offlinePollMs
 	}
 }
 

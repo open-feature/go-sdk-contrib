@@ -85,7 +85,7 @@ provider, err := flagd.NewProvider(
 openfeature.SetProvider(provider)
 ```
 
-The provider will attempt to detect file changes, but this is a best-effort attempt as file system events differ between operating systems.
+The provider polls the file for changes every 5 seconds by default; use `flagd.WithOfflinePollMs` (or `FLAGD_OFFLINE_POLL_MS`) to change the interval.
 This mode is useful for local development, tests and offline applications.
 
 ## Configuration options
@@ -103,6 +103,7 @@ Configuration can be provided as constructor options or as environment variables
 | WithLRUCache<br/>WithBasicInMemoryCache<br/>WithoutCache | FLAGD_CACHE                    | string (lru, mem, disabled) | lru       | rpc                 |
 | WithEventStreamConnectionMaxAttempts                     | FLAGD_MAX_EVENT_STREAM_RETRIES | int                         | 5         | rpc                 |
 | WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | file                |
+| WithOfflinePollMs                                        | FLAGD_OFFLINE_POLL_MS          | int                         | 5000      | file                |
 | WithProviderID                                           | FLAGD_SOURCE_PROVIDER_ID       | string                      | ""        | in-process          |
 | WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          |
 | WithStreamDeadline                                       | FLAGD_STREAM_DEADLINE_MS       | int                         | 600000    | rpc & in-process    |
