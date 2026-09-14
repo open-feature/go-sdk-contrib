@@ -1,6 +1,20 @@
+# The `branch` lines below are load-bearing, not decorative.
+#
+# Renovate's git-submodules manager reads `branch` as the dependency's current
+# version. With it, a new submodule release arrives as an ordinary version PR
+# that bumps both the pointer and the `branch` value. Without it there is no
+# version to compare against, so Renovate falls back to a digest update against
+# the submodule's default branch -- which does not match the auto-create rule in
+# open-feature/community-tooling and is left sitting on the dependency dashboard
+# where nobody sees it.
+#
+# So deleting a `branch` line silently switches off updates for that submodule.
+# That has happened several times; see open-feature/flagd-testbed#398. Keep the
+# pin, and let Renovate move it.
 [submodule "providers/flagd/spec"]
 	path = providers/flagd/spec
 	url = https://github.com/open-feature/spec
 [submodule "providers/flagd/flagd-testbed"]
 	path = providers/flagd/flagd-testbed
 	url = https://github.com/open-feature/flagd-testbed.git
+	branch = v3.8.0
