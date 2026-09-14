@@ -15,67 +15,26 @@ import (
 
 // The OpenFeature Provider Conformance Suite, run against the OFREP provider.
 //
-// There is no container code in this file. The suite owns the stack: it is
-// handed the Compose file below, told which container-internal port the
-// provider connects to, and given a factory that builds a provider from the
-// host port it discovered. Starting the stack once, waiting for the launchpad
-// to accept commands, resetting the backend between scenarios and tearing down
-// all belong to tck.Run.
+// There is no container code here: the suite owns the stack. The backend is the
+// unmodified flagd-testbed image, which serves the OFREP API on container port
+// 8016 alongside its own protocols and the launchpad control API on 8080 — so
+// the provider gets a conformant backend seeded with the canonical flag set
+// without a new image and without any change to the flagd suites.
 //
-// The backend is the unmodified flagd-testbed image. flagd serves the OFREP API
-// on container port 8016 alongside its own protocols, and the same image serves
-// the launchpad control API on 8080, so the provider gets a conformant backend
-// seeded with the canonical flag set without a new image and without any change
-// to the flagd suites.
-//
-// THIS SUITE IS CURRENTLY NON-DETERMINISTIC, and the cause is worth reading
-// before trusting a run of it.
-//
-// Three failures are stable, and all three are gaps in the fixture rather than
-// in the provider: integral-float-flag and large-integer-flag are absent from
-// flagd-testbed (grep the testbed's flags/ directory -- number-zero-flag and
-// huge-integer-flag are missing too), so the scenarios that ask for them fail
-// with FLAG_NOT_FOUND against any provider. The third is the last row of the
-// @variants outline, which asks large-integer-flag for its max-int32 variant
-// and gets "" -- a flag that is not there has no variant to name, so it is the
-// same absence counted twice rather than a new defect.
-// open-feature/flagd-testbed#392 adds them.
-//
-// Every other failure moves between runs. Eight consecutive runs produced 41,
-// 12, 11, 33, 5, 19, 21 and 40 failures, with almost disjoint failing sets --
-// the last three of those from the hand-rolled container wrapper this file
-// replaced, which is how we know the flapping belongs to the backend and not to
-// the harness. Every one of the extra failures was FLAG_NOT_FOUND, or a stale
-// value, on a flag the testbed definitely has -- boolean-flag, string-zero-flag,
-// object-flag -- and curling the OFREP endpoint directly answers every one of
-// them correctly.
-//
-// The cause is that this provider has no initialisation. The testbed's launchpad
-// answers 404 to POST /reset, so the TCK's per-scenario isolation falls back to
-// POST /start, which stops flagd, deletes the combined flag file, regenerates it
-// and restarts flagd, polling :8014/readyz until flagd answers. flagd answers
-// before its file source has loaded the flags. A provider with a lifecycle
-// notices less often, because its own Init blocks until the RPC stream is up or
-// the in-process sync completes -- but it does hit the same race, which the
-// flagd suites' own re-run guidance now records. A stateless provider fires its
-// first evaluation the instant POST /start returns, and races the load every
-// time.
-//
-// So the defect is in the control-API contract rather than here: POST /start
-// returning before the backend serves flags makes the reset unusable by exactly
-// the providers that have no way to wait for it. Fixing it by adding a sleep or
-// a retry to this file would hide it from every other language's adoption, so
-// it is written down instead. Until then, read a red result here against the
-// list above before attributing anything to the provider.
+// **This suite is currently non-deterministic**, and README.md has the numbers
+// and the floor to read a red run against. The cause is not here and no sleep or
+// retry is being added to hide it: the launchpad's POST /start returns before
+// the flags are evaluable, and a provider with no initialisation to block on
+// races that load on every scenario. It is measured and explained in
+// open-feature/flagd-testbed#394.
 
 const (
-	// composeFile describes the backend stack. Resolved relative to this
-	// package directory, which is where `go test` runs.
-	//
-	// Deliberately not the testbed submodule's own compose file -- see the
-	// comment at the top of it for why -- which is also why this suite no
-	// longer needs the submodule checked out.
-	composeFile = "testdata/docker-compose.yaml"
+	// composeFile describes the backend stack. It is shared with the other
+	// conformance adoptions in this repository so that the image tag cannot
+	// drift between suites whose results are only comparable if both answered
+	// the same backend. Resolved relative to this package directory, which is
+	// where `go test` runs.
+	composeFile = "../../../tests/flagd-testbed/docker-compose.yaml"
 
 	// ofrepPort is the container-internal port flagd serves OFREP on, and the
 	// only port the provider connects to. The launchpad's control port is
@@ -86,19 +45,9 @@ const (
 // TestOFREPConformance runs the suite against the OFREP provider pointed at
 // flagd's OFREP endpoint.
 //
-// The name is not load-bearing, and nothing asserts it. Two other things keep a
-// Docker stack out of every pull request, doing two different jobs:
-//
-//   - The directory. This file is in providers/ofrep/tck, `make tck` runs that
-//     module and `make e2e` runs the others -- and then builds this one under
-//     -tags=tck with an empty -run pattern, so it stays compiled, and
-//     typechecked against tools/tck, without being executed.
-//   - The build tag above. It selects nothing between those two targets; it
-//     keeps this file out of every invocation that asks for no tags at all,
-//     which is what `make test` and a bare `go test ./...` do.
-//
-// There is no environment variable any more, and the tag is not a second one of
-// those: it is visible in the file rather than hidden in a test function.
+// The name is not load-bearing and nothing asserts it. What keeps a Docker stack
+// out of every pull request is the module path and the build tag above, doing
+// two different jobs; see README.md and the harness README.
 //
 // The short-mode skip below is not the exclusion either. It is the one guard
 // left for someone who names this package directly and asks for the tag, and it
@@ -114,9 +63,7 @@ func TestOFREPConformance(t *testing.T) {
 		// The suite starts this stack once, discovers the host port Docker
 		// mapped to 8016, builds the HTTP control against the launchpad on 8080
 		// and waits until it accepts commands. Scenario isolation comes from
-		// the control API, never from restarting a container: mapped host ports
-		// do not survive a restart, so a restart would invalidate the provider
-		// already pointed at the old one.
+		// the control API, never from restarting a container.
 		tck.WithComposeFile(composeFile),
 		tck.WithBackendPorts(ofrepPort),
 
@@ -129,8 +76,7 @@ func TestOFREPConformance(t *testing.T) {
 			//
 			// endpoint.Host() rather than a hard-coded "localhost": with a
 			// remote Docker daemon, Docker Desktop on some platforms or a
-			// rootless setup the host is not localhost, and the hand-rolled
-			// wrapper this replaces hard-coded it.
+			// rootless setup the host is not localhost.
 			//
 			// The timeout is well under the TCK's own step deadlines so that a
 			// wedged backend surfaces as a resolution error attributable to
@@ -143,9 +89,8 @@ func TestOFREPConformance(t *testing.T) {
 		// configuration the TCK documents for a provider that cannot declare
 		// tck.UnavailableInit. See the capability notes below.
 
-		// The declared set is Object and NumericCoercion, and every
-		// omission is a property of the provider's code rather than a
-		// preference.
+		// Every omission below is a property of the provider's code rather than
+		// a preference, and every declaration is evidence from a run.
 		//
 		// tck.Events is NOT declared. The OFREP provider is stateless: its
 		// entire method set is Metadata, the five typed *Evaluation methods and
@@ -163,8 +108,7 @@ func TestOFREPConformance(t *testing.T) {
 		// handling capability can be assumed to be ready immediately". That
 		// READY says nothing about the backend — it is emitted identically
 		// against a backend that does not exist — so declaring the capability
-		// would buy one green scenario that asserts nothing. It stays
-		// undeclared until the provider emits events of its own.
+		// would buy one green scenario that asserts nothing.
 		//
 		// tck.ConfigurationChange follows from the same absence: with no event
 		// channel there is nothing that could emit
@@ -203,87 +147,47 @@ func TestOFREPConformance(t *testing.T) {
 		// round-trips the float64 through int64 and reports TYPE_MISMATCH when
 		// the round trip is lossy (flags.go:197-208), so float-flag requested
 		// as an Integer is a mismatch rather than a silent narrowing to 0,
-		// which is exactly what the @numeric-coercion scenario asserts.
+		// which is exactly what the @numeric-coercion scenario asserts. The
+		// converse is accepted and returns 10.0, because ResolveFloat takes any
+		// float64 (flags.go:141-155) and that is what a JSON 10 decodes to.
 		//
-		// That lossy-round-trip check is, independently, the rule flagd's
-		// numeric coercion ADR settles on (open-feature/flagd#1996): coercion
-		// is permitted when lossless and must fail when it would lose
-		// information. This provider got there from the constraints of JSON
-		// rather than from the ADR, which is some evidence the rule is the
-		// natural one rather than a flagd preference. Worth knowing that the
-		// specification does not require it either way -- OpenFeature has one
-		// numeric type, of "unspecified type or size" -- so the capability is
-		// tested against a borrowed rule; see open-feature/spec#430.
+		// That the provider arrived at the lossy-round-trip rule from the
+		// constraints of JSON, rather than from flagd's numeric coercion ADR
+		// the tag is tested against, is some evidence the rule is the natural
+		// one rather than a flagd preference.
 		//
-		// This is also the capability JavaScript cannot express at all: one
-		// numeric type in the language means there is no second accessor to ask
-		// "this float, as an integer?" through, so a JS suite is refused the
-		// declaration rather than left to remember the fact. Go has int64 and
-		// float64 accessors and can ask, which is what makes the declaration
-		// here a claim about this provider rather than about the language.
-		//
-		// The converse — integer-flag requested as a Float — is accepted and
-		// returns 10.0, because ResolveFloat takes any float64
-		// (flags.go:141-155) and that is what a JSON 10 decodes to. That is the
-		// lossless direction, and it now HAS scenarios: the canonical flag set
-		// gained integral-float-flag, so "An integral float requested as an
-		// integer is coerced without loss" and "An integer requested as a float
-		// is widened without loss" both run. The capability is therefore a
-		// stronger claim than it was when this comment was first written, and
-		// the declaration is kept deliberately rather than by inertia.
-		//
-		// One of those two cannot be verified against this backend, and it is
-		// the fixture's fault: flagd-testbed has no integral-float-flag, so the
-		// scenario fails with FLAG_NOT_FOUND no matter what the provider does.
-		// The capability is still declared, and the rule that says so is
-		// Appendix F's first rule for declaring rather than a judgement made
-		// here: declare when at least one scenario gating the tag can actually
-		// be put to the provider, withhold only when none can -- the unit is
-		// the scenario, not the tag. Two of the three can be answered by this
-		// backend -- the lossy half, and the widening half through integer-flag
-		// -- and both pass, so withholding to hide one fixture failure would
-		// cost two answers. The lossy one is the answer worth keeping: silently
-		// narrowing 0.5 to 0 is the failure mode flagd has and this provider
-		// does not.
-		//
-		// The failure gets no deviation entry, which is the first of the two
-		// consequences the appendix states with that rule: a scenario failing
-		// because the backend cannot serve its fixture is not a provider defect
-		// and recording it as one would attribute the gap to the provider.
-		// open-feature/flagd-testbed#392, named here so the second consequence
-		// is met too -- an absence owed to a backend gap is temporary, and one
-		// with no note saying why outlives its reason. The same rule decides
-		// @large-integers the other way, and the README's capability table says
-		// so: that tag has one scenario and the testbed serves no flag for it,
-		// so none of it can be put to the provider and it is withheld.
+		// One of the three scenarios cannot be verified against this backend
+		// and it is the fixture's fault: flagd-testbed has no
+		// integral-float-flag, so that one fails with FLAG_NOT_FOUND whatever
+		// the provider does (open-feature/flagd-testbed#392). The other two --
+		// the lossy half, and the widening half through integer-flag -- are
+		// answered and both pass, which is what Appendix F's first rule for
+		// declaring turns on. The failure gets no deviation entry, an entry
+		// there being an accusation against the provider for the backend's gap.
+		// The same rule decides @large-integers the other way: one scenario,
+		// and the testbed serves no flag for it.
 		//
 		// tck.Variants IS declared. OFREP's evaluation response carries a
 		// variant field and this provider passes it straight into
 		// ResolutionDetail, so seven of the eight rows pass -- booleans,
 		// strings, integers, floats and all three falsy flags. The eighth is
-		// large-integer-flag, which the testbed does not serve, so it is the
-		// fixture gap above rather than a variant defect; the same reasoning
-		// that keeps tck.NumericCoercion declared keeps this one declared.
+		// large-integer-flag, the same fixture gap.
 		//
 		// tck.Targeting IS declared, and for a JSON-over-HTTP provider it is
 		// the cheapest capability here to get right: the evaluation context IS
 		// the request body, so there is no separate passthrough path to get
 		// wrong. All three scenarios pass -- targeting-key-flag resolves to
 		// "hit" for the matching key and "miss" for a non-matching one or none
-		// at all -- and so does the new untagged scenario that supplies a
-		// context to an untargeted flag. Worth having: until this revision no
-		// scenario supplied a context at all, so a provider that serialised it
-		// into a malformed body passed the whole suite, and for this provider
-		// that body is the entire request.
+		// at all -- and so does the untagged scenario that supplies a context
+		// to an untargeted flag.
 		//
 		// tck.DisabledFlags IS declared, and it is the one capability here
 		// that was expected to be impossible. It is gated because a disabled
 		// flag's resolution depends on where the caller's default is
-		// substituted: a provider that evaluates locally holds it, one whose
-		// backend decides does not. OFREP is the clearest case of the second
-		// kind -- the request body carries the context and the flag key and
-		// nothing else -- so the plan was to leave the tag undeclared and
-		// write the architecture down beside it.
+		// substituted, and OFREP is the clearest case of a backend that
+		// decides -- the request body carries the context and the flag key and
+		// nothing else -- so the plan was to leave the tag undeclared and write
+		// the architecture down beside it.
 		//
 		// It passes, all four rows, over three consecutive runs. The reasoning
 		// was right about the server and wrong about what the capability
@@ -302,11 +206,6 @@ func TestOFREPConformance(t *testing.T) {
 		// assertion and come back as TYPE_MISMATCH, which is exactly what the
 		// error-code step would have caught.
 		//
-		// The capability stays gated for the reason it always was -- a backend
-		// whose response says nothing about state leaves a provider no way to
-		// answer -- but this is not a property OFREP providers lack, and there
-		// is nothing here to record as a deviation.
-		//
 		// tck.StandardReasons IS declared, and for OFREP it is the thinnest
 		// claim of the six: the provider passes the server's reason string
 		// straight into ResolutionDetail, so what the suite verifies here is a
@@ -317,11 +216,10 @@ func TestOFREPConformance(t *testing.T) {
 		// another language's OFREP provider.
 		//
 		// Measured over three runs: all six scenarios pass twice, and in the
-		// third two rows of the STATIC outline report reason ERROR. That is the
-		// launchpad race the README describes -- the same FLAG_NOT_FOUND every
-		// other flapping failure is, showing up in the reason field instead of
-		// the value -- and not a vocabulary disagreement. Judge this capability
-		// on whether its scenarios fail consistently.
+		// third two rows of the STATIC outline report reason ERROR -- the
+		// launchpad race above wearing another field's clothes, not a
+		// vocabulary disagreement. Judge this capability on whether its
+		// scenarios fail consistently.
 		tck.WithCapabilities(
 			tck.Object,
 			tck.NumericCoercion,

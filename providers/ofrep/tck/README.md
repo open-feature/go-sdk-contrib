@@ -18,13 +18,13 @@ Docker is the only prerequisite; there is no submodule to check out and no conta
 ## Backend
 
 The unmodified `flagd-testbed` image, described by
-[`testdata/docker-compose.yaml`](testdata/docker-compose.yaml). flagd serves the OFREP API on
-container port **8016** alongside its own protocols and the launchpad control API on **8080**, so the
-provider is exercised against a real, conformant OFREP backend seeded with the canonical flag set,
-with no new image. As in the flagd adoption, the Compose file is purpose-built rather than the
-testbed submodule's, and publishes only 8016 and 8080. Its image tag is pinned here and in
-`providers/flagd/tck/testdata/` — bump both together, because a cross-provider disagreement is only
-evidence if both providers answered the same backend.
+[`tests/flagd-testbed/docker-compose.yaml`](../../../tests/flagd-testbed/docker-compose.yaml). flagd
+serves the OFREP API on container port **8016** alongside its own protocols and the launchpad control
+API on **8080**, so the provider is exercised against a real, conformant OFREP backend seeded with the
+canonical flag set, with no new image. That Compose file is one file for every conformance adoption
+in this repository rather than a copy per module, because a cross-provider disagreement is only
+evidence if both providers answered the same backend; this suite asks the harness for 8016 and the
+flagd suites ask for 8013 and 8015.
 
 ## What it declares
 
@@ -43,7 +43,7 @@ beside the declaration in [`tck_test.go`](tck_test.go).
 | `@events` | no | No `EventChannel`; the provider can never publish a provider event. |
 | `@configuration-change`, `@stale` | no | Follow from `@events`. Values do change on the next evaluation; nothing signals that they did. |
 | `@lifecycle`, `@unavailable` | no | Nothing to initialise or shut down, so `lifecycle.feature` would assert SDK behaviour: the SDK synthesises `PROVIDER_READY` for a provider with no `StateHandler`, even against a backend that does not exist. |
-| `@large-integers` | no | Not a provider property: `large-integer-flag` is absent from `flagd-testbed`, so nothing can be established — [flagd-testbed#392](https://github.com/open-feature/flagd-testbed/issues/392). |
+| `@large-integers` | no | Not a provider property: `large-integer-flag` is absent from `flagd-testbed`, so nothing can be established — [flagd-testbed#392][testbed-392]. |
 
 The two rows turning on a *backend* gap rather than a provider property follow [Appendix F's first
 rule for declaring][appendix-f-rules], where the unit is the scenario and not the tag:
@@ -62,22 +62,23 @@ decoding doing it by accident.
 
 ## The tally
 
-**Three failures are the floor, and all three are the backend fixture**: `flagd-testbed` serves
-neither `integral-float-flag` nor `large-integer-flag`, so the two scenarios asking for them fail with
-`FLAG_NOT_FOUND` and the last `@variants` row has no variant to name. flagd-testbed#392 makes all
-three go green together. None gets a known-deviation entry, because that would attribute a fixture
-gap to the provider; no provider deviation is recorded at all.
+**Three failures are the floor, and all three are the backend fixture**: the two flags the pinned
+`flagd-testbed` image does not serve, which [flagd-testbed#392][testbed-392] adds. None gets a
+known-deviation entry, because that would attribute a fixture gap to the provider; no provider
+deviation is recorded at all.
 
 **Most runs have more than three, and the number moves.** Eleven consecutive runs against
 `flagd-testbed:v3.8.0` gave 41, 12, 11, 33, 5, 19, 21, 40, 20, 4 and 3 failures — three of the worst
 from the hand-rolled container wrapper this suite replaced, which is how we know the flapping belongs
 to the backend. Every extra failure is `FLAG_NOT_FOUND`, a stale value, or a `reason` of `ERROR`, on
-a flag the testbed demonstrably serves. The cause is the control API: `POST /start` — which isolates
-each scenario, because the launchpad answers `404` to `/reset` — restarts flagd and polls
-`:8014/readyz`, and flagd answers before its file source has loaded the regenerated flags, so a
-stateless provider races that load every scenario. **No sleep or retry is being added to compensate.**
-Read a red run against the floor, judge `@standard-reasons` on whether its scenarios fail
-*consistently*, and re-run before concluding.
+a flag the testbed demonstrably serves. It is the launchpad's `POST /start` returning before the
+flags are evaluable, which a provider with no initialisation to block on races on every scenario;
+[flagd-testbed#394][testbed-394] measures it and fixes it. **No sleep or retry is being added to
+compensate.** Read a red run against the floor, judge `@standard-reasons` on whether its scenarios
+fail *consistently*, and re-run before concluding.
+
+[testbed-392]: https://github.com/open-feature/flagd-testbed/pull/392
+[testbed-394]: https://github.com/open-feature/flagd-testbed/pull/394
 
 [appendix-f-ci]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci
 [appendix-f-rules]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring
