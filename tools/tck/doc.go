@@ -5,7 +5,8 @@
 // [Appendix F] of the OpenFeature specification, and it runs the same Gherkin
 // scenarios, against the same canonical flag set, that every other language's
 // TCK runs. That shared basis is the whole point — "conformant" only means
-// something if the question is identical everywhere.
+// something if the question is identical everywhere. Appendix F is the contract;
+// this package documents the Go binding of it, and [the README] the rest.
 //
 // # What a provider author writes
 //
@@ -33,89 +34,21 @@
 //
 // Put it in a module of its own, at providers/<name>/tck, beside the provider's
 // e2e suite rather than inside it, and give the file a //go:build tck
-// constraint. In this repository the suite has a step of its own — `make tck`
-// runs the modules named tck under a component directory and `make e2e` runs the
-// others, then builds these under -tags=tck without running them — so the
-// directory is what selects the suite and the test's name is free. The tag is
-// not what selects it either; it is what keeps the suite out of an untagged
-// build, so `make test` and a bare `go test ./...` start no containers. A
-// conformance run and an e2e run mean different things by a red result, which is
-// why they are separate; see tools/tck/README.md.
+// constraint. The directory is what selects the suite — `make tck` runs those
+// modules and `make e2e` runs the others — and the tag is what keeps it out of
+// an untagged build, so `make test` and a bare `go test ./...` start no
+// containers. A conformance run and an e2e run mean different things by a red
+// result, which is why they are separate.
 //
-// See [WithComposeFile]. A provider with no backend to contain — in-memory,
-// in-process — supplies its own control and builds its provider without an
-// endpoint instead, through [WithControl] and [WithProvider].
+// A provider with no backend to contain — in-memory, in-process — supplies its
+// own control and builds its provider without an endpoint instead, through
+// [WithControl] and [WithProvider]. See [BackendControl] for which path fits,
+// which is not a matter of taste.
 //
-// # Options rather than a struct
-//
-// Every setting is one [Option], so the suite can gain a capability without
-// every adoption having to be edited, and so that a required setting is named in
-// one place rather than being a zero value someone has to remember means
-// "unset". A missing required option is reported by name before anything starts.
-//
-// # Capabilities
-//
-// Not every provider implements every optional part of the contract. Scenarios
-// exercising an optional part carry a Gherkin tag, and a provider declares which
-// of those it supports through [WithCapabilities]. A scenario whose tag was
-// not declared is reported as skipped with the reason printed — never as
-// passed. See [Capability].
-//
-// # Adding your own scenarios
-//
-// A provider with behaviour the specification does not describe — flagd's
-// fractional targeting, a vendor's segment rules — can run scenarios of its own
-// inside this suite rather than in a harness beside it, through
-// [WithFeatures] and [WithSteps]:
-//
-//	tck.Run(t,
-//	    // ... as above ...
-//	    tck.WithFeatures(os.DirFS("testdata/tck-extensions")),
-//	    tck.WithSteps(func(ctx *godog.ScenarioContext) {
-//	        ctx.Step(`^the fractional bucket is "([^"]*)"$`, theBucketIs)
-//	    }),
-//	)
-//
-// Extension scenarios get the same provider registration, readiness wait and
-// per-scenario backend reset the canonical ones get, and an extension step
-// reaches the provider under test with [ClientFromContext]. They are
-// distinguishable from canonical scenarios in the conformance report: a result
-// whose feature URI starts with "gherkin/" is canonical, one under
-// "extensions/" is the adopter's.
-//
-// Java and Python discover extensions by convention — a classpath scan, a
-// conftest.py — because those languages can scan. Go cannot, so extension here
-// is two options rather than none.
-//
-// # Which control path to use
-//
-// [BackendControl] is the single seam between the scenarios and whatever
-// manipulates the backend. Providers with a real backend drive it over the HTTP
-// control API defined in the specification, at
-// specification/assets/provider-tck/openapi/control-api.yaml; providers
-// with no backend at all may use an in-process implementation such as
-// [InProcessControl]. The distinction matters and is not a matter of taste —
-// see the documentation on [BackendControl] — and a control states which of the
-// two it is, through [ControlAPI], rather than leaving it to be inferred.
-//
-// # One module, container harness included
-//
-// The Compose harness lives in this package rather than in a second module
-// beside it, so an adopter has one import path and one version to track. The
-// cost is visible and worth naming: testcontainers-go and docker/compose are
-// ordinary dependencies of package tck, so a provider with no container to
-// start — in-memory, environment-variable, file-based — still takes those
-// go.sum entries and the ~40 transitive pins behind them. It compiles nothing
-// it does not import, and this is a test-only module that no application binary
-// links, so the cost is confined to `go test` of an adopting module.
-//
-// The alternative was weighed and declined. A tools/tck/compose module would
-// need its own version and release-please entry, and a home for
-// [BackendEndpoint] that both modules can see — which is this package, so the
-// second module would import the first and the split would buy nothing but a
-// second coordinate to publish. After the Compose decision, containerised
-// adopters are the overwhelming majority, and Java keeps testcontainers in its
-// tck artifact for the same reason.
+// Every setting is one [Option]; [Capability] is how a provider declares the
+// optional parts of the contract it supports; [WithFeatures] and [WithSteps]
+// run scenarios of your own inside this suite.
 //
 // [Appendix F]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md
+// [the README]: https://github.com/open-feature/go-sdk-contrib/blob/main/tools/tck/README.md
 package tck
