@@ -59,8 +59,21 @@ and loses information one way round". The price is a second failure that is not 
 
 ## The tally
 
-**65 scenarios: 61 pass, 4 fail**, the same four in both resolvers. One is the provider's — the lossy
-narrowing above. The other three are the two flags the pinned testbed image does not serve, which
+**65 scenarios each. In-process: 59 pass, 2 skip, 4 fail. RPC: 58 pass, 3 skip, 4 fail.** The
+resolvers differ by one skip because RPC also withholds `@stale`.
+
+**Read those numbers from the suite's own summary line, not from godog's.** godog prints
+`65 scenarios (61 passed, 4 failed)` for both resolvers, because it counts a capability-gated skip as
+a pass — the exact defect the conformance report exists to correct, visible in this suite's own
+output. The honest count is on the line underneath:
+
+```
+65 scenarios (61 passed, 4 failed)
+    tck [flagd-rpc]: 3 scenario(s) skipped because a capability was not declared.
+```
+
+The four failures are the same set in both resolvers. One is the provider's — the lossy narrowing
+above. The other three are the two flags the pinned testbed image does not serve, which
 [flagd-testbed#392][testbed-392] adds; none gets a known-deviation entry, because an entry there
 would attribute a fixture gap to the provider.
 
