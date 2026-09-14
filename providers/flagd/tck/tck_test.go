@@ -69,7 +69,7 @@ var (
 			"rather than in either transport. One further @numeric-coercion scenario fails here "+
 			"for a reason that is NOT the provider's, and is named so that a reader does not count "+
 			"it against flagd: the other lossless scenario asks for integral-float-flag (10.0) as "+
-			"an integer, and that flag is absent from flagd-testbed v3.8.0, so it fails with "+
+			"an integer, and that flag is absent from every released flagd-testbed, so it fails with "+
 			"FLAG_NOT_FOUND (open-feature/flagd-testbed#392). That cost is accepted knowingly "+
 			"rather than used as a reason to withhold the tag. The rule is flagd's own accepted "+
 			"numeric-coercion ADR rather than a specification requirement -- the specification "+
