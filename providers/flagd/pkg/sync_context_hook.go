@@ -29,9 +29,12 @@ func NewSyncContextHook(contextEnricher func() *of.EvaluationContext) SyncContex
 // Before returns the sync-context merged over the context accumulated by the hooks
 // that ran before this one.
 //
-// Merging is done here deliberately. The go-sdk replaces - rather than merges - the
-// HookContext's evaluation context with each before-hook result, so returning the
-// sync-context on its own would silently drop whatever earlier hooks contributed.
+// Merging is done here deliberately. Up to and including go-sdk v1.18.0 - the version
+// this module pins - Client.beforeHooks replaces, rather than merges, the HookContext's
+// evaluation context with each before-hook result, so returning the sync-context on its
+// own would silently drop whatever earlier hooks contributed. Fixed upstream by
+// open-feature/go-sdk#569, which is not in a release yet; once this module bumps past it
+// the merge below becomes redundant (the SDK merges with the same precedence) and can go.
 // The resulting precedence matches the spec and the Java implementation:
 // sync-context > earlier before-hooks > invocation > client > transaction > global.
 func (hook SyncContextHook) Before(
