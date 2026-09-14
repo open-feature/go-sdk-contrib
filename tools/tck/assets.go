@@ -6,26 +6,14 @@ import (
 
 // NOTE ON THE SOURCE OF TRUTH
 //
-// The conformance artifacts are NOT owned by this repository. They are the
-// language-agnostic definitions kept in open-feature/spec under
-// specification/assets/provider-tck/, and that directory is also a Go module
-// whose only content is an embed.FS of them. This package depends on it the
-// way it depends on any other module, so the revision of the specification
-// this suite conforms to is the one pinned in go.mod -- one version, verified
-// against the Go checksum database on every build, advanced by `go get` and by
-// nothing else.
-//
-// That is the whole point of the arrangement. A vendored copy can be edited in
-// place, and an edited copy forks the definition of conformance, which is the
-// one thing this suite exists to prevent. A module version cannot be edited:
-// the same version always resolves to the same bytes, for every consumer.
-// Changes belong in open-feature/spec; adopting them here means moving the pin.
-//
-// A git submodule would not do. Go modules ship as a zip of the VCS tree, in
-// which a submodule is only a gitlink, so an embed from a submodule compiles
-// in this repository and arrives empty for anyone running `go get`.
-//
-// See https://github.com/open-feature/spec/issues/417.
+// The conformance artifacts are NOT owned by this repository. They live in
+// open-feature/spec under specification/assets/provider-tck/, which is also the
+// Go module imported above; its own README documents how Go consumes it, why a
+// submodule would not do, and what a version bump means. So the revision this
+// suite conforms to is the one pinned in go.mod, and nothing else -- there is no
+// copy here to edit, and an edited copy would fork the definition of
+// conformance. Changes belong in open-feature/spec; adopting them here means
+// moving the pin.
 
 // assets carries the conformance artifacts, keyed by their path within the
 // spec directory: gherkin/*.feature, flags/canonical-flags.json and
@@ -41,8 +29,9 @@ const featuresPath = "gherkin"
 //
 // This is the flag set every scenario assumes, and a backend under test must
 // serve an equivalent one. The format is not what matters -- the keys, types,
-// variant names and resolved values are. Seed them however your backend seeds
-// flags.
+// variant names and resolved values are. Read the assets module's README before
+// seeding: it names the five properties of this set that a seeding step is most
+// likely to break.
 //
 // It is exposed so that an adopting provider can seed a backend directly from
 // the canonical definition rather than transcribing it, transcription being the
@@ -60,21 +49,17 @@ func CanonicalFlags() []byte {
 // ControlAPISpec returns the OpenAPI document describing the HTTP control API
 // that a containerised backend under test must expose.
 //
-// It is the normative contract for providers with a real backend. Three of its
-// requirements are easy to get wrong and worth reading before implementing a
-// testbed:
+// It is the normative contract for providers with a real backend. Appendix F's
+// "The control API" states the two invariants a testbed author is most likely to
+// break — no container is stopped or restarted to simulate an outage, and no
+// state-changing endpoint returns before the new state is being served — and
+// why a suite must not paper over a backend that breaks the second.
 //
-//   - Containers are never stopped or restarted to simulate an outage.
-//     Unavailability happens inside the running stack, through POST /stop.
-//   - Every state-changing endpoint — POST /start, /change and /reset —
-//     must not return until the new state is actually being served. That is
-//     the backend's promise and not the provider's: how long the provider
-//     under test takes to notice is what the suite's event timeout covers.
-//   - POST /restart is optional, and no shipped scenario reaches it. The
-//     disconnect/reconnect scenario is an unbounded outage, which this suite
-//     drives with /stop followed by /start. Implement /restart if you want a
-//     future caching scenario — which needs its flag-state preservation —
-//     testable against your backend.
+// What is this suite's own rather than the contract's: POST /restart is optional
+// and no shipped scenario reaches it. The disconnect/reconnect scenario is an
+// unbounded outage, which this suite drives with /stop followed by /start.
+// Implement /restart if you want a future caching scenario — which needs its
+// flag-state preservation — testable against your backend.
 func ControlAPISpec() []byte {
 	b, err := assets.ReadFile("openapi/control-api.yaml")
 	if err != nil {

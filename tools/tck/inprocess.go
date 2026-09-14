@@ -28,28 +28,25 @@ const (
 //
 // It is decoded from the specification's canonical-flags.json — the bytes
 // CanonicalFlags returns — rather than transcribed, so that the in-memory
-// suites cannot drift from the file every other language seeds from. Three
-// properties of that file are load-bearing and survive the decoding:
+// suites cannot drift from the file every other language seeds from. The assets
+// module's README lists the properties of that file a seeding step is most
+// likely to break; two things about this decoder in particular are worth
+// knowing, because both would otherwise look like omissions:
 //
-//   - missing-flag is absent, which is what the FLAG_NOT_FOUND scenario tests.
-//     Adding it turns that scenario green for the wrong reason.
-//   - no flag gets a ContextEvaluator, so every evaluation reports reason
-//     STATIC, which is what the untargeted feature files expect. The TCK tests
-//     a provider's mapping of a response, not a backend's evaluation logic.
-//     targeting-key-flag is the one flag in the file carrying a targeting
-//     rule, and that member is deliberately not read: translating flagd's
-//     JsonLogic into a ContextEvaluator would make these suites a test of a
-//     rule engine written here. So the flag resolves to its miss variant
+//   - No flag gets a ContextEvaluator, so every evaluation reports reason
+//     STATIC, which is what the untargeted feature files expect.
+//     targeting-key-flag's rule member is deliberately not read: translating
+//     flagd's JsonLogic into a ContextEvaluator would make these suites a test
+//     of a rule engine written here. So the flag resolves to its miss variant
 //     whatever the context, and a suite over this flag set leaves Targeting
-//     undeclared rather than failing the match scenario. Undeclared is the
-//     accurate report: an in-memory flag set evaluates no rules.
-//   - a number keeps the type it was written with: 10 becomes an int64 and
-//     10.0 a float64. memprovider type-asserts, so that is what keeps
-//     integer-flag an integer and integral-float-flag a float. Plain
-//     encoding/json would decode both as float64, and a loader that then
-//     turned integral floats back into int64 would make integral-float-flag
-//     an integer flag — which the file's own comment warns lets the lossless
-//     coercion scenario pass without coercing anything. See numberValue.
+//     undeclared rather than failing the match scenario — which is the accurate
+//     report, an in-memory flag set evaluating no rules.
+//   - A number keeps the type it was written with: 10 becomes an int64 and 10.0
+//     a float64. memprovider type-asserts, so that is what keeps integer-flag
+//     an integer and integral-float-flag a float. Plain encoding/json would
+//     decode both as float64, and a loader that then turned integral floats
+//     back into int64 would make the lossless coercion scenario pass without
+//     coercing anything. See numberValue.
 func CanonicalFlagSet() map[string]memprovider.InMemoryFlag {
 	flags, err := decodeCanonicalFlags(CanonicalFlags())
 	if err != nil {
@@ -201,12 +198,9 @@ func changingFlag(defaultVariant string) memprovider.InMemoryFlag {
 // event the suite awaits is the provider's own PROVIDER_CONFIGURATION_CHANGED
 // rather than one the TCK synthesised.
 //
-// This is not a shortcut for providers that do have a backend. Reaching into an
-// external backend from inside the test process — a test-only admin client, a
-// shared database handle, a hook in the provider — produces a suite that passes
-// while proving nothing, because the path it exercised is not the path the
-// contract describes. Those providers drive the HTTP control API instead. See
-// BackendControl.
+// This is not a shortcut for providers that do have a backend; those drive the
+// HTTP control API instead. See BackendControl for why that is not a matter of
+// taste.
 //
 // # Connection control
 //

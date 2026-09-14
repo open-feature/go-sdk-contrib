@@ -81,16 +81,14 @@ type composeConfig struct {
 //
 // Docker assigns them dynamically and the suite discovers them after startup. A
 // pinned host port makes the suite unrunnable in parallel and collides with
-// whatever the developer already has listening.
+// whatever the developer already has listening. Write no `ports: - "8013:8013"`
+// in the file you pass here.
 //
 // # The stack starts once and is never restarted
 //
-// Not a matter of preference. Testcontainers cannot reliably preserve
-// dynamically mapped host ports across a container restart, so a restart would
-// silently invalidate every provider already pointed at the old port and the
-// resulting failure would look like a flaky provider. Backend unavailability is
-// always simulated inside the running stack, through the control API. See
-// HTTPControl.
+// Appendix F's invariant, not a preference of this harness: backend
+// unavailability is always simulated inside the running stack, through the
+// control API. See HTTPControl.
 //
 // # This does not replace WithControl
 //
