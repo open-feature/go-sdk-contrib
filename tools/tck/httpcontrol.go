@@ -35,13 +35,10 @@ const defaultControlTimeout = 30 * time.Second
 //
 // # What it never does
 //
-// It never stops, kills or recreates a container. Unavailability is simulated
-// inside the running stack, through POST /stop, because container
-// orchestrators assign host ports dynamically and cannot reliably preserve
-// them across a restart — a restarted backend generally comes back on a
-// different host port, silently invalidating every provider already pointed at
-// the old one, and the resulting failure looks like a flaky provider. Starting
-// and stopping the stack itself belongs to the adopting test, once per suite.
+// It never stops, kills or recreates a container: unavailability is simulated
+// inside the running stack, through POST /stop. That is Appendix F's first
+// control-API invariant and it has the argument. Starting and stopping the
+// stack itself belongs to the suite, once per run.
 //
 // # Scenario isolation
 //
@@ -135,20 +132,18 @@ func NewHTTPControl(opts HTTPControlOptions) (*HTTPControl, error) {
 //
 // This is the only wait in the suite that is a wait rather than an assertion,
 // and it is deliberately the only one. There is no settle after a control call:
-// the control API's promise is that a command has taken effect when it returns
-// — stated for /start, /change and /reset alike in control-api.yaml, each of
-// which must not return until the new state is being served — and a suite that
-// sleeps instead of holding it to that promise stops being able to detect when
-// it breaks. If a scenario is flaky immediately after a control call, that is a
-// defect in the backend's control API and worth an issue there.
+// control-api.yaml promises that /start, /change and /reset have taken effect
+// when they return, and Appendix F is explicit that a suite must not paper over
+// a backend that breaks that promise. A scenario that flaps immediately after a
+// control call is a defect in the backend's control API and worth an issue
+// there.
 //
-// Note which side of the line that promise sits on. It is the backend's: a
-// fresh evaluation against the backend must resolve the new state once the call
+// Which side of the line the promise sits on decides which knob is which. It is
+// the backend's: a fresh evaluation must resolve the new state once the call
 // returns. How long the provider under test takes to notice is a property of
-// its transport — streaming sees a change in milliseconds, a poller may need
-// most of an interval — and that is what the event timeout is for. Confusing
-// the two makes the provider's detection latency unmeasurable, because the
-// clock starts before there is anything to detect.
+// its transport, and that is what WithEventTimeout is for. Sleeping here would
+// make the provider's detection latency unmeasurable, the clock starting before
+// there is anything to detect.
 func (c *HTTPControl) AwaitReady(ctx context.Context, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	var last error
