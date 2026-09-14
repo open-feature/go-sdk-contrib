@@ -22,34 +22,17 @@ import (
 // switches resolver, which is exactly the kind of thing the suite exists to
 // surface.
 //
-// There is no container code in this file. The suite owns the stack: it is
-// handed the Compose file below, told which container-internal port each
-// resolver connects to, and given a factory that builds a provider from the
-// host ports it discovered. Everything else — starting the stack once, waiting
-// for the launchpad to accept commands, resetting the backend between
-// scenarios, tearing down — belongs to tck.Run. The hand-rolled wrapper this
-// replaces read the testbed's compose file through
-// tests/flagd/testframework.NewFlagdContainer, created a temporary flags
-// directory for it to bind-mount, built the HTTP control itself and looked up
-// two named ports by string; all of that is now the harness's, and every future
-// adopter gets it without writing it.
-//
-// The provider's e2e suites are untouched and stay where they are, in
-// providers/flagd/e2e — a sibling module, not a parent. They test flagd against
-// flagd's own harness and are expected green; this suite tests the provider
-// against the OpenFeature provider contract and fails scenarios by design
-// wherever a deviation below is declared, so filing it under theirs would put
-// two different meanings of red on one signal. flagd-testbed is untouched too:
-// the TCK drives its launchpad through the standardised control API, which the
-// launchpad already implements.
+// There is no container code here: the suite owns the stack. README.md has what
+// each resolver declares, the tally to read a red run against, and why this is a
+// module of its own rather than part of providers/flagd/e2e.
 
 const (
-	// composeFile describes the backend stack. Resolved relative to this
-	// package directory, which is where `go test` runs.
-	//
-	// Deliberately not the testbed submodule's own compose file — see the
-	// comment at the top of it for why.
-	composeFile = "testdata/docker-compose.yaml"
+	// composeFile describes the backend stack. It is shared with the other
+	// conformance adoptions in this repository so that the image tag cannot
+	// drift between suites whose results are only comparable if both answered
+	// the same backend. Resolved relative to this package directory, which is
+	// where `go test` runs.
+	composeFile = "../../../tests/flagd-testbed/docker-compose.yaml"
 
 	// rpcPort and inProcessPort are the container-internal ports the two
 	// resolvers connect to. The launchpad's control port is exposed by the
@@ -64,57 +47,15 @@ const (
 	unavailablePort = 9999
 )
 
-// The gaps this provider is known to have, as opposed to the capabilities it
-// simply does not implement.
-//
-// Narrowing the capability list says a scenario did not run; it cannot say
-// whether that is because the provider declines the capability or because it
-// fails at it. In the results the two are the same skip carrying the same
-// reason, so a consumer comparing providers reads a defect as a design choice
-// unless something says otherwise. This entry is that something.
-//
-// WHAT DOES NOT BELONG HERE is the more useful half of the lesson, because two
-// entries were written and then deleted before this file was committed. Before
-// recording a deviation, find the numbered requirement the scenario maps to and
-// read what it actually says:
-//
-//   - Re-initialisation after shutdown. The scenario fails in both resolvers,
-//     and it is not a deviation. Requirement 2.5.2 says a provider SHOULD
-//     revert to its uninitialized state and its supporting text says "some
-//     providers MAY allow reinitialization from this state" -- permitted, not
-//     required. So the scenario is gated on @reinitialization, which this
-//     adoption simply does not declare. See the RPC suite below.
-//
-//   - PROVIDER_STALE on the RPC resolver. Requirement 5.1.1's supporting text
-//     says a provider "can" signal an outage with PROVIDER_ERROR, and that one
-//     which caches rule-sets or evaluations "can" signal PROVIDER_STALE. Both
-//     are permitted; neither is required. The RPC resolver takes the first
-//     option, which is a design choice and not a defect. See the RPC suite
-//     below.
-//
-// A false failure is the mirror image of a vacuous pass, and a deviation
-// recorded against a permitted choice is how the first one gets published.
 var (
-	// Tracked against flagd's numeric coercion ADR, which is where the rule
-	// this deviates from is settled: coercion is permitted when it is lossless
-	// and must fail with TYPE_MISMATCH only when information would be lost. The
-	// summary says which half is broken, because "flagd coerces numbers" on its
-	// own reads as a description of intended behaviour rather than a defect.
+	// The one gap this provider is known to have. It is measured against
+	// flagd's own accepted numeric-coercion ADR rather than against the
+	// specification, which does not define coercion at all — so a consumer
+	// should not read it as a specification violation, and the summary says so.
 	//
-	// This is the one deviation here whose rule survives the check described
-	// above, and it survives it in an unusual way: the rule is not in the
-	// specification at all, but flagd accepted it for itself and has an open
-	// issue to implement it, so the provider is measured against its own
-	// commitment. The summary says so, because a consumer should not read this
-	// as a specification violation.
-	//
-	// It accompanies a capability that IS declared, which is the shape Appendix
-	// F asks for: the scenario runs, it fails, and this entry says the failure
-	// is known and why. This file used to withhold @numeric-coercion and record
-	// this deviation at the same time -- the one combination the appendix
-	// singles out to avoid, because it asserts a defect at something the suite
-	// never put to the provider. See the RPC suite below for the measurement
-	// that settles which of the two shapes is right here.
+	// It accompanies a capability that IS declared: the scenario runs, it
+	// fails, and this entry says the failure is known and why. See the RPC
+	// suite below for the measurement that settled which shape is right.
 	numericCoercionDeviation = tck.TrackedDeviation(
 		tck.NumericCoercion,
 		"https://github.com/open-feature/flagd/issues/1996",
@@ -152,28 +93,15 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// openfeature.StateHandler; this provider implements Init, Status and
 		// Shutdown, and Init can and does fail.
 		//
-		// Go withheld this capability while Java declared it, which is why Java
-		// ran 36 of the 40 scenarios and Go ran 29. Withholding it is the
-		// expensive mistake, not declaring it: it made this adoption blind to
-		// six scenarios another language was running.
-		//
-		// tck.Reinitialization is NOT declared, and that is a choice the
-		// specification offers rather than a gap. Requirement 2.5.2 says a
-		// provider SHOULD revert to its uninitialized state after shutdown and
-		// its supporting text says "some providers MAY allow reinitialization
-		// from this state", so reuse is permitted and not required. This
-		// provider does not offer it: Shutdown clears the provider's own
+		// tck.Reinitialization is NOT declared, and that is a choice
+		// Requirement 2.5.2 offers rather than a gap, so it gets no
+		// knownDeviations entry. Measured: Shutdown clears the provider's own
 		// initialised flag, so a second Init proceeds, but what it then waits
 		// for never arrives -- the RPC service's event stream never signals
 		// ready again -- and Init returns "provider initialization deadline
-		// exceeded". Leaving the tag undeclared reports "A provider that was
-		// shut down can be initialized again" as skipped with its reason, which
-		// is the accurate result. It gets no knownDeviations entry, because
-		// nothing is deviating.
-		//
-		// That scenario was mandatory until spec fc99d5ac, failed here, and was
-		// written down as a known deviation against this provider before anyone
-		// read 2.5.2. Gating it is the fix.
+		// exceeded". Undeclared, "A provider that was shut down can be
+		// initialized again" is reported as skipped with its reason, which is
+		// the accurate result.
 		//
 		// tck.Stale is NOT declared either. That is a real difference between
 		// the two resolvers, confirmed by running rather than inferred from the
@@ -186,42 +114,24 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// pkg/service/rpc/service.go, where losing the stream sends
 		// of.ProviderError directly. The in-process resolver, by contrast,
 		// emits PROVIDER_STALE on connection loss and only escalates to
-		// PROVIDER_ERROR once the retry grace period expires.
+		// PROVIDER_ERROR once the retry grace period expires. So the two
+		// resolvers of the same provider report an outage differently: an
+		// application that switches from in-process to RPC stops receiving
+		// stale events. That is worth knowing and is why it is written down
+		// here.
 		//
-		// So the two resolvers of the same provider report an outage
-		// differently: an application that switches from in-process to RPC
-		// stops receiving stale events. That is worth knowing and is why it is
-		// written down here -- but it is not a conformance defect, and it gets
-		// no knownDeviations entry. Requirement 5.1.1's supporting text offers
-		// both behaviours in the same breath: a provider unable to evaluate
-		// flags "can" signal that with PROVIDER_ERROR, and a provider that
-		// caches rule-sets or evaluations "can" signal PROVIDER_STALE. "Can",
-		// twice. The RPC resolver takes the first option and goes to ERROR,
-		// which also means it is not quietly serving cached values while
-		// disconnected -- the SDK short-circuits to the code default instead.
-		// Declare this if and when the RPC resolver emits PROVIDER_STALE.
-		//
-		// Worth stating plainly, because the pull is the other way: the JS and
-		// Java adoptions declare @stale for both resolvers. On this evidence
-		// that is a vacuous declaration for RPC -- the event never arrives --
-		// which is a reason to leave it withheld here, not a reason to copy
-		// them.
+		// It is not a conformance defect and gets no knownDeviations entry.
+		// Requirement 5.1.1's supporting text offers both behaviours in the
+		// same breath: a provider unable to evaluate flags "can" signal that
+		// with PROVIDER_ERROR, and a provider that caches rule-sets or
+		// evaluations "can" signal PROVIDER_STALE. "Can", twice. The RPC
+		// resolver takes the first option and goes to ERROR, which also means
+		// it is not quietly serving cached values while disconnected -- the SDK
+		// short-circuits to the code default instead. Declare this if and when
+		// the RPC resolver emits PROVIDER_STALE.
 		//
 		// tck.NumericCoercion IS declared, and one of its three scenarios
-		// fails. That combination is the point of declaring it: this provider
-		// attempts the coercion and gets one direction wrong, and only a
-		// scenario that runs can say so.
-		//
-		// The rule that decides it is Appendix F's first rule for declaring,
-		// and it is cited rather than re-derived here: declare a capability
-		// when at least one scenario gating it can actually be put to the
-		// provider, withhold it only when none can -- the unit is the scenario,
-		// not the tag. This tag has three scenarios and this backend can be
-		// asked two of them, so it is declared; tck.LargeIntegers below has one
-		// and the backend serves no flag for it, so it is withheld. One rule,
-		// both answers. What follows is that rule applied to measurements.
-		//
-		// Measured over three full runs, both resolvers, identically:
+		// fails. Measured over three full runs, both resolvers, identically:
 		//
 		//   - "An integer requested as a float is widened without loss" PASSES.
 		//     integer-flag (10) through GetFloatDetails returns 10 with reason
@@ -234,99 +144,48 @@ func TestFlagdRPCConformance(t *testing.T) {
 		//     That is the deviation recorded above.
 		//   - "An integral float requested as an integer is coerced without
 		//     loss" FAILS, and this one is the backend's: integral-float-flag
-		//     is absent from flagd-testbed v3.8.0, so it fails with
+		//     is absent from the pinned testbed image, so it fails with
 		//     FLAG_NOT_FOUND. Same fixture gap as tck.LargeIntegers below, not
 		//     a second provider defect, and the deviation summary says so.
 		//
-		// This file used to withhold the tag AND record the deviation, which is
-		// the one combination Appendix F's known-deviation guidance singles out
-		// to avoid: a withheld capability plus a deviation asserts that the
-		// provider is broken at something the suite never asked it. The three
-		// skips that produced could not distinguish "does not coerce" from
-		// "coerces, and loses information one way round" -- and the widening
-		// pass above is exactly that distinction. Declaring leaves the lossy
-		// failure visible with the deviation explaining it, which is the shape
-		// to prefer. Java's flagd adoption hit this and switched for the same
-		// reason.
-		//
-		// The fixture failure is the price of declaring, and it is paid rather
-		// than dodged: one red scenario that belongs to flagd-testbed is a
-		// smaller loss than three skips that misdescribe the provider. Worth
-		// noticing that withholding to avoid it would have been the capability
-		// field doing the fixture's work, which is the same error as recording
-		// a deviation against a permitted choice, in the other direction.
-		//
-		// Both resolvers narrow identically, so the defect is in this
-		// provider's shared layer rather than in either transport. The Java
-		// flagd provider does it too. The Python one splits, which is worth
-		// stating precisely because this comment used to claim otherwise: its
-		// in-process resolver refuses 0.5 correctly, and its RPC resolver
-		// narrows it to 0 exactly as this one does. Two resolvers of one
-		// provider disagreeing -- so the server is not the thing getting it
-		// wrong, and no language has it right in both paths.
-		//
-		// flagd's own fix is open-feature/flagd#1996, which implements flagd's
-		// numeric coercion ADR: coercion is permitted when lossless, so
-		// 10 -> 10.0 keeps working and 10.0 -> 10 becomes testable once the
-		// testbed serves the flag, and it must return TYPE_MISMATCH when
-		// coercion would lose information, which 0.5 does.
-		//
-		// Worth knowing when reading this: the specification does not actually
-		// require that. OpenFeature has one numeric type, of "unspecified type
-		// or size", and differentiating integers from floats is an optional
-		// language idiom -- so this capability is tested against a rule
-		// borrowed from flagd rather than a requirement, and the gap in the
-		// provider contract is open-feature/spec#430. That is a reason to read
-		// this deviation as flagd-against-flagd, not a reason to skip it.
+		// So two of the three scenarios can be put to this provider, which is
+		// what Appendix F's first rule for declaring turns on, and the widening
+		// pass is exactly what distinguishes "does not coerce" from "coerces,
+		// and loses information one way round". Both resolvers narrow
+		// identically, so the defect is in this provider's shared layer rather
+		// than in either transport.
 		//
 		// tck.LargeIntegers is NOT declared, and this absence is neither a
-		// choice nor a provider defect: huge-integer-flag is absent from
-		// flagd-testbed, so the capability cannot be verified against this
-		// backend at all. Two scenarios fail for the same reason -- the
+		// choice nor a provider defect: huge-integer-flag is absent from the
+		// pinned testbed image, so the capability cannot be verified against
+		// this backend at all. Two scenarios fail for the same reason -- the
 		// untagged "A large integer resolves without loss of precision", and
 		// the last row of the @variants outline below, which asks
 		// large-integer-flag for its max-int32 variant and gets "" because the
 		// flag is not there to have one. They are the only failures this suite
 		// carries that say nothing whatever about the provider: Go's
-		// ResolveIntValue is int64 and has room for both values.
-		// open-feature/flagd-testbed#392 adds the flags; declare this and both
-		// failures go away together once it lands. It gets no knownDeviations
-		// entry on purpose, because the gap is in the fixture and an entry
-		// there would attribute it to the provider.
-		//
-		// Both of those last two sentences are the consequences Appendix F
-		// states alongside the rule cited above, rather than judgements made
-		// here: a scenario failing for a missing fixture is not a provider
-		// defect and must not be recorded as one, and a capability withheld for
-		// a backend gap is temporary in a way one withheld by choice is not, so
-		// the issue is named or the withholding outlives its reason.
-		//
-		// Worth separating from the refusal the suite itself performs, now that
-		// there is one: tck.LargeIntegers is inexpressible in Java, where the
-		// integer accessor is 32 bits, and a Java suite is refused the
-		// declaration outright. Nothing like that applies here -- Go can ask
-		// the question and this provider would answer it. The tag is withheld
-		// because the backend has no flag to ask about, which is a third thing
-		// again, and the one a reader of this report should take it as.
+		// ResolveIntValue is int64 and has room for both values. Declare this
+		// and both failures go away together once flagd-testbed#392 lands. It
+		// gets no knownDeviations entry on purpose, because the gap is in the
+		// fixture and an entry there would attribute it to the provider. Read
+		// it as "the backend has no flag to ask about", not as "Go cannot ask":
+		// Go can, and this provider would answer.
 		//
 		// tck.Variants IS declared, on the evidence of the run rather than on
 		// the reasoning that flagd obviously has variants. Seven of the eight
 		// rows pass in both resolvers: the variant name survives the trip from
 		// the ruleset through the wire format into ResolutionDetail for
 		// booleans, strings, integers, floats and all three falsy flags. The
-		// eighth is the fixture gap described above and not a variant defect,
-		// which is why the capability is declared rather than withheld -- a
-		// withheld tag would skip seven working rows to hide one missing flag.
+		// eighth is the fixture gap described above, so withholding the tag
+		// would skip seven working rows to hide one missing flag.
 		//
 		// tck.DisabledFlags IS declared, on the evidence of the run, and the
 		// run is the only thing that could have settled it. The capability is
 		// gated because what a disabled flag resolves to depends on where the
-		// substitution happens: a provider that evaluates locally can hand
-		// back the caller's default, and one whose backend decides cannot,
-		// because the default never left the process. The RPC resolver is on
-		// the wrong side of that line by construction -- it asks flagd to
-		// resolve every flag -- so the honest expectation was that it would
-		// fail and the in-process resolver would pass.
+		// substitution happens, and the RPC resolver is on the wrong side of
+		// that line by construction -- it asks flagd to resolve every flag --
+		// so the honest expectation was that it would fail and the in-process
+		// resolver would pass.
 		//
 		// It passes in both, and running it is what showed why: flagd's
 		// evaluation response does not have to carry the caller's default. It
@@ -338,46 +197,34 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// The zero value is not what carries it: only the boolean row's
 		// default (false) coincides with its zero, and the other three -- "bye"
 		// against "", 1 against 0, 0.1 against 0.0 -- fail if the response
-		// value is taken. An OFREP response carries no such distinction, which
-		// is what makes the tag worth having.
+		// value is taken.
 		//
 		// All four rows pass in both resolvers. Two verification passes were
 		// needed to say so: one earlier run failed this outline with
 		// FLAG_NOT_FOUND and failed the object scenario with reason ERROR at
 		// the same time, and both went away on re-running. That is the
-		// launchpad reset race the OFREP suite documents at length -- POST
-		// /start returns before flagd's file source has loaded the flags -- and
-		// not a property of this outline. A single red run here means re-run
-		// before concluding anything.
+		// launchpad's start race (open-feature/flagd-testbed#394) and not a
+		// property of this outline. A single red run here means re-run before
+		// concluding anything.
 		//
-		// tck.Targeting IS declared, and it was reserved rather than declarable
-		// until spec 26362f85. All three scenarios pass in both resolvers, and
-		// they assert something this suite could not otherwise see: that the
-		// evaluation context reaches the backend at all. targeting-key-flag has
-		// one JsonLogic rule on the targeting key, so a matching context
-		// resolves to a different value than a non-matching one or none --
-		// which means a provider that silently dropped the context would be
-		// caught by the resolved value itself, with no echo endpoint needed.
-		// The flag has been in flagd-testbed since flagd-testbed#103, released
-		// in v0.5.1 in February 2024, so this needs no image bump -- unlike
-		// tck.LargeIntegers above, which is waiting on one.
+		// tck.Targeting IS declared. All three scenarios pass in both
+		// resolvers, and they assert something this suite could not otherwise
+		// see: that the evaluation context reaches the backend at all.
+		// targeting-key-flag has one JsonLogic rule on the targeting key, so a
+		// matching context resolves to a different value than a non-matching
+		// one or none -- which means a provider that silently dropped the
+		// context would be caught by the resolved value itself, with no echo
+		// endpoint needed. The flag has been in flagd-testbed since v0.5.1, so
+		// this needs no image bump -- unlike tck.LargeIntegers above, which is
+		// waiting on one.
 		//
-		// tck.StandardReasons IS declared, and it is the one capability here
-		// whose scenarios were all new in spec c342461a. flagd reports STATIC
-		// for a rule-less flag, TARGETING_MATCH for a matching rule, DEFAULT
-		// for a rule that exists and did not match, DISABLED for a disabled
-		// flag and ERROR for a failed evaluation -- which is Appendix F's
-		// mapping exactly. Measured rather than read off the source: all nine
-		// executed rows of reason.feature pass in both resolvers.
-		//
-		// It composes with tck.Targeting and tck.DisabledFlags, both declared
-		// above, so all six of its scenarios run here; a suite declaring this
-		// alone would skip the two @targeting rows and the @disabled-flags one
-		// with their reason. Withholding it would cost nothing in coverage of
-		// MUSTs -- values, variants and error codes are asserted elsewhere --
-		// so declaring it is a claim rather than a convenience: flagd uses the
-		// standard vocabulary with the standard meanings, and reason.feature
-		// is what checks that.
+		// tck.StandardReasons IS declared. flagd reports STATIC for a rule-less
+		// flag, TARGETING_MATCH for a matching rule, DEFAULT for a rule that
+		// exists and did not match, DISABLED for a disabled flag and ERROR for
+		// a failed evaluation -- which is Appendix F's mapping exactly.
+		// Measured rather than read off the source: all nine executed rows of
+		// reason.feature pass in both resolvers, and because tck.Targeting and
+		// tck.DisabledFlags are declared too, all six of its scenarios run.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
@@ -410,44 +257,31 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		resolver:    flagd.WithInProcessResolver(),
 
 		// Everything except tck.LargeIntegers and tck.Reinitialization.
-		// Unlike RPC, the in-process resolver emits PROVIDER_STALE on
-		// connection loss, so it can satisfy the @stale scenario -- and does:
-		// the scenario passes here and would fail on RPC, which is the
-		// difference an application would see if it switched resolver.
+		//
+		// tck.Stale IS declared here, and that is the one real difference
+		// between the resolvers: this one emits PROVIDER_STALE on connection
+		// loss, so the @stale scenario passes here and fails on RPC. See the
+		// RPC suite above.
 		//
 		// tck.NumericCoercion IS declared here too, and the two resolvers agree
 		// in both directions -- observed, not inferred. This one widens
 		// integer-flag (10) to 10.0 correctly and narrows float-flag (0.5) to 0
 		// on an integer request exactly as the RPC resolver does, which places
 		// the defect in the shared provider layer and is why one deviation
-		// covers both suites. See the RPC suite above for why the tag is
-		// declared rather than withheld, and for tck.LargeIntegers, which the
-		// testbed cannot exercise at all.
+		// covers both suites. See the RPC suite above, and for
+		// tck.LargeIntegers, which the testbed cannot exercise at all.
 		//
 		// tck.Lifecycle holds here for the same reason it does on RPC, and more
 		// visibly: the in-process resolver syncs the whole ruleset before
 		// reporting ready, so initialisation is unambiguously doing work.
 		//
 		// tck.Reinitialization is NOT declared here either, for the reason the
-		// RPC suite gives: 2.5.2 permits reuse rather than requiring it, and
-		// this resolver does not offer it -- a second Init waits for a sync
-		// that never completes and times out. Undeclared, the scenario is
-		// skipped, which is what it should be.
-		//
-		// Worth knowing when comparing languages: Java's in-process resolver
-		// PASSES that scenario, and would pass it even if it declared the tag,
-		// because its evaluator keeps serving the last-synced ruleset -- so the
-		// assertion is satisfied without a re-initialisation having happened.
-		// A skip that says "not offered" is more honest than a pass that says
-		// nothing.
+		// RPC suite gives, and measured the same way: a second Init waits for a
+		// sync that never completes and times out.
 		//
 		// tck.Variants, tck.Targeting, tck.DisabledFlags and tck.StandardReasons
 		// are declared here as well, and both resolvers produce the identical
-		// result: 65 scenarios, 61 passed, 4 failed. The four failures are the
-		// same set in both. One is the provider's -- the lossy narrowing the
-		// deviation above records. The other three are the fixture's: two
-		// large-integer-flag assertions and the integral-float-flag coercion
-		// scenario, none of which flagd-testbed v3.8.0 can serve.
+		// result: 65 scenarios, 61 passed, 4 failed, the same four in both.
 		// Running both mattered rather than being a formality -- in-process
 		// evaluates the JsonLogic rule itself while RPC has flagd evaluate it,
 		// so the @targeting scenarios exercise genuinely different code, and
@@ -498,20 +332,11 @@ type conformanceSuite struct {
 	gracePeriod     int
 }
 
-// runConformance is where both suites below come, and what keeps a Docker stack
-// out of every pull request is no longer anything about what they are called.
-// Two things hold it, doing two different jobs:
+// runConformance is where both suites above come.
 //
-//   - The directory. This file is in providers/flagd/tck, `make tck` runs that
-//     module and `make e2e` runs the others — and then builds this one under
-//     -tags=tck with an empty -run pattern, so it stays compiled, and
-//     typechecked against tools/tck, without being executed.
-//   - The build tag above. It selects nothing between those two targets; it
-//     keeps this file out of every invocation that asks for no tags at all,
-//     which is what `make test` and a bare `go test ./...` do.
-//
-// There is no environment variable any more, and the tag is not a second one of
-// those: it is visible in the file rather than hidden in a test function.
+// What keeps a Docker stack out of every pull request is the module path and the
+// build tag above, doing two different jobs; neither is this function's name,
+// and nothing asserts it. See README.md and the harness README.
 //
 // The short-mode skip below is not the exclusion either. It is the one guard
 // left for someone who names this package directly and asks for the tag, and it
@@ -528,8 +353,7 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 		// mapped to suite.backendPort, builds the HTTP control against the
 		// launchpad on 8080 and waits until it accepts commands. Scenario
 		// isolation comes from the control API, never from restarting a
-		// container: mapped host ports do not survive a restart, so a restart
-		// would invalidate every provider already pointed at the old one.
+		// container.
 		tck.WithComposeFile(composeFile),
 		tck.WithBackendPorts(suite.backendPort),
 
@@ -572,12 +396,6 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 		}),
 
 		tck.WithCapabilities(suite.capabilities...),
-
-		// Without this the per-suite knownDeviations would be collected and
-		// then dropped on the floor, which is the quietest possible way for a
-		// conformance report to lose the one field that tells a defect apart
-		// from a design choice. It read as wired because the struct field was
-		// populated.
 		tck.WithKnownDeviations(suite.knownDeviations...),
 
 		tck.WithReadyTimeout(suite.readyTimeout),
