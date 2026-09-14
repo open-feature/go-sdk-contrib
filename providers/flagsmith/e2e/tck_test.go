@@ -17,41 +17,27 @@ import (
 // The OpenFeature Provider Conformance Suite, run against the Flagsmith provider in both of its
 // evaluation modes.
 //
-// Flagsmith resolves flags two ways and they are separate suites because they are separately
-// conformant. Remote evaluation calls the backend's /api/v1/flags/ and the *backend* evaluates;
-// local evaluation fetches the environment document and the *SDK* evaluates in-process.
-//
-// That split is worth more here than it looks. Flagsmith's evaluation engine is independently
-// reimplemented per language -- Python inside the backend, Go in flagsmith-go-client/flagengine --
-// so running both modes against a byte-identical environment document compares two implementations
-// of the same engine directly. It is the same shape as GO Feature Flag's one engine in several
-// hosts, except these are separate reimplementations, which makes divergence more likely rather
-// than less. They do not diverge.
-//
-// The backend is the Flagsmith Edge Proxy driven by a launchpad implementing the control API:
+// Two suites because the modes are separately conformant: remote evaluation calls the backend's
+// /api/v1/flags/ and the backend evaluates, while local evaluation fetches the environment document
+// and this SDK evaluates in-process. Why that comparison is worth making, and what it found, is in
+// the testbed's FINDINGS.md -- the backend and its findings are documented there rather than
+// restated in each of the four language adoptions:
 // https://github.com/aepfli/flagsmith-tck-testbed
 
 const (
-	// Fixed by the testbed. The control API has no way to communicate connection parameters --
-	// POST /start returns a bare 200 with no body -- so every adoption hardcodes these, exactly as
-	// a flagd adoption hardcodes a port. Every SaaS-shaped backend needs something like it, which
-	// makes it a gap in Appendix F rather than a quirk of Flagsmith.
+	// Fixed by the testbed, because the control API has no way to hand connection parameters to a
+	// provider -- hardcoded here exactly as a flagd adoption hardcodes a port. FINDINGS #1.
 	serverSideKey = "ser.provider-tck-server-key"
 
 	composeFile = "testdata/tck/docker-compose.yaml"
 	proxyPort   = 8000
 )
 
-// Deviations, as opposed to capabilities the provider simply does not implement.
-//
-// Narrowing the capability list says a scenario did not run; it cannot say whether the provider
-// declines the capability or fails at it. Both appear as the same skip carrying the same reason, so
-// without an entry here a consumer comparing providers reads a defect as a design choice.
+// Known deviations. What the field means and when to use which shape is tck.KnownDeviation's own
+// documentation; what follows is only which gaps this provider has. The summaries are deliberately
+// self-contained, because they travel into a conformance report read across languages.
 var (
-	// @numeric-coercion is DECLARED, and its scenarios fail. That is the preferred shape: this
-	// provider attempts the coercion and gets it wrong, so withholding the tag would turn a visible
-	// failure into a skip -- the exact move KnownDeviation exists to discourage. An earlier pass of
-	// this adoption withheld it, following a worked example the base has since corrected.
+	// Declared and failing: this provider attempts the coercion and gets it wrong.
 	//
 	// The familiar failure is a provider narrowing 0.5 to 0 -- that code exists here too,
 	// int64(value) with no fractional check -- but it is unreachable, because Flagsmith has no
@@ -75,17 +61,8 @@ var (
 			"that branch is unreachable through this backend. Both modes are affected: the "+
 			"accessors are in the shared provider layer, above the transport.")
 
-	// @object IS declared and mostly holds -- structured values resolve, and three of the four
-	// structured-as-scalar rows report TYPE_MISMATCH correctly. This entry exists for the fourth.
-	//
-	// A deviation against a *declared* capability is the case the docs call out: the capability
-	// holds, but one of the scenarios it gates does not. Without it the suite reports a bare
-	// failure and a reader cannot tell an unimplemented feature from a backend that cannot express
-	// the distinction.
-	//
-	// Withholding @object instead would be worse. Object resolution genuinely works, and dropping
-	// the capability would skip five scenarios to hide one failure -- trading a visible, explained
-	// defect for four silent non-results.
+	// @object holds -- structured values resolve and three of the four structured-as-scalar rows
+	// report TYPE_MISMATCH correctly. This entry is for the fourth.
 	objectAsStringDeviation = tck.UntrackedDeviation(
 		tck.Object,
 		"object-flag requested as a String resolves to the raw JSON text rather than reporting "+
@@ -98,11 +75,7 @@ var (
 			"against a backend with a coarser type system is an open question for the suite, not "+
 			"a defect this provider can fix.")
 
-	// A deviation against no capability at all, which is what the empty Capability is for: the gap
-	// is against a mandatory, ungated scenario, so it belongs to no tag.
-	//
-	// An earlier pass said this failure had "no capability to hang a deviation on" and left it
-	// unexplained in the results. It does not need one -- it needs the ungated form.
+	// Ungated: the gap is against a mandatory scenario, so it belongs to no capability.
 	floatAsStringDeviation = tck.UntrackedDeviation(
 		"",
 		"float-flag requested as a String resolves to \"0.5\" rather than reporting TYPE_MISMATCH, "+
@@ -114,18 +87,8 @@ var (
 			"coarser type system is an open question for the suite. All four language adoptions "+
 			"fail this row and the object-flag row beside it, for the same reason.")
 
-	// The defect this suite was written to catch, and could not until @standard-reasons existed.
-	//
-	// resolveFlag sets reason = of.TargetingMatchReason as soon as a targeting key is present in
-	// the evaluation context, before any evaluation happens, and never revises it. So a targeting
-	// rule that does not match still reports TARGETING_MATCH, telling the caller a rule matched
-	// when none did.
-	//
-	// It was recorded as a finding long before it failed anything: the evaluation-context scenarios
-	// deliberately do not assert the reason, because 2.2.5 lets a provider populate it with "some
-	// other string" and both STATIC and DEFAULT are defensible for an unmatched rule. That made it
-	// a blind spot the suite had chosen rather than missed. @standard-reasons closes it by making
-	// the reason a claim a provider opts into, and this is the scenario that catches it.
+	// The defect the testbed recorded as FINDINGS #4 long before anything could catch it:
+	// @standard-reasons is what closes the blind spot, and this is the scenario that finds it.
 	targetingMatchDeviation = tck.UntrackedDeviation(
 		tck.StandardReasons,
 		"A targeting rule that does not match still reports TARGETING_MATCH rather than DEFAULT. "+
