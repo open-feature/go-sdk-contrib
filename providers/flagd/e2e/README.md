@@ -56,19 +56,6 @@ Tests provider configuration validation and defaults.
 - **Implementation**: Table-driven tests (refactored from 132 lines with duplication to 70 lines)
 - **Status**: ✅ **PASS** - All passing reliably
 
-### Provider Conformance Suite — moved
-
-The cross-language [OpenFeature Provider TCK](../../../tools/tck/README.md) adoption used to live
-here as `tck_test.go`. It is now a sibling module, [`providers/flagd/tck`](../tck/README.md), and
-`make tck` runs it.
-
-It moved because it is not a kind of e2e test. The suites documented here test flagd against flagd's
-own harness and are expected green; that one tests the provider against the OpenFeature provider
-contract and fails scenarios by design wherever it declares a known deviation, so the two cannot
-share a signal or a directory without a reader taking a declared deviation for a regression. Moving
-it also took `tools/tck`, the spec assets and their pin out of this module's dependencies, which
-never needed them.
-
 ## Test Framework Components
 
 ### Core Architecture (`tests/flagd/testframework/`)
