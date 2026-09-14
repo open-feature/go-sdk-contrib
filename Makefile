@@ -2,15 +2,15 @@ ALL_GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | s
 MODULE_TYPE ?= providers
 FLAGD_TESTBED = flagd-testbed
 FLAGD_SYNC = sync-testbed
-GOLANGCI_LINT_VERSION := v2.8.0
+GOLANGCI_LINT_VERSION := v2.13.2
 GOBIN := $(or $(shell go env GOBIN),$(shell go env GOPATH | cut -d: -f1)/bin)
 
 workspace-init:
 	go work init
-	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module);)
+	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module) &&) true
 
 workspace-update:
-	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module);)
+	$(foreach module, $(ALL_GO_MOD_DIRS), go work use $(module) &&) true
 
 test:
 	go list -f '{{.Dir}}/...' -m | xargs -I{} go test -v {}

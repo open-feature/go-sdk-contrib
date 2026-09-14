@@ -1,10 +1,12 @@
 package model
 
 import (
-	"encoding/json"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"time"
+
+	of "github.com/open-feature/go-sdk/openfeature"
 )
+
+var _ CollectableEvent = (*FeatureEvent)(nil)
 
 func NewFeatureEvent(
 	evalCtx of.EvaluationContext,
@@ -16,7 +18,7 @@ func NewFeatureEvent(
 	source string,
 ) FeatureEvent {
 	contextKind := "user"
-	if evalCtx.Attribute("anonymous") == true {
+	if isAnonymous, ok := evalCtx.Attribute("anonymous").(bool); ok && isAnonymous {
 		contextKind = "anonymousUser"
 	}
 
@@ -72,19 +74,8 @@ type FeatureEvent struct {
 	Version string `json:"version" example:"v1.0.0" parquet:"name=version, type=BYTE_ARRAY, convertedtype=UTF8"`
 
 	// Source indicates where the event was generated.
-	// This is set to SERVER when the event was evaluated in the relay-proxy and PROVIDER_CACHE when it is evaluated from the cache.
+	// This is set to SERVER when the event was evaluated in the relay-proxy and INPROCESS when it is evaluated locally.
 	Source string `json:"source" example:"SERVER" parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"`
 }
 
-// MarshalInterface marshals all interface type fields in FeatureEvent into JSON-encoded string.
-func (f *FeatureEvent) MarshalInterface() error {
-	if f == nil {
-		return nil
-	}
-	b, err := json.Marshal(f.Value)
-	if err != nil {
-		return err
-	}
-	f.Value = string(b)
-	return nil
-}
+func (FeatureEvent) collectableEvent() {}

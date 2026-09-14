@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.1.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.0...providers/go-feature-flag/v1.1.1) (2026-07-02)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** Typo in the readme file ([#911](https://github.com/open-feature/go-sdk-contrib/issues/911)) ([03ad519](https://github.com/open-feature/go-sdk-contrib/commit/03ad519b6e8bfc906ad18cb2046b345710a9af4c))
+
+## [1.1.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.0.1...providers/go-feature-flag/v1.1.0) (2026-05-11)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** add caching support for remote evaluation ([#868](https://github.com/open-feature/go-sdk-contrib/issues/868)) ([14e6034](https://github.com/open-feature/go-sdk-contrib/commit/14e6034c699c023d500821ce0475d6128caaa421))
+
+## [1.0.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.0.0...providers/go-feature-flag/v1.0.1) (2026-03-30)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** Bump OFREP to fix the issue with `withHeader`. ([#862](https://github.com/open-feature/go-sdk-contrib/issues/862)) ([e9404be](https://github.com/open-feature/go-sdk-contrib/commit/e9404be014f3f6ae7fadc678cbd17c156d9328d0))
+
+## [1.0.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.7...providers/go-feature-flag/v1.0.0) (2026-03-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **go-feature-flag:** add in-process flag evaluation support + tracking ([#851](https://github.com/open-feature/go-sdk-contrib/issues/851))
+
+### ✨ New Features
+
+* **go-feature-flag:** add in-process flag evaluation support + tracking ([#851](https://github.com/open-feature/go-sdk-contrib/issues/851)) ([0b44677](https://github.com/open-feature/go-sdk-contrib/commit/0b44677ab580af9bf740da494ebb037e6beb7ecf))
+
 ## [0.2.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v0.2.6...providers/go-feature-flag/v0.2.7) (2025-11-28)
 
 

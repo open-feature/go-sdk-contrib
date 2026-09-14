@@ -1,5 +1,63 @@
 # Changelog
 
+## [2.2.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.1.0...tests/flagd/v2.2.0) (2026-09-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove "null" -> nil conversion ([#958](https://github.com/open-feature/go-sdk-contrib/issues/958))
+
+### 🐛 Bug Fixes
+
+* remove "null" -&gt; nil conversion ([#958](https://github.com/open-feature/go-sdk-contrib/issues/958)) ([97bfc96](https://github.com/open-feature/go-sdk-contrib/commit/97bfc9657e02dbe8548fe79f64d681ebe6bcf7f2))
+* **security:** update module github.com/moby/buildkit to v0.31.1 [security] ([#945](https://github.com/open-feature/go-sdk-contrib/issues/945)) ([8d275ab](https://github.com/open-feature/go-sdk-contrib/commit/8d275abcb77d512168a1a6b328d7a45ab2aef806))
+
+## [2.1.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.2...tests/flagd/v2.1.0) (2026-07-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896))
+
+### 🐛 Bug Fixes
+
+* core lib update for various custom operator conformance fixes ([#874](https://github.com/open-feature/go-sdk-contrib/issues/874)) ([df6230b](https://github.com/open-feature/go-sdk-contrib/commit/df6230b72b4a99a03929189cdab4c61641fc9e78))
+
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896)) ([f1d251a](https://github.com/open-feature/go-sdk-contrib/commit/f1d251ae6618cbb35e9033639781cc9ac99aaa73))
+
+## [2.0.2](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.1...tests/flagd/v2.0.2) (2026-03-19)
+
+
+### 🐛 Bug Fixes
+
+* suppress noisy test log output ([559ab31](https://github.com/open-feature/go-sdk-contrib/commit/559ab31d8c7092674a17a28dc8b7b5552ac71b6a))
+
+## [2.0.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.0.0...tests/flagd/v2.0.1) (2026-03-19)
+
+
+### 🐛 Bug Fixes
+
+* update test module for v2 ([4673c19](https://github.com/open-feature/go-sdk-contrib/commit/4673c19f2d331a9ec38a0a6fcd392ddde768a9fd))
+
+## [2.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.7.0...tests/flagd/v2.0.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* add graceful defaulting to code defaults ([#841](https://github.com/open-feature/go-sdk-contrib/issues/841))
+
+### 🐛 Bug Fixes
+
+* implement deadline to fix indefinite init ([#823](https://github.com/open-feature/go-sdk-contrib/issues/823)) ([24c1bba](https://github.com/open-feature/go-sdk-contrib/commit/24c1bbad9476b4be632e5dae263b40abc9a1b80d))
+
+
+### ✨ New Features
+
+* add graceful defaulting to code defaults ([#841](https://github.com/open-feature/go-sdk-contrib/issues/841)) ([b4269b7](https://github.com/open-feature/go-sdk-contrib/commit/b4269b7cfabab90ec6223df34561ff1473208166))
+
 ## [1.7.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v1.6.0...tests/flagd/v1.7.0) (2026-01-16)
 
 

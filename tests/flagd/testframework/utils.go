@@ -37,9 +37,6 @@ func (vc *ValueConverter) ConvertForSteps(value string, valueType string) (inter
 	case "Float":
 		return strconv.ParseFloat(value, 64)
 	case "String":
-		if value == "null" {
-			return nil, nil
-		}
 		return value, nil
 	case "Object":
 		var obj interface{}

@@ -20,6 +20,14 @@
       "versioning": "default",
       "extra-files": []
     },
+    "hooks/codereadiness": {
+      "release-type": "go",
+      "package-name": "hooks/codereadiness",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
     "providers/flagd": {
       "release-type": "go",
       "package-name": "providers/flagd",
@@ -159,14 +167,22 @@
     "providers/aws-ssm": {
       "release-type": "go",
       "package-name": "providers/aws-ssm",
-     "bump-minor-pre-major": true,
+      "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",
       "extra-files": []
-     },
+    },
     "providers/rocketflag": {
       "release-type": "go",
       "package-name": "providers/rocketflag",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default",
+      "extra-files": []
+    },
+    "providers/optimizely": {
+      "release-type": "go",
+      "package-name": "providers/optimizely",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "versioning": "default",

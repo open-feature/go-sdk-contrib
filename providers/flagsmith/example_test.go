@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v4"
+	flagsmithClient "github.com/Flagsmith/flagsmith-go-client/v5"
 	flagsmith "github.com/open-feature/go-sdk-contrib/providers/flagsmith/pkg"
 	"github.com/open-feature/go-sdk/openfeature"
 )
-
 
 func Example() {
 	provider := flagsmith.NewProvider(

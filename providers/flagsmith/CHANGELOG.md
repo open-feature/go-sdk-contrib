@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagsmith/v0.1.5...providers/flagsmith/v0.1.6) (2026-05-01)
+
+
+### ✨ New Features
+
+* **flagsmith:** upgrade flagsmith client to v5 ([#873](https://github.com/open-feature/go-sdk-contrib/issues/873)) ([af007b2](https://github.com/open-feature/go-sdk-contrib/commit/af007b25e5ffd742bbef5c32e26d758c50172ed2))
+
 ## [0.1.5](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagsmith/v0.1.4...providers/flagsmith/v0.1.5) (2025-07-22)
 
 

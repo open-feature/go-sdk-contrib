@@ -54,9 +54,9 @@ func TestBooleanEvaluation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := newMockService(t)
-			mockSvc.On("Boolean", mock.Anything, "flipt", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
+			mockSvc.EXPECT().Boolean(mock.Anything, t.Name(), "flipt", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
 
-			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
+			p := NewProvider(WithService(mockSvc), ForEnvironment(t.Name()), ForNamespace("flipt"))
 
 			actual := p.BooleanEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 
@@ -182,9 +182,9 @@ func TestStringEvaluation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := newMockService(t)
-			mockSvc.On("Evaluate", mock.Anything, "default", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
+			mockSvc.EXPECT().Variant(mock.Anything, t.Name(), "default", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
 
-			p := NewProvider(WithService(mockSvc))
+			p := NewProvider(WithService(mockSvc), ForEnvironment(t.Name()))
 
 			actual := p.StringEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 
@@ -315,9 +315,9 @@ func TestFloatEvaluation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := newMockService(t)
-			mockSvc.On("Evaluate", mock.Anything, "flipt", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
+			mockSvc.EXPECT().Variant(mock.Anything, t.Name(), "flipt", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
 
-			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
+			p := NewProvider(WithService(mockSvc), ForEnvironment(t.Name()), ForNamespace("flipt"))
 
 			actual := p.FloatEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 			assert.Equal(t, tt.expected, actual)
@@ -461,9 +461,9 @@ func TestIntEvaluation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := newMockService(t)
-			mockSvc.On("Evaluate", mock.Anything, "default", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
+			mockSvc.EXPECT().Variant(mock.Anything, t.Name(), "default", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
 
-			p := NewProvider(WithService(mockSvc))
+			p := NewProvider(WithService(mockSvc), ForEnvironment(t.Name()))
 
 			actual := p.IntEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 
@@ -663,9 +663,9 @@ func TestObjectEvaluation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := newMockService(t)
-			mockSvc.On("Evaluate", mock.Anything, "flipt", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
+			mockSvc.EXPECT().Variant(mock.Anything, t.Name(), "flipt", tt.flagKey, mock.Anything).Return(tt.mockRespEvaluation, tt.mockRespEvaluationErr).Maybe()
 
-			p := NewProvider(WithService(mockSvc), ForNamespace("flipt"))
+			p := NewProvider(WithService(mockSvc), ForEnvironment(t.Name()), ForNamespace("flipt"))
 
 			actual := p.ObjectEvaluation(t.Context(), tt.flagKey, tt.defaultValue, map[string]any{})
 

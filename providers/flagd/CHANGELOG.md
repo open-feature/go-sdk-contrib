@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.6.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.1...providers/flagd/v0.6.0) (2026-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896))
+
+### 🐛 Bug Fixes
+
+* **security:** update vulnerability-updates [security] ([#865](https://github.com/open-feature/go-sdk-contrib/issues/865)) ([9f0e819](https://github.com/open-feature/go-sdk-contrib/commit/9f0e819d2792297f70bfadabcd95ffe8ae510ab7))
+
+
+### ✨ New Features
+
+* DISABLED is a successful evaluation (still defaults) ([#896](https://github.com/open-feature/go-sdk-contrib/issues/896)) ([f1d251a](https://github.com/open-feature/go-sdk-contrib/commit/f1d251ae6618cbb35e9033639781cc9ac99aaa73))
+* make use of flagd-selector header in RPC mode ([#895](https://github.com/open-feature/go-sdk-contrib/issues/895)) ([c513aa1](https://github.com/open-feature/go-sdk-contrib/commit/c513aa16315dbf870cbe71ecbe5f6c44f1e1b970))
+
+## [0.5.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.5.0...providers/flagd/v0.5.1) (2026-05-01)
+
+
+### 🐛 Bug Fixes
+
+* core lib update for various custom operator conformance fixes ([#874](https://github.com/open-feature/go-sdk-contrib/issues/874)) ([df6230b](https://github.com/open-feature/go-sdk-contrib/commit/df6230b72b4a99a03929189cdab4c61641fc9e78))
+
+## [0.5.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.4.0...providers/flagd/v0.5.0) (2026-04-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* fractional bucketing improvements ([#866](https://github.com/open-feature/go-sdk-contrib/issues/866))
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/moby/buildkit to v0.28.1 [security] ([#853](https://github.com/open-feature/go-sdk-contrib/issues/853)) ([bd84e61](https://github.com/open-feature/go-sdk-contrib/commit/bd84e61344106b13805c3036c4b9a01ca8d53529))
+
+
+### ✨ New Features
+
+* fractional bucketing improvements ([#866](https://github.com/open-feature/go-sdk-contrib/issues/866)) ([73d84a6](https://github.com/open-feature/go-sdk-contrib/commit/73d84a638100815741eb83fad3b1bec785b00411))
+
 ## [0.4.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.3.2...providers/flagd/v0.4.0) (2026-03-11)
 
 
