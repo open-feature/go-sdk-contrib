@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -40,8 +39,14 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 		r.Close()
 	}()
 
-	// Create compose stack
-	composeStack, err := compose.NewDockerCompose(filepath.Join(config.TestbedDir, "docker-compose.yaml"))
+	// Create compose stack - the stack is handed over as a reader, so it never has
+	// to be unpacked next to the test
+	stack, err := config.Testbed.Compose()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read compose stack: %w", err)
+	}
+
+	composeStack, err := compose.NewDockerComposeWith(compose.WithStackReaders(stack))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compose stack: %w", err)
 	}

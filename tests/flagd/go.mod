@@ -4,6 +4,7 @@ go 1.25.9
 
 require (
 	github.com/cucumber/godog v0.15.1
+	github.com/open-feature/flagd-testbed/v3 v3.10.2-0.20260914060024-a0e6d085b012
 	github.com/open-feature/go-sdk v1.18.0
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.3.0
 	github.com/testcontainers/testcontainers-go v0.44.0

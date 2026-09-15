@@ -199,9 +199,15 @@ func (s *TestState) configureSocketProvider() error {
 }
 
 func (s *TestState) configureSslProvider() error {
-	// Configure SSL/TLS connection
+	// Configure SSL/TLS connection - the provider takes a path, so this is the one
+	// testbed asset that has to exist on disk
+	certPath, err := s.Testbed.CACertPath()
+	if err != nil {
+		return fmt.Errorf("failed to provide the testbed certificate: %w", err)
+	}
+
 	s.addProviderOption("tls", "Boolean", "true")
-	s.addProviderOption("certPath", "String", "../flagd-testbed/ssl/custom-root-cert.crt")
+	s.addProviderOption("certPath", "String", certPath)
 	return nil
 }
 

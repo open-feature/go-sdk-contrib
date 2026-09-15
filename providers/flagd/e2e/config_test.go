@@ -67,8 +67,11 @@ func TestConfiguration(t *testing.T) {
 					})
 				},
 				Options: &godog.Options{
-					Format:         "pretty",
-					Paths:          []string{"../flagd-testbed/gherkin/config.feature"},
+					Format: "pretty",
+					// The suites are read straight out of the flagd-testbed module;
+					// configuration tests need no container and no files on disk.
+					FS:             testframework.NewTestbedSource("").Gherkin(),
+					Paths:          []string{"config.feature"},
 					Tags:           tc.tags,
 					TestingT:       t,
 					DefaultContext: context.Background(),

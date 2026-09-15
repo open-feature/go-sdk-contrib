@@ -101,6 +101,7 @@ require (
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/open-feature/flagd-schemas v0.2.13 // indirect
+	github.com/open-feature/flagd-testbed/v3 v3.10.2-0.20260914060024-a0e6d085b012 // indirect
 	github.com/open-feature/flagd/core v0.16.0 // indirect
 	github.com/open-feature/go-sdk v1.18.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect

@@ -1,6 +1,3 @@
 [submodule "providers/flagd/spec"]
 	path = providers/flagd/spec
 	url = https://github.com/open-feature/spec
-[submodule "providers/flagd/flagd-testbed"]
-	path = providers/flagd/flagd-testbed
-	url = https://github.com/open-feature/flagd-testbed.git

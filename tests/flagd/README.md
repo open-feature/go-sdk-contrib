@@ -7,7 +7,7 @@ This directory contains a comprehensive testing framework for flagd providers th
 ### Key Components
 
 1. **Unified Step Definitions (`testframework/`)**: Single source of step definitions that work across all resolver types
-2. **Testcontainer Integration**: Uses testcontainers-go to manage flagd-testbed instances
+2. **Testcontainer Integration**: Uses testcontainers-go to manage flagd-testbed instances, with the compose stack and the Gherkin suites embedded in the `github.com/open-feature/flagd-testbed/v3` module - no git submodule, and nothing unpacked next to the test
 3. **Provider Abstraction**: Supports all flagd resolver types through a common interface
 4. **Gherkin Compatibility**: Runs all flagd-testbed gherkin scenarios with appropriate tagging
 5. **Debug Utils**: Comprehensive debugging infrastructure for troubleshooting test failures
@@ -61,8 +61,10 @@ func TestRPCProviderE2E(t *testing.T) {
         t.Fatalf("Failed to setup container: %v", err)
     }
     
+    // Paths address the Gherkin suites embedded in the
+    // github.com/open-feature/flagd-testbed/v3 module.
     featurePaths := []string{
-        "../../flagd-testbed/gherkin",
+        ".",
     }
     
     tags := "@rpc && ~@targetURI && ~@unixsocket"
