@@ -125,6 +125,36 @@ const (
 	// inexpressibleCapabilities.
 	LargeIntegers Capability = "@large-integers"
 
+	// StringTyping means the provider reports TYPE_MISMATCH when a non-string
+	// flag is requested through the string accessor, rather than returning the
+	// value's string representation.
+	//
+	// It is gated because every value has a string representation, so a backend
+	// that stores flag values as strings satisfies the string accessor for
+	// every flag and has no mismatch to report: Requirement 2.2.3 asks it for
+	// the resolved flag value, and a string is what it holds. The only
+	// normative statement nearby is Requirement 1.3.4, a SHOULD on the *client*
+	// rather than on the provider, so a provider over an untyped backend
+	// withholds this tag and is not thereby non-conformant. Appendix F carries
+	// the argument; it is optional for the same reason NumericCoercion is.
+	//
+	// Declare it when the backend distinguishes a string from a boolean, a
+	// number and a structure, and the provider type-asserts rather than
+	// formats. Withhold it when the backend stores everything as text --
+	// Flagsmith's feature_state_value is the worked example, natively boolean,
+	// integer or string only, which is why the Go Flagsmith adoption withholds
+	// it and the flagd and OFREP adoptions do not.
+	//
+	// The three scenarios it gates ask for boolean-flag, integer-flag and
+	// float-flag as strings. A fourth asks for object-flag and carries @object
+	// too, a provider with no structured values having no way to be asked the
+	// question at all; declaring StringTyping without Object skips that one and
+	// runs the other three.
+	//
+	// It is expressible in Go: Client.StringValueDetails takes and returns a
+	// string, distinct from every other accessor, so the request can be made.
+	StringTyping Capability = "@string-typing"
+
 	// Reinitialization means the provider can be initialised again after it has
 	// been shut down, and serves flags afterwards.
 	//
@@ -190,6 +220,7 @@ var allCapabilities = []Capability{
 	UnavailableInit,
 	NumericCoercion,
 	LargeIntegers,
+	StringTyping,
 	Reinitialization,
 	Targeting,
 	StandardReasons,

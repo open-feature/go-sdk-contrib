@@ -88,6 +88,11 @@ func TestMultiProvider(t *testing.T) {
 		// intact, and a wrapper that rewrote STATIC to DEFAULT or lost ERROR on
 		// a type mismatch would be caught by reason.feature and by nothing
 		// else.
+		//
+		// StringTyping is declared, and it is a delegation question of the same
+		// shape: the child refuses to format a non-string value as text, and
+		// what this suite adds is that the refusal reaches the caller as
+		// TYPE_MISMATCH rather than being swallowed on the hop.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.ConfigurationChange,
@@ -95,6 +100,7 @@ func TestMultiProvider(t *testing.T) {
 			tck.Variants,
 			tck.LargeIntegers,
 			tck.StandardReasons,
+			tck.StringTyping,
 		),
 	)
 }

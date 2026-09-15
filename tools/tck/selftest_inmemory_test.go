@@ -117,12 +117,19 @@ func TestInMemoryProvider(t *testing.T) {
 		// reachable here. Its two @targeting rows and its one @disabled-flags
 		// row compose with capabilities this suite withholds, so they are
 		// skipped for those rather than for this one.
+		//
+		// StringTyping is declared, and it is the same property of memprovider
+		// that costs it NumericCoercion paying off: it type-asserts, so a
+		// boolean, an integer, a float or a structure requested through the
+		// string accessor is refused rather than formatted. All four scenarios
+		// pass, the object one included, @object being declared here too.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.Object,
 			tck.Variants,
 			tck.LargeIntegers,
 			tck.StandardReasons,
+			tck.StringTyping,
 		),
 	)
 }
