@@ -401,9 +401,9 @@ func TestSpecRevisionIsRecorded(t *testing.T) {
 // and which the report used to carry a bespoke field for.
 //
 // Every row of a Scenario Outline shares one feature and one name. The
-// type-mismatch matrix in errors.feature is eleven rows, so a result keyed on
-// feature and name is eleven entries differing in nothing; if one row failed and
-// ten passed, nothing would say which. Messages identifies the row exactly: a
+// type-mismatch matrix in errors.feature is eight rows, so a result keyed on
+// feature and name is eight entries differing in nothing; if one row failed and
+// seven passed, nothing would say which. Messages identifies the row exactly: a
 // pickle's last AST node id is the id of the Examples TableRow it was expanded
 // from, and the stream carries the gherkinDocument those ids belong to, so the
 // row's cells are recoverable from the stream alone.
@@ -439,9 +439,15 @@ func TestOutlineRowsAreDistinguishable(t *testing.T) {
 	}
 
 	// A stream where nothing came from an outline would satisfy the loop above
-	// while asserting nothing, so the matrix itself is pinned: eleven rows,
-	// eleven different parameter sets, recovered from the stream's own
+	// while asserting nothing, so the matrix itself is pinned: eight rows,
+	// eight different parameter sets, recovered from the stream's own
 	// gherkinDocument.
+	//
+	// It was eleven until spec d47a66eb moved the three string-representation
+	// rows out to the @string-typing outline. The count is spelled out rather
+	// than derived for the reason the whole file is: a matrix that quietly
+	// shrinks is a suite asking fewer questions than it advertises, and this is
+	// where that gets noticed.
 	const matrix = "Requesting the wrong type returns the code default"
 	rows := 0
 	cells := map[string]bool{}
@@ -458,8 +464,8 @@ func TestOutlineRowsAreDistinguishable(t *testing.T) {
 		}
 		cells[strings.Join(row, "|")] = true
 	}
-	if rows != 11 {
-		t.Errorf("%q produced %d results, want the 11 rows of the matrix in errors.feature",
+	if rows != 8 {
+		t.Errorf("%q produced %d results, want the 8 rows of the matrix in errors.feature",
 			matrix, rows)
 	}
 	if len(cells) != rows {
