@@ -225,6 +225,17 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// Measured rather than read off the source: all nine executed rows of
 		// reason.feature pass in both resolvers, and because tck.Targeting and
 		// tck.DisabledFlags are declared too, all six of its scenarios run.
+		//
+		// tck.StringTyping IS declared, and it is the cheapest of these to
+		// justify: flagd's flag definitions carry a type per flag and the
+		// resolver answers the typed RPC that matches, so asking for
+		// boolean-flag, integer-flag, float-flag or object-flag through the
+		// string accessor is a genuine mismatch and comes back as
+		// TYPE_MISMATCH. All four scenarios pass in both resolvers, and they
+		// were mandatory until spec d47a66eb -- so this declaration keeps
+		// running what this suite was already running, rather than adding
+		// anything. Withholding it would replace four passes with four skips
+		// and claim less than is true.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
@@ -236,6 +247,7 @@ func TestFlagdRPCConformance(t *testing.T) {
 			tck.Targeting,
 			tck.StandardReasons,
 			tck.UnavailableInit,
+			tck.StringTyping,
 		},
 
 		knownDeviations: []tck.KnownDeviation{
@@ -279,9 +291,10 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		// RPC suite gives, and measured the same way: a second Init waits for a
 		// sync that never completes and times out.
 		//
-		// tck.Variants, tck.Targeting, tck.DisabledFlags and tck.StandardReasons
-		// are declared here as well, and both resolvers produce the identical
-		// result: 65 scenarios, 61 passed, 4 failed, the same four in both.
+		// tck.Variants, tck.Targeting, tck.DisabledFlags, tck.StandardReasons
+		// and tck.StringTyping are declared here as well, and both resolvers
+		// produce the identical result: 65 scenarios, 61 passed, 4 failed, the
+		// same four in both.
 		// Running both mattered rather than being a formality -- in-process
 		// evaluates the JsonLogic rule itself while RPC has flagd evaluate it,
 		// so the @targeting scenarios exercise genuinely different code, and
@@ -302,6 +315,7 @@ func TestFlagdInProcessConformance(t *testing.T) {
 			tck.Targeting,
 			tck.StandardReasons,
 			tck.UnavailableInit,
+			tck.StringTyping,
 		},
 
 		knownDeviations: []tck.KnownDeviation{
