@@ -2,9 +2,9 @@ name: ci
 
 on:
   push:
-   branches:
-    - feature/workflows
-    - main
+    branches:
+      - feature/workflows
+      - main
   pull_request:
     branches:
       - main

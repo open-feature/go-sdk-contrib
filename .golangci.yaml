@@ -19,6 +19,9 @@ linters:
     - staticcheck
     # - unused
   settings:
+    govet:
+      disable:
+        - inline
     staticcheck:
       checks:
         - "all"

@@ -98,10 +98,15 @@ func (p *Provider) Metadata() openfeature.Metadata {
 func (p *Provider) toMultiLDContext(evalCtx openfeature.FlattenedContext) (ldcontext.Context, error) {
 	ldCtx := ldcontext.NewMultiBuilder()
 
+	// attributes that are not context kinds: the kind attribute is implicit with
+	// multi-contexts, and the targeting key is always merged into the flattened
+	// context by the OpenFeature SDK even though it has no meaning at the
+	// multi-context top level (each kind's own key lives inside its sub-context).
+	skipList := []string{p.kindAttr, openfeature.TargetingKey}
+
 	// each top level attribute is a kind, and must have a map or struct as value
 	for key, attrs := range evalCtx {
-		// skip the kind attribute since it is implicit with multi-contexts
-		if key == p.kindAttr {
+		if slices.Contains(skipList, key) {
 			continue
 		}
 
