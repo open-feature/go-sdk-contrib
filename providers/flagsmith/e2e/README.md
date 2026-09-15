@@ -11,20 +11,22 @@ The backend is a container, pulled automatically. Override it with `FLAGSMITH_TE
 
 ## Status: draft
 
-Out of 52 scenarios: **31 pass, 2 fail, 19 are skipped** because a capability is not declared.
+Out of 65 scenarios: **43 pass, 2 fail, 20 are skipped** because a capability is not declared.
 Identical in both modes.
 
-The two failures are the only ones left after `@variants` landed on the base branch, and neither is
-a provider bug — see "Why the 2 fail".
+Both failures carry a `KnownDeviation` and one of them is a genuine provider defect — see "Why the 2
+fail".
 
 It stays a draft because the testbed image lives in a personal namespace
 ([aepfli/flagsmith-tck-testbed](https://github.com/aepfli/flagsmith-tck-testbed)), and a contrib
 repo's CI should not depend on it until it has a permanent home.
 
 > Read the counts from the suite's own summary, not from `go test`. `go test` prints a PASS line for
-> every skipped scenario too — godog skips the scenario and the Go subtest passes anyway — so its
-> PASS count is 50, not 31. Reading that as the conformance result is exactly the vacuous pass the
-> capability gating exists to prevent.
+> every skipped scenario too — godog skips the scenario and the Go subtest passes anyway — so it
+> prints `65 scenarios (63 passed, 2 failed)` and the honest pass count is 43. Reading godog's
+> number as the conformance result is exactly the vacuous pass the capability gating exists to
+> prevent; the real count is on the line underneath, `20 scenario(s) skipped because a capability
+> was not declared`.
 
 ## The two modes
 
@@ -38,24 +40,33 @@ against a byte-identical document compares two implementations of the same engin
 shape as GO Feature Flag's one engine in several hosts, except these are separate reimplementations
 — which should make divergence *more* likely.
 
-**They do not diverge.** Byte-identical results: same 31 passes, same 2 failures, same 19 skips,
+**They do not diverge.** Byte-identical results: same 43 passes, same 2 failures, same 20 skips,
 same reasons — including all four of the evaluation-context and targeting scenarios. A negative
 result from a test designed to find divergence, worth re-running when the Java and JS adoptions
 exist.
 
 ## Why the 2 fail
 
-Reading `float-flag` as a **string** returns `"0.5"` rather than `TYPE_MISMATCH`, and `object-flag`
-as a string returns the raw JSON text.
+`integral-float-flag` requested as an **integer** resolves to the code default, and a targeting rule
+that does **not** match still reports `TARGETING_MATCH`. Both are under `KnownDeviation` entries in
+[`tck_test.go`](tck_test.go): the first is the two numeric accessors disagreeing about the wire type,
+the second is a real provider defect that `@standard-reasons` is what made visible.
 
-Neither is a provider bug. Flagsmith's `feature_state_value` is natively boolean, integer or string
-— no float type, no object type — so on this backend both genuinely *are* strings, and asking for
-them as strings is a correct request that correctly succeeds. The scenario assumes the backend's
-type system distinguishes them.
+Two other failures stood here until spec `d47a66eb` and are now **skips**: `float-flag` read as a
+string returned `"0.5"`, and `object-flag` returned its raw JSON text. Neither was a provider bug —
+Flagsmith's `feature_state_value` is natively boolean, integer or string, so on this backend both
+genuinely *are* strings and asking for them as strings is a correct request that correctly succeeds.
+That was recorded as an open question for the suite, and the suite has answered it: those rows moved
+behind `@string-typing`, which this adoption withholds.
 
-Unlike the variant case there is no capability to withhold here, and inventing one looks wrong: the
-type-mismatch matrix is testing something real, and Flagsmith simply cannot express half of it.
-Recorded as an open question rather than declared solved.
+**The withholding costs two honest passes, and that is worth knowing.** `boolean-flag` and
+`integer-flag` read as strings *do* report `TYPE_MISMATCH`, because those types really are native to
+`feature_state_value` — so Flagsmith is partially typed rather than untyped. The three scalar rows
+are a single `Examples` table, so there is no way to claim the two that hold and skip the one that
+cannot. Declaring the tag instead was measured: 16 skips and 4 failures rather than 20 and 2, with
+the two extra failures needing deviation entries for behaviour no numbered requirement asks for —
+which is the misattribution Appendix F's rules for declaring exist to stop. Withheld is the accurate
+report; a finer capability would be a better one.
 
 ## Capabilities
 
@@ -73,6 +84,10 @@ never receives one and no seeding can produce one. That is permitted rather than
 makes populating the variant a SHOULD and `types.md` marks the field optional — so it gets no
 deviation entry. Before the capability existed these were untagged assertions and this provider
 failed ten scenarios for something its author could not fix, with nothing to record it as.
+
+`@string-typing` is withheld for a reason that is neither of those: it is a fact about the backend's
+type system rather than about the provider or about the SDK. See "Why the 2 fail" above for the
+measurement, including the two scenarios the withholding gives up.
 
 Everything else is withheld, and almost all of it for one reason: the provider implements none of
 `Init`, `Shutdown`, `Status` or `EventChannel`, so it is neither an `openfeature.StateHandler` nor

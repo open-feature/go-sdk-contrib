@@ -61,31 +61,21 @@ var (
 			"that branch is unreachable through this backend. Both modes are affected: the "+
 			"accessors are in the shared provider layer, above the transport.")
 
-	// @object holds -- structured values resolve and three of the four structured-as-scalar rows
-	// report TYPE_MISMATCH correctly. This entry is for the fourth.
-	objectAsStringDeviation = tck.UntrackedDeviation(
-		tck.Object,
-		"object-flag requested as a String resolves to the raw JSON text rather than reporting "+
-			"TYPE_MISMATCH. Flagsmith stores an object as a string -- feature_state_value is "+
-			"natively boolean, integer or string only -- so on this backend the request is not a "+
-			"type mismatch at all and correctly succeeds. The other three rows of the outline "+
-			"(Boolean, Integer, Float) pass, and structured resolution itself passes. The same "+
-			"cause fails one untagged row, float-flag requested as a String, which has no "+
-			"capability to hang a deviation on: whether the type-mismatch matrix is satisfiable "+
-			"against a backend with a coarser type system is an open question for the suite, not "+
-			"a defect this provider can fix.")
-
-	// Ungated: the gap is against a mandatory scenario, so it belongs to no capability.
-	floatAsStringDeviation = tck.UntrackedDeviation(
-		"",
-		"float-flag requested as a String resolves to \"0.5\" rather than reporting TYPE_MISMATCH, "+
-			"in an untagged row of the wrong-type outline. Flagsmith has no float type -- "+
-			"feature_state_value is natively boolean, integer or string -- so on this backend "+
-			"float-flag really is a string and the request is not a type mismatch at all. Recorded "+
-			"as a deviation because the scenario is mandatory and fails, not because the provider "+
-			"is wrong: whether the type-mismatch matrix is satisfiable against a backend with a "+
-			"coarser type system is an open question for the suite. All four language adoptions "+
-			"fail this row and the object-flag row beside it, for the same reason.")
+	// Two entries stood here until spec d47a66eb, objectAsStringDeviation and
+	// floatAsStringDeviation, and both are gone rather than rewritten.
+	//
+	// They recorded the same fact twice: object-flag and float-flag requested as Strings come back
+	// as their text rather than as TYPE_MISMATCH, because Flagsmith stores both as strings. Each
+	// said in its own summary that this was not a defect the provider could fix and that whether
+	// the matrix was satisfiable against a coarser type system was an open question for the suite.
+	// The suite has now answered it: those rows live behind @string-typing, which this adoption
+	// withholds, so they are skipped with a reason instead of failed with an excuse. A deviation
+	// asserts the provider fails something it is *required* to do, and after d47a66eb nothing
+	// requires this -- so keeping either entry would be the misattribution the field exists to
+	// prevent. See the withholding note beside tck.WithCapabilities.
+	//
+	// Retiring them also cleans @object up: its remaining three rows (Boolean, Integer, Float)
+	// pass, structured resolution passes, and the capability now has no failing scenario at all.
 
 	// The defect the testbed recorded as FINDINGS #4 long before anything could catch it:
 	// @standard-reasons is what closes the blind spot, and this is the scenario that finds it.
@@ -215,6 +205,31 @@ func runConformance(t *testing.T, name string, local bool) {
 		// does not. The Java and JavaScript Flagsmith providers are in a different position
 		// entirely -- Java leaves the reason null and JavaScript reports TARGETING_MATCH for every
 		// enabled flag -- which is the difference this capability exists to make visible.
+		//
+		// @string-typing is WITHHELD, and this adoption is the reason the capability exists.
+		// Flagsmith's feature_state_value is natively boolean, integer or string -- no float type
+		// and no object type -- so a float and a structure are both stored as text, and asking for
+		// either through the string accessor is a correct request that correctly succeeds. There is
+		// no mismatch to report and no code here that could report one.
+		//
+		// Measured both ways rather than argued. Declared: 16 capability-skips and 4 failures, the
+		// two extra being float-flag resolving to "0.5" and object-flag to its raw JSON text.
+		// Withheld: 20 skips and 2 failures. Identical in both evaluation modes.
+		//
+		// **The provider answers two of the four scenarios and the tag cannot say so.** boolean-flag
+		// and integer-flag requested as Strings both report TYPE_MISMATCH, because those two types
+		// really are native to feature_state_value -- so Flagsmith is partially typed, not untyped,
+		// and withholding gives up two passes it has honestly earned. That is a granularity cost in
+		// the capability rather than a fact about this provider: the three scalar rows are one
+		// Examples table, so there is no way to claim the two that hold. It is withheld anyway,
+		// because the alternative is worse -- declaring means two permanently failing scenarios
+		// carrying known-deviation entries for behaviour no numbered requirement asks for, which is
+		// exactly the misattribution Appendix F's rules for declaring forbid. The old
+		// objectAsStringDeviation and floatAsStringDeviation were that shape, and they are deleted
+		// above.
+		//
+		// Worth revisiting if the capability is ever split so that the scalar rows can be answered
+		// separately from the ones a text-valued backend cannot answer.
 		tck.WithCapabilities(
 			tck.Object,
 			tck.LargeIntegers,
@@ -226,9 +241,7 @@ func runConformance(t *testing.T, name string, local bool) {
 
 		tck.WithKnownDeviations(
 			numericCoercionDeviation,
-			objectAsStringDeviation,
 			targetingMatchDeviation,
-			floatAsStringDeviation,
 		),
 
 		// Both modes poll. Remote is a single hop; local waits on two -- the testbed's upstream
