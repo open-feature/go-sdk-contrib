@@ -77,6 +77,10 @@ func TestControllableProvider(t *testing.T) {
 		// StandardReasons is declared for the same reason TestInMemoryProvider
 		// declares it: every resolution decision is still memprovider's, and it
 		// reports STATIC for a rule-less flag.
+		//
+		// StringTyping is declared for that same reason: the type assertion a
+		// string request lands on is memprovider's, and it refuses to format a
+		// boolean, an integer, a float or a structure as text.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.Lifecycle,
@@ -86,6 +90,7 @@ func TestControllableProvider(t *testing.T) {
 			tck.Variants,
 			tck.LargeIntegers,
 			tck.StandardReasons,
+			tck.StringTyping,
 		),
 	)
 }
