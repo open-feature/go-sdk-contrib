@@ -40,6 +40,7 @@ beside the declaration in [`tck_test.go`](tck_test.go).
 | `@targeting` | yes | The evaluation context is the OFREP request body, so `targeting-key-flag` resolves `hit` for a matching key and `miss` otherwise. |
 | `@standard-reasons` | yes | The provider passes the server's `reason` through and flagd's OFREP endpoint sends Appendix F's mapping. Composes with `@targeting` and `@disabled-flags`, both declared, so none of its scenarios skips. |
 | `@disabled-flags` | yes | Expected to be impossible here and is not — see below. |
+| `@string-typing` | yes | The wire format is JSON, so a boolean arrives as a JSON boolean and each typed resolver in `internal/evaluate/flags.go` type-asserts before it returns; nothing formats a resolved value. All four scenarios pass. |
 | `@events` | no | No `EventChannel`; the provider can never publish a provider event. |
 | `@configuration-change`, `@stale` | no | Follow from `@events`. Values do change on the next evaluation; nothing signals that they did. |
 | `@lifecycle`, `@unavailable` | no | Nothing to initialise or shut down, so `lifecycle.feature` would assert SDK behaviour: the SDK synthesises `PROVIDER_READY` for a provider with no `StateHandler`, even against a backend that does not exist. |
