@@ -2,6 +2,7 @@ package testframework
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -74,8 +75,8 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 
 	flagdService, err := composeStack.ServiceContainer(ctx, flagdServiceName)
 	if err != nil {
-		composeStack.Down(ctx)
-		return nil, fmt.Errorf("failed to start compose stack: %w", err)
+		err = fmt.Errorf("failed to get the flagd service container: %w", err)
+		return nil, errors.Join(err, downStack(composeStack))
 	}
 	rpcPort, err := getMappedPort(ctx, composeStack, flagdService, "8013")
 	if err != nil {
@@ -94,6 +95,10 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 		return nil, err
 	}
 	envoy, err := composeStack.ServiceContainer(ctx, "envoy")
+	if err != nil {
+		err = fmt.Errorf("failed to get the envoy service container: %w", err)
+		return nil, errors.Join(err, downStack(composeStack))
+	}
 	envoyPort, err := getMappedPort(ctx, composeStack, envoy, "9211")
 	if err != nil {
 		return nil, err
@@ -123,11 +128,26 @@ func NewFlagdContainer(ctx context.Context, config FlagdContainerConfig) (*Flagd
 	return flagdContainer, nil
 }
 
+// stackDownTimeout bounds the teardown of a compose stack that failed to come up.
+const stackDownTimeout = 2 * time.Minute
+
+// downStack tears the compose stack down on a setup failure path. It deliberately
+// does not use the caller's context: setup may have failed because that context was
+// canceled or timed out, and cleanup still has to run.
+func downStack(stack *compose.DockerCompose) error {
+	ctx, cancel := context.WithTimeout(context.Background(), stackDownTimeout)
+	defer cancel()
+	if err := stack.Down(ctx); err != nil {
+		return fmt.Errorf("failed to stop compose stack: %w", err)
+	}
+	return nil
+}
+
 func getMappedPort(ctx context.Context, stack *compose.DockerCompose, container *testcontainers.DockerContainer, port string) (int, error) {
 	mappedPort, err := container.MappedPort(ctx, port)
 	if err != nil {
-		stack.Down(ctx)
-		return 0, fmt.Errorf("failed to fetch mapped port %s for %s: %w", port, container.ID, err)
+		err = fmt.Errorf("failed to fetch mapped port %s for %s: %w", port, container.ID, err)
+		return 0, errors.Join(err, downStack(stack))
 	}
 	return int(mappedPort.Num()), nil
 }
