@@ -118,13 +118,23 @@ deciding whether to declare one are [Appendix F's][appendix-f-caps]. This is the
 | `tck.ConfigurationChange` | `@configuration-change` | `tck.Targeting` | `@targeting` |
 | `tck.Object` | `@object` | `tck.StandardReasons` | `@standard-reasons` |
 | `tck.Variants` | `@variants` | `tck.DisabledFlags` | `@disabled-flags` |
-| `tck.UnavailableInit` | `@unavailable` | `tck.Caching` | `@caching` — reserved, **not declarable** |
+| `tck.UnavailableInit` | `@unavailable` | `tck.StringTyping` | `@string-typing` |
+| `tck.Caching` | `@caching` — reserved, **not declarable** | | |
 
 Omitting `tck.WithCapabilities` declares `tck.AllCapabilities()`, which excludes the reserved tags.
 Narrow it rather than widening it: start from the default, run the suite, and remove only what your
 provider genuinely cannot do — a judgement Appendix F makes **per scenario, not per tag**. Passing
 the option with no capability at all is a declaration too, and says this provider supports none of
 the optional parts.
+
+Two of these are gated by an argument rather than by a gap in the specification, and are the two
+most likely to be withheld by a provider that is doing nothing wrong. `@numeric-coercion` borrows
+flagd's coercion ADR, which the specification does not define. `@string-typing` asks for
+`TYPE_MISMATCH` when a non-string flag is requested as a string, and the only normative statement
+nearby is Requirement 1.3.4 — a `SHOULD` on the *client*. A backend that stores flag values as text
+satisfies the string accessor for every flag and has no mismatch to report, so it withholds the tag
+and stays conformant; `providers/flagsmith` is that case in this repository, and `providers/flagd`
+and `providers/ofrep` are the other one.
 
 Appendix F has the implementation, rather than each adopter, refuse two kinds of capability, with
 distinct skip reasons: a **reserved** one (`@caching` today, which no scenario carries anywhere) and
@@ -361,7 +371,10 @@ provider suite, these point at the TCK rather than at a provider.
 What they leave undeclared follows from `memprovider` rather than from the suite. Only
 `TestControllableProvider` declares `@lifecycle`, because it is the only one whose `READY` the SDK
 did not manufacture; none declares `@numeric-coercion`, because `memprovider` type-asserts rather
-than converts and so refuses `10.0` as an integer as readily as `0.5`. Two omissions are defects
+than converts and so refuses `10.0` as an integer as readily as `0.5`. All three declare
+`@string-typing`, which is that same type assertion paying off rather than costing: a boolean, a
+number or a structure asked for through the string accessor is refused rather than formatted.
+Two omissions are defects
 rather than absences — `@configuration-change` ([go-sdk#530][gosdk-530]: no update method, which
 [Appendix A][appendix-a] requires) and `@disabled-flags` ([go-sdk#552][gosdk-552], fixed by
 go-sdk#574 but unreleased: a disabled flag comes back with the caller's default *and* a `GENERAL`
