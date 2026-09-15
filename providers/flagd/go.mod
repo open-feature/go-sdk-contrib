@@ -1,6 +1,6 @@
 module github.com/open-feature/go-sdk-contrib/providers/flagd
 
-go 1.25.0
+go 1.26.0
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.19.1-20260217192757-1388a552fc3c.2
@@ -11,7 +11,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/open-feature/flagd/core v0.16.0
+	github.com/open-feature/flagd/core v0.17.0
 	github.com/open-feature/go-sdk v1.18.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.1
