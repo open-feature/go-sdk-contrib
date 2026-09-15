@@ -22,6 +22,7 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/net/context"
+	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -33,14 +34,16 @@ const (
 var ErrClientNotReady = of.NewProviderNotReadyResolutionError(ClientNotReadyMsg)
 
 type Configuration struct {
-	Port            uint16
-	Host            string
-	CertificatePath string
-	SocketPath      string
-	TLSEnabled      bool
-	OtelInterceptor bool
-	DeadlineMs      int
-	Selector        string
+	Port             uint16
+	Host             string
+	CertificatePath  string
+	SocketPath       string
+	TLSEnabled       bool
+	OtelInterceptor  bool
+	DeadlineMs       int
+	StreamDeadlineMs int
+	KeepAliveTime    int64
+	Selector         string
 }
 
 // Service handles the client side  interface for the flagd server
@@ -72,6 +75,7 @@ func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, ret
 }
 
 const ConnectionError = "connection not made"
+const reconnectPollInterval = 1 * time.Second
 
 type resolutionRequestConstraints interface {
 	schemaV2.ResolveBooleanRequest | schemaV2.ResolveStringRequest | schemaV2.ResolveIntRequest |
@@ -505,14 +509,25 @@ func (s *Service) EventChannel() <-chan of.Event {
 	return s.events
 }
 
-// startEventStream - starts listening to flagd event stream with retries.
-// This contains blocking calls and busy wait backed retry attempts, hence must be called concurrently.
-// If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
+// startEventStream - starts listening to flagd event stream.
+// This contains blocking calls and must be called concurrently.
 func (s *Service) startEventStream(ctx context.Context) {
 	streamReadySignaled := false
 
-	// wraps connection with retry attempts
-	for s.retryCounter.retry() {
+	for {
+		if ctx.Err() != nil {
+			if !streamReadySignaled {
+				s.signalStreamReady(ctx.Err())
+			}
+			return
+		}
+
+		// Bound only the initial connection. Once connected, streamReadySignaled short-circuits this so
+		// retryCounter is no longer consulted and reconnection continues indefinitely.
+		if !streamReadySignaled && !s.retryCounter.retry() {
+			break // initial connection attempts exhausted
+		}
+
 		s.logger.V(logger.Debug).Info("connecting to event stream")
 		err := s.streamClient(ctx, &streamReadySignaled)
 		if err != nil {
@@ -533,17 +548,24 @@ func (s *Service) startEventStream(ctx context.Context) {
 			}
 		}
 
+		// During the initial connection use the retryCounter's backoff; once connected, poll at a short
+		// fixed interval so recovery tracks flagd's return rather than an ever-growing backoff.
+		backoff := reconnectPollInterval
+		if !streamReadySignaled {
+			backoff = s.retryCounter.sleep()
+		}
+
 		select {
 		case <-ctx.Done():
 			if !streamReadySignaled {
 				s.signalStreamReady(ctx.Err())
 			}
 			return
-		case <-time.After(s.retryCounter.sleep()):
+		case <-time.After(backoff):
 		}
 	}
 
-	// retry attempts exhausted. Disable cache and emit error event
+	// Initial connection attempts exhausted. Disable cache and emit error event.
 	s.cache.Disable()
 	connErr := fmt.Errorf("grpc connection establishment failed")
 
@@ -573,7 +595,16 @@ func (s *Service) signalStreamReady(err error) {
 
 // streamClient opens the event stream and distribute streams to appropriate handlers.
 func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) error {
-	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
+	// Apply the stream deadline as an application-layer keepalive: once it elapses the stream is
+	// recycled (closed and reopened by the retry loop) rather than being left open indefinitely.
+	streamCtx := ctx
+	if s.cfg.StreamDeadlineMs > 0 {
+		var cancel context.CancelFunc
+		streamCtx, cancel = context.WithTimeout(ctx, time.Duration(s.cfg.StreamDeadlineMs)*time.Millisecond)
+		defer cancel()
+	}
+
+	stream, err := s.client.EventStream(streamCtx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
 	if err != nil {
 		return err
 	}
@@ -605,6 +636,13 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	if err := stream.Err(); err != nil {
+		// If the configured stream deadline elapsed (and the parent context is still live), this is an
+		// intentional stream recycle - reconnect gracefully without surfacing a provider error.
+		if s.cfg.StreamDeadlineMs > 0 && errors.Is(streamCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+			s.logger.V(logger.Debug).Info("stream deadline reached, recycling event stream")
+			return nil
+		}
+
 		s.sendEvent(ctx, of.Event{
 			ProviderName: "flagd",
 			EventType:    of.ProviderError,
@@ -727,13 +765,22 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 		options = append(options, connect.WithInterceptors(newSelectorInterceptor(cfg.Selector)))
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext:     dialContext,
+	}
+
+	// Enable HTTP/2 keepalive pings when configured.
+	if cfg.KeepAliveTime > 0 {
+		http2Transport, err := http2.ConfigureTransports(transport)
+		if err != nil {
+			return nil, err
+		}
+		http2Transport.ReadIdleTimeout = time.Duration(cfg.KeepAliveTime) * time.Millisecond
+	}
+
 	return schemaConnectV2.NewServiceClient(
-		&http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-				DialContext:     dialContext,
-			},
-		},
+		&http.Client{Transport: transport},
 		url,
 		options...,
 	), nil

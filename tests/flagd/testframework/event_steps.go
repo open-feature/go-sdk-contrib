@@ -23,6 +23,8 @@ func InitializeEventSteps(ctx *godog.ScenarioContext) {
 		withState1Arg((*TestState).waitForGenericEvent))
 	ctx.Step(`^the (\w+) event handler should have been executed$`,
 		withState1Arg((*TestState).assertGenericEventExecuted))
+	ctx.Step(`^the (\w+) event handler should not have been executed$`,
+		withState1Arg((*TestState).assertGenericEventNotExecuted))
 
 	// Missing step definition - added as stub
 	ctx.Step(`^the (\w+) event handler should have been executed within (\d+)ms$`,
@@ -75,8 +77,11 @@ func (s *TestState) assertFlagInChangeEvent(ctx context.Context) error {
 
 // clearEvents removes all recorded events (useful for test isolation)
 func (s *TestState) clearEvents() {
-	// Clear the last event
+	// Clear events
 	s.LastEvent = nil
+	if s.EventLog != nil {
+		s.EventLog.Clear()
+	}
 
 	// Drain the channel
 	for {
@@ -96,6 +101,10 @@ func (s *TestState) clearEvents() {
 func (s *TestState) addGenericEventHandler(ctx context.Context, eventType string) error {
 	if s.Client == nil {
 		return fmt.Errorf("no client available to add %s event handler", eventType)
+	}
+
+	if s.EventLog == nil {
+		s.EventLog = &EventLog{}
 	}
 
 	handler := func(details openfeature.EventDetails) {
@@ -132,6 +141,22 @@ func (s *TestState) assertGenericEventExecuted(ctx context.Context, eventType st
 	return s.assertEventOccurred(strings.ToUpper(eventType))
 }
 
+// assertGenericEventNotExecuted verifies that no event of the given type was
+// received at any point during the scenario.
+func (s *TestState) assertGenericEventNotExecuted(ctx context.Context, eventType string) error {
+	expected := strings.ToUpper(eventType)
+
+	if s.EventLog == nil {
+		return nil
+	}
+
+	if event, found := s.EventLog.Contains(expected); found {
+		return fmt.Errorf("%s event handler was executed at %s, but should not have been",
+			expected, event.Timestamp.Format(time.RFC3339Nano))
+	}
+	return nil
+}
+
 // Event handler helpers for provider state changes
 func (s *TestState) handleProviderStateChange(eventType string) func(openfeature.EventDetails) {
 	return func(details openfeature.EventDetails) {
@@ -153,6 +178,10 @@ func (s *TestState) addEvent(eventType string, details openfeature.EventDetails)
 		Type:      eventType,
 		Timestamp: time.Now(),
 		Details:   details,
+	}
+
+	if s.EventLog != nil {
+		s.EventLog.Record(event)
 	}
 
 	// Send to channel for immediate notification (non-blocking)

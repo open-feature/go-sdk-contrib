@@ -46,7 +46,17 @@ func (s *TestState) createProviderInstance() error {
 	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
 		Option:    "RetryGracePeriod",
 		ValueType: "Integer",
-		Value:     "1",
+		Value:     "5",
+	})
+	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+		Option:    "RetryBackoffMs",
+		ValueType: "Integer",
+		Value:     "500",
+	})
+	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+		Option:    "RetryBackoffMaxMs",
+		ValueType: "Integer",
+		Value:     "500",
 	})
 	switch s.ProviderType {
 	case RPC:

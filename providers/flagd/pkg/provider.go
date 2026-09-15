@@ -51,14 +51,16 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	case rpc:
 		service = rpcService.NewService(
 			rpcService.Configuration{
-				Host:            provider.providerConfiguration.Host,
-				Port:            provider.providerConfiguration.Port,
-				CertificatePath: provider.providerConfiguration.CertPath,
-				SocketPath:      provider.providerConfiguration.SocketPath,
-				TLSEnabled:      provider.providerConfiguration.Tls,
-				OtelInterceptor: provider.providerConfiguration.OtelIntercept,
-				DeadlineMs:      provider.providerConfiguration.DeadlineMs,
-				Selector:        provider.providerConfiguration.Selector,
+				Host:             provider.providerConfiguration.Host,
+				Port:             provider.providerConfiguration.Port,
+				CertificatePath:  provider.providerConfiguration.CertPath,
+				SocketPath:       provider.providerConfiguration.SocketPath,
+				TLSEnabled:       provider.providerConfiguration.Tls,
+				OtelInterceptor:  provider.providerConfiguration.OtelIntercept,
+				DeadlineMs:       provider.providerConfiguration.DeadlineMs,
+				StreamDeadlineMs: provider.providerConfiguration.StreamDeadlineMs,
+				KeepAliveTime:    provider.providerConfiguration.KeepAliveTime,
+				Selector:         provider.providerConfiguration.Selector,
 			},
 			cacheService,
 			provider.providerConfiguration.log,
@@ -73,6 +75,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			TLSEnabled:              provider.providerConfiguration.Tls,
 			CertificatePath:         provider.providerConfiguration.CertPath,
 			OfflineFlagSource:       provider.providerConfiguration.OfflineFlagSourcePath,
+			OfflinePollMs:           provider.providerConfiguration.OfflinePollMs,
 			CustomSyncProvider:      provider.providerConfiguration.CustomSyncProvider,
 			CustomSyncProviderUri:   provider.providerConfiguration.CustomSyncProviderUri,
 			GrpcDialOptionsOverride: provider.providerConfiguration.GrpcDialOptionsOverride,
@@ -81,10 +84,13 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			RetryBackOffMaxMs:       provider.providerConfiguration.RetryBackoffMaxMs,
 			FatalStatusCodes:        provider.providerConfiguration.FatalStatusCodes,
 			DeadlineMs:              provider.providerConfiguration.DeadlineMs,
+			StreamDeadlineMs:        provider.providerConfiguration.StreamDeadlineMs,
+			KeepAliveTime:           provider.providerConfiguration.KeepAliveTime,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
+			OfflinePollMs:     provider.providerConfiguration.OfflinePollMs,
 			DeadlineMs:        provider.providerConfiguration.DeadlineMs,
 		})
 	}
