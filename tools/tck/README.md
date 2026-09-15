@@ -402,13 +402,13 @@ $ jq . reports/in-memory.json
   "tck": {
     "implementation": "go-sdk-contrib/tools/tck",
     "version": "v0.1.0",
-    "specRevision": "v0.0.0-20260913160927-4cab032043f9"
+    "specRevision": "v0.0.0-20260915200437-d47a66ebb950"
   },
   "backend": {
     "description": "the Go SDK's memprovider.InMemoryProvider, rebuilt per scenario",
     "controlApi": "in-process"
   },
-  "declaration": { "declared": ["@events", "@large-integers", "@object", "@standard-reasons", "@variants"] },
+  "declaration": { "declared": ["@events", "@large-integers", "@object", "@standard-reasons", "@string-typing", "@variants"] },
   "results": {
     "format": "cucumber-messages",
     "formatVersion": "21.0.1",
