@@ -38,7 +38,8 @@ beside each declaration in [`tck_test.go`](tck_test.go).
 | `@numeric-coercion` | yes | yes | Declared although one scenario fails — see below. |
 | `@disabled-flags` | yes | yes | Expected to split by architecture and does not: flagd answers reason `DISABLED` with an empty variant and a zero value, RPC recognises that pair and keeps the caller's default (`isDefaultOrDisabledFallback`), in-process reads the state out of the synced ruleset. |
 | `@standard-reasons` | yes | yes | flagd reports Appendix F's mapping exactly; all nine executed rows of `reason.feature` pass in both. It composes with `@targeting` and `@disabled-flags`, both declared, so none of them skip. |
-| `@string-typing` | yes | yes | flagd's definitions carry a type per flag, so a non-string flag asked for through the string accessor is a genuine mismatch. All four scenarios pass in both. They were mandatory until spec `d47a66eb`, so declaring it keeps the suite asking what it already asked. |
+| `@string-typing` | yes | yes | flagd's definitions carry a type per flag, so a non-string flag asked for through the string accessor is a genuine mismatch. Gates the boolean and integer rows; both pass in both resolvers. |
+| `@fully-typed-values` | yes | yes | The same question for `float-flag` and `object-flag`, split out by spec `bda599f1` for backends that type booleans and integers natively and keep floats and structures as text. flagd is not one — a flag definition states its own type, floats and objects included — so both tags are declared and all four scenarios keep running. |
 | everything else | yes | yes | |
 
 The two rows that turn on a backend gap rather than a provider property follow [Appendix F's first
