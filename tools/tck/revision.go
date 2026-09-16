@@ -16,7 +16,18 @@ package tck
 // both its own self-tests and an adopter's TestConformance. So the value is
 // duplicated from go.mod on purpose, and TestSpecRevisionIsRecorded fails if the
 // two disagree.
-const SpecRevision = "v0.0.0-20260915200437-d47a66ebb950"
+//
+// What this constant is NOT is the enforcement. It is a label a report carries,
+// and TestSpecRevisionIsRecorded keeps the label honest against this module's
+// own go.mod -- which is a test in this module, and so covers this module's
+// runs. What guarantees that an *adopter's* run parsed the assets this names is
+// canonicalAssetsDigest in assets.go, verified inside Run: an adoption is a
+// module of its own and resolves the assets across its own dependency graph, so
+// a check that reads this module's go.mod cannot speak for it. The two are kept
+// apart on purpose -- this one says which revision is being claimed, that one
+// says the bytes match the claim -- and Appendix F's run-integrity rules are
+// satisfied by the second.
+const SpecRevision = "v0.0.0-20260916063014-bda599f1db44"
 
 // SpecModulePath is the module the conformance assets come from.
 //
