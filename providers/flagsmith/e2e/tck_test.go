@@ -68,11 +68,11 @@ var (
 	// as their text rather than as TYPE_MISMATCH, because Flagsmith stores both as strings. Each
 	// said in its own summary that this was not a defect the provider could fix and that whether
 	// the matrix was satisfiable against a coarser type system was an open question for the suite.
-	// The suite has now answered it: those rows live behind @string-typing, which this adoption
-	// withholds, so they are skipped with a reason instead of failed with an excuse. A deviation
-	// asserts the provider fails something it is *required* to do, and after d47a66eb nothing
-	// requires this -- so keeping either entry would be the misattribution the field exists to
-	// prevent. See the withholding note beside tck.WithCapabilities.
+	// The suite has now answered it: those rows live behind @fully-typed-values, which this
+	// adoption withholds, so they are skipped with a reason instead of failed with an excuse. A
+	// deviation asserts the provider fails something it is *required* to do, and after d47a66eb
+	// nothing requires this -- so keeping either entry would be the misattribution the field
+	// exists to prevent. See the note beside tck.WithCapabilities.
 	//
 	// Retiring them also cleans @object up: its remaining three rows (Boolean, Integer, Float)
 	// pass, structured resolution passes, and the capability now has no failing scenario at all.
@@ -206,30 +206,37 @@ func runConformance(t *testing.T, name string, local bool) {
 		// entirely -- Java leaves the reason null and JavaScript reports TARGETING_MATCH for every
 		// enabled flag -- which is the difference this capability exists to make visible.
 		//
-		// @string-typing is WITHHELD, and this adoption is the reason the capability exists.
+		// @string-typing is DECLARED and @fully-typed-values is WITHHELD, and this adoption is the
+		// reason the capability was split in two.
+		//
 		// Flagsmith's feature_state_value is natively boolean, integer or string -- no float type
-		// and no object type -- so a float and a structure are both stored as text, and asking for
-		// either through the string accessor is a correct request that correctly succeeds. There is
-		// no mismatch to report and no code here that could report one.
+		// and no object type. So the two halves of the question get different answers, and that is
+		// a fact about the backend rather than a judgement made here:
 		//
-		// Measured both ways rather than argued. Declared: 16 capability-skips and 4 failures, the
-		// two extra being float-flag resolving to "0.5" and object-flag to its raw JSON text.
-		// Withheld: 20 skips and 2 failures. Identical in both evaluation modes.
+		//   - boolean-flag and integer-flag requested as Strings both report TYPE_MISMATCH,
+		//     because those two types really are native to feature_state_value. Measured, in both
+		//     evaluation modes. That is what @string-typing now asks, and it is earned.
+		//   - float-flag and object-flag are stored as text, so asking for either through the
+		//     string accessor is a correct request that correctly succeeds -- float-flag comes back
+		//     as "0.5" and object-flag as its raw JSON. There is no mismatch to report and no code
+		//     here that could report one. That is what @fully-typed-values asks, and it is
+		//     withheld.
 		//
-		// **The provider answers two of the four scenarios and the tag cannot say so.** boolean-flag
-		// and integer-flag requested as Strings both report TYPE_MISMATCH, because those two types
-		// really are native to feature_state_value -- so Flagsmith is partially typed, not untyped,
-		// and withholding gives up two passes it has honestly earned. That is a granularity cost in
-		// the capability rather than a fact about this provider: the three scalar rows are one
-		// Examples table, so there is no way to claim the two that hold. It is withheld anyway,
-		// because the alternative is worse -- declaring means two permanently failing scenarios
-		// carrying known-deviation entries for behaviour no numbered requirement asks for, which is
-		// exactly the misattribution Appendix F's rules for declaring forbid. The old
-		// objectAsStringDeviation and floatAsStringDeviation were that shape, and they are deleted
-		// above.
+		// Until spec bda599f1 one tag covered all four rows and this adoption had to withhold it
+		// whole, which gave up two passes it had honestly earned. The note here used to say that
+		// the granularity cost was the capability's rather than the provider's, and that it would
+		// be worth revisiting if the tag were ever split. It has been, so this is that revision:
+		// Flagsmith is partially typed, not untyped, and the declaration can finally say so.
 		//
-		// Worth revisiting if the capability is ever split so that the scalar rows can be answered
-		// separately from the ones a text-valued backend cannot answer.
+		// The upstream argument for splitting is this backend measured across three languages: Go
+		// and Java answer the top two rows, JavaScript returns "true" and "10" and fails them. Under
+		// one tag JavaScript would withhold and have its own defect reported as a permitted absence
+		// -- the suite going quiet on a real bug -- which is what two tags prevent.
+		//
+		// Withholding rather than deviating is still the right instrument for the bottom two. A
+		// deviation asserts the provider fails something it is required to do, and nothing requires
+		// this; the old objectAsStringDeviation and floatAsStringDeviation were that shape and are
+		// deleted above.
 		tck.WithCapabilities(
 			tck.Object,
 			tck.LargeIntegers,
@@ -237,6 +244,7 @@ func runConformance(t *testing.T, name string, local bool) {
 			tck.DisabledFlags,
 			tck.StandardReasons,
 			tck.NumericCoercion,
+			tck.StringTyping,
 		),
 
 		tck.WithKnownDeviations(
