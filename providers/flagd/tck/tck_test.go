@@ -226,16 +226,21 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// reason.feature pass in both resolvers, and because tck.Targeting and
 		// tck.DisabledFlags are declared too, all six of its scenarios run.
 		//
-		// tck.StringTyping IS declared, and it is the cheapest of these to
-		// justify: flagd's flag definitions carry a type per flag and the
-		// resolver answers the typed RPC that matches, so asking for
-		// boolean-flag, integer-flag, float-flag or object-flag through the
-		// string accessor is a genuine mismatch and comes back as
-		// TYPE_MISMATCH. All four scenarios pass in both resolvers, and they
-		// were mandatory until spec d47a66eb -- so this declaration keeps
-		// running what this suite was already running, rather than adding
-		// anything. Withholding it would replace four passes with four skips
-		// and claim less than is true.
+		// tck.StringTyping and tck.FullyTypedValues are BOTH declared, and
+		// they are the cheapest of these to justify: flagd's flag definitions
+		// carry a type per flag and the resolver answers the typed RPC that
+		// matches, so asking for boolean-flag, integer-flag, float-flag or
+		// object-flag through the string accessor is a genuine mismatch and
+		// comes back as TYPE_MISMATCH.
+		//
+		// Spec bda599f1 split the one tag in two: @string-typing now gates the
+		// boolean and integer rows, and the float and structured scenarios
+		// carry @fully-typed-values as well, for backends that type the first
+		// two natively and keep the other two as text. flagd is not such a
+		// backend -- a flagd flag definition states its own type, floats and
+		// objects included -- so both tags are declared and all four scenarios
+		// keep running. Declaring only the first would replace two passes with
+		// two skips and claim less than is true.
 		capabilities: []tck.Capability{
 			tck.Events,
 			tck.Lifecycle,
@@ -248,6 +253,7 @@ func TestFlagdRPCConformance(t *testing.T) {
 			tck.StandardReasons,
 			tck.UnavailableInit,
 			tck.StringTyping,
+			tck.FullyTypedValues,
 		},
 
 		knownDeviations: []tck.KnownDeviation{
@@ -291,10 +297,15 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		// RPC suite gives, and measured the same way: a second Init waits for a
 		// sync that never completes and times out.
 		//
-		// tck.Variants, tck.Targeting, tck.DisabledFlags, tck.StandardReasons
-		// and tck.StringTyping are declared here as well, and both resolvers
-		// produce the identical result: 65 scenarios, 61 passed, 4 failed, the
-		// same four in both.
+		// tck.Variants, tck.Targeting, tck.DisabledFlags, tck.StandardReasons,
+		// tck.StringTyping and tck.FullyTypedValues are declared here as well,
+		// the last two for the reason the RPC suite gives -- a flagd definition
+		// states its own type for every flag, floats and objects included, so
+		// the split spec bda599f1 introduced costs this resolver nothing and
+		// all four string-accessor scenarios keep running. Both resolvers
+		// produce the identical result, the same four failures in both; the
+		// tally is in README.md rather than here, so it lives in one place.
+		//
 		// Running both mattered rather than being a formality -- in-process
 		// evaluates the JsonLogic rule itself while RPC has flagd evaluate it,
 		// so the @targeting scenarios exercise genuinely different code, and
@@ -316,6 +327,7 @@ func TestFlagdInProcessConformance(t *testing.T) {
 			tck.StandardReasons,
 			tck.UnavailableInit,
 			tck.StringTyping,
+			tck.FullyTypedValues,
 		},
 
 		knownDeviations: []tck.KnownDeviation{

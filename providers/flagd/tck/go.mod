@@ -103,7 +103,7 @@ require (
 	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/open-feature/flagd-schemas v0.2.13 // indirect
 	github.com/open-feature/flagd/core v0.17.0 // indirect
-	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260915200437-d47a66ebb950 // indirect
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260916063014-bda599f1db44 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.1 // indirect
