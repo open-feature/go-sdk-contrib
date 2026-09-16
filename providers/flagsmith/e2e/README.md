@@ -11,7 +11,7 @@ The backend is a container, pulled automatically. Override it with `FLAGSMITH_TE
 
 ## Status: draft
 
-Out of 65 scenarios: **43 pass, 2 fail, 20 are skipped** because a capability is not declared.
+Out of 65 scenarios: **45 pass, 2 fail, 18 are skipped** because a capability is not declared.
 Identical in both modes.
 
 Both failures carry a `KnownDeviation` and one of them is a genuine provider defect — see "Why the 2
@@ -23,9 +23,9 @@ repo's CI should not depend on it until it has a permanent home.
 
 > Read the counts from the suite's own summary, not from `go test`. `go test` prints a PASS line for
 > every skipped scenario too — godog skips the scenario and the Go subtest passes anyway — so it
-> prints `65 scenarios (63 passed, 2 failed)` and the honest pass count is 43. Reading godog's
+> prints `65 scenarios (63 passed, 2 failed)` and the honest pass count is 45. Reading godog's
 > number as the conformance result is exactly the vacuous pass the capability gating exists to
-> prevent; the real count is on the line underneath, `20 scenario(s) skipped because a capability
+> prevent; the real count is on the line underneath, `18 scenario(s) skipped because a capability
 > was not declared`.
 
 ## The two modes
@@ -40,7 +40,7 @@ against a byte-identical document compares two implementations of the same engin
 shape as GO Feature Flag's one engine in several hosts, except these are separate reimplementations
 — which should make divergence *more* likely.
 
-**They do not diverge.** Byte-identical results: same 43 passes, same 2 failures, same 20 skips,
+**They do not diverge.** Byte-identical results: same 45 passes, same 2 failures, same 18 skips,
 same reasons — including all four of the evaluation-context and targeting scenarios. A negative
 result from a test designed to find divergence, worth re-running when the Java and JS adoptions
 exist.
@@ -56,17 +56,17 @@ Two other failures stood here until spec `d47a66eb` and are now **skips**: `floa
 string returned `"0.5"`, and `object-flag` returned its raw JSON text. Neither was a provider bug —
 Flagsmith's `feature_state_value` is natively boolean, integer or string, so on this backend both
 genuinely *are* strings and asking for them as strings is a correct request that correctly succeeds.
-That was recorded as an open question for the suite, and the suite has answered it: those rows moved
-behind `@string-typing`, which this adoption withholds.
+That was recorded as an open question for the suite, and the suite has answered it: those rows sit
+behind `@fully-typed-values`, which this adoption withholds.
 
-**The withholding costs two honest passes, and that is worth knowing.** `boolean-flag` and
+**The finer capability arrived, and it recovered two honest passes.** `boolean-flag` and
 `integer-flag` read as strings *do* report `TYPE_MISMATCH`, because those types really are native to
-`feature_state_value` — so Flagsmith is partially typed rather than untyped. The three scalar rows
-are a single `Examples` table, so there is no way to claim the two that hold and skip the one that
-cannot. Declaring the tag instead was measured: 16 skips and 4 failures rather than 20 and 2, with
-the two extra failures needing deviation entries for behaviour no numbered requirement asks for —
-which is the misattribution Appendix F's rules for declaring exist to stop. Withheld is the accurate
-report; a finer capability would be a better one.
+`feature_state_value` — so Flagsmith is partially typed rather than untyped. Until spec `bda599f1`
+all four rows sat behind one tag and this adoption had to withhold it whole, giving up two passes it
+had earned; this file recorded that as a granularity cost in the capability rather than a fact about
+the provider. `bda599f1` split it, so `@string-typing` is now declared and answered, and only the
+float and structured rows skip. That is why the tally moved from 43/2/20 to 45/2/18: nothing about
+the provider changed, the question got asked at the right granularity.
 
 ## Capabilities
 
@@ -85,9 +85,10 @@ makes populating the variant a SHOULD and `types.md` marks the field optional �
 deviation entry. Before the capability existed these were untagged assertions and this provider
 failed ten scenarios for something its author could not fix, with nothing to record it as.
 
-`@string-typing` is withheld for a reason that is neither of those: it is a fact about the backend's
-type system rather than about the provider or about the SDK. See "Why the 2 fail" above for the
-measurement, including the two scenarios the withholding gives up.
+`@fully-typed-values` is withheld for a reason that is neither of those: it is a fact about the
+backend's type system rather than about the provider or about the SDK. `@string-typing`, the half of
+that question this backend *can* answer, is declared and passes. See "Why the 2 fail" above for the
+measurement and for why the split matters.
 
 Everything else is withheld, and almost all of it for one reason: the provider implements none of
 `Init`, `Shutdown`, `Status` or `EventChannel`, so it is neither an `openfeature.StateHandler` nor
