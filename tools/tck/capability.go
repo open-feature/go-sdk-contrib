@@ -125,9 +125,9 @@ const (
 	// inexpressibleCapabilities.
 	LargeIntegers Capability = "@large-integers"
 
-	// StringTyping means the provider reports TYPE_MISMATCH when a non-string
-	// flag is requested through the string accessor, rather than returning the
-	// value's string representation.
+	// StringTyping means the provider reports TYPE_MISMATCH when a boolean or
+	// integer flag is requested through the string accessor, rather than
+	// returning the value's string representation.
 	//
 	// It is gated because every value has a string representation, so a backend
 	// that stores flag values as strings satisfies the string accessor for
@@ -138,22 +138,55 @@ const (
 	// withholds this tag and is not thereby non-conformant. Appendix F carries
 	// the argument; it is optional for the same reason NumericCoercion is.
 	//
-	// Declare it when the backend distinguishes a string from a boolean, a
-	// number and a structure, and the provider type-asserts rather than
-	// formats. Withhold it when the backend stores everything as text --
-	// Flagsmith's feature_state_value is the worked example, natively boolean,
-	// integer or string only, which is why the Go Flagsmith adoption withholds
-	// it and the flagd and OFREP adoptions do not.
+	// Declare it when the backend records a boolean as a boolean and an integer
+	// as an integer, and the provider type-asserts rather than formats. Withhold
+	// it when the backend stores everything as text. Flagsmith is the worked
+	// example of the *partial* case and is why this is no longer one tag: its
+	// feature_state_value is natively boolean, integer or string, so it can be
+	// asked the two questions here and not the two behind FullyTypedValues.
 	//
-	// The three scenarios it gates ask for boolean-flag, integer-flag and
-	// float-flag as strings. A fourth asks for object-flag and carries @object
-	// too, a provider with no structured values having no way to be asked the
-	// question at all; declaring StringTyping without Object skips that one and
-	// runs the other three.
+	// It gates two rows, asking for boolean-flag and integer-flag as strings.
+	// The float and structured cases are the same question one type further
+	// out and carry FullyTypedValues as well, so a backend that records those
+	// natively declares both tags and runs all four -- see FullyTypedValues for
+	// why splitting them is what keeps a defect from hiding inside a permitted
+	// absence.
 	//
 	// It is expressible in Go: Client.StringValueDetails takes and returns a
 	// string, distinct from every other accessor, so the request can be made.
 	StringTyping Capability = "@string-typing"
+
+	// FullyTypedValues means the backend records a native type for float and
+	// structured values too, so the StringTyping question can be asked of them
+	// as well.
+	//
+	// It is never declared alone. The two scenarios carrying it carry
+	// @string-typing too -- float-flag and object-flag requested through the
+	// string accessor -- so this widens StringTyping's question rather than
+	// asking a new one, and the object scenario carries @object on top, a
+	// provider with no structured values having no way to be asked at all.
+	//
+	// Why it is separate from StringTyping: a store can record booleans and
+	// integers natively and still keep floats and structures as text, and one
+	// tag over all four cases would let a provider that fails the first two --
+	// its own defect, over a backend that types them -- withhold the tag and
+	// have that reported as a permitted absence. Appendix F carries the
+	// measurement that settled it: over one Flagsmith backend, Go and Java
+	// answer boolean-flag and integer-flag with TYPE_MISMATCH while JavaScript
+	// returns "true" and "10", and all three stringify the float and the
+	// structure because the backend has no type for them. Under one tag the
+	// JavaScript defect and the shared backend limit are the same absence.
+	//
+	// The general rule, which is worth reaching for when adding a capability: a
+	// capability coarser than the variation providers actually show will hide
+	// defects inside permitted absences.
+	//
+	// Declare it when the backend has a float type and a structure type and the
+	// provider type-asserts on both; the Go flagd and OFREP adoptions do.
+	// Withhold it where the backend records neither, which is the Go Flagsmith
+	// adoption -- and withholding it there costs StringTyping nothing, which is
+	// the whole point of the split.
+	FullyTypedValues Capability = "@fully-typed-values"
 
 	// Reinitialization means the provider can be initialised again after it has
 	// been shut down, and serves flags afterwards.
@@ -221,6 +254,7 @@ var allCapabilities = []Capability{
 	NumericCoercion,
 	LargeIntegers,
 	StringTyping,
+	FullyTypedValues,
 	Reinitialization,
 	Targeting,
 	StandardReasons,

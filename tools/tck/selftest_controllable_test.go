@@ -80,7 +80,10 @@ func TestControllableProvider(t *testing.T) {
 		//
 		// StringTyping is declared for that same reason: the type assertion a
 		// string request lands on is memprovider's, and it refuses to format a
-		// boolean, an integer, a float or a structure as text.
+		// boolean, an integer, a float or a structure as text. FullyTypedValues
+		// comes with it because the float and the structure are a float64 and a
+		// map here rather than text, so the same assertion answers them -- see
+		// TestInMemoryProvider for why the split does not bite an in-memory set.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.Lifecycle,
@@ -91,6 +94,7 @@ func TestControllableProvider(t *testing.T) {
 			tck.LargeIntegers,
 			tck.StandardReasons,
 			tck.StringTyping,
+			tck.FullyTypedValues,
 		),
 	)
 }
