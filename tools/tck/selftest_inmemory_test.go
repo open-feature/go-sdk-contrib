@@ -133,8 +133,15 @@ func TestInMemoryProvider(t *testing.T) {
 // StringTyping is declared, and it is the same property of memprovider that
 // costs it NumericCoercion paying off: it type-asserts, so a boolean, an
 // integer, a float or a structure requested through the string accessor is
-// refused rather than formatted. All four scenarios pass, the object one
-// included, @object being declared here too.
+// refused rather than formatted.
+//
+// FullyTypedValues is declared with it, and here the two are not a real
+// distinction: an in-memory flag set holds Go values, so a float is a float64
+// and a structure a map -- there is no text representation for either to be
+// mistaken for. The split exists for backends that record booleans and integers
+// natively and keep floats and structures as text, which no in-memory set is.
+// So all four scenarios pass, the object one included, @object being declared
+// here too.
 func inMemoryCapabilities() []tck.Capability {
 	return []tck.Capability{
 		tck.Events,
@@ -143,6 +150,7 @@ func inMemoryCapabilities() []tck.Capability {
 		tck.LargeIntegers,
 		tck.StandardReasons,
 		tck.StringTyping,
+		tck.FullyTypedValues,
 	}
 }
 
