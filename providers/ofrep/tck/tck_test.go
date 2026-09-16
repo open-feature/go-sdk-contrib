@@ -220,22 +220,30 @@ func TestOFREPConformance(t *testing.T) {
 		// launchpad race above wearing another field's clothes, not a
 		// vocabulary disagreement. Judge this capability on whether its
 		// scenarios fail consistently.
-		// tck.StringTyping IS declared. Every typed resolver in
-		// internal/evaluate/flags.go type-asserts the decoded value before it
-		// returns, so ResolveString on a JSON true, a JSON number or a JSON
-		// object fails the assertion and reports TYPE_MISMATCH rather than
-		// formatting the value. Nothing in this provider calls fmt.Sprint on a
-		// resolved value, which is the mistake the capability exists to find.
+		// tck.StringTyping and tck.FullyTypedValues are BOTH declared. Every
+		// typed resolver in internal/evaluate/flags.go type-asserts the decoded
+		// value before it returns, so ResolveString on a JSON true, a JSON
+		// number or a JSON object fails the assertion and reports TYPE_MISMATCH
+		// rather than formatting the value. Nothing in this provider calls
+		// fmt.Sprint on a resolved value, which is the mistake the capability
+		// exists to find.
 		//
-		// The four scenarios it gates were mandatory until spec d47a66eb, and
-		// this suite was already passing them, so the declaration claims what
-		// was already measured rather than adding coverage. Verified after the
-		// pin moved: with the tag registered and undeclared the skip count rose
-		// from 9 to 13, and declaring it put it back at 9 with no new failure.
+		// Spec bda599f1 split the question in two: @string-typing keeps the
+		// boolean and integer rows, and the float and structured scenarios
+		// carry @fully-typed-values, which asks whether the backend records a
+		// native type for those as well. For OFREP it does, and the reason is
+		// the wire format rather than anything a particular server chose: JSON
+		// distinguishes a number and an object from a string, so both arrive
+		// typed and the type survives to the assertion. A backend that stored
+		// flag values as text would withhold both tags; one that typed only
+		// booleans and integers would declare the first and withhold the
+		// second. OFREP is neither, so all four scenarios keep running.
 		//
-		// A backend storing flag values as text would withhold this, and OFREP
-		// is not that: the wire format is JSON, so a boolean arrives as a JSON
-		// boolean and the type survives to the assertion.
+		// The four were mandatory until spec d47a66eb, and this suite was
+		// already passing them, so both declarations claim what was already
+		// measured rather than adding coverage. Verified when the tag was first
+		// registered: undeclared, the skip count rose from 9 to 13, and
+		// declaring it put it back at 9 with no new failure.
 		tck.WithCapabilities(
 			tck.Object,
 			tck.NumericCoercion,
@@ -244,6 +252,7 @@ func TestOFREPConformance(t *testing.T) {
 			tck.DisabledFlags,
 			tck.StandardReasons,
 			tck.StringTyping,
+			tck.FullyTypedValues,
 		),
 
 		// The provider has no initialisation to wait for, so this bounds the
