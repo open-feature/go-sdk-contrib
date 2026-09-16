@@ -159,13 +159,32 @@ so a narrowing in a future SDK fails there rather than as an apparent provider d
 `inexpressibleCapabilities` in `capability.go` is therefore empty, and the refusal it drives is kept
 exercised by tests that install an entry and drive every path it feeds.
 
-Two tripwires guard the pinned assets, because both failure modes are silent. **A reserved tag on a
-real scenario fails the run**, naming the one line to delete (`reservedCapabilities` in
-`capability.go`), so a newly added `@caching` scenario cannot be skipped for a capability nobody may
-declare. And `TestEveryCanonicalFeatureFileIsCollected` spells the collected set out rather than
-deriving it from the `//go:embed` pattern, so a feature file renamed or moved fails here instead of
-shrinking the suite quietly — that is how `reason.feature` arrived, taking the count from 56
-scenarios to 65.
+Four checks guard the pinned assets, because every one of these failure modes is silent.
+
+**A reserved tag on a real scenario fails the run**, naming the one line to delete
+(`reservedCapabilities` in `capability.go`), so a newly added `@caching` scenario cannot be skipped
+for a capability nobody may declare.
+
+**A canonical scenario carrying a tag the vocabulary cannot resolve fails the run too**, which is
+that check's own direction reversed and the one it is easy to leave out. An unknown tag gates
+nothing, so its scenarios stay *mandatory for every adopter*: a suite that has not learned a new
+capability does not report a new capability, it silently keeps demanding the old behaviour, and the
+symptom is one provider showing unexplained failures while the rest stay green. Tags on an
+adopter's own features under `extensions/` are exempt — a vendor's tags are not this suite's
+vocabulary.
+
+**The assets are fingerprinted, and `tck.Run` refuses to run against a set that is not the one this
+package was written against.** This is the revision check, and it is in `Run` rather than in a test
+here on purpose: an adoption is its own module, resolves the assets across its own dependency graph,
+and a guarantee that held only in this module's tests would not cover the run whose numbers get
+published. It is a digest over the embedded bytes rather than a comparison against `go.mod` for the
+same reason — there is no condition under which it cannot answer, so it never has cause to skip. A
+pin move trips `TestTheCanonicalAssetsMatchTheirDigest`, which prints the value to paste into
+`canonicalAssetsDigest`.
+
+And `TestEveryCanonicalFeatureFileIsCollected` spells the collected set out rather than deriving it
+from the `//go:embed` pattern, so a feature file renamed or moved fails here instead of shrinking
+the suite quietly — that is how `reason.feature` arrived, taking the count from 56 scenarios to 65.
 
 ### Known deviations
 

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/cucumber/godog"
@@ -27,6 +28,22 @@ func scenarioWithTags(name string, tags ...string) *godog.Scenario {
 		pickle.Tags = append(pickle.Tags, &messages.PickleTag{Name: tag})
 	}
 	return pickle
+}
+
+// canonicalScenarioWithTags and extensionScenarioWithTags are the same thing
+// with a URI, for the checks that key on which root a scenario came from. The
+// prefixes are the ones featureSources mounts, so these cannot drift from what
+// a run actually produces without the mount changing too.
+func canonicalScenarioWithTags(name string, tags ...string) *godog.Scenario {
+	sc := scenarioWithTags(name, tags...)
+	sc.Uri = featuresPath + "/errors.feature"
+	return sc
+}
+
+func extensionScenarioWithTags(name string, tags ...string) *godog.Scenario {
+	sc := scenarioWithTags(name, tags...)
+	sc.Uri = extensionsRoot + "/vendor.feature"
+	return sc
 }
 
 func TestMissingCapabilitySkipsTaggedScenario(t *testing.T) {
@@ -558,6 +575,261 @@ func TestTheCanonicalScenariosCarryNoReservedTag(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// The reverse of the expiry check: a tag the assets carry and this vocabulary
+// has never heard of.
+//
+// It is the easier of the two to leave out, because ignoring an unknown tag
+// looks tolerant. It is the opposite. An unknown tag gates nothing, so the
+// scenarios carrying it stay mandatory for every adopter, and a provider that
+// legitimately withholds the new capability shows unexplained failures while
+// every other provider stays green. Nothing in the results says why.
+
+// TestACanonicalScenarioCarryingAnUnknownTagFailsTheRun pins the gate.
+func TestACanonicalScenarioCarryingAnUnknownTagFailsTheRun(t *testing.T) {
+	caps, err := newCapabilitySet(nil)
+	if err != nil {
+		t.Fatalf("newCapabilitySet: %v", err)
+	}
+	r := &runner{caps: caps}
+
+	sc := canonicalScenarioWithTags(
+		"a scenario gated on a capability this suite has not learned",
+		"@events", "@some-future-capability")
+
+	tag, unknown := unknownCapabilityTag(sc)
+	if !unknown {
+		t.Fatal("a canonical scenario carrying an unresolvable tag did not trip the check")
+	}
+	if tag != "@some-future-capability" {
+		t.Fatalf("blamed %q, want %q", tag, "@some-future-capability")
+	}
+
+	// It has to fail rather than skip, which is the same error channel the
+	// gate uses and so the same mistake worth guarding against: a skip here
+	// would report the scenario as legitimately not run.
+	_, runErr := r.beforeScenario(context.Background(), sc)
+	if runErr == nil {
+		t.Fatal("beforeScenario accepted a canonical scenario with an unresolvable tag")
+	}
+	if errors.Is(runErr, godog.ErrSkip) {
+		t.Fatalf("the scenario was skipped rather than failed: %v", runErr)
+	}
+	if !strings.Contains(runErr.Error(), "@some-future-capability") {
+		t.Errorf("the failure does not name the tag: %v", runErr)
+	}
+	if !strings.Contains(runErr.Error(), "capability.go") {
+		t.Errorf("the failure does not say what to change: %v", runErr)
+	}
+}
+
+// TestAKnownTagOnACanonicalScenarioIsAccepted is the other half, so that the
+// check above cannot pass by rejecting everything.
+func TestAKnownTagOnACanonicalScenarioIsAccepted(t *testing.T) {
+	for _, capability := range AllCapabilities() {
+		sc := canonicalScenarioWithTags("a canonical scenario", capability.Tag())
+		if tag, unknown := unknownCapabilityTag(sc); unknown {
+			t.Errorf("%s is in the vocabulary but %q was reported unknown", capability, tag)
+		}
+	}
+}
+
+// TestAnExtensionScenarioMayCarryAnyTag keeps an adopter's own features out of
+// this check.
+//
+// A vendor's organisational tags are the vendor's to choose; this suite has no
+// vocabulary for them and should not pretend to. The partition is the one
+// featureSources mounts, which is also what the Messages stream keys on, rather
+// than a second notion of what is canonical.
+func TestAnExtensionScenarioMayCarryAnyTag(t *testing.T) {
+	caps, err := newCapabilitySet(nil)
+	if err != nil {
+		t.Fatalf("newCapabilitySet: %v", err)
+	}
+	r := &runner{caps: caps}
+
+	sc := extensionScenarioWithTags("a vendor scenario", "@fractional", "@wip")
+
+	if tag, unknown := unknownCapabilityTag(sc); unknown {
+		t.Fatalf("an extension scenario's own tag %q was rejected; a vendor's tags are not this "+
+			"suite's vocabulary", tag)
+	}
+
+	// And they must not gate it either, which is the older half of the same
+	// rule: an extension scenario carrying tags this suite cannot resolve runs
+	// rather than being skipped for a capability nobody declared.
+	if capability, missing := r.missingCapability(sc); missing {
+		t.Fatalf("an extension scenario was gated on %s by a tag of the vendor's own", capability)
+	}
+}
+
+// TestTheCanonicalScenariosCarryNoUnknownTag is the same check against the
+// assets actually pinned, so moving the pin is what trips it rather than some
+// future adopter's run.
+//
+// It is the tripwire and not the gate, exactly as
+// TestTheCanonicalScenariosCarryNoReservedTag is, and it is deliberately crude
+// in the same way: a Gherkin tag line is a line whose every token starts with
+// an at-sign, and nothing else is considered. That narrowness is what keeps it
+// off the prose -- errors.feature's comments discuss @string-typing and
+// @fully-typed-values by name, and a looser scan would read those as tags.
+//
+// This is the check that fires on the pin move that adds a capability, and it
+// names the file, which is what turns "some adopter's suite went red" into one
+// line to add to capability.go.
+func TestTheCanonicalScenariosCarryNoUnknownTag(t *testing.T) {
+	features, err := fs.ReadDir(assets, featuresPath)
+	if err != nil {
+		t.Fatalf("could not list the canonical features: %v", err)
+	}
+	if len(features) == 0 {
+		t.Fatal("no canonical feature files, so this test would pass vacuously")
+	}
+
+	seen := 0
+	for _, entry := range features {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".feature") {
+			continue
+		}
+		source, err := fs.ReadFile(assets, featuresPath+"/"+entry.Name())
+		if err != nil {
+			t.Fatalf("could not read %s: %v", entry.Name(), err)
+		}
+		for _, line := range strings.Split(string(source), "\n") {
+			fields := strings.Fields(strings.TrimSpace(line))
+			if len(fields) == 0 {
+				continue
+			}
+			tagLine := true
+			for _, field := range fields {
+				if !strings.HasPrefix(field, "@") {
+					tagLine = false
+					break
+				}
+			}
+			if !tagLine {
+				continue
+			}
+			for _, tag := range fields {
+				seen++
+				if _, known := CapabilityForTag(tag); !known {
+					t.Errorf("%s carries the tag %s, which the capability vocabulary does not "+
+						"know. The pin has grown a capability this suite has not learned: add a "+
+						"constant for it in capability.go and a line in allCapabilities, then "+
+						"decide per adoption whether to declare it. Until that is done the tag "+
+						"gates nothing, so its scenarios stay mandatory for every adopter and a "+
+						"provider that legitimately withholds the capability fails them with no "+
+						"explanation", entry.Name(), tag)
+				}
+			}
+		}
+	}
+
+	if seen == 0 {
+		t.Fatal("found no tag line in the canonical features, so this test would pass vacuously " +
+			"-- the scan or the Gherkin's shape has changed")
+	}
+	t.Logf("checked %d tag(s) on the canonical scenarios against the vocabulary", seen)
+}
+
+// TestTheCanonicalAssetsMatchTheirDigest is the revision check's own tripwire,
+// and the place a pin move is serviced.
+//
+// verifyCanonicalAssets runs inside Run, so the check itself is in force for
+// every adoption. What this adds is the message: when the pin moves, an
+// adopter's suite would otherwise fail with a digest mismatch and no value to
+// replace it with, so this test prints the new digest, and updating the
+// constant from it is the whole of the change.
+//
+// It is deliberately not a test of assetsDigest's arithmetic. What it pins is
+// that the constant and the embedded bytes agree, which is the only thing a
+// consumer of this suite depends on.
+func TestTheCanonicalAssetsMatchTheirDigest(t *testing.T) {
+	got, err := assetsDigest()
+	if err != nil {
+		t.Fatalf("the embedded assets could not be fingerprinted: %v", err)
+	}
+
+	if got != canonicalAssetsDigest {
+		t.Errorf("the embedded conformance assets do not match canonicalAssetsDigest.\n"+
+			"  constant: %s\n  embedded: %s\n"+
+			"If the pin in go.mod has just moved, this is the expected failure and the fix is to "+
+			"set canonicalAssetsDigest in assets.go to the embedded value above. Read what changed "+
+			"in the assets first: a new capability tag needs a line in capability.go, and a new "+
+			"feature file needs one in TestEveryCanonicalFeatureFileIsCollected, and neither is "+
+			"implied by updating this digest.", canonicalAssetsDigest, got)
+	}
+
+	if err := verifyCanonicalAssets(); err != nil && got == canonicalAssetsDigest {
+		t.Errorf("the digest matches but verifyCanonicalAssets still refused the run: %v", err)
+	}
+}
+
+// TestTheAssetsDigestNoticesAChangedAsset keeps the check above from being
+// vacuous.
+//
+// A fingerprint that ignored what it was given would match the constant
+// forever and report every stale asset as fine, so the property worth pinning
+// is that a change to the bytes changes the value. It is exercised against a
+// copy of the embedded set rather than against the real one, which cannot be
+// mutated -- and that is also why assetsDigest takes its input from a package
+// variable.
+func TestTheAssetsDigestNoticesAChangedAsset(t *testing.T) {
+	original, err := assetsDigest()
+	if err != nil {
+		t.Fatalf("fingerprinting the embedded assets: %v", err)
+	}
+
+	// Every artifact, with one scenario tagged the way a future specification
+	// revision would tag it.
+	mutated := fstest.MapFS{}
+	err = fs.WalkDir(assets, ".", func(name string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() {
+			return err
+		}
+		body, readErr := fs.ReadFile(assets, name)
+		if readErr != nil {
+			return readErr
+		}
+		mutated[name] = &fstest.MapFile{Data: body}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("copying the embedded assets: %v", err)
+	}
+
+	target := featuresPath + "/errors.feature"
+	if _, ok := mutated[target]; !ok {
+		t.Fatalf("%s is not in the embedded set, so this test cannot mutate it", target)
+	}
+
+	restore := assets
+	t.Cleanup(func() { assets = restore })
+
+	assets = mutated
+	unchanged, err := assetsDigest()
+	if err != nil {
+		t.Fatalf("fingerprinting the copy: %v", err)
+	}
+	if unchanged != original {
+		t.Fatalf("a byte-for-byte copy of the assets fingerprinted differently:\n  %s\n  %s\n"+
+			"The digest depends on something other than the paths and contents, so it would be "+
+			"unstable for reasons that say nothing about the assets", original, unchanged)
+	}
+
+	mutated[target] = &fstest.MapFile{Data: append([]byte("@some-future-capability\n"), mutated[target].Data...)}
+	changed, err := assetsDigest()
+	if err != nil {
+		t.Fatalf("fingerprinting the mutated copy: %v", err)
+	}
+	if changed == original {
+		t.Fatal("changing a canonical feature file did not change the digest, so the revision " +
+			"check would pass over exactly the drift it exists to catch")
+	}
+	if err := verifyCanonicalAssets(); err == nil {
+		t.Fatal("verifyCanonicalAssets accepted assets that do not match the recorded digest")
 	}
 }
 
