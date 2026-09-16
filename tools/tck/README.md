@@ -119,7 +119,7 @@ deciding whether to declare one are [Appendix F's][appendix-f-caps]. This is the
 | `tck.Object` | `@object` | `tck.StandardReasons` | `@standard-reasons` |
 | `tck.Variants` | `@variants` | `tck.DisabledFlags` | `@disabled-flags` |
 | `tck.UnavailableInit` | `@unavailable` | `tck.StringTyping` | `@string-typing` |
-| `tck.Caching` | `@caching` — reserved, **not declarable** | | |
+| `tck.FullyTypedValues` | `@fully-typed-values` | `tck.Caching` | `@caching` — reserved, **not declarable** |
 
 Omitting `tck.WithCapabilities` declares `tck.AllCapabilities()`, which excludes the reserved tags.
 Narrow it rather than widening it: start from the default, run the suite, and remove only what your
@@ -127,14 +127,24 @@ provider genuinely cannot do — a judgement Appendix F makes **per scenario, no
 the option with no capability at all is a declaration too, and says this provider supports none of
 the optional parts.
 
-Two of these are gated by an argument rather than by a gap in the specification, and are the two
+Three of these are gated by an argument rather than by a gap in the specification, and are the ones
 most likely to be withheld by a provider that is doing nothing wrong. `@numeric-coercion` borrows
 flagd's coercion ADR, which the specification does not define. `@string-typing` asks for
-`TYPE_MISMATCH` when a non-string flag is requested as a string, and the only normative statement
-nearby is Requirement 1.3.4 — a `SHOULD` on the *client*. A backend that stores flag values as text
-satisfies the string accessor for every flag and has no mismatch to report, so it withholds the tag
-and stays conformant; `providers/flagsmith` is that case in this repository, and `providers/flagd`
-and `providers/ofrep` are the other one.
+`TYPE_MISMATCH` when a boolean or integer flag is requested as a string, and the only normative
+statement nearby is Requirement 1.3.4 — a `SHOULD` on the *client*. A backend that stores flag
+values as text satisfies the string accessor for every flag and has no mismatch to report, so it
+withholds the tag and stays conformant.
+
+`@fully-typed-values` is the third, and it exists because the second used to cover four scenarios
+instead of two. It asks the string-typing question of a float and a structure, which a store can
+lack a type for while typing booleans and integers natively — so the two tags split along the line
+providers actually vary on. `providers/flagd` and `providers/ofrep` declare both. `providers/flagsmith`
+declares `@string-typing` and withholds `@fully-typed-values`: `feature_state_value` is natively
+boolean, integer or string, so the provider answers the first two questions and cannot be asked the
+other two. Under one tag it would have withheld everything and a real defect would have been
+reported as a permitted absence — which is [Appendix F's][appendix-f-caps] general rule, worth
+reading before adding a capability: **a capability coarser than the variation providers actually
+show will hide defects inside permitted absences.**
 
 Appendix F has the implementation, rather than each adopter, refuse two kinds of capability, with
 distinct skip reasons: a **reserved** one (`@caching` today, which no scenario carries anywhere) and
@@ -372,8 +382,11 @@ What they leave undeclared follows from `memprovider` rather than from the suite
 `TestControllableProvider` declares `@lifecycle`, because it is the only one whose `READY` the SDK
 did not manufacture; none declares `@numeric-coercion`, because `memprovider` type-asserts rather
 than converts and so refuses `10.0` as an integer as readily as `0.5`. All three declare
-`@string-typing`, which is that same type assertion paying off rather than costing: a boolean, a
-number or a structure asked for through the string accessor is refused rather than formatted.
+`@string-typing` **and** `@fully-typed-values`, which is that same type assertion paying off rather
+than costing: a boolean, a number or a structure asked for through the string accessor is refused
+rather than formatted. The split between those two tags is about backends that keep floats and
+structures as text, which no in-memory flag set is — it holds Go values, so there is no text
+representation for either to be mistaken for.
 Two omissions are defects
 rather than absences — `@configuration-change` ([go-sdk#530][gosdk-530]: no update method, which
 [Appendix A][appendix-a] requires) and `@disabled-flags` ([go-sdk#552][gosdk-552], fixed by

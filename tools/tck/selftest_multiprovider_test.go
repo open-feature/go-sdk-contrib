@@ -93,6 +93,9 @@ func TestMultiProvider(t *testing.T) {
 		// shape: the child refuses to format a non-string value as text, and
 		// what this suite adds is that the refusal reaches the caller as
 		// TYPE_MISMATCH rather than being swallowed on the hop.
+		// FullyTypedValues is declared with it, which widens that same question
+		// to the float and the structure -- the two values a wrapper is most
+		// likely to flatten on the way through, a map especially.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.ConfigurationChange,
@@ -101,6 +104,7 @@ func TestMultiProvider(t *testing.T) {
 			tck.LargeIntegers,
 			tck.StandardReasons,
 			tck.StringTyping,
+			tck.FullyTypedValues,
 		),
 	)
 }
