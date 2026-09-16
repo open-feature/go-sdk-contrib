@@ -43,6 +43,15 @@ import (
 func Run(t *testing.T, opts ...Option) {
 	t.Helper()
 
+	// The revision check, in force where the scenarios execute rather than only
+	// in this module's own tests -- which is the point of it being here and not
+	// in a _test.go file. See canonicalAssetsDigest for why it is a digest over
+	// the embedded bytes rather than a comparison against the pin, and why it
+	// has no condition under which it declines to answer.
+	if err := verifyCanonicalAssets(); err != nil {
+		t.Fatalf("tck: %v", err)
+	}
+
 	cfg := newConfig(opts)
 
 	if err := cfg.validate(); err != nil {
@@ -172,6 +181,21 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 			sc.Name, capability.Tag(), capability)
 	}
 
+	if tag, unknown := unknownCapabilityTag(sc); unknown {
+		return ctx, fmt.Errorf(
+			"canonical scenario %q (%s) carries the tag %s, which this suite's capability "+
+				"vocabulary does not know. The specification has grown a capability this "+
+				"implementation has not learned, and the failure this check prevents is a quiet "+
+				"one: an unknown tag gates nothing, so this scenario stays mandatory for every "+
+				"adopter, and a provider that legitimately withholds the new capability shows an "+
+				"unexplained failure while every other provider stays green. Add the capability "+
+				"to capability.go -- a constant with the tag as its value, and a line in "+
+				"allCapabilities -- and then decide for each adoption in this repository whether "+
+				"to declare it. Tags on an adopter's own extension features under %s/ are not "+
+				"subject to this and stay free",
+			sc.Name, sc.Uri, tag, extensionsRoot)
+	}
+
 	if capability, missing := r.missingCapability(sc); missing {
 		reason, inexpressible := capability.IsInexpressible()
 		r.recordSkip(sc.Name, capability, reason)
@@ -251,6 +275,53 @@ func expiredReservation(sc *godog.Scenario) (Capability, bool) {
 		}
 	}
 	return "", false
+}
+
+// unknownCapabilityTag reports whether a canonical scenario carries a tag this
+// suite's vocabulary cannot resolve.
+//
+// It is expiredReservation's own direction reversed -- that one catches a tag
+// the vocabulary still holds and the assets have grown scenarios for, this one
+// a tag the assets carry and the vocabulary has never heard of -- and it is the
+// one that is easy to leave out, because ignoring an unknown tag looks like the
+// tolerant thing to do. It is not. A tag that resolves to nothing gates
+// nothing, so the scenarios carrying it stay mandatory for every adopter: a
+// suite that has not learned a new capability does not report a new capability,
+// it silently keeps demanding the old behaviour. The symptom is a provider
+// that legitimately withholds the capability showing unexplained failures while
+// every other provider stays green, and nothing in the results says why.
+//
+// Only canonical scenarios are subject to it. An adopter's extension features
+// are mounted under their own prefix precisely so that the URI space
+// partitions, and a vendor's organisational tags are theirs to choose -- this
+// suite has no vocabulary for them and should not pretend to. So the check is
+// scoped by the same partition the coverage guard and the Messages stream key
+// on, rather than by a second notion of what is canonical.
+//
+// Like expiredReservation it reads the tags from the scenario godog parsed,
+// which is the parser the runner itself uses, so it cannot disagree with the
+// run about which tags a scenario carries -- feature-level tags and tags on an
+// Examples block included.
+func unknownCapabilityTag(sc *godog.Scenario) (string, bool) {
+	if !isCanonicalScenario(sc) {
+		return "", false
+	}
+	for _, tag := range sc.Tags {
+		if _, known := CapabilityForTag(tag.Name); !known {
+			return tag.Name, true
+		}
+	}
+	return "", false
+}
+
+// isCanonicalScenario reports whether a scenario came from the embedded
+// canonical assets rather than from an adopter's extension features.
+//
+// The two are mounted at their own path prefixes so that the URIs in the
+// results partition the run -- see extensionsRoot. This is that partition read
+// back.
+func isCanonicalScenario(sc *godog.Scenario) bool {
+	return strings.HasPrefix(sc.Uri, featuresPath+"/")
 }
 
 func (r *runner) recordSkip(scenario string, capability Capability, inexpressible string) {

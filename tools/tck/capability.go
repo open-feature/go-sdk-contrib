@@ -239,9 +239,19 @@ const (
 )
 
 // allCapabilities is every capability the TCK knows about, reserved ones
-// included. A Gherkin tag that is not in this list gates nothing and is
-// ignored, which is what lets the canonical feature files carry organisational
-// tags freely.
+// included. It is the vocabulary, and being absent from it is not the same
+// thing in the two places a tag can come from.
+//
+// On an **extension** scenario a tag that is not in this list gates nothing and
+// is ignored, which is what lets an adopter's own feature files carry
+// organisational tags freely.
+//
+// On a **canonical** scenario it fails the run. An unknown tag there means the
+// specification has grown a capability this vocabulary has not learned, and
+// ignoring it is not the harmless default it looks like: the tag gates nothing,
+// so its scenarios stay mandatory for every adopter, and a provider that
+// legitimately withholds the new capability shows unexplained failures while
+// the suite says nothing about why. See unknownCapabilityTag in run.go.
 var allCapabilities = []Capability{
 	Events,
 	Lifecycle,
