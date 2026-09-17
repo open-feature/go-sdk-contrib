@@ -75,7 +75,6 @@ func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, ret
 }
 
 const ConnectionError = "connection not made"
-const reconnectPollInterval = 1 * time.Second
 
 type resolutionRequestConstraints interface {
 	schemaV2.ResolveBooleanRequest | schemaV2.ResolveStringRequest | schemaV2.ResolveIntRequest |
@@ -509,25 +508,14 @@ func (s *Service) EventChannel() <-chan of.Event {
 	return s.events
 }
 
-// startEventStream - starts listening to flagd event stream.
-// This contains blocking calls and must be called concurrently.
+// startEventStream - starts listening to flagd event stream with retries.
+// This contains blocking calls and busy wait backed retry attempts, hence must be called concurrently.
+// If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
 	streamReadySignaled := false
 
-	for {
-		if ctx.Err() != nil {
-			if !streamReadySignaled {
-				s.signalStreamReady(ctx.Err())
-			}
-			return
-		}
-
-		// Bound only the initial connection. Once connected, streamReadySignaled short-circuits this so
-		// retryCounter is no longer consulted and reconnection continues indefinitely.
-		if !streamReadySignaled && !s.retryCounter.retry() {
-			break // initial connection attempts exhausted
-		}
-
+	// wraps connection with retry attempts
+	for s.retryCounter.retry() {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
 		err := s.streamClient(ctx, &streamReadySignaled)
 		if err != nil {
@@ -548,24 +536,17 @@ func (s *Service) startEventStream(ctx context.Context) {
 			}
 		}
 
-		// During the initial connection use the retryCounter's backoff; once connected, poll at a short
-		// fixed interval so recovery tracks flagd's return rather than an ever-growing backoff.
-		backoff := reconnectPollInterval
-		if !streamReadySignaled {
-			backoff = s.retryCounter.sleep()
-		}
-
 		select {
 		case <-ctx.Done():
 			if !streamReadySignaled {
 				s.signalStreamReady(ctx.Err())
 			}
 			return
-		case <-time.After(backoff):
+		case <-time.After(s.retryCounter.sleep()):
 		}
 	}
 
-	// Initial connection attempts exhausted. Disable cache and emit error event.
+	// retry attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
 	connErr := fmt.Errorf("grpc connection establishment failed")
 
