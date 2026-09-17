@@ -30,7 +30,6 @@ func TestRPCProviderE2E(t *testing.T) {
 		" && ~@unixsocket" + // unix socket channel not supported
 		" && ~@targetURI" + // target-uri scenarios not supported
 		" && ~@customCert" + // custom TLS cert not wired up
-		" && ~@caching" + // caching scenarios not covered here
 		" && ~@deprecated" +
 		" && ~@fractional-v1" + // legacy fractional algorithm
 		" && ~@fractional-v3" // cbor fractional not yet implemented
