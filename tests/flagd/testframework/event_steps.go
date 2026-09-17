@@ -10,6 +10,9 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
+// eventWaitTimeout bounds waits for an event; must exceed the longest scenario downtime (8s)
+const eventWaitTimeout = 10 * time.Second
+
 // InitializeEventSteps registers event handling step definitions
 func InitializeEventSteps(ctx *godog.ScenarioContext) {
 	// Specific event handlers that have custom logic
@@ -132,8 +135,7 @@ func (s *TestState) addGenericEventHandler(ctx context.Context, eventType string
 
 // waitForGenericEvent waits for any event type to be fired
 func (s *TestState) waitForGenericEvent(ctx context.Context, eventType string) error {
-	timeout := 5 * time.Second
-	return s.waitForEvents(strings.ToUpper(eventType), timeout)
+	return s.waitForEvents(strings.ToUpper(eventType), eventWaitTimeout)
 }
 
 // assertGenericEventExecuted verifies that any event type was received
@@ -214,7 +216,7 @@ func (s *TestState) waitForEvents(eventType string, maxWait time.Duration) error
 
 // assertEventOccurred checks if a specific event occurred
 func (s *TestState) assertEventOccurred(eventType string) error {
-	return s.waitForEvents(eventType, 10*time.Second)
+	return s.waitForEvents(eventType, eventWaitTimeout)
 }
 
 // waitForEventWithPayload waits for a specific event type and validates its payload
