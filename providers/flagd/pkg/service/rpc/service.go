@@ -596,8 +596,7 @@ func (s *Service) signalStreamReady(err error) {
 
 // streamClient opens the event stream and distribute streams to appropriate handlers.
 func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) error {
-	// Apply the stream deadline as an application-layer keepalive: once it elapses the stream is
-	// recycled (closed and reopened by the retry loop) rather than being left open indefinitely.
+	// stream deadline acts as an application-layer keepalive: recycle the stream once it elapses
 	streamCtx := ctx
 	if s.cfg.StreamDeadlineMs > 0 {
 		var cancel context.CancelFunc
@@ -636,8 +635,7 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	if err := stream.Err(); err != nil {
-		// If the configured stream deadline elapsed (and the parent context is still live), this is an
-		// intentional stream recycle - reconnect gracefully without surfacing a provider error.
+		// stream deadline elapsed with a live parent context: recycle gracefully, no provider error
 		if s.cfg.StreamDeadlineMs > 0 && errors.Is(streamCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
 			s.logger.V(logger.Debug).Info("stream deadline reached, recycling event stream")
 			return nil
