@@ -114,39 +114,30 @@ func TestRPCServiceShutdownDuringEventHandlingCleansUpGoroutines(t *testing.T) {
 }
 
 func TestRPCServiceShutdownDuringInitRetry(t *testing.T) {
-	// TODO: The httptest server seems to leak a persistConn goroutine for
-	// a very short duration (<1ms) in this test - it might have something to do
-	// with the error returned on the stream rather than a success response.
-	// It would be nice to figure out why this is happening and then re-enable
-	// the goroutine leak check.
-
-	// checkGoroutineLeaks(t)
-
 	var log logr.Logger
 	cache := cache.NewCacheService(cache.LRUValue, 10, log)
-	// Run the server. Then, queue up several events so that the service's event
-	// streaming goroutine is forced to block while it waits for consumers to
-	// handle events. When we shut down the service, it should be able to unblock
-	// itself.
+	// server errors with no message, so Init blocks in the retry loop until Shutdown
 	srv, cfg := runTestServer(t)
 	srv.eventStreamErrors <- errors.New("server error")
 
 	service := NewService(cfg, cache, log, 3 /*=retries*/)
-	// Override the retry delay so that the test will time out if it doesn't
-	// respect ctx cancellation while the retry delay is in progress.
+	// Override the retry delay so the test times out if Shutdown doesn't respect ctx cancellation.
 	service.retryCounter.currentDelay = 100 * time.Hour
-	if err := service.Init(); err != nil {
-		t.Fatal(err)
-	}
 
-	// Wait a little bit for the event stream goroutine to receive the error
-	// from the server.
+	initDone := make(chan error, 1)
+	go func() { initDone <- service.Init() }()
+
+	// Wait for the event stream goroutine to receive the error and enter the retry delay.
 	time.Sleep(100 * time.Millisecond)
 
-	// The service should now be waiting for the retry delay to expire, which it
-	// never will. Calling Shutdown() should cancel the context, unblocking the
-	// goroutine, and then wait for the goroutine to exit.
+	// Shutdown should cancel the context, unblocking both the goroutine and Init.
 	service.Shutdown()
+
+	select {
+	case <-initDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Init did not return after Shutdown")
+	}
 }
 
 func TestRPCServiceShutdownCancelsEventStreamGoroutine(t *testing.T) {
