@@ -1,9 +1,9 @@
 buf.build/gen/go/open-feature/flagd/connectrpc/go v1.19.1-20260217192757-1388a552fc3c.2 h1:n2DShwj5AfzieZKN2tid3gFt/HCZo/UUn4qMbUJ4H7M=
 buf.build/gen/go/open-feature/flagd/connectrpc/go v1.19.1-20260217192757-1388a552fc3c.2/go.mod h1:NRDpVnsDW1gkVfxKOXVpUkW9Tx5SIUPXgqCUq3dftew=
-buf.build/gen/go/open-feature/flagd/grpc/go v1.6.1-20260217192757-1388a552fc3c.1 h1:Vw1UTeqrKDQMasR9eSOh7JsA3Ii1dov0lPMPFwW16gg=
-buf.build/gen/go/open-feature/flagd/grpc/go v1.6.1-20260217192757-1388a552fc3c.1/go.mod h1:uCFRckBTXlZTJczpxd0j8qhQfLIWT8ds/3PlURS54wI=
-buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.11-20260217192757-1388a552fc3c.1 h1:vzILwV5p1s2kk4FuaaYNqKPSdivPqyaDsjtQi2qSRuc=
-buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.11-20260217192757-1388a552fc3c.1/go.mod h1:itSRQViN+Mq9URSJbXJRlAT9irP54/x5n5sHn9NTKrU=
+buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1 h1:QGH9xDLwipu2Ggkd9jsCfArs0xphPU5MQyqrACAYvik=
+buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1/go.mod h1:qBwuaKKkWgeiXBoOg12nTLq3zkS4AxhFNn7HVXjpTF0=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.11-20260824202443-4824facda674.1 h1:nrAC9fCfxSuVSZIY4jVYptEI8VhUClW5bXxKm4CX6Ic=
+buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.11-20260824202443-4824facda674.1/go.mod h1:itSRQViN+Mq9URSJbXJRlAT9irP54/x5n5sHn9NTKrU=
 connectrpc.com/connect v1.19.1 h1:R5M57z05+90EfEvCY1b7hBxDVOUl45PrtXtAV2fOC14=
 connectrpc.com/connect v1.19.1/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
 connectrpc.com/otelconnect v0.7.2 h1:WlnwFzaW64dN06JXU+hREPUGeEzpz3Acz2ACOmN8cMI=
