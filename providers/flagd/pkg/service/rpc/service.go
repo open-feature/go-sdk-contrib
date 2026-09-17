@@ -30,6 +30,7 @@ import (
 const (
 	ReasonCached      = "CACHED"
 	ClientNotReadyMsg = "client did not yet finish the initialization"
+	providerName      = "flagd"
 )
 
 var ErrClientNotReady = of.NewProviderNotReadyResolutionError(ClientNotReadyMsg)
@@ -66,6 +67,7 @@ type Service struct {
 	staleTimer *time.Timer // fires ERROR once the grace period elapses
 
 	client      schemaConnectV2.ServiceClient
+	cancelMu    sync.Mutex // guards cancelHook (Init writes, Shutdown reads)
 	cancelHook  context.CancelFunc
 	wg          sync.WaitGroup
 	streamReady chan error // Channel to signal when event stream is connected
@@ -106,7 +108,9 @@ func (s *Service) Init() error {
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
+	s.cancelMu.Lock()
 	s.cancelHook = cancelFunc
+	s.cancelMu.Unlock()
 
 	s.wg.Add(1)
 	go func() {
@@ -120,8 +124,11 @@ func (s *Service) Init() error {
 }
 
 func (s *Service) Shutdown() {
-	if s.cancelHook != nil {
-		s.cancelHook()
+	s.cancelMu.Lock()
+	cancel := s.cancelHook
+	s.cancelMu.Unlock()
+	if cancel != nil {
+		cancel()
 	}
 	s.clearStale()
 	s.wg.Wait()
@@ -576,7 +583,7 @@ func (s *Service) startEventStream(ctx context.Context) {
 	}
 
 	s.sendEvent(ctx, of.Event{
-		ProviderName: "flagd",
+		ProviderName: providerName,
 		EventType:    of.ProviderError,
 		ProviderEventDetails: of.ProviderEventDetails{
 			Message: connErr.Error(),
@@ -681,7 +688,7 @@ func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *sch
 	}
 
 	s.sendEvent(ctx, of.Event{
-		ProviderName: "flagd",
+		ProviderName: providerName,
 		EventType:    of.ProviderConfigChange,
 		ProviderEventDetails: of.ProviderEventDetails{
 			Message:     "flags changed",
@@ -693,7 +700,7 @@ func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *sch
 func (s *Service) handleReadyEvent(ctx context.Context) {
 	s.clearStale()
 	s.sendEvent(ctx, of.Event{
-		ProviderName: "flagd",
+		ProviderName: providerName,
 		EventType:    of.ProviderReady,
 	})
 }
@@ -701,25 +708,25 @@ func (s *Service) handleReadyEvent(ctx context.Context) {
 // handleDisconnect emits STALE once and arms a grace timer that escalates to ERROR on expiry.
 func (s *Service) handleDisconnect(ctx context.Context) {
 	s.staleMu.Lock()
+	defer s.staleMu.Unlock()
 	if s.stale {
-		s.staleMu.Unlock()
 		return
 	}
 	s.stale = true
 	s.staleTimer = time.AfterFunc(s.gracePeriod, func() {
 		if s.cache.IsEnabled() {
+			// we are disconnected, so we can miss events - purge the cache
 			s.cache.GetCache().Purge()
 		}
 		s.sendEvent(ctx, of.Event{
-			ProviderName:         "flagd",
+			ProviderName:         providerName,
 			EventType:            of.ProviderError,
 			ProviderEventDetails: of.ProviderEventDetails{Message: "grace period expired"},
 		})
 	})
-	s.staleMu.Unlock()
 
 	s.sendEvent(ctx, of.Event{
-		ProviderName:         "flagd",
+		ProviderName:         providerName,
 		EventType:            of.ProviderStale,
 		ProviderEventDetails: of.ProviderEventDetails{Message: "connection error"},
 	})
