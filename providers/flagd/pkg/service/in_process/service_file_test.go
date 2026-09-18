@@ -69,7 +69,7 @@ func TestInProcessOfflineModePolling(t *testing.T) {
 	}
 	defer service.Shutdown()
 
-	if detail := service.ResolveBoolean(t.Context(), "myBoolFlag", false, make(map[string]any{})); !detail.Value {
+	if detail := service.ResolveBoolean(t.Context(), "myBoolFlag", false, map[string]any{}); !detail.Value {
 		t.Fatal("Expected true from the initial flag configuration, but got false")
 	}
 
@@ -93,7 +93,7 @@ func TestInProcessOfflineModePolling(t *testing.T) {
 	// then - the change is detected within a few poll intervals
 	deadline := time.Now().Add(2 * time.Second)
 	for {
-		detail := service.ResolveBoolean(t.Context(), "myBoolFlag", true, make(map[string]any{}))
+		detail := service.ResolveBoolean(t.Context(), "myBoolFlag", true, map[string]any{})
 		if !detail.Value {
 			return
 		}

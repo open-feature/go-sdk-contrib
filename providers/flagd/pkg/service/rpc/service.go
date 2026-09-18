@@ -103,6 +103,9 @@ type resolutionResponseConstraints interface {
 }
 
 func (s *Service) Init() error {
+	// clean-up previous still running init to avoid leaks
+	s.stopStream()
+
 	var err error
 	s.client, s.httpClient, err = newClient(s.cfg)
 	if err != nil {
@@ -125,15 +128,21 @@ func (s *Service) Init() error {
 	return <-s.streamReady
 }
 
-func (s *Service) Shutdown() {
+// stopStream cancels a running event stream (if any) and waits for its goroutine to exit.
+func (s *Service) stopStream() {
 	s.cancelMu.Lock()
 	cancel := s.cancelHook
+	s.cancelHook = nil
 	s.cancelMu.Unlock()
 	if cancel != nil {
 		cancel()
 	}
 	s.clearStale()
 	s.wg.Wait()
+}
+
+func (s *Service) Shutdown() {
+	s.stopStream()
 	if s.httpClient != nil {
 		s.httpClient.CloseIdleConnections()
 	}
