@@ -93,7 +93,7 @@ func TestInProcessOfflineModePolling(t *testing.T) {
 	// then - the change is detected within a few poll intervals
 	deadline := time.Now().Add(2 * time.Second)
 	for {
-		detail := service.ResolveBoolean(context.Background(), "myBoolFlag", true, make(map[string]interface{}))
+		detail := service.ResolveBoolean(t.Context(), "myBoolFlag", true, make(map[string]any{}))
 		if !detail.Value {
 			return
 		}
