@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.19.1-20260217192757-1388a552fc3c.2
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1
-	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.11-20260824202443-4824facda674.1
+	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.12-20260824202443-4824facda674.2
 	connectrpc.com/connect v1.19.1
 	connectrpc.com/otelconnect v0.7.2
 	github.com/go-logr/logr v1.4.3
@@ -17,7 +17,7 @@ require (
 	go.uber.org/zap v1.27.1
 	golang.org/x/net v0.58.0
 	google.golang.org/grpc v1.83.2
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
