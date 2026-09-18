@@ -10,8 +10,8 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// eventWaitTimeout bounds waits for an event; must exceed the longest scenario downtime (8s)
-const eventWaitTimeout = 10 * time.Second
+// eventWaitTimeout bounds waits for an event; must exceed the longest outage (8s) plus reconnect budget
+const eventWaitTimeout = 15 * time.Second
 
 // InitializeEventSteps registers event handling step definitions
 func InitializeEventSteps(ctx *godog.ScenarioContext) {
