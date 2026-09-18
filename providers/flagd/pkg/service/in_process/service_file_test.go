@@ -69,7 +69,7 @@ func TestInProcessOfflineModePolling(t *testing.T) {
 	}
 	defer service.Shutdown()
 
-	if detail := service.ResolveBoolean(context.Background(), "myBoolFlag", false, make(map[string]interface{})); !detail.Value {
+	if detail := service.ResolveBoolean(t.Context(), "myBoolFlag", false, make(map[string]any{})); !detail.Value {
 		t.Fatal("Expected true from the initial flag configuration, but got false")
 	}
 
