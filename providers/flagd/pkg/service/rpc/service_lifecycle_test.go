@@ -25,17 +25,8 @@ import (
 )
 
 func TestRPCServiceShutdownCleansUpGoroutines(t *testing.T) {
-	// At the end of the test, if no other failures have occurred, check for
-	// goroutine leaks.
-	startingGoroutineCount := runtime.NumGoroutine()
-	t.Cleanup(func() {
-		if t.Failed() {
-			return
-		}
-		if numGoroutinesAfter := runtime.NumGoroutine(); numGoroutinesAfter > startingGoroutineCount {
-			t.Errorf("Goroutines leaked: %d goroutines before, %d goroutines after", startingGoroutineCount, numGoroutinesAfter)
-		}
-	})
+	// At the end of the test, if no other failures have occurred, check for goroutine leaks.
+	checkGoroutineLeaks(t)
 
 	var log logr.Logger
 	cache := cache.NewCacheService(cache.LRUValue, 10, log)
@@ -202,9 +193,14 @@ func checkGoroutineLeaks(t *testing.T) {
 		if t.Failed() {
 			return
 		}
-		buf := make([]byte, 1<<20)
-		stacklen := runtime.Stack(buf, true)
+		// HTTP/2 connection loops exit asynchronously after Shutdown closes idle conns; poll briefly
+		deadline := time.Now().Add(2 * time.Second)
+		for runtime.NumGoroutine() > startingGoroutineCount && time.Now().Before(deadline) {
+			time.Sleep(20 * time.Millisecond)
+		}
 		if numGoroutinesAfter := runtime.NumGoroutine(); numGoroutinesAfter > startingGoroutineCount {
+			buf := make([]byte, 1<<20)
+			stacklen := runtime.Stack(buf, true)
 			t.Errorf("Goroutines leaked: %d goroutines before, %d goroutines after", startingGoroutineCount, numGoroutinesAfter)
 			fmt.Fprintf(os.Stderr, "%s\n", buf[:stacklen])
 		}
@@ -242,7 +238,12 @@ func runTestServer(t *testing.T) (*testServer, Configuration) {
 	mountPath, handler := evaluationv2connect.NewServiceHandler(ts)
 	mux := http.NewServeMux()
 	mux.Handle(mountPath, handler)
-	server := httptest.NewServer(mux)
+	server := httptest.NewUnstartedServer(mux)
+	// serve h2c so the gRPC (HTTP/2) client can connect over cleartext, as flagd does
+	server.Config.Protocols = new(http.Protocols)
+	server.Config.Protocols.SetHTTP1(true)
+	server.Config.Protocols.SetUnencryptedHTTP2(true)
+	server.Start()
 	t.Cleanup(func() {
 		server.Close()
 	})
@@ -270,7 +271,7 @@ func TestNewClientConfiguresHTTP2KeepAlive(t *testing.T) {
 		{name: "tls", tls: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client, err := newClient(Configuration{
+			client, _, err := newClient(Configuration{
 				Host:          "localhost",
 				Port:          8013,
 				TLSEnabled:    tc.tls,

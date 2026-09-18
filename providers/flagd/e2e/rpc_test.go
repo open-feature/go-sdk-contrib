@@ -29,7 +29,7 @@ func TestRPCProviderE2E(t *testing.T) {
 	tags := "@rpc" + // rpc resolver scenarios
 		" && ~@unixsocket" + // unix socket channel not supported
 		" && ~@targetURI" + // target-uri scenarios not supported
-		" && ~@customCert" + // custom TLS cert not wired up
+		" && ~@customCert" + // testbed server cert is CN-only (no SANs); Go's TLS requires SANs (fix belongs in flagd-testbed)
 		" && ~@deprecated" +
 		" && ~@fractional-v1" + // legacy fractional algorithm
 		" && ~@fractional-v3" // cbor fractional not yet implemented

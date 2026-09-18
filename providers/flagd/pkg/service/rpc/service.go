@@ -65,9 +65,11 @@ type Service struct {
 	staleMu    sync.Mutex  // guards stale + staleTimer
 	stale      bool        // true while disconnected but within the grace period
 	staleTimer *time.Timer // fires ERROR once the grace period elapses
+	staleGen   uint64      // incremented on recovery to invalidate a firing grace callback
 
 	client      schemaConnectV2.ServiceClient
-	cancelMu    sync.Mutex // guards cancelHook (Init writes, Shutdown reads)
+	httpClient  *http.Client // retained so Shutdown can close idle (HTTP/2) connections
+	cancelMu    sync.Mutex   // guards cancelHook (Init writes, Shutdown reads)
 	cancelHook  context.CancelFunc
 	wg          sync.WaitGroup
 	streamReady chan error // Channel to signal when event stream is connected
@@ -102,7 +104,7 @@ type resolutionResponseConstraints interface {
 
 func (s *Service) Init() error {
 	var err error
-	s.client, err = newClient(s.cfg)
+	s.client, s.httpClient, err = newClient(s.cfg)
 	if err != nil {
 		return err
 	}
@@ -132,6 +134,9 @@ func (s *Service) Shutdown() {
 	}
 	s.clearStale()
 	s.wg.Wait()
+	if s.httpClient != nil {
+		s.httpClient.CloseIdleConnections()
+	}
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
@@ -713,7 +718,14 @@ func (s *Service) handleDisconnect(ctx context.Context) {
 		return
 	}
 	s.stale = true
+	gen := s.staleGen
 	s.staleTimer = time.AfterFunc(s.gracePeriod, func() {
+		// validate under the lock so a recovery that raced the timer wins and we emit neither
+		s.staleMu.Lock()
+		defer s.staleMu.Unlock()
+		if s.staleGen != gen {
+			return
+		}
 		if s.cache.IsEnabled() {
 			// we are disconnected, so we can miss events - purge the cache
 			s.cache.GetCache().Purge()
@@ -736,6 +748,7 @@ func (s *Service) handleDisconnect(ctx context.Context) {
 func (s *Service) clearStale() {
 	s.staleMu.Lock()
 	defer s.staleMu.Unlock()
+	s.staleGen++
 	if s.staleTimer != nil {
 		s.staleTimer.Stop()
 		s.staleTimer = nil
@@ -774,7 +787,7 @@ func derefString(s *string) string {
 }
 
 // newClient is a helper to derive schemaConnectV2.ServiceClient
-func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
+func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, *http.Client, error) {
 	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
 	var tlsConfig *tls.Config
 	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
@@ -791,11 +804,11 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 		if cfg.CertificatePath != "" {
 			caCert, err := os.ReadFile(cfg.CertificatePath)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			caCertPool := x509.NewCertPool()
 			if !caCertPool.AppendCertsFromPEM(caCert) {
-				return nil, errors.New("error appending provider certificate file. please check and try again")
+				return nil, nil, errors.New("error appending provider certificate file. please check and try again")
 			}
 			tlsConfig.RootCAs = caCertPool
 		}
@@ -809,7 +822,7 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 	if cfg.OtelInterceptor {
 		interceptor, err := otelconnect.NewInterceptor()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		options = append(options, connect.WithInterceptors(interceptor))
@@ -824,18 +837,24 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 		DialContext:     dialContext,
 	}
 
+	// gRPC (WithGRPC) needs HTTP/2; a custom TLSClientConfig or cleartext endpoint disables auto-negotiation
+	protocols := new(http.Protocols)
+	if cfg.TLSEnabled {
+		protocols.SetHTTP2(true)
+	} else {
+		protocols.SetUnencryptedHTTP2(true) // h2c
+	}
+	transport.Protocols = protocols
+
 	// Enable HTTP/2 keepalive pings when configured.
 	if cfg.KeepAliveTime > 0 {
 		http2Transport, err := http2.ConfigureTransports(transport)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		http2Transport.ReadIdleTimeout = time.Duration(cfg.KeepAliveTime) * time.Millisecond
 	}
 
-	return schemaConnectV2.NewServiceClient(
-		&http.Client{Transport: transport},
-		url,
-		options...,
-	), nil
+	httpClient := &http.Client{Transport: transport}
+	return schemaConnectV2.NewServiceClient(httpClient, url, options...), httpClient, nil
 }
