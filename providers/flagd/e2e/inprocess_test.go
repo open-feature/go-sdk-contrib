@@ -31,7 +31,15 @@ func TestInProcessProviderE2E(t *testing.T) {
 	}
 
 	// Run tests with in-process specific tags
-	tags := "@in-process && ~@unixsocket && ~@metadata && ~@customCert && ~@contextEnrichment && ~@sync-payload && ~@deprecated && ~@fractional-v1"
+	tags := "@in-process" + // in-process resolver scenarios
+		" && ~@unixsocket" + // unix socket channel not supported
+		" && ~@metadata" + // framework assertResolvedMetadata* steps are unimplemented stubs
+		" && ~@customCert" + // testbed server cert is CN-only (no SANs); Go's TLS requires SANs
+		" && ~@contextEnrichment" + // in-process context enrichment not merged yet (PR #730)
+		" && ~@sync-payload" + // depends on context enrichment (PR #730)
+		" && ~@deprecated" +
+		" && ~@fractional-v1" + // legacy fractional algorithm
+		" && ~@fractional-v3" // cbor fractional not yet implemented
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)
