@@ -3,10 +3,10 @@ module github.com/open-feature/go-sdk-contrib/providers/flagd
 go 1.26.0
 
 require (
-	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.19.1-20260217192757-1388a552fc3c.2
+	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.12-20260824202443-4824facda674.2
-	connectrpc.com/connect v1.19.1
+	connectrpc.com/connect v1.21.0
 	connectrpc.com/otelconnect v0.7.2
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
