@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.2.0...tests/flagd/v2.2.1) (2026-09-19)
+
+
+### 🐛 Bug Fixes
+
+* **tests/flagd:** check the envoy service lookup before using it ([#960](https://github.com/open-feature/go-sdk-contrib/issues/960)) ([5048378](https://github.com/open-feature/go-sdk-contrib/commit/5048378964d02e234e8a15fae951e1120a537760))
+
 ## [2.2.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.1.0...tests/flagd/v2.2.0) (2026-09-11)
 
 
