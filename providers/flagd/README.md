@@ -105,6 +105,7 @@ Configuration can be provided as constructor options or as environment variables
 | WithOfflineFilePath                                      | FLAGD_OFFLINE_FLAG_SOURCE_PATH | string                      | ""        | file                |
 | WithProviderID                                           | FLAGD_SOURCE_PROVIDER_ID       | string                      | ""        | in-process          |
 | WithSelector                                             | FLAGD_SOURCE_SELECTOR          | string                      | ""        | in-process          | 
+| WithContextEnricher                                      | -                              | function                    | identity  | in-process          |
 
 > **Note:** For the in-process resolver, `FLAGD_SYNC_PORT` takes priority over `FLAGD_PORT`. The `FLAGD_PORT` environment variable is still supported for backwards compatibility. 
 
@@ -169,6 +170,34 @@ provider, err := flagd.NewProvider(
 )
 openfeature.SetProvider(provider)
 ```
+
+### Context enrichment
+
+In in-process mode flagd sends a `sync-context` (also referred to as sync-metadata) alongside the flag configuration.
+The provider registers a hook that mixes this data into every flag evaluation, so targeting rules can use values that
+are configured in flagd rather than supplied by the application.
+
+The `WithContextEnricher` option controls how the raw sync-context is turned into an evaluation context.
+It runs once per received sync payload - not once per evaluation - and by default uses the payload in its entirety.
+
+```go
+provider, err := flagd.NewProvider(
+        flagd.WithInProcessResolver(),
+        flagd.WithContextEnricher(func(syncContext map[string]any) *openfeature.EvaluationContext {
+            // only forward the fields the application cares about
+            evaluationContext := openfeature.NewTargetlessEvaluationContext(map[string]any{
+                "scope": syncContext["scope"],
+            })
+
+            return &evaluationContext
+        }),
+)
+openfeature.SetProvider(provider)
+```
+
+Values coming from the sync-context take precedence over values of the same name in the evaluation context supplied by
+the application, matching the hook precedence defined by the OpenFeature specification.
+Before the first sync payload arrives, and for the rpc and file resolvers, the evaluation context is left untouched.
 
 ## Supported Events
 
