@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/open-feature/go-sdk v1.18.0
-	github.com/optimizely/go-sdk/v2 v2.2.1
+	github.com/optimizely/go-sdk/v2 v2.6.0
 	github.com/stretchr/testify v1.11.1
 )
 
