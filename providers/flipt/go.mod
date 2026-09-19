@@ -9,7 +9,7 @@ require (
 	go.flipt.io/flipt/sdk/go v0.13.1-0.20260718011037-2ba78353193a // pin to v2.11.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.69.0
 	google.golang.org/grpc v1.83.2
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
