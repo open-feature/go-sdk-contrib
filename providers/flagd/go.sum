@@ -1,11 +1,11 @@
-buf.build/gen/go/open-feature/flagd/connectrpc/go v1.19.1-20260217192757-1388a552fc3c.2 h1:n2DShwj5AfzieZKN2tid3gFt/HCZo/UUn4qMbUJ4H7M=
-buf.build/gen/go/open-feature/flagd/connectrpc/go v1.19.1-20260217192757-1388a552fc3c.2/go.mod h1:NRDpVnsDW1gkVfxKOXVpUkW9Tx5SIUPXgqCUq3dftew=
+buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1 h1:mh6fnlQnMfpxc+T8k1RF1D2U9e/q9i2LjILXcZ/50Z0=
+buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1/go.mod h1:x/EVQBOexnZSKbsV0fWcAIXsxMHKL8DObgGZd4o7Ghs=
 buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1 h1:QGH9xDLwipu2Ggkd9jsCfArs0xphPU5MQyqrACAYvik=
 buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1/go.mod h1:qBwuaKKkWgeiXBoOg12nTLq3zkS4AxhFNn7HVXjpTF0=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.12-20260824202443-4824facda674.2 h1:Wx3dQ1jRv5julKmHHC0qZUUufdok5cxV3oFz0wHf5hA=
 buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.12-20260824202443-4824facda674.2/go.mod h1:J8nVlSUvV9dYz3yMaGGPgW6kci3dnBLE93ENYErqgH8=
-connectrpc.com/connect v1.19.1 h1:R5M57z05+90EfEvCY1b7hBxDVOUl45PrtXtAV2fOC14=
-connectrpc.com/connect v1.19.1/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
+connectrpc.com/connect v1.21.0 h1:LhqSJt7jHf5NJBo9Jq/t/9FjcYAideif0mg+qe2jCUs=
+connectrpc.com/connect v1.21.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 connectrpc.com/otelconnect v0.7.2 h1:WlnwFzaW64dN06JXU+hREPUGeEzpz3Acz2ACOmN8cMI=
 connectrpc.com/otelconnect v0.7.2/go.mod h1:JS7XUKfuJs2adhCnXhNHPHLz6oAaZniCJdSF00OZSew=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
