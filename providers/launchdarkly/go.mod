@@ -1,13 +1,13 @@
 module github.com/open-feature/go-sdk-contrib/providers/launchdarkly
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.5.1
 	github.com/launchdarkly/go-server-sdk/v7 v7.15.4
 	github.com/open-feature/go-sdk v1.18.0
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
+	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	go.uber.org/mock v0.6.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	gopkg.in/ghodss/yaml.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
