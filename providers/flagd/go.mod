@@ -14,7 +14,7 @@ require (
 	github.com/open-feature/flagd/core v0.17.0
 	github.com/open-feature/go-sdk v1.18.0
 	go.uber.org/mock v0.6.0
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	golang.org/x/net v0.58.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
