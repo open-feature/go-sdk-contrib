@@ -7,7 +7,7 @@ require (
 	github.com/open-feature/go-sdk v1.18.0
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.6.0
 	github.com/stretchr/testify v1.12.1
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 )
 
 require github.com/open-feature/flagd/core v0.17.0
