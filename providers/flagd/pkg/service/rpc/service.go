@@ -128,7 +128,7 @@ func (s *Service) Init() error {
 	return <-s.streamReady
 }
 
-// stopStream cancels a running event stream (if any) and waits for its goroutine to exit.
+// stopStream cancels the event stream, waits for its goroutine, and closes idle HTTP/2 connections
 func (s *Service) stopStream() {
 	s.cancelMu.Lock()
 	cancel := s.cancelHook
@@ -139,13 +139,13 @@ func (s *Service) stopStream() {
 	}
 	s.clearStale()
 	s.wg.Wait()
+	if s.httpClient != nil {
+		s.httpClient.CloseIdleConnections()
+	}
 }
 
 func (s *Service) Shutdown() {
 	s.stopStream()
-	if s.httpClient != nil {
-		s.httpClient.CloseIdleConnections()
-	}
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
