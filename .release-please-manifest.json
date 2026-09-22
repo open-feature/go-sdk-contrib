@@ -1,5 +1,5 @@
 {
-    "hooks/open-telemetry": "0.3.7",
+    "hooks/open-telemetry": "0.3.8",
     "hooks/validator": "0.1.7",
     "hooks/codereadiness": "0.1.1",
     "providers/configcat": "0.2.3",
