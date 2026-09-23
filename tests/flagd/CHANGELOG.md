@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.2.0...tests/flagd/v3.0.0) (2026-09-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* **flagd:** add missing options, use gRPC on wire ([#949](https://github.com/open-feature/go-sdk-contrib/issues/949))
+
+### 🐛 Bug Fixes
+
+* **tests/flagd:** check the envoy service lookup before using it ([#960](https://github.com/open-feature/go-sdk-contrib/issues/960)) ([5048378](https://github.com/open-feature/go-sdk-contrib/commit/5048378964d02e234e8a15fae951e1120a537760))
+
+
+### ✨ New Features
+
+* **flagd:** add missing options, use gRPC on wire ([#949](https://github.com/open-feature/go-sdk-contrib/issues/949)) ([0ff787c](https://github.com/open-feature/go-sdk-contrib/commit/0ff787c97726670604e92160aa0b913a86981b92))
+
 ## [2.2.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.1.0...tests/flagd/v2.2.0) (2026-09-11)
 
 
