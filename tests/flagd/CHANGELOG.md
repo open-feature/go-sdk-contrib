@@ -1,11 +1,7 @@
 # Changelog
 
-## [3.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.2.0...tests/flagd/v3.0.0) (2026-09-23)
+## [2.3.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.2.0...tests/flagd/v2.3.0) (2026-09-23)
 
-
-### ⚠ BREAKING CHANGES
-
-* **flagd:** add missing options, use gRPC on wire ([#949](https://github.com/open-feature/go-sdk-contrib/issues/949))
 
 ### 🐛 Bug Fixes
 
