@@ -3,6 +3,7 @@
   "tag-separator": "/",
   "bootstrap-sha": "4d6cb816ed912084c598767636324aa9a2866bdd",
   "separate-pull-requests": true,
+  "signoff": "OpenFeature Bot <109696520+openfeaturebot@users.noreply.github.com>",
   "packages": {
     "hooks/open-telemetry": {
       "release-type": "go",
