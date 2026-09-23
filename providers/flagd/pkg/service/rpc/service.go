@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,25 +23,32 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"golang.org/x/net/context"
+	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
 	ReasonCached      = "CACHED"
 	ClientNotReadyMsg = "client did not yet finish the initialization"
+	providerName      = "flagd"
 )
 
 var ErrClientNotReady = of.NewProviderNotReadyResolutionError(ClientNotReadyMsg)
 
 type Configuration struct {
-	Port            uint16
-	Host            string
-	CertificatePath string
-	SocketPath      string
-	TLSEnabled      bool
-	OtelInterceptor bool
-	DeadlineMs      int
-	Selector        string
+	Port              uint16
+	Host              string
+	CertificatePath   string
+	SocketPath        string
+	TLSEnabled        bool
+	OtelInterceptor   bool
+	DeadlineMs        int
+	StreamDeadlineMs  int
+	KeepAliveTime     int64
+	RetryBackoffMaxMs int
+	RetryGracePeriod  int
+	FatalStatusCodes  []string
+	Selector          string
 }
 
 // Service handles the client side  interface for the flagd server
@@ -51,8 +59,17 @@ type Service struct {
 	logger       logr.Logger
 	retryCounter retryCounter
 	deadlineMs   int
+	backoff      time.Duration // flat delay between stream re-establishment attempts
+	gracePeriod  time.Duration // STALE-to-ERROR grace period after a disconnect
+
+	staleMu    sync.Mutex  // guards stale + staleTimer
+	stale      bool        // true while disconnected but within the grace period
+	staleTimer *time.Timer // fires ERROR once the grace period elapses
+	staleGen   uint64      // incremented on recovery to invalidate a firing grace callback
 
 	client      schemaConnectV2.ServiceClient
+	httpClient  *http.Client // retained so Shutdown can close idle (HTTP/2) connections
+	cancelMu    sync.Mutex   // guards cancelHook (Init writes, Shutdown reads)
 	cancelHook  context.CancelFunc
 	wg          sync.WaitGroup
 	streamReady chan error // Channel to signal when event stream is connected
@@ -68,6 +85,8 @@ func NewService(cfg Configuration, cache *cache.Service, logger logr.Logger, ret
 		retryCounter: newRetryCounter(retries),
 		streamReady:  make(chan error, 1),
 		deadlineMs:   cfg.DeadlineMs,
+		backoff:      time.Duration(cfg.RetryBackoffMaxMs) * time.Millisecond,
+		gracePeriod:  time.Duration(cfg.RetryGracePeriod) * time.Second,
 	}
 }
 
@@ -84,14 +103,19 @@ type resolutionResponseConstraints interface {
 }
 
 func (s *Service) Init() error {
+	// clean-up previous still running init to avoid leaks
+	s.stopStream()
+
 	var err error
-	s.client, err = newClient(s.cfg)
+	s.client, s.httpClient, err = newClient(s.cfg)
 	if err != nil {
 		return err
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
+	s.cancelMu.Lock()
 	s.cancelHook = cancelFunc
+	s.cancelMu.Unlock()
 
 	s.wg.Add(1)
 	go func() {
@@ -104,11 +128,24 @@ func (s *Service) Init() error {
 	return <-s.streamReady
 }
 
-func (s *Service) Shutdown() {
-	if s.cancelHook != nil {
-		s.cancelHook()
+// stopStream cancels the event stream, waits for its goroutine, and closes idle HTTP/2 connections
+func (s *Service) stopStream() {
+	s.cancelMu.Lock()
+	cancel := s.cancelHook
+	s.cancelHook = nil
+	s.cancelMu.Unlock()
+	if cancel != nil {
+		cancel()
 	}
+	s.clearStale()
 	s.wg.Wait()
+	if s.httpClient != nil {
+		s.httpClient.CloseIdleConnections()
+	}
+}
+
+func (s *Service) Shutdown() {
+	s.stopStream()
 }
 
 // ResolveBoolean handles the flag evaluation response from the flagd ResolveBoolean rpc
@@ -507,12 +544,11 @@ func (s *Service) EventChannel() <-chan of.Event {
 
 // startEventStream - starts listening to flagd event stream with retries.
 // This contains blocking calls and busy wait backed retry attempts, hence must be called concurrently.
-// If retrying is exhausted, an event with openfeature.ProviderError will be emitted.
 func (s *Service) startEventStream(ctx context.Context) {
 	streamReadySignaled := false
 
-	// wraps connection with retry attempts
-	for s.retryCounter.retry() {
+	// bound initial connection attempts; reconnect forever once connected
+	for streamReadySignaled || s.retryCounter.retry() {
 		s.logger.V(logger.Debug).Info("connecting to event stream")
 		err := s.streamClient(ctx, &streamReadySignaled)
 		if err != nil {
@@ -526,10 +562,18 @@ func (s *Service) startEventStream(ctx context.Context) {
 				return
 			}
 
-			// error in stream handler, purge cache if available and retry
 			s.logger.V(logger.Warn).Info(fmt.Sprintf("connection to event stream failed (%q), attempting again", err))
-			if s.cache.IsEnabled() {
-				s.cache.GetCache().Purge()
+			// during initial connection a fatal status code is terminal (spec: not fatal once connected)
+			if !streamReadySignaled && s.isFatalCode(err) {
+				s.signalStreamReady(&of.ProviderInitError{
+					ErrorCode: of.ProviderFatalCode,
+					Message:   fmt.Sprintf("fatal status code received on initial connection: %s", err.Error()),
+				})
+				return
+			}
+			// once connected, a drop is STALE until the grace period expires
+			if streamReadySignaled {
+				s.handleDisconnect(ctx)
 			}
 		}
 
@@ -539,11 +583,11 @@ func (s *Service) startEventStream(ctx context.Context) {
 				s.signalStreamReady(ctx.Err())
 			}
 			return
-		case <-time.After(s.retryCounter.sleep()):
+		case <-time.After(s.backoff):
 		}
 	}
 
-	// retry attempts exhausted. Disable cache and emit error event
+	// initial connection attempts exhausted. Disable cache and emit error event
 	s.cache.Disable()
 	connErr := fmt.Errorf("grpc connection establishment failed")
 
@@ -553,7 +597,7 @@ func (s *Service) startEventStream(ctx context.Context) {
 	}
 
 	s.sendEvent(ctx, of.Event{
-		ProviderName: "flagd",
+		ProviderName: providerName,
 		EventType:    of.ProviderError,
 		ProviderEventDetails: of.ProviderEventDetails{
 			Message: connErr.Error(),
@@ -573,20 +617,27 @@ func (s *Service) signalStreamReady(err error) {
 
 // streamClient opens the event stream and distribute streams to appropriate handlers.
 func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) error {
-	stream, err := s.client.EventStream(ctx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
+	// stream deadline acts as an application-layer keepalive: recycle the stream once it elapses
+	streamCtx := ctx
+	if s.cfg.StreamDeadlineMs > 0 {
+		var cancel context.CancelFunc
+		streamCtx, cancel = context.WithTimeout(ctx, time.Duration(s.cfg.StreamDeadlineMs)*time.Millisecond)
+		defer cancel()
+	}
+
+	stream, err := s.client.EventStream(streamCtx, connect.NewRequest(&schemaV2.EventStreamRequest{}))
 	if err != nil {
 		return err
 	}
 
 	s.logger.V(logger.Info).Info("connected to event stream")
 
-	// Signal successful connection to Init() - stream is now ready
-	if !*streamReadySignaled {
-		s.signalStreamReady(nil) // nil means success
-		*streamReadySignaled = true
-	}
-
 	for stream.Receive() {
+		// signal readiness on first message (stream is created lazily) so a fatal first-read isn't missed
+		if !*streamReadySignaled {
+			s.signalStreamReady(nil) // nil means success
+			*streamReadySignaled = true
+		}
 		// reset retry counters and proceed to message handling
 		s.retryCounter.reset()
 
@@ -605,13 +656,13 @@ func (s *Service) streamClient(ctx context.Context, streamReadySignaled *bool) e
 	}
 
 	if err := stream.Err(); err != nil {
-		s.sendEvent(ctx, of.Event{
-			ProviderName: "flagd",
-			EventType:    of.ProviderError,
-			ProviderEventDetails: of.ProviderEventDetails{
-				Message: fmt.Sprintf("stream error: %s", err.Error()),
-			},
-		})
+		// stream deadline elapsed with a live parent context: recycle gracefully, no provider error
+		if s.cfg.StreamDeadlineMs > 0 && errors.Is(streamCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+			s.logger.V(logger.Debug).Info("stream deadline reached, recycling event stream")
+			return nil
+		}
+
+		// the retry loop handles STALE/ERROR transitions
 		return err
 	}
 
@@ -651,7 +702,7 @@ func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *sch
 	}
 
 	s.sendEvent(ctx, of.Event{
-		ProviderName: "flagd",
+		ProviderName: providerName,
 		EventType:    of.ProviderConfigChange,
 		ProviderEventDetails: of.ProviderEventDetails{
 			Message:     "flags changed",
@@ -661,10 +712,71 @@ func (s *Service) handleConfigurationChangeEvent(ctx context.Context, event *sch
 }
 
 func (s *Service) handleReadyEvent(ctx context.Context) {
+	s.clearStale()
 	s.sendEvent(ctx, of.Event{
-		ProviderName: "flagd",
+		ProviderName: providerName,
 		EventType:    of.ProviderReady,
 	})
+}
+
+// handleDisconnect emits STALE once and arms a grace timer that escalates to ERROR on expiry.
+func (s *Service) handleDisconnect(ctx context.Context) {
+	s.staleMu.Lock()
+	defer s.staleMu.Unlock()
+	if s.stale {
+		return
+	}
+	s.stale = true
+	gen := s.staleGen
+	s.staleTimer = time.AfterFunc(s.gracePeriod, func() {
+		// validate under the lock so a recovery that raced the timer wins and we emit neither
+		s.staleMu.Lock()
+		defer s.staleMu.Unlock()
+		if s.staleGen != gen {
+			return
+		}
+		if s.cache.IsEnabled() {
+			// we are disconnected, so we can miss events - purge the cache
+			s.cache.GetCache().Purge()
+		}
+		s.sendEvent(ctx, of.Event{
+			ProviderName:         providerName,
+			EventType:            of.ProviderError,
+			ProviderEventDetails: of.ProviderEventDetails{Message: "grace period expired"},
+		})
+	})
+
+	s.sendEvent(ctx, of.Event{
+		ProviderName:         providerName,
+		EventType:            of.ProviderStale,
+		ProviderEventDetails: of.ProviderEventDetails{Message: "connection error"},
+	})
+}
+
+// clearStale cancels a pending STALE-to-ERROR escalation on reconnection.
+func (s *Service) clearStale() {
+	s.staleMu.Lock()
+	defer s.staleMu.Unlock()
+	s.staleGen++
+	if s.staleTimer != nil {
+		s.staleTimer.Stop()
+		s.staleTimer = nil
+	}
+	s.stale = false
+}
+
+// isFatalCode reports whether err's status code is in the configured fatal set.
+func (s *Service) isFatalCode(err error) bool {
+	if len(s.cfg.FatalStatusCodes) == 0 {
+		return false
+	}
+	code := connect.CodeOf(err).String() // lower_snake, e.g. "permission_denied"
+	for _, fatal := range s.cfg.FatalStatusCodes {
+		if strings.EqualFold(code, fatal) { // config uses gRPC UPPER_SNAKE names
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) sendEvent(ctx context.Context, event of.Event) {
@@ -684,7 +796,7 @@ func derefString(s *string) string {
 }
 
 // newClient is a helper to derive schemaConnectV2.ServiceClient
-func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
+func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, *http.Client, error) {
 	var dialContext func(ctx context.Context, network string, addr string) (net.Conn, error)
 	var tlsConfig *tls.Config
 	url := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
@@ -701,11 +813,11 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 		if cfg.CertificatePath != "" {
 			caCert, err := os.ReadFile(cfg.CertificatePath)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			caCertPool := x509.NewCertPool()
 			if !caCertPool.AppendCertsFromPEM(caCert) {
-				return nil, errors.New("error appending provider certificate file. please check and try again")
+				return nil, nil, errors.New("error appending provider certificate file. please check and try again")
 			}
 			tlsConfig.RootCAs = caCertPool
 		}
@@ -713,11 +825,13 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 
 	// build options
 	var options []connect.ClientOption
+	// speak the gRPC wire protocol (like the other flagd providers) for compatibility with gRPC proxies
+	options = append(options, connect.WithGRPC())
 
 	if cfg.OtelInterceptor {
 		interceptor, err := otelconnect.NewInterceptor()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		options = append(options, connect.WithInterceptors(interceptor))
@@ -727,14 +841,29 @@ func newClient(cfg Configuration) (schemaConnectV2.ServiceClient, error) {
 		options = append(options, connect.WithInterceptors(newSelectorInterceptor(cfg.Selector)))
 	}
 
-	return schemaConnectV2.NewServiceClient(
-		&http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-				DialContext:     dialContext,
-			},
-		},
-		url,
-		options...,
-	), nil
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext:     dialContext,
+	}
+
+	// gRPC (WithGRPC) needs HTTP/2; a custom TLSClientConfig or cleartext endpoint disables auto-negotiation
+	protocols := new(http.Protocols)
+	if cfg.TLSEnabled {
+		protocols.SetHTTP2(true)
+	} else {
+		protocols.SetUnencryptedHTTP2(true) // h2c
+	}
+	transport.Protocols = protocols
+
+	// Enable HTTP/2 keepalive pings when configured.
+	if cfg.KeepAliveTime > 0 {
+		http2Transport, err := http2.ConfigureTransports(transport)
+		if err != nil {
+			return nil, nil, err
+		}
+		http2Transport.ReadIdleTimeout = time.Duration(cfg.KeepAliveTime) * time.Millisecond
+	}
+
+	httpClient := &http.Client{Transport: transport}
+	return schemaConnectV2.NewServiceClient(httpClient, url, options...), httpClient, nil
 }

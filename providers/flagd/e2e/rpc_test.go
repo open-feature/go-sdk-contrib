@@ -25,8 +25,14 @@ func TestRPCProviderE2E(t *testing.T) {
 		"./",
 	}
 
-	// Run tests with RPC-specific tags - exclude unimplemented scenarios
-	tags := "@rpc && ~@unixsocket && ~@targetURI && ~@sync && ~@metadata && ~@grace && ~@customCert && ~@caching && ~@forbidden && ~@deprecated && ~@fractional-v1"
+	// Run tests with RPC-specific tags - exclude unimplemented or inapplicable scenarios
+	tags := "@rpc" + // rpc resolver scenarios
+		" && ~@unixsocket" + // unix socket channel not supported
+		" && ~@targetURI" + // target-uri scenarios not supported
+		" && ~@customCert" + // testbed server cert is CN-only (no SANs); Go's TLS requires SANs (fix belongs in flagd-testbed)
+		" && ~@deprecated" +
+		" && ~@fractional-v1" + // legacy fractional algorithm
+		" && ~@fractional-v3" // cbor fractional not yet implemented
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)
