@@ -34,7 +34,6 @@ func TestInProcessProviderE2E(t *testing.T) {
 	tags := "@in-process" + // in-process resolver scenarios
 		" && ~@unixsocket" + // unix socket channel not supported
 		" && ~@metadata" + // framework assertResolvedMetadata* steps are unimplemented stubs
-		" && ~@customCert" + // testbed server cert is CN-only (no SANs); Go's TLS requires SANs
 		" && ~@contextEnrichment" + // in-process context enrichment not merged yet (PR #730)
 		" && ~@sync-payload" + // depends on context enrichment (PR #730)
 		" && ~@deprecated" +
