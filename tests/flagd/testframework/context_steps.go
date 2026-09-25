@@ -8,7 +8,7 @@ import (
 
 // initializeContextSteps registers evaluation context step definitions
 func InitializeContextSteps(ctx *godog.ScenarioContext) {
-	ctx.Step(`^a context containing a key "([^"]*)", with type "([^"]*)" and with value "([^"]*)"$`,
+	ctx.Step(`^a context containing a key "([^"]*)", with type "([^"]*)" and with value "(.*)"$`,
 		withState3Args((*TestState).addContextValue))
 	ctx.Step(`^an empty context$`,
 		withStateNoArgs((*TestState).clearContext))
