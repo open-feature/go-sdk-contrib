@@ -6,6 +6,7 @@ require (
 	github.com/cucumber/godog v0.16.0
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.7.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.7.0
+	github.com/open-feature/go-sdk-contrib/tests/flagd/v2 v2.3.0
 )
 
 require (
