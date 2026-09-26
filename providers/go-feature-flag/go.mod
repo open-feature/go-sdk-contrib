@@ -1,10 +1,10 @@
 module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/bluele/gcache v0.0.2
-	github.com/open-feature/go-sdk v1.18.0
+	github.com/open-feature/go-sdk v1.19.0
 	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.7
 	github.com/stretchr/testify v1.12.1
 	github.com/thomaspoignant/go-feature-flag/modules/core v0.7.2
