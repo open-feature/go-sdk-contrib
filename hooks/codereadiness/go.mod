@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/hooks/codereadiness
 go 1.26.0
 
 require (
-	github.com/open-feature/go-sdk v1.18.0
+	github.com/open-feature/go-sdk v1.19.0
 	golang.org/x/mod v0.41.0
 )
 

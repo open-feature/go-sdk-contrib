@@ -48,8 +48,8 @@ github.com/open-feature/flagd-schemas v0.2.13 h1:LzoyQfirfpR8cxI4PKnoFRtpwPjpC/c
 github.com/open-feature/flagd-schemas v0.2.13/go.mod h1:C0jnJ4C3j2LzGuqKgLDdTsdfKEWQp6sOHZyxu3QohFU=
 github.com/open-feature/flagd/core v0.17.0 h1:jO7Kh8ZfFkXrQNn5KIXL20SvEdTNNm0+6QmMzR5Aofo=
 github.com/open-feature/flagd/core v0.17.0/go.mod h1:3fws/xLTOe7dTxVO6zaxFO4TY7UXAvdpc0K0DZQHCgM=
-github.com/open-feature/go-sdk v1.18.0 h1:+Ge8LAJjqDwQBqAWaWiTbnsiJ22d5SPQq7/hOiBwpqM=
-github.com/open-feature/go-sdk v1.18.0/go.mod h1:LOlB7jvyi3hz9mp7R2uIwCv+wcabCB4ir76AZJ1z2IQ=
+github.com/open-feature/go-sdk v1.19.0 h1:vahRSX/kYzLny7bUuxssNiiHOGqHlDIG47z+jJ/DCEY=
+github.com/open-feature/go-sdk v1.19.0/go.mod h1:JlS8ClrWUzfywMOOeFo0Ro3BeT8cS5O/KbZUOOjwtyQ=
 github.com/open-feature/go-sdk-contrib/providers/flagd v0.7.0 h1:QS0kOXLamHWU3/ukiIzfFdvEdcCfJeRiWO2+tv5gRUI=
 github.com/open-feature/go-sdk-contrib/providers/flagd v0.7.0/go.mod h1:9urgDzn6YbfSYxTNT9QUjRByn/50G4wUGEtYKNyPJIo=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
