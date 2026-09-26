@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	googlegrpc "google.golang.org/grpc"
 
@@ -122,6 +123,7 @@ type Configuration struct {
 	DeadlineMs              int
 	StreamDeadlineMs        int
 	KeepAliveTime           int64
+	TracerProvider          trace.TracerProvider
 }
 
 // EventSync interface for sync providers that support events
@@ -147,9 +149,13 @@ func NewInProcessService(cfg Configuration) *InProcess {
 
 	flagStore := store.NewFlags()
 	flagStore.FlagSources = append(flagStore.FlagSources, uri)
+	var evaluatorOptions []evaluator.JSONEvaluatorOption
+	if cfg.TracerProvider != nil {
+		evaluatorOptions = append(evaluatorOptions, evaluator.WithTracerProvider(cfg.TracerProvider))
+	}
 
 	return &InProcess{
-		evaluator:       evaluator.NewJSON(log, flagStore),
+		evaluator:       evaluator.NewJSON(log, flagStore, evaluatorOptions...),
 		flagStore:       flagStore,
 		syncProvider:    syncProvider,
 		logger:          log,

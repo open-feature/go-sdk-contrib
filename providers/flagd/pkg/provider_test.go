@@ -10,6 +10,8 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/mock"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	of "github.com/open-feature/go-sdk/openfeature"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,6 +19,7 @@ import (
 
 func TestNewProvider(t *testing.T) {
 	t.Parallel()
+	tracerProvider := noop.NewTracerProvider()
 	customSyncProvider := process.NewDoNothingCustomSyncProvider()
 	gRPCDialOptionOverride := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -34,6 +37,7 @@ func TestNewProvider(t *testing.T) {
 		expectMaxRetries              int
 		expectCacheSize               int
 		expectOtelIntercept           bool
+		expectTracerProvider          trace.TracerProvider
 		expectSocketPath              string
 		expectTlsEnabled              bool
 		expectProviderID              string
@@ -71,6 +75,7 @@ func TestNewProvider(t *testing.T) {
 			expectMaxRetries:            2,
 			expectCacheSize:             2500,
 			expectOtelIntercept:         true,
+			expectTracerProvider:        tracerProvider,
 			expectSocketPath:            "/socket",
 			expectTlsEnabled:            true,
 			expectCustomSyncProvider:    nil,
@@ -79,6 +84,7 @@ func TestNewProvider(t *testing.T) {
 				WithInProcessResolver(),
 				WithSocketPath("/socket"),
 				WithOtelInterceptor(true),
+				WithTracerProvider(tracerProvider),
 				WithLRUCache(2500),
 				WithEventStreamConnectionMaxAttempts(2),
 				WithCertificatePath("/path"),
@@ -301,6 +307,10 @@ func TestNewProvider(t *testing.T) {
 			if config.OtelIntercept != test.expectOtelIntercept {
 				t.Errorf("incorrect configuration OtelIntercept, expected %v, got %v",
 					test.expectOtelIntercept, config.OtelIntercept)
+			}
+			if config.TracerProvider != test.expectTracerProvider {
+				t.Errorf("incorrect configuration TracerProvider, expected %v, got %v",
+					test.expectTracerProvider, config.TracerProvider)
 			}
 
 			if config.EventStreamConnectionMaxAttempts != test.expectMaxRetries {
