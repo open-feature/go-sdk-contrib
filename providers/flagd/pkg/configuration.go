@@ -13,6 +13,7 @@ import (
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	of "github.com/open-feature/go-sdk/openfeature"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 )
 
@@ -77,6 +78,7 @@ type ProviderConfiguration struct {
 	OfflineFlagSourcePath            string
 	OfflinePollMs                    int
 	OtelIntercept                    bool
+	TracerProvider                   trace.TracerProvider
 	Port                             uint16
 	TargetUri                        string
 	Resolver                         ResolverType
@@ -126,7 +128,6 @@ func newDefaultConfiguration(log logr.Logger) *ProviderConfiguration {
 }
 
 func NewProviderConfiguration(opts []ProviderOption) (*ProviderConfiguration, error) {
-
 	log := logr.New(logger.Logger{})
 
 	// initialize with default configurations
@@ -411,6 +412,13 @@ func WithTLS(certPath string) ProviderOption {
 func WithOtelInterceptor(intercept bool) ProviderOption {
 	return func(p *ProviderConfiguration) {
 		p.OtelIntercept = intercept
+	}
+}
+
+// WithTracerProvider sets the tracer provider used for in-process flag evaluation.
+func WithTracerProvider(provider trace.TracerProvider) ProviderOption {
+	return func(p *ProviderConfiguration) {
+		p.TracerProvider = provider
 	}
 }
 

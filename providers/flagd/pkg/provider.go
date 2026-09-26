@@ -3,10 +3,10 @@ package flagd
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	parallel "sync"
-	"sync/atomic"
 
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
@@ -34,7 +34,6 @@ type Provider struct {
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	providerConfiguration, err := NewProviderConfiguration(opts)
-
 	if err != nil {
 		return nil, err
 	}
@@ -97,12 +96,14 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			StreamDeadlineMs:        provider.providerConfiguration.StreamDeadlineMs,
 			KeepAliveTime:           provider.providerConfiguration.KeepAliveTime,
 			ContextEnricher:         provider.providerConfiguration.ContextEnricher,
+			TracerProvider:          provider.providerConfiguration.TracerProvider,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
 			OfflinePollMs:     provider.providerConfiguration.OfflinePollMs,
 			DeadlineMs:        provider.providerConfiguration.DeadlineMs,
+			TracerProvider:    provider.providerConfiguration.TracerProvider,
 		})
 	}
 
