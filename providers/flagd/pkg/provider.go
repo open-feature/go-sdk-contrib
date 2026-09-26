@@ -89,12 +89,14 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			DeadlineMs:              provider.providerConfiguration.DeadlineMs,
 			StreamDeadlineMs:        provider.providerConfiguration.StreamDeadlineMs,
 			KeepAliveTime:           provider.providerConfiguration.KeepAliveTime,
+			TracerProvider:          provider.providerConfiguration.TracerProvider,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
 			OfflinePollMs:     provider.providerConfiguration.OfflinePollMs,
 			DeadlineMs:        provider.providerConfiguration.DeadlineMs,
+			TracerProvider:    provider.providerConfiguration.TracerProvider,
 		})
 	}
 
