@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	// github.com/open-feature/flagd/core v0.11.2
-	github.com/open-feature/go-sdk v1.18.0
+	github.com/open-feature/go-sdk v1.19.0
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.7.0
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/zap v1.28.0
