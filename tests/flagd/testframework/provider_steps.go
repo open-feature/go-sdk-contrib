@@ -274,6 +274,9 @@ func (s *TestState) triggerTestbedConfiguration(providerType string) error {
 		case "ssl", "tls":
 			// Use SSL configuration - testbed will enable TLS
 			return container.StartFlagdWithConfig("ssl")
+		case "syncpayload":
+			// disable-sync-metadata; enrichment must come from the sync payload
+			return container.StartFlagdWithConfig("sync-payload")
 		default:
 			// Most providers use default testbed configuration
 			// This includes: unavailable, syncpayload, metadata, target, etc.

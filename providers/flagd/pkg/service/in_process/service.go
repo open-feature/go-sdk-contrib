@@ -43,6 +43,10 @@ type InProcess struct {
 	serviceMetadata model.Metadata
 	deadlineMs      int
 
+	// Context enrichment
+	enrichedContext *of.EvaluationContext
+	mtx             sync.RWMutex
+
 	// Event handling
 	events    chan of.Event
 	eventSync EventSync
@@ -119,6 +123,7 @@ type Configuration struct {
 	RetryBackOffMs          int
 	RetryBackOffMaxMs       int
 	FatalStatusCodes        []string
+	ContextEnricher         func(map[string]any) *of.EvaluationContext
 	DeadlineMs              int
 	StreamDeadlineMs        int
 	KeepAliveTime           int64
@@ -346,6 +351,16 @@ func (i *InProcess) processSyncData(data isync.DataSync) {
 			ProviderEventDetails: of.ProviderEventDetails{Message: "Error from flag sync " + err.Error()},
 		}
 		return
+	}
+
+	// enrich at sync time; nil sync-context keeps previous enrichment (matches Java)
+	if data.SyncContext != nil && i.configuration.ContextEnricher != nil {
+		enriched := i.configuration.ContextEnricher(data.SyncContext.AsMap())
+		func() {
+			i.mtx.Lock()
+			defer i.mtx.Unlock()
+			i.enrichedContext = enriched
+		}()
 	}
 
 	// Stop stale timer - we've successfully received and processed data
@@ -723,6 +738,12 @@ func (i *InProcess) ResolveObject(ctx context.Context, key string, defaultValue 
 			FlagMetadata: metadata,
 		},
 	}
+}
+
+func (i *InProcess) ContextValues() *of.EvaluationContext {
+	i.mtx.RLock()
+	defer i.mtx.RUnlock()
+	return i.enrichedContext
 }
 
 // createSyncProvider creates the appropriate sync provider based on configuration
