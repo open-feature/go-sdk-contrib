@@ -1,11 +1,11 @@
 module github.com/open-feature/go-sdk-contrib/providers/harness
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/harness/ff-golang-server-sdk v0.2.0
 	github.com/jarcoal/httpmock v1.4.2
-	github.com/open-feature/go-sdk v1.18.0
+	github.com/open-feature/go-sdk v1.19.0
 	github.com/stretchr/testify v1.12.1
 )
 
@@ -16,7 +16,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.22.5 // indirect
 	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
-	github.com/google/uuid v1.5.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/harness-community/sse/v3 v3.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
@@ -41,7 +41,7 @@ require (
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 )

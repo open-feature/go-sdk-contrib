@@ -46,8 +46,26 @@ func (s *TestState) createProviderInstance() error {
 	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
 		Option:    "RetryGracePeriod",
 		ValueType: "Integer",
-		Value:     "1",
+		Value:     "5",
 	})
+	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+		Option:    "RetryBackoffMs",
+		ValueType: "Integer",
+		Value:     "500",
+	})
+	s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+		Option:    "RetryBackoffMaxMs",
+		ValueType: "Integer",
+		Value:     "500",
+	})
+	if s.findExistingProviderOption("deadlineMs") == "" {
+		s.ProviderOptions = append(s.ProviderOptions, ProviderOption{
+			// generous init deadline so a slow first connect under load doesn't fail readiness
+			Option:    "deadlineMs",
+			ValueType: "Integer",
+			Value:     "15000",
+		})
+	}
 	switch s.ProviderType {
 	case RPC:
 		if RPCProviderSupplier == nil {

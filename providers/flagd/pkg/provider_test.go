@@ -719,3 +719,130 @@ func TestHandleEventsChannelClose(t *testing.T) {
 	// Clean up to avoid affecting other tests
 	provider.Shutdown()
 }
+
+func TestStreamDeadlineAndKeepAliveDefaults(t *testing.T) {
+	config, err := NewProviderConfiguration(nil)
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.StreamDeadlineMs != defaultStreamDeadlineMs {
+		t.Errorf("incorrect default StreamDeadlineMs, expected %d, got %d",
+			defaultStreamDeadlineMs, config.StreamDeadlineMs)
+	}
+	if config.KeepAliveTime != defaultKeepAliveMs {
+		t.Errorf("incorrect default KeepAliveTime, expected %d, got %d",
+			defaultKeepAliveMs, config.KeepAliveTime)
+	}
+}
+
+func TestStreamDeadlineAndKeepAliveOptions(t *testing.T) {
+	config, err := NewProviderConfiguration([]ProviderOption{
+		WithStreamDeadline(1234),
+		WithKeepAliveTime(5678),
+	})
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.StreamDeadlineMs != 1234 {
+		t.Errorf("incorrect StreamDeadlineMs from option, expected %d, got %d", 1234, config.StreamDeadlineMs)
+	}
+	if config.KeepAliveTime != 5678 {
+		t.Errorf("incorrect KeepAliveTime from option, expected %d, got %d", 5678, config.KeepAliveTime)
+	}
+}
+
+func TestStreamDeadlineAndKeepAliveFromEnv(t *testing.T) {
+	t.Setenv(flagdStreamDeadlineMsEnvironmentVariableName, "7000")
+	t.Setenv(flagdKeepAliveTimeMsEnvironmentVariableName, "8000")
+
+	config, err := NewProviderConfiguration(nil)
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.StreamDeadlineMs != 7000 {
+		t.Errorf("incorrect StreamDeadlineMs from env, expected %d, got %d", 7000, config.StreamDeadlineMs)
+	}
+	if config.KeepAliveTime != 8000 {
+		t.Errorf("incorrect KeepAliveTime from env, expected %d, got %d", 8000, config.KeepAliveTime)
+	}
+}
+
+// TestStreamDeadlineAndKeepAliveOptionsOverrideEnv ensures explicitly-declared options take precedence
+// over environment variables for the stream deadline / keepalive options.
+func TestStreamDeadlineAndKeepAliveOptionsOverrideEnv(t *testing.T) {
+	t.Setenv(flagdStreamDeadlineMsEnvironmentVariableName, "7000")
+	t.Setenv(flagdKeepAliveTimeMsEnvironmentVariableName, "8000")
+
+	config, err := NewProviderConfiguration([]ProviderOption{
+		WithStreamDeadline(1111),
+		WithKeepAliveTime(2222),
+	})
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.StreamDeadlineMs != 1111 {
+		t.Errorf("expected option to override env for StreamDeadlineMs, expected %d, got %d", 1111, config.StreamDeadlineMs)
+	}
+	if config.KeepAliveTime != 2222 {
+		t.Errorf("expected option to override env for KeepAliveTime, expected %d, got %d", 2222, config.KeepAliveTime)
+	}
+}
+
+func TestOfflinePollMsDefault(t *testing.T) {
+	config, err := NewProviderConfiguration(nil)
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.OfflinePollMs != defaultOfflinePollMs {
+		t.Errorf("incorrect default OfflinePollMs, expected %d, got %d",
+			defaultOfflinePollMs, config.OfflinePollMs)
+	}
+}
+
+func TestOfflinePollMsOption(t *testing.T) {
+	config, err := NewProviderConfiguration([]ProviderOption{
+		WithOfflinePollMs(1234),
+	})
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.OfflinePollMs != 1234 {
+		t.Errorf("incorrect OfflinePollMs from option, expected %d, got %d", 1234, config.OfflinePollMs)
+	}
+}
+
+func TestOfflinePollMsFromEnv(t *testing.T) {
+	t.Setenv(flagdOfflinePollMsEnvironmentVariableName, "7000")
+
+	config, err := NewProviderConfiguration(nil)
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.OfflinePollMs != 7000 {
+		t.Errorf("incorrect OfflinePollMs from env, expected %d, got %d", 7000, config.OfflinePollMs)
+	}
+}
+
+// TestOfflinePollMsOptionOverridesEnv ensures explicitly-declared options take precedence
+// over the environment variable for the offline poll interval.
+func TestOfflinePollMsOptionOverridesEnv(t *testing.T) {
+	t.Setenv(flagdOfflinePollMsEnvironmentVariableName, "7000")
+
+	config, err := NewProviderConfiguration([]ProviderOption{
+		WithOfflinePollMs(1111),
+	})
+	if err != nil {
+		t.Fatal("error creating provider configuration", err)
+	}
+
+	if config.OfflinePollMs != 1111 {
+		t.Errorf("expected option to override env for OfflinePollMs, expected %d, got %d", 1111, config.OfflinePollMs)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -24,17 +25,8 @@ import (
 )
 
 func TestRPCServiceShutdownCleansUpGoroutines(t *testing.T) {
-	// At the end of the test, if no other failures have occurred, check for
-	// goroutine leaks.
-	startingGoroutineCount := runtime.NumGoroutine()
-	t.Cleanup(func() {
-		if t.Failed() {
-			return
-		}
-		if numGoroutinesAfter := runtime.NumGoroutine(); numGoroutinesAfter > startingGoroutineCount {
-			t.Errorf("Goroutines leaked: %d goroutines before, %d goroutines after", startingGoroutineCount, numGoroutinesAfter)
-		}
-	})
+	// At the end of the test, if no other failures have occurred, check for goroutine leaks.
+	checkGoroutineLeaks(t)
 
 	var log logr.Logger
 	cache := cache.NewCacheService(cache.LRUValue, 10, log)
@@ -113,39 +105,30 @@ func TestRPCServiceShutdownDuringEventHandlingCleansUpGoroutines(t *testing.T) {
 }
 
 func TestRPCServiceShutdownDuringInitRetry(t *testing.T) {
-	// TODO: The httptest server seems to leak a persistConn goroutine for
-	// a very short duration (<1ms) in this test - it might have something to do
-	// with the error returned on the stream rather than a success response.
-	// It would be nice to figure out why this is happening and then re-enable
-	// the goroutine leak check.
-
-	// checkGoroutineLeaks(t)
-
 	var log logr.Logger
 	cache := cache.NewCacheService(cache.LRUValue, 10, log)
-	// Run the server. Then, queue up several events so that the service's event
-	// streaming goroutine is forced to block while it waits for consumers to
-	// handle events. When we shut down the service, it should be able to unblock
-	// itself.
+	// server errors with no message, so Init blocks in the retry loop until Shutdown
 	srv, cfg := runTestServer(t)
 	srv.eventStreamErrors <- errors.New("server error")
 
 	service := NewService(cfg, cache, log, 3 /*=retries*/)
-	// Override the retry delay so that the test will time out if it doesn't
-	// respect ctx cancellation while the retry delay is in progress.
+	// Override the retry delay so the test times out if Shutdown doesn't respect ctx cancellation.
 	service.retryCounter.currentDelay = 100 * time.Hour
-	if err := service.Init(); err != nil {
-		t.Fatal(err)
-	}
 
-	// Wait a little bit for the event stream goroutine to receive the error
-	// from the server.
+	initDone := make(chan error, 1)
+	go func() { initDone <- service.Init() }()
+
+	// Wait for the event stream goroutine to receive the error and enter the retry delay.
 	time.Sleep(100 * time.Millisecond)
 
-	// The service should now be waiting for the retry delay to expire, which it
-	// never will. Calling Shutdown() should cancel the context, unblocking the
-	// goroutine, and then wait for the goroutine to exit.
+	// Shutdown should cancel the context, unblocking both the goroutine and Init.
 	service.Shutdown()
+
+	select {
+	case <-initDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Init did not return after Shutdown")
+	}
 }
 
 func TestRPCServiceShutdownCancelsEventStreamGoroutine(t *testing.T) {
@@ -210,9 +193,14 @@ func checkGoroutineLeaks(t *testing.T) {
 		if t.Failed() {
 			return
 		}
-		buf := make([]byte, 1<<20)
-		stacklen := runtime.Stack(buf, true)
+		// HTTP/2 connection loops exit asynchronously after Shutdown closes idle conns; poll briefly
+		deadline := time.Now().Add(2 * time.Second)
+		for runtime.NumGoroutine() > startingGoroutineCount && time.Now().Before(deadline) {
+			time.Sleep(20 * time.Millisecond)
+		}
 		if numGoroutinesAfter := runtime.NumGoroutine(); numGoroutinesAfter > startingGoroutineCount {
+			buf := make([]byte, 1<<20)
+			stacklen := runtime.Stack(buf, true)
 			t.Errorf("Goroutines leaked: %d goroutines before, %d goroutines after", startingGoroutineCount, numGoroutinesAfter)
 			fmt.Fprintf(os.Stderr, "%s\n", buf[:stacklen])
 		}
@@ -223,9 +211,11 @@ type testServer struct {
 	evaluationv2connect.UnimplementedServiceHandler
 	eventStreamErrors    chan error
 	eventStreamResponses chan *evaluation.EventStreamResponse
+	eventStreamCalls     atomic.Int32
 }
 
 func (f *testServer) EventStream(ctx context.Context, req *connect.Request[evaluation.EventStreamRequest], stream *connect.ServerStream[evaluation.EventStreamResponse]) error {
+	f.eventStreamCalls.Add(1)
 	for {
 		select {
 		case rsp := <-f.eventStreamResponses:
@@ -248,7 +238,12 @@ func runTestServer(t *testing.T) (*testServer, Configuration) {
 	mountPath, handler := evaluationv2connect.NewServiceHandler(ts)
 	mux := http.NewServeMux()
 	mux.Handle(mountPath, handler)
-	server := httptest.NewServer(mux)
+	server := httptest.NewUnstartedServer(mux)
+	// serve h2c so the gRPC (HTTP/2) client can connect over cleartext, as flagd does
+	server.Config.Protocols = new(http.Protocols)
+	server.Config.Protocols.SetHTTP1(true)
+	server.Config.Protocols.SetUnencryptedHTTP2(true)
+	server.Start()
 	t.Cleanup(func() {
 		server.Close()
 	})
@@ -263,4 +258,83 @@ func runTestServer(t *testing.T) (*testServer, Configuration) {
 	}
 	cfg := Configuration{Host: host, Port: uint16(port)}
 	return ts, cfg
+}
+
+// TestNewClientConfiguresHTTP2KeepAlive verifies that enabling KeepAliveTime configures the HTTP/2
+// transport without error, for both plaintext and TLS clients.
+func TestNewClientConfiguresHTTP2KeepAlive(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		tls  bool
+	}{
+		{name: "plaintext", tls: false},
+		{name: "tls", tls: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client, _, err := newClient(Configuration{
+				Host:          "localhost",
+				Port:          8013,
+				TLSEnabled:    tc.tls,
+				KeepAliveTime: 1000,
+			})
+			if err != nil {
+				t.Fatalf("newClient with KeepAliveTime returned unexpected error: %v", err)
+			}
+			if client == nil {
+				t.Fatal("expected non-nil client")
+			}
+		})
+	}
+}
+
+// TestRPCStreamDeadlineRecyclesWithoutError verifies that when the configured stream deadline elapses,
+// the event stream is recycled (a new EventStream call is made) without surfacing a ProviderError.
+func TestRPCStreamDeadlineRecyclesWithoutError(t *testing.T) {
+	checkGoroutineLeaks(t)
+
+	var log logr.Logger
+	cacheService := cache.NewCacheService(cache.LRUValue, 10, log)
+
+	srv, cfg := runTestServer(t)
+	cfg.StreamDeadlineMs = 200 // short deadline so the stream is recycled quickly
+	srv.eventStreamResponses <- &evaluation.EventStreamResponse{
+		Type: string(flagdService.ProviderReady),
+	}
+
+	service := NewService(cfg, cacheService, log, 3 /*=retries*/)
+	if err := service.Init(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(service.Shutdown)
+
+	channel := service.EventChannel()
+
+	// Wait for the provider to become ready.
+	select {
+	case event := <-channel:
+		if event.EventType != of.ProviderReady {
+			t.Fatalf("expected ProviderReady, got %s with message %s", event.EventType, event.Message)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("provider did not become ready within acceptable timeframe")
+	}
+
+	// After the stream deadline elapses the stream should be recycled: a second EventStream call is made
+	// and no ProviderError event is emitted in the meantime.
+	recycled := false
+	timeout := time.After(4 * time.Second)
+	for !recycled {
+		select {
+		case event := <-channel:
+			if event.EventType == of.ProviderError {
+				t.Fatalf("unexpected ProviderError during stream recycle: %s", event.Message)
+			}
+		case <-time.After(100 * time.Millisecond):
+			if srv.eventStreamCalls.Load() >= 2 {
+				recycled = true
+			}
+		case <-timeout:
+			t.Fatalf("stream was not recycled within timeout; eventStreamCalls=%d", srv.eventStreamCalls.Load())
+		}
+	}
 }

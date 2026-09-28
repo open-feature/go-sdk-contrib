@@ -1,9 +1,9 @@
 module github.com/open-feature/go-sdk-contrib/providers/go-feature-flag-in-process
 
-go 1.25.0
+go 1.26.0
 
 require (
-	github.com/open-feature/go-sdk v1.18.0
+	github.com/open-feature/go-sdk v1.19.0
 	github.com/stretchr/testify v1.12.1
 	github.com/thomaspoignant/go-feature-flag v1.49.0
 )

@@ -35,8 +35,8 @@ func TestBuildRetryPolicy(t *testing.T) {
 		t.Fatalf("retryPolicy missing")
 	}
 
-	if retryPolicy["MaxAttempts"].(float64) != 3 {
-		t.Errorf("MaxAttempts = %v; want 3", retryPolicy["MaxAttempts"])
+	if retryPolicy["MaxAttempts"].(float64) != 4 {
+		t.Errorf("MaxAttempts = %v; want 4", retryPolicy["MaxAttempts"])
 	}
 	if retryPolicy["InitialBackoff"].(string) != "0.1s" {
 		t.Errorf("InitialBackoff = %v; want 0.1s", retryPolicy["InitialBackoff"])
@@ -56,7 +56,7 @@ func TestBuildRetryPolicy(t *testing.T) {
 	}
 
 	// Also check that the result is valid JSON and contains expected substrings
-	if !strings.Contains(result, `"MaxAttempts":3`) {
+	if !strings.Contains(result, `"MaxAttempts":4`) {
 		t.Error("Result does not contain MaxAttempts")
 	}
 	if !strings.Contains(result, `"InitialBackoff":"0.1s"`) {
@@ -74,7 +74,7 @@ func TestBuildRetryPolicy(t *testing.T) {
 func TestBuildRetryPolicyDefaults(t *testing.T) {
 	g := &Sync{
 		RetryBackOffMs:    0, // Should use default 1000ms
-		RetryBackOffMaxMs: 0, // Should use default 120000ms
+		RetryBackOffMaxMs: 0, // Should use default 5000ms
 	}
 
 	result := g.buildRetryPolicy()
@@ -100,8 +100,8 @@ func TestBuildRetryPolicyDefaults(t *testing.T) {
 	if retryPolicy["InitialBackoff"].(string) != "1s" {
 		t.Errorf("InitialBackoff = %v; want 1s (default)", retryPolicy["InitialBackoff"])
 	}
-	if retryPolicy["MaxBackoff"].(string) != "12s" {
-		t.Errorf("MaxBackoff = %v; want 120s (gRPC format for 120000ms)", retryPolicy["MaxBackoff"])
+	if retryPolicy["MaxBackoff"].(string) != "5s" {
+		t.Errorf("MaxBackoff = %v; want 5s (default 5000ms)", retryPolicy["MaxBackoff"])
 	}
 }
 
