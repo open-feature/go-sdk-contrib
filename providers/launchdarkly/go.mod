@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/hooklift/assert v0.1.0
 	github.com/launchdarkly/go-sdk-common/v3 v3.6.0
-	github.com/launchdarkly/go-server-sdk/v7 v7.17.1
+	github.com/launchdarkly/go-server-sdk/v7 v7.18.0
 	github.com/open-feature/go-sdk v1.19.0
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
 )
@@ -17,9 +17,9 @@ require (
 	github.com/launchdarkly/ccache v1.1.0 // indirect
 	github.com/launchdarkly/eventsource v1.14.0 // indirect
 	github.com/launchdarkly/go-jsonstream/v3 v3.1.2 // indirect
-	github.com/launchdarkly/go-sdk-events/v3 v3.6.3 // indirect
+	github.com/launchdarkly/go-sdk-events/v3 v3.7.0 // indirect
 	github.com/launchdarkly/go-semver v1.0.3 // indirect
-	github.com/launchdarkly/go-server-sdk-evaluation/v3 v3.0.2 // indirect
+	github.com/launchdarkly/go-server-sdk-evaluation/v3 v3.1.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	go.uber.org/mock v0.6.0 // indirect
