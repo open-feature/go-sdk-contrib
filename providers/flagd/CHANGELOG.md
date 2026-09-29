@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.7.0...providers/flagd/v0.7.1) (2026-09-29)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.9 [security] ([#1014](https://github.com/open-feature/go-sdk-contrib/issues/1014)) ([e90256c](https://github.com/open-feature/go-sdk-contrib/commit/e90256cf535c005b069c50b93bbf6562f881e4fe))
+
+
+### ✨ New Features
+
+* **flagd:** add new context enrichment approach for in-process provider ([#730](https://github.com/open-feature/go-sdk-contrib/issues/730)) ([fa4217b](https://github.com/open-feature/go-sdk-contrib/commit/fa4217b185b745eb9f4b59f76e0aab1b46616c9a))
+
 ## [0.7.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.6.0...providers/flagd/v0.7.0) (2026-09-22)
 
 
