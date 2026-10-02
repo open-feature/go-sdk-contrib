@@ -307,6 +307,8 @@ github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-2026091619
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260916193100-ff68adb4c761/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261001074816-8374621763f0 h1:AOaPa5ABfQvqqIcSHTz+/FKchWLxz9lg/ay4bhO0/qM=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261001074816-8374621763f0/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
+github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261002084519-9a1b36d54700 h1:vesjgjjoeRYBRbOtgtYasopDEVAo2Yz74+hYq8dntYw=
+github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261002084519-9a1b36d54700/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
