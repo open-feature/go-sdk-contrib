@@ -115,7 +115,7 @@ func assetsDigest() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("reading the embedded asset %s: %w", name, err)
 		}
-		fmt.Fprintf(hash, "%s\n%d\n", name, len(body))
+		hash.Write([]byte(fmt.Sprintf("%s\n%d\n", name, len(body))))
 		hash.Write(body)
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
