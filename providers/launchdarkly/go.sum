@@ -1,4 +1,6 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
+github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 h1:+ngKgrYPPJrOjhax5N+uePQ0Fh1Z7PheYoUI/0nzkPA=
@@ -21,14 +23,14 @@ github.com/launchdarkly/go-jsonstream/v3 v3.1.2 h1:Od0QEKHesbKnD3GgAt+LkZzhcUiSP
 github.com/launchdarkly/go-jsonstream/v3 v3.1.2/go.mod h1:ZBjhKq8mhArCtqotGRGnteY6eXpNm1GaOdUSZHh+ZjM=
 github.com/launchdarkly/go-sdk-common/v3 v3.6.0 h1:DxDfcNcRMxN2E8X7aWfOLcVvHgD2iUgFRYCcZtVcK3w=
 github.com/launchdarkly/go-sdk-common/v3 v3.6.0/go.mod h1:HUhSIcObNywBajTAiYT/U/llpHzGL7HMdVVBm7Nyy+E=
-github.com/launchdarkly/go-sdk-events/v3 v3.6.3 h1:h8G2fwdWK/Poz8NW52EYHBT3aOksRgcJKIFzLRppFt4=
-github.com/launchdarkly/go-sdk-events/v3 v3.6.3/go.mod h1:dmhlNVS8zxMyjvQE1eOHMP/rKz0fKtiWn53/Ol+S+IE=
+github.com/launchdarkly/go-sdk-events/v3 v3.7.0 h1:EuyvvZqpSE7kaMl2o2Am0KgpsfNB7KMJD9O+Ko1ESw4=
+github.com/launchdarkly/go-sdk-events/v3 v3.7.0/go.mod h1:dmhlNVS8zxMyjvQE1eOHMP/rKz0fKtiWn53/Ol+S+IE=
 github.com/launchdarkly/go-semver v1.0.3 h1:agIy/RN3SqeQDIfKkl+oFslEdeIs7pgsJBs3CdCcGQM=
 github.com/launchdarkly/go-semver v1.0.3/go.mod h1:xFmMwXba5Mb+3h72Z+VeSs9ahCvKo2QFUTHRNHVqR28=
-github.com/launchdarkly/go-server-sdk-evaluation/v3 v3.0.2 h1:mvZW3fA3ebzSAwkl7QfFzUGvmHria2dMgzt1CTVyeVE=
-github.com/launchdarkly/go-server-sdk-evaluation/v3 v3.0.2/go.mod h1:bg5yh+snD0Jl4qSVyolgjnTJBZJ8KIc1/dhWngUQJsI=
-github.com/launchdarkly/go-server-sdk/v7 v7.17.1 h1:LtkDGwc0UfvPL2oYEVGsodXTmZBXsu6YHoxhMdbKEvo=
-github.com/launchdarkly/go-server-sdk/v7 v7.17.1/go.mod h1:q+otpuPHsmxtttSBrHur18q63undXnX04hhPFqR3Ui8=
+github.com/launchdarkly/go-server-sdk-evaluation/v3 v3.1.0 h1:G993wkCFq2OQO3Sqd8c4FX+Z0T76eb+O0/mFswC4qRg=
+github.com/launchdarkly/go-server-sdk-evaluation/v3 v3.1.0/go.mod h1:TlNMB48dwNz+sewt+zsCrboZLMJj4Dov8Msg/cLv5GM=
+github.com/launchdarkly/go-server-sdk/v7 v7.18.0 h1:0Mf5oGAyKjLtpmmNLu8DTbALiRcxNQxAo1fD5rAcsWY=
+github.com/launchdarkly/go-server-sdk/v7 v7.18.0/go.mod h1:V+newBnH0h98qFq6mG3bwI3VudmY5exE1Nys5KjG6Ko=
 github.com/launchdarkly/go-test-helpers/v3 v3.1.0 h1:E3bxJMzMoA+cJSF3xxtk2/chr1zshl1ZWa0/oR+8bvg=
 github.com/launchdarkly/go-test-helpers/v3 v3.1.0/go.mod h1:Ake5+hZFS/DmIGKx/cizhn5W9pGA7pplcR7xCxWiLIo=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=
@@ -56,6 +58,8 @@ golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba h1:Ck8QetSgk912qxWLMCKxd0in+
 golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba/go.mod h1:50RgIsmK7OwqzTTeqcSXQW8SswW0o8fRcDxmqGluJ8E=
 golang.org/x/sync v0.23.0 h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk=
 golang.org/x/sync v0.23.0/go.mod h1:sUUOizhqBxiL6pEWpqNLUiaJn1ShEbZ6BBqskPbjZm0=
+golang.org/x/sys v0.45.0 h1:dO4czNzziLiiXplLQgBCEpCvXQ3dnkn0SdaZSYdQ+FY=
+golang.org/x/sys v0.45.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 golang.org/x/text v0.42.0 h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI=
 golang.org/x/text v0.42.0/go.mod h1:ojzP1Z+2QtioaF8DTtO8K5q7JWVVYwZKenzujK0Zd0E=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
