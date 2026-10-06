@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -20,6 +21,8 @@ type DataCollectorManager struct {
 	events                      []model.CollectableEvent
 	dataCollectorMaxEventStored int64
 	collectInterval             time.Duration
+	logger                      *slog.Logger
+	sendFailing                 bool
 
 	ticker         *time.Ticker
 	collectChannel chan bool
@@ -27,18 +30,24 @@ type DataCollectorManager struct {
 	goroutineDone  chan struct{}
 }
 
-// NewDataCollectorManager creates a new data collector manager
+// NewDataCollectorManager creates a new data collector manager; the optional logger defaults to slog.Default().
 func NewDataCollectorManager(
 	goffAPI api.GoFeatureFlagAPI,
 	dataCollectorMaxEventStored int64,
-	collectInterval time.Duration) DataCollectorManager {
+	collectInterval time.Duration,
+	logger ...*slog.Logger) DataCollectorManager {
 	if dataCollectorMaxEventStored <= 0 {
 		dataCollectorMaxEventStored = dataCollectorMaxEventStoredDefault
 	}
 	if collectInterval <= 0 {
 		collectInterval = collectIntervalDefault
 	}
+	l := slog.Default()
+	if len(logger) > 0 && logger[0] != nil {
+		l = logger[0]
+	}
 	return DataCollectorManager{
+		logger:                      l,
 		mutex:                       &sync.Mutex{},
 		sendMutex:                   &sync.Mutex{},
 		goffAPI:                     goffAPI,
@@ -98,12 +107,22 @@ func (d *DataCollectorManager) SendData(ctx context.Context) error {
 	}
 	err := d.goffAPI.CollectData(ctx, batch)
 	if err == nil {
+		if d.sendFailing {
+			d.sendFailing = false
+			d.logger.Info("sending events to the relay-proxy data collector recovered")
+		}
 		return nil
 	}
 
 	d.mutex.Lock()
 	d.events = d.trimOldest(append(batch, d.events...))
+	queued := len(d.events)
 	d.mutex.Unlock()
+	if !d.sendFailing {
+		d.sendFailing = true
+		d.logger.Warn("failed to send events to the relay-proxy data collector, will retry; the oldest events are dropped once the queue is full",
+			"error", err, "queued", queued, "maxEventStored", d.dataCollectorMaxEventStored)
+	}
 	return err
 }
 

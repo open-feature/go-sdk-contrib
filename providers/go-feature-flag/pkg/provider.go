@@ -63,7 +63,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 
 	var dcm controller.DataCollectorManager
 	if !options.DataCollectorDisabled {
-		dcm = controller.NewDataCollectorManager(*goffAPI, options.DataCollectorMaxEventStored, options.DataCollectorCollectInterval)
+		dcm = controller.NewDataCollectorManager(*goffAPI, options.DataCollectorMaxEventStored, options.DataCollectorCollectInterval, options.Logger)
 	}
 
 	eventStream := make(chan openfeature.Event, eventChannelBuffer)

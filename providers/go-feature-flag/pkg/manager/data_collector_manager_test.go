@@ -1,10 +1,13 @@
 package manager_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -221,6 +224,36 @@ func Test_DataCollectorManager(t *testing.T) {
 			require.NoError(t, collector.AddEvent(eventExample))
 		}
 		assert.Equal(t, 1, mrt.getNumberCall())
+	})
+
+	t.Run("Should log once when sends start failing and once when they recover", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusServiceUnavailable}
+		}}
+		client := &http.Client{Transport: &mrt}
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		})
+		var logs bytes.Buffer
+		logger := slog.New(slog.NewTextHandler(&logs, nil))
+
+		collector := manager.NewDataCollectorManager(g, 3, 10*time.Minute, logger)
+		for range 5 {
+			require.NoError(t, collector.AddEvent(eventExample))
+			assert.Error(t, collector.SendData(context.Background()))
+		}
+		assert.Equal(t, 1, strings.Count(logs.String(), "level=WARN"))
+		assert.Contains(t, logs.String(), "queued=1 maxEventStored=3")
+
+		mrt.RoundTripFunc = func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusOK}
+		}
+		require.NoError(t, collector.SendData(context.Background()))
+		require.NoError(t, collector.AddEvent(eventExample))
+		require.NoError(t, collector.SendData(context.Background()))
+		assert.Equal(t, 1, strings.Count(logs.String(), "level=WARN"))
+		assert.Equal(t, 1, strings.Count(logs.String(), "level=INFO"))
 	})
 
 	t.Run("AddEvent should not wait for an in-flight send", func(t *testing.T) {
