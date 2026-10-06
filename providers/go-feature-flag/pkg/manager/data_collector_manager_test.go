@@ -197,6 +197,32 @@ func Test_DataCollectorManager(t *testing.T) {
 		assert.Equal(t, []string{"v7", "v8", "v9"}, variations)
 	})
 
+	t.Run("Should not retry in a loop when the relay is down and the queue stays full", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusServiceUnavailable}
+		}}
+		client := &http.Client{Transport: &mrt}
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		})
+
+		collector := manager.NewDataCollectorManager(g, 3, 10*time.Minute)
+		collector.Start()
+		defer collector.Stop(context.Background())
+
+		for range 3 {
+			require.NoError(t, collector.AddEvent(eventExample))
+		}
+		require.Eventually(t, func() bool { return mrt.getNumberCall() == 1 }, time.Second, 5*time.Millisecond)
+
+		deadline := time.Now().Add(200 * time.Millisecond)
+		for time.Now().Before(deadline) {
+			require.NoError(t, collector.AddEvent(eventExample))
+		}
+		assert.Equal(t, 1, mrt.getNumberCall())
+	})
+
 	t.Run("AddEvent should not wait for an in-flight send", func(t *testing.T) {
 		release := make(chan struct{})
 		inFlight := make(chan struct{})

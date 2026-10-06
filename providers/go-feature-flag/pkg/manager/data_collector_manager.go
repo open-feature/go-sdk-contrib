@@ -107,11 +107,12 @@ func (d *DataCollectorManager) SendData(ctx context.Context) error {
 	return err
 }
 
-// AddEvent queues an event without doing I/O, waking the background sender when full and dropping the oldest on overflow.
+// AddEvent queues an event without doing I/O, waking the background sender when the queue becomes full and dropping the oldest on overflow.
 func (d *DataCollectorManager) AddEvent(event model.CollectableEvent) error {
 	d.mutex.Lock()
+	before := int64(len(d.events))
 	d.events = d.trimOldest(append(d.events, event))
-	full := int64(len(d.events)) >= d.dataCollectorMaxEventStored
+	full := before < d.dataCollectorMaxEventStored && int64(len(d.events)) >= d.dataCollectorMaxEventStored
 	d.mutex.Unlock()
 
 	if full {
