@@ -1,8 +1,13 @@
 package manager_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -104,7 +109,7 @@ func Test_DataCollectorManager(t *testing.T) {
 		assert.Equal(t, 3, mrt.getNumberCall())
 	})
 
-	t.Run("Should flush and continue adding when max items reached", func(t *testing.T) {
+	t.Run("Should flush in the background when max items reached", func(t *testing.T) {
 		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
 			return &http.Response{
 				StatusCode: http.StatusOK,
@@ -120,23 +125,15 @@ func Test_DataCollectorManager(t *testing.T) {
 		collector.Start()
 		defer collector.Stop(context.Background())
 
-		// Fill the queue to max
-		err := collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
+		assert.NoError(t, collector.AddEvent(eventExample))
+		assert.NoError(t, collector.AddEvent(eventExample))
 		assert.Equal(t, 0, mrt.getNumberCall())
 
-		// 4th event triggers a flush, then gets appended
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		assert.Equal(t, 1, mrt.getNumberCall())
+		assert.NoError(t, collector.AddEvent(eventExample))
+		assert.Eventually(t, func() bool { return mrt.getNumberCall() == 1 }, time.Second, 5*time.Millisecond)
 
-		// Flush the remaining 1 event
-		err = collector.SendData(context.Background())
-		assert.NoError(t, err)
+		assert.NoError(t, collector.AddEvent(eventExample))
+		assert.NoError(t, collector.SendData(context.Background()))
 		assert.Equal(t, 2, mrt.getNumberCall())
 	})
 
@@ -152,28 +149,146 @@ func Test_DataCollectorManager(t *testing.T) {
 			HTTPClient: client,
 		})
 
-		collector := manager.NewDataCollectorManager(g, 5, 100*time.Millisecond)
+		collector := manager.NewDataCollectorManager(g, 5, 10*time.Minute)
+		assert.NoError(t, collector.AddEvent(eventExample))
+		assert.NoError(t, collector.AddEvent(trackingEventExample))
+		assert.Error(t, collector.SendData(context.Background()))
+
+		var sent int
+		mrt.RoundTripFunc = func(req *http.Request) *http.Response {
+			var body struct {
+				Events []json.RawMessage `json:"events"`
+			}
+			_ = json.NewDecoder(req.Body).Decode(&body)
+			sent = len(body.Events)
+			return &http.Response{StatusCode: http.StatusOK}
+		}
+		assert.NoError(t, collector.SendData(context.Background()))
+		assert.Equal(t, 2, sent)
+	})
+
+	t.Run("Should drop the oldest events when the queue is full and the relay is down", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusServiceUnavailable}
+		}}
+		client := &http.Client{Transport: &mrt}
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		})
+
+		collector := manager.NewDataCollectorManager(g, 3, 10*time.Minute)
+		for i := range 10 {
+			e := eventExample
+			e.Variation = fmt.Sprintf("v%d", i)
+			assert.NoError(t, collector.AddEvent(e))
+		}
+		assert.Equal(t, 0, mrt.getNumberCall())
+
+		var variations []string
+		mrt.RoundTripFunc = func(req *http.Request) *http.Response {
+			var body struct {
+				Events []model.FeatureEvent `json:"events"`
+			}
+			_ = json.NewDecoder(req.Body).Decode(&body)
+			for _, e := range body.Events {
+				variations = append(variations, e.Variation)
+			}
+			return &http.Response{StatusCode: http.StatusOK}
+		}
+		assert.NoError(t, collector.SendData(context.Background()))
+		assert.Equal(t, []string{"v7", "v8", "v9"}, variations)
+	})
+
+	t.Run("Should not retry in a loop when the relay is down and the queue stays full", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusServiceUnavailable}
+		}}
+		client := &http.Client{Transport: &mrt}
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		})
+
+		collector := manager.NewDataCollectorManager(g, 3, 10*time.Minute)
 		collector.Start()
 		defer collector.Stop(context.Background())
-		err := collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(trackingEventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		err = collector.AddEvent(eventExample)
-		assert.NoError(t, err)
-		// Wait until the data collector sends the data (and failed)
-		time.Sleep(180 * time.Millisecond)
 
-		// Queue is still full after failed flush; AddEvent attempts another flush which also fails
-		err = collector.AddEvent(eventExample)
-		assert.Error(t, err)
+		for range 3 {
+			require.NoError(t, collector.AddEvent(eventExample))
+		}
+		require.Eventually(t, func() bool { return mrt.getNumberCall() == 1 }, time.Second, 5*time.Millisecond)
 
-		// The background ticker called once, then AddEvent attempted a flush once more
-		assert.Equal(t, 2, mrt.getNumberCall())
+		deadline := time.Now().Add(200 * time.Millisecond)
+		for time.Now().Before(deadline) {
+			require.NoError(t, collector.AddEvent(eventExample))
+		}
+		assert.Equal(t, 1, mrt.getNumberCall())
+	})
+
+	t.Run("Should log once when sends start failing and once when they recover", func(t *testing.T) {
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusServiceUnavailable}
+		}}
+		client := &http.Client{Transport: &mrt}
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		})
+		var logs bytes.Buffer
+		logger := slog.New(slog.NewTextHandler(&logs, nil))
+
+		collector := manager.NewDataCollectorManager(g, 3, 10*time.Minute, logger)
+		for range 5 {
+			require.NoError(t, collector.AddEvent(eventExample))
+			assert.Error(t, collector.SendData(context.Background()))
+		}
+		assert.Equal(t, 1, strings.Count(logs.String(), "level=WARN"))
+		assert.Contains(t, logs.String(), "queued=1 maxEventStored=3")
+
+		mrt.RoundTripFunc = func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusOK}
+		}
+		require.NoError(t, collector.SendData(context.Background()))
+		require.NoError(t, collector.AddEvent(eventExample))
+		require.NoError(t, collector.SendData(context.Background()))
+		assert.Equal(t, 1, strings.Count(logs.String(), "level=WARN"))
+		assert.Equal(t, 1, strings.Count(logs.String(), "level=INFO"))
+	})
+
+	t.Run("AddEvent should not wait for an in-flight send", func(t *testing.T) {
+		release := make(chan struct{})
+		inFlight := make(chan struct{})
+		var once sync.Once
+		mrt := MockRoundTripper{RoundTripFunc: func(req *http.Request) *http.Response {
+			once.Do(func() { close(inFlight) })
+			<-release
+			return &http.Response{StatusCode: http.StatusOK}
+		}}
+		client := &http.Client{Transport: &mrt}
+		g := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+			Endpoint:   "http://localhost:1031",
+			HTTPClient: client,
+		})
+
+		collector := manager.NewDataCollectorManager(g, 2, 10*time.Minute)
+		require.NoError(t, collector.AddEvent(eventExample))
+		go func() { _ = collector.SendData(context.Background()) }()
+		<-inFlight
+		defer close(release)
+
+		done := make(chan struct{})
+		go func() {
+			_ = collector.AddEvent(eventExample)
+			_ = collector.AddEvent(eventExample)
+			_ = collector.AddEvent(eventExample)
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Fatal("AddEvent blocked while a send to the relay was in flight")
+		}
 	})
 
 	t.Run("Should collect tracking events", func(t *testing.T) {
