@@ -29,8 +29,8 @@ flagd suites ask for 8013 and 8015.
 ## What it declares
 
 The OFREP provider is stateless: `Metadata`, the five typed `*Evaluation` methods and `Hooks`, and
-neither `openfeature.EventHandler` nor `openfeature.StateHandler`. The full reasoning for each row is
-beside the declaration in [`tck_test.go`](tck_test.go).
+neither `openfeature.EventHandler` nor `openfeature.StateHandler`. [`tck_test.go`](tck_test.go)
+carries the short form beside the declaration.
 
 | Capability | Declared | Why |
 | --- | --- | --- |
