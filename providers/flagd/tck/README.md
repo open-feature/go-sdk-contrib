@@ -27,8 +27,8 @@ submodule's Compose file.
 
 ## What each resolver declares
 
-The full reasoning for every row — measured, with the requirement it turns on — is in the comments
-beside each declaration in [`tck_test.go`](tck_test.go).
+Measured, with the requirement each row turns on. [`tck_test.go`](tck_test.go) carries the short form
+beside each declaration.
 
 | Capability | RPC | in-process | Why |
 | --- | --- | --- | --- |
