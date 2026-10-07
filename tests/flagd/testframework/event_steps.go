@@ -100,6 +100,15 @@ func (s *TestState) clearEvents() {
 
 // Generic event handler functions - consolidated and future-proof
 
+// normalizeEventType upper-cases the gherkin event name and maps "change" to CONFIGURATION_CHANGE
+func normalizeEventType(eventType string) string {
+	upper := strings.ToUpper(eventType)
+	if upper == "CHANGE" {
+		return "CONFIGURATION_CHANGE"
+	}
+	return upper
+}
+
 // addGenericEventHandler adds a handler for any event type
 func (s *TestState) addGenericEventHandler(ctx context.Context, eventType string) error {
 	if s.Client == nil {
@@ -110,21 +119,20 @@ func (s *TestState) addGenericEventHandler(ctx context.Context, eventType string
 		s.EventLog = &EventLog{}
 	}
 
+	normalized := normalizeEventType(eventType)
 	handler := func(details openfeature.EventDetails) {
-		s.addEvent(strings.ToUpper(eventType), details)
+		s.addEvent(normalized, details)
 	}
 
-	eventTypeUpper := strings.ToUpper(eventType)
-
 	// Map event types to OpenFeature event constants
-	switch eventTypeUpper {
+	switch normalized {
 	case "READY":
 		s.Client.AddHandler(openfeature.ProviderReady, &handler)
 	case "ERROR":
 		s.Client.AddHandler(openfeature.ProviderError, &handler)
 	case "STALE":
 		s.Client.AddHandler(openfeature.ProviderStale, &handler)
-	case "CHANGE", "CONFIGURATION_CHANGE":
+	case "CONFIGURATION_CHANGE":
 		s.Client.AddHandler(openfeature.ProviderConfigChange, &handler)
 	default:
 		return fmt.Errorf("unsupported event type: %s", eventType)
@@ -135,18 +143,18 @@ func (s *TestState) addGenericEventHandler(ctx context.Context, eventType string
 
 // waitForGenericEvent waits for any event type to be fired
 func (s *TestState) waitForGenericEvent(ctx context.Context, eventType string) error {
-	return s.waitForEvents(strings.ToUpper(eventType), eventWaitTimeout)
+	return s.waitForEvents(normalizeEventType(eventType), eventWaitTimeout)
 }
 
 // assertGenericEventExecuted verifies that any event type was received
 func (s *TestState) assertGenericEventExecuted(ctx context.Context, eventType string) error {
-	return s.assertEventOccurred(strings.ToUpper(eventType))
+	return s.assertEventOccurred(normalizeEventType(eventType))
 }
 
 // assertGenericEventNotExecuted verifies that no event of the given type was
 // received at any point during the scenario.
 func (s *TestState) assertGenericEventNotExecuted(ctx context.Context, eventType string) error {
-	expected := strings.ToUpper(eventType)
+	expected := normalizeEventType(eventType)
 
 	if s.EventLog == nil {
 		return nil
@@ -169,7 +177,7 @@ func (s *TestState) handleProviderStateChange(eventType string) func(openfeature
 // assertGenericEventExecutedWithin checks if any event was executed within specified time
 func (s *TestState) assertGenericEventExecutedWithin(ctx context.Context, eventType string, timeoutMs int) error {
 	timeout := time.Duration(timeoutMs) * time.Millisecond
-	return s.waitForEvents(strings.ToUpper(eventType), timeout)
+	return s.waitForEvents(normalizeEventType(eventType), timeout)
 }
 
 // Event utility functions moved from step_definitions.go
