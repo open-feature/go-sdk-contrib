@@ -83,11 +83,9 @@ func theEventHandlerShouldHaveBeenExecuted(ctx context.Context, name string) err
 
 // theEventHandlerShouldHaveBeenExecutedWithin bounds the wait explicitly.
 //
-// The scenarios that use it are asserting promptness, not just eventual
-// arrival: a provider that cannot reach its backend has to report that fact
-// quickly, because an application blocked on provider registration is down.
-// This bound therefore overrides tck.WithEventTimeout rather than being clamped
-// by it.
+// The scenarios that use it are asserting promptness rather than eventual
+// arrival, so this bound overrides tck.WithEventTimeout rather than being
+// clamped by it.
 func theEventHandlerShouldHaveBeenExecutedWithin(ctx context.Context, name string, millis int) error {
 	return awaitEvent(ctx, name, time.Duration(millis)*time.Millisecond)
 }
@@ -122,10 +120,6 @@ func awaitEvent(ctx context.Context, name string, timeout time.Duration) error {
 
 // theFlagShouldBePartOfTheEventPayload asserts that the configuration-change
 // event named the flag that changed.
-//
-// Naming the changed flags is what makes the event actionable: a consumer that
-// caches evaluations needs to know what to invalidate, and an event carrying no
-// keys forces it to invalidate everything.
 func theFlagShouldBePartOfTheEventPayload(ctx context.Context) error {
 	state, err := stateFrom(ctx)
 	if err != nil {

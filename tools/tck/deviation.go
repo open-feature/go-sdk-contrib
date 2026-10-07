@@ -8,36 +8,21 @@ import (
 // KnownDeviation says one thing: this provider fails to do something it is
 // required to do.
 //
-// [Appendix F's rules] are normative and this type does not restate them; the
-// three an adopter trips over are that the requirement must be a numbered MUST
-// or a rule the implementation bound itself to elsewhere, that a declared
-// capability with a visibly failing scenario is the shape to prefer over a
-// withheld one, and that a scenario failing because the backend cannot serve
-// its fixture is not a provider defect at all. Check the requirement before
-// writing one: a failed scenario is not yet a deviation, and a capability you
-// cannot satisfy is not yet a defect.
+// Check the requirement before writing one — a failed scenario is not yet a
+// deviation, and a capability you cannot satisfy is not yet a defect.
+// [Appendix F's rules] are normative and this type does not restate them.
 //
-// Distinct from an undeclared capability, which on its own is a choice. The Go
-// SDK supplies the clearest illustration, one capability withheld twice for
-// different reasons: a provider with no streaming transport does not declare
-// ConfigurationChange and is not pretending otherwise, while the SDK's
-// memprovider does not declare it because it cannot update its flag set at all
-// — which Appendix A requires an SDK's in-memory provider to support, so that
-// absence is a defect. Both look identical in the results, so the difference
-// has to be stated or a consumer cannot tell a design decision from a defect.
-//
-// Declared by the provider author through tck.WithKnownDeviations, which is the
-// only place that knows the difference. The TCK cannot infer it: from the
-// outside, a capability the provider chose to withhold and one it withheld
-// because it is broken are the same absence.
+// It is distinct from an undeclared capability, which on its own is a choice. A
+// provider with no streaming transport does not declare ConfigurationChange and
+// is not pretending otherwise; one that withholds the same capability because
+// it is broken has a defect. Both look identical in the results, so the
+// difference has to be stated by the provider author through
+// tck.WithKnownDeviations — the TCK cannot infer it.
 //
 // It lives on the base rather than with the reporting machinery because it is
-// something an adopter writes, alongside tck.WithCapabilities. Whatever reads
-// the declaration — a machine-readable conformance report, a build check, a
-// human — is downstream of it and does not widen it. The JSON field names are
-// here for the same reason, and they are the names the Java TCK's report emits:
-// a cross-language consumer should not have to know which language produced a
-// report to read it.
+// something an adopter writes, alongside tck.WithCapabilities. The JSON field
+// names are here for the same reason, and match the other languages' reports so
+// that a cross-language consumer need not know which language produced one.
 //
 // [Appendix F's rules]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring
 type KnownDeviation struct {
@@ -92,19 +77,15 @@ func (d KnownDeviation) IsTracked() bool { return d.Issue != "" }
 // consumer can use, naming what is wrong rather than emitting a report that
 // records a defect without describing it.
 //
-// The rules are deliberately narrow. A deviation is prose written by the
-// provider author for a human comparing providers, and the TCK cannot check
-// prose; what it can check is that the thing is not empty and that the
-// capability it names exists. A reserved capability is rejected for the same
-// reason declaring one is: no scenario carries the tag, so there is no skip for
-// the deviation to explain and nothing it could be about.
+// The rules are deliberately narrow: a deviation is prose written for a human
+// comparing providers, and all the TCK can check is that it is not empty and
+// that the capability it names exists.
 //
-// A capability the Go SDK cannot express is rejected too, and for a different
-// reason worth keeping separate: its scenarios do exist and are skipped, but
-// they are skipped for every provider in this language regardless of what any
-// of them does. A deviation there would attribute a property of the SDK to the
-// provider, which is the opposite of what the field is for. See
-// inexpressibleCapabilities.
+// A capability the Go SDK cannot express is rejected, for a reason worth
+// keeping separate from the reserved case: its scenarios do exist and are
+// skipped, but they are skipped for every provider in this language regardless
+// of what any of them does, so a deviation there would attribute a property of
+// the SDK to the provider. See inexpressibleCapabilities.
 func validateDeviations(deviations []KnownDeviation) error {
 	var problems []error
 

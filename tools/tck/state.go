@@ -65,7 +65,7 @@ type lifecycleCall struct {
 	// always nil. Unlike an evaluation's error this one does count as the
 	// thrown exception the feature files forbid: a provider that cannot be
 	// initialised again after a shutdown has not reverted to its uninitialised
-	// state, which is what the other languages' initialize() throws to say.
+	// state.
 	err error
 
 	// panicked records that the call panicked, which is the Go analogue of the
@@ -88,8 +88,7 @@ type scenarioState struct {
 
 	// evalContext is the evaluation context the next evaluation is made with,
 	// built by "a context containing a targeting key". Its zero value is the
-	// no-context case, which is what every scenario without that step supplies
-	// and what the third @targeting scenario asserts is not an error.
+	// no-context case, which every scenario without that step supplies.
 	evalContext openfeature.EvaluationContext
 
 	last       *evaluation
@@ -176,10 +175,9 @@ func (s *scenarioState) recorder(eventType openfeature.EventType) (*eventRecorde
 //
 // The provider itself is left registered: the next scenario replaces it, which
 // is what makes the SDK shut this one down. See config.domain. That holds for a
-// provider a lifecycle step already shut down directly, too — the SDK's
-// Shutdown on replacement is then the second call, which requirement 2.5.3
-// says must have no further effect — and for one that was shut down and
-// initialised again, which the SDK shuts down as it would any other.
+// provider a lifecycle step already shut down directly, whose Shutdown on
+// replacement is then a second call, and for one that was shut down and
+// initialised again.
 func (s *scenarioState) teardown() {
 	if s.client == nil {
 		return

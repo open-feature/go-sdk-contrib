@@ -15,10 +15,9 @@ import (
 // DefaultBackendConfiguration is the backend configuration name every backend
 // under test must support, and the one that serves the canonical flag set.
 //
-// "Backend" is in the name on purpose. In the conformance report,
-// "configuration" is the provider's own mode — flagd RPC against flagd
-// in-process — which is what WithName feeds. This is the other thing entirely:
-// the named flag configuration the backend is asked to serve.
+// "Backend" is in the name on purpose: the report's "configuration" field is
+// the provider's own mode, which WithName feeds. This is the named flag
+// configuration the backend is asked to serve.
 const DefaultBackendConfiguration = "default"
 
 // defaultControlTimeout bounds a single control-API request. Control calls are
@@ -36,9 +35,9 @@ const defaultControlTimeout = 30 * time.Second
 // # What it never does
 //
 // It never stops, kills or recreates a container: unavailability is simulated
-// inside the running stack, through POST /stop. That is Appendix F's first
-// control-API invariant and it has the argument. Starting and stopping the
-// stack itself belongs to the suite, once per run.
+// inside the running stack, through POST /stop. That is Appendix F's
+// control-API invariant. Starting and stopping the stack itself belongs to the
+// suite, once per run.
 //
 // # Scenario isolation
 //
@@ -130,20 +129,16 @@ func NewHTTPControl(opts HTTPControlOptions) (*HTTPControl, error) {
 // TCP wait the stack already passed is the documented fallback. Anything else
 // is retried until the deadline.
 //
-// This is the only wait in the suite that is a wait rather than an assertion,
-// and it is deliberately the only one. There is no settle after a control call:
-// control-api.yaml promises that /start, /change and /reset have taken effect
-// when they return, and Appendix F is explicit that a suite must not paper over
-// a backend that breaks that promise. A scenario that flaps immediately after a
-// control call is a defect in the backend's control API and worth an issue
-// there.
+// This is deliberately the only wait in the suite that is a wait rather than an
+// assertion. There is no settle after a control call: control-api.yaml promises
+// that /start, /change and /reset have taken effect when they return, so a
+// scenario that flaps immediately after one is a defect in the backend's
+// control API.
 //
-// Which side of the line the promise sits on decides which knob is which. It is
-// the backend's: a fresh evaluation must resolve the new state once the call
-// returns. How long the provider under test takes to notice is a property of
-// its transport, and that is what WithEventTimeout is for. Sleeping here would
-// make the provider's detection latency unmeasurable, the clock starting before
-// there is anything to detect.
+// The promise is the backend's: a fresh evaluation must resolve the new state
+// once the call returns. How long the provider takes to notice is a property of
+// its transport, which is what WithEventTimeout is for. Sleeping here would
+// make that detection latency unmeasurable.
 func (c *HTTPControl) AwaitReady(ctx context.Context, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	var last error
@@ -258,8 +253,7 @@ func (c *HTTPControl) ChangeFlag(ctx context.Context) error {
 //
 // It makes the backend unreachable without touching any container: the backend
 // process inside the still-running container is stopped. See the type
-// documentation for why that distinction is a requirement rather than a
-// preference.
+// documentation.
 func (c *HTTPControl) Disconnect(ctx context.Context) error {
 	c.mu.Lock()
 	c.backendMaybeDown = true

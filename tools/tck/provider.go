@@ -29,8 +29,7 @@ var ErrProviderShutdown = errors.New("provider has been shut down")
 // PROVIDER_CONFIGURATION_CHANGED events". The Go SDK's
 // memprovider.InMemoryProvider does not: it has no update method, does not
 // implement openfeature.EventHandler, and does not implement
-// openfeature.StateHandler. The JavaScript and Java SDKs both provide this
-// (putConfiguration and updateFlag respectively).
+// openfeature.StateHandler.
 //
 // The TCK therefore ships the missing piece, wrapping the SDK's provider rather
 // than reimplementing it: every resolution decision — variants, reasons, type

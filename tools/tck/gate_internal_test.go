@@ -140,10 +140,8 @@ func TestValidateRejectsUnknownCapability(t *testing.T) {
 	}
 }
 
-// The required options are required, and saying which one is missing is the
-// whole reason validation runs before the stack starts rather than inside the
-// first step. These pin the message as well as the rejection: an adopter who
-// forgot an option needs to be told which.
+// The required options are required, and these pin the message as well as the
+// rejection: an adopter who forgot an option needs to be told which.
 
 func TestValidateNamesEachMissingRequiredOption(t *testing.T) {
 	for _, tc := range []struct {
@@ -318,10 +316,9 @@ func TestValidateRejectsAnIncompleteComposeStack(t *testing.T) {
 	}
 }
 
-// TestComposeDefaultsMatchTheCrossLanguageContract pins the four defaults every
-// language's suite shares. They are a contract rather than a convenience: an
-// adoption that says nothing about them must behave the same way in Go, Java,
-// JavaScript and Python, so changing one here is a cross-language change.
+// TestComposeDefaultsMatchTheCrossLanguageContract pins the defaults every
+// language's suite shares. They are a contract rather than a convenience, so
+// changing one here is a cross-language change.
 func TestComposeDefaultsMatchTheCrossLanguageContract(t *testing.T) {
 	cc := newConfig([]Option{WithComposeFile("docker-compose.yaml")}).compose
 
@@ -395,12 +392,10 @@ func TestLaterOptionsWin(t *testing.T) {
 	}
 }
 
-// A reserved capability is one the vocabulary names and no scenario carries.
-// Declaring it cannot be verified and cannot even produce a skip, so a report
-// that says it was declared claims something nothing examined. These tests pin
-// the three places that could put one into a report: the declare-everything
-// convenience, the default when tck.WithCapabilities is omitted, and an adopter
-// naming one outright.
+// A reserved capability is one the vocabulary names and no scenario carries --
+// see Capability.IsReserved. These tests pin the three places that could put
+// one into a report: the declare-everything convenience, the default when
+// tck.WithCapabilities is omitted, and an adopter naming one outright.
 
 func TestAllCapabilitiesOmitsReservedCapabilities(t *testing.T) {
 	for _, c := range AllCapabilities() {
@@ -428,8 +423,8 @@ func TestAllCapabilitiesOmitsReservedCapabilities(t *testing.T) {
 }
 
 func TestTheDefaultCapabilitySetOmitsReservedCapabilities(t *testing.T) {
-	// nil means "declare everything", which is the shape that put @targeting
-	// and @caching into a published report elsewhere.
+	// nil means "declare everything", which is the shape that most easily picks
+	// up a tag nothing examined.
 	cfg := newConfig(nil)
 	for _, c := range cfg.capabilities() {
 		if c.IsReserved() {
@@ -455,16 +450,11 @@ func TestValidateRejectsAnExplicitlyDeclaredReservedCapability(t *testing.T) {
 // TestAReservedCapabilityCannotBeDeclared pins the rule at the only place a
 // capability set is built.
 //
-// The check lives in newCapabilitySet rather than only in the configuration's validation
-// because the set is the single thing a declaration is derived from and the only
-// constructor, so there is no second route by which a reserved capability could
-// reach one. Validation calls it, so an adopter naming a reserved
-// capability is refused before any scenario runs.
-//
-// The report half of this property -- that declaration.declared never contains a
-// reserved tag -- is asserted where the report exists, on the branch that emits
-// one. Here there is no report to inspect, and asserting the constructor is what
-// makes the report's guarantee structural rather than incidental.
+// The check lives in newCapabilitySet rather than only in the configuration's
+// validation because the set is the single thing a declaration is derived from,
+// so there is no second route by which a reserved capability could reach one.
+// Validation calls it, so an adopter naming one is refused before any scenario
+// runs.
 func TestAReservedCapabilityCannotBeDeclared(t *testing.T) {
 	for _, reserved := range reservedCapabilities {
 		if _, err := newCapabilitySet([]Capability{reserved}); err == nil {
@@ -485,14 +475,8 @@ func TestAReservedCapabilityCannotBeDeclared(t *testing.T) {
 	}
 }
 
-// The expiry check on reservedCapabilities.
-//
-// A reserved capability cannot be declared, so the day the specification adds
-// the first scenario carrying one, every adopter's run would report that
-// scenario as skipped for a capability nobody is permitted to claim: a green
-// suite, a well-formed report, and a question silently withdrawn. Nothing else
-// here would catch it -- the scenario was collected, so the under-collection
-// guard is satisfied, and a capability-gated skip is explicitly not a gap.
+// The expiry check on reservedCapabilities -- see expiredReservation for the
+// silent failure it catches.
 func TestAScenarioCarryingAReservedTagFailsTheRun(t *testing.T) {
 	caps, err := newCapabilitySet(nil)
 	if err != nil {
@@ -536,13 +520,11 @@ func TestAScenarioCarryingAReservedTagFailsTheRun(t *testing.T) {
 // which reads the scenario godog parsed and so cannot disagree with the run.
 // This one reads the feature source, which is why it is deliberately crude: it
 // looks for the tag as a whole token on a line that is not a Gherkin comment,
-// and nothing else. The first version searched the whole source and failed
-// immediately -- events.feature has a comment saying which scenario belongs
-// behind @caching once someone writes it, which is the opposite of the thing
-// being guarded against. Appendix F's warning about a second parser is about
+// and nothing else. Appendix F's warning about a second parser is about
 // computing an expectation with one; asking "does this tag appear on a tag
-// line" is narrow enough to be safe, and the runtime check is what is
-// authoritative.
+// line" is narrow enough to be safe, and the runtime check is authoritative.
+// The narrowness also keeps it off the prose: events.feature has a comment
+// naming @caching, which a looser scan would read as a tag.
 func TestTheCanonicalScenariosCarryNoReservedTag(t *testing.T) {
 	features, err := fs.ReadDir(assets, featuresPath)
 	if err != nil {
@@ -582,10 +564,7 @@ func TestTheCanonicalScenariosCarryNoReservedTag(t *testing.T) {
 // has never heard of.
 //
 // It is the easier of the two to leave out, because ignoring an unknown tag
-// looks tolerant. It is the opposite. An unknown tag gates nothing, so the
-// scenarios carrying it stay mandatory for every adopter, and a provider that
-// legitimately withholds the new capability shows unexplained failures while
-// every other provider stays green. Nothing in the results says why.
+// looks tolerant -- see unknownCapabilityTag for why it is not.
 
 // TestACanonicalScenarioCarryingAnUnknownTagFailsTheRun pins the gate.
 func TestACanonicalScenarioCarryingAnUnknownTagFailsTheRun(t *testing.T) {
@@ -670,15 +649,14 @@ func TestAnExtensionScenarioMayCarryAnyTag(t *testing.T) {
 // future adopter's run.
 //
 // It is the tripwire and not the gate, exactly as
-// TestTheCanonicalScenariosCarryNoReservedTag is, and it is deliberately crude
-// in the same way: a Gherkin tag line is a line whose every token starts with
-// an at-sign, and nothing else is considered. That narrowness is what keeps it
-// off the prose -- errors.feature's comments discuss @string-typing and
-// @fully-typed-values by name, and a looser scan would read those as tags.
+// TestTheCanonicalScenariosCarryNoReservedTag is, and deliberately crude in the
+// same way: a Gherkin tag line is a line whose every token starts with an
+// at-sign. That narrowness keeps it off the prose -- errors.feature's comments
+// discuss @string-typing and @fully-typed-values by name.
 //
 // This is the check that fires on the pin move that adds a capability, and it
-// names the file, which is what turns "some adopter's suite went red" into one
-// line to add to capability.go.
+// names the file, which turns "some adopter's suite went red" into one line to
+// add to capability.go.
 func TestTheCanonicalScenariosCarryNoUnknownTag(t *testing.T) {
 	features, err := fs.ReadDir(assets, featuresPath)
 	if err != nil {
@@ -738,14 +716,11 @@ func TestTheCanonicalScenariosCarryNoUnknownTag(t *testing.T) {
 // and the place a pin move is serviced.
 //
 // verifyCanonicalAssets runs inside Run, so the check itself is in force for
-// every adoption. What this adds is the message: when the pin moves, an
-// adopter's suite would otherwise fail with a digest mismatch and no value to
-// replace it with, so this test prints the new digest, and updating the
-// constant from it is the whole of the change.
+// every adoption. What this adds is the message: this test prints the new
+// digest, and updating the constant from it is the whole of a pin move.
 //
-// It is deliberately not a test of assetsDigest's arithmetic. What it pins is
-// that the constant and the embedded bytes agree, which is the only thing a
-// consumer of this suite depends on.
+// It is deliberately not a test of assetsDigest's arithmetic; what it pins is
+// that the constant and the embedded bytes agree.
 func TestTheCanonicalAssetsMatchTheirDigest(t *testing.T) {
 	got, err := assetsDigest()
 	if err != nil {
@@ -770,12 +745,11 @@ func TestTheCanonicalAssetsMatchTheirDigest(t *testing.T) {
 // TestTheAssetsDigestNoticesAChangedAsset keeps the check above from being
 // vacuous.
 //
-// A fingerprint that ignored what it was given would match the constant
-// forever and report every stale asset as fine, so the property worth pinning
-// is that a change to the bytes changes the value. It is exercised against a
-// copy of the embedded set rather than against the real one, which cannot be
-// mutated -- and that is also why assetsDigest takes its input from a package
-// variable.
+// A fingerprint that ignored what it was given would match the constant forever
+// and report every stale asset as fine, so the property worth pinning is that a
+// change to the bytes changes the value. It is exercised against a copy of the
+// embedded set, which cannot be mutated -- and that is why assetsDigest takes
+// its input from a package variable.
 func TestTheAssetsDigestNoticesAChangedAsset(t *testing.T) {
 	original, err := assetsDigest()
 	if err != nil {
@@ -836,19 +810,12 @@ func TestTheAssetsDigestNoticesAChangedAsset(t *testing.T) {
 // TestEveryCanonicalFeatureFileIsCollected is the under-collection tripwire on
 // the pin.
 //
-// The assets arrive through an embed.FS built in the spec module from
-// `//go:embed gherkin/*.feature`, and this package reads whatever that pattern
-// matched. A pattern is not a guarantee: a file added to the canonical set in a
-// later revision, renamed, or moved into a subdirectory is picked up silently
-// or not at all, and the failure mode of "not at all" is a suite that stays
-// green while asking fewer questions than it advertises. Every count in this
-// package's README, and every adopter's expectation about what a run covers,
-// rests on the set below.
-//
-// So it is spelled out rather than derived. A pin that changes it fails here,
-// which is the point at which somebody reads the new file and decides what it
-// means for this suite -- rather than at the point where an adopter wonders why
-// a scenario they read about never ran.
+// The assets arrive through an embed.FS built in the spec module from a
+// `//go:embed gherkin/*.feature` pattern, and a pattern is not a guarantee: a
+// file added in a later revision, renamed, or moved into a subdirectory is
+// picked up silently or not at all, and "not at all" is a suite that stays
+// green while asking fewer questions than it advertises. So the set is spelled
+// out rather than derived, and a pin that changes it fails here.
 func TestEveryCanonicalFeatureFileIsCollected(t *testing.T) {
 	want := []string{
 		"errors.feature",
@@ -925,9 +892,7 @@ func withInexpressible(t *testing.T, c Capability, reason string) {
 // it will be read if it ever stops being true.
 //
 // It is not a tautology: it fails the moment somebody adds an entry, which
-// forces the two evidence tests below to be revisited and the table in
-// Appendix F to gain a row. The rule exists precisely because a fact about a
-// language, left as documentation, gets remembered wrongly somewhere.
+// forces the two evidence tests below to be revisited.
 func TestGoExpressesEveryCapability(t *testing.T) {
 	if len(inexpressibleCapabilities) != 0 {
 		t.Errorf("inexpressibleCapabilities is %v, and Go is recorded as having none. If the SDK "+
@@ -938,11 +903,10 @@ func TestGoExpressesEveryCapability(t *testing.T) {
 }
 
 // TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger is why Go can declare
-// @large-integers and Java cannot.
+// @large-integers: its integer accessor is int64, where a 32-bit one has no room
+// for 2^53-1.
 //
-// Java's integer accessor is a 32-bit Integer, so 2^53-1 cannot be passed to it
-// or returned from it and the question the scenario asks is unaskable. Go's is
-// int64. Measured off the SDK's own method signature rather than off its
+// Measured off the SDK's own method signature rather than off its
 // documentation, so a narrowing in a future SDK fails here instead of turning
 // into a provider's apparent defect.
 func TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger(t *testing.T) {
@@ -970,13 +934,9 @@ func TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger(t *testing.T) {
 }
 
 // TestTheIntegerAndFloatAccessorsAreDistinctTypes is why Go can declare
-// @numeric-coercion and JavaScript cannot.
-//
-// JavaScript has one numeric type, so "a float flag requested as an integer" is
-// not a question its API can put -- typeof 10 and typeof 0.5 are both 'number'
-// and there is no second accessor to ask through. Go has two accessors over two
-// types, which is the entire reason the three coercion scenarios mean anything
-// here.
+// @numeric-coercion: it has two accessors over two types, so "a float flag
+// requested as an integer" is a question its API can put at all. Measured off
+// the signatures rather than assumed.
 func TestTheIntegerAndFloatAccessorsAreDistinctTypes(t *testing.T) {
 	integer := reflect.TypeOf((*openfeature.Client).IntValueDetails).In(3)
 	float := reflect.TypeOf((*openfeature.Client).FloatValueDetails).In(3)
@@ -1060,8 +1020,7 @@ func TestAllCapabilitiesOmitsAnInexpressibleCapability(t *testing.T) {
 		}
 	}
 
-	// The default when tck.WithCapabilities is unset is the same set, and it is
-	// the shape that put unverifiable claims into a published report before.
+	// The default when tck.WithCapabilities is unset is the same set.
 	for _, c := range newConfig(nil).capabilities() {
 		if c == NumericCoercion {
 			t.Fatal("the default capability set contains a capability the SDK cannot express")

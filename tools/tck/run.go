@@ -43,11 +43,9 @@ import (
 func Run(t *testing.T, opts ...Option) {
 	t.Helper()
 
-	// The revision check, in force where the scenarios execute rather than only
-	// in this module's own tests -- which is the point of it being here and not
-	// in a _test.go file. See canonicalAssetsDigest for why it is a digest over
-	// the embedded bytes rather than a comparison against the pin, and why it
-	// has no condition under which it declines to answer.
+	// In force where the scenarios execute rather than only in this module's
+	// own tests, which is why it is here and not in a _test.go file. See
+	// canonicalAssetsDigest.
 	if err := verifyCanonicalAssets(); err != nil {
 		t.Fatalf("tck: %v", err)
 	}
@@ -137,11 +135,9 @@ type runner struct {
 // needs was not declared.
 //
 // inexpressible carries the property of the Go SDK that made the declaration
-// impossible, and is empty for the ordinary case where the provider simply did
-// not declare the capability. The two are kept apart all the way to the printed
-// reason because they say different things: one is the provider declining, the
-// other is no provider in this language being able to be asked. Only the first
-// describes the provider. See inexpressibleCapabilities.
+// impossible, and is empty for the ordinary case. The two are kept apart all
+// the way to the printed reason because only the first describes the provider.
+// See inexpressibleCapabilities.
 type skippedScenario struct {
 	name          string
 	capability    Capability
@@ -252,21 +248,18 @@ func (r *runner) missingCapability(sc *godog.Scenario) (Capability, bool) {
 // expiredReservation reports whether a scenario carries the tag of a capability
 // this suite still treats as reserved.
 //
-// It is the expiry check on reservedCapabilities, and it exists because the
-// failure it catches is silent in both directions. A reserved capability cannot
-// be declared -- newCapabilitySet refuses it -- so when the specification adds
-// the first scenario for one, every adopter's run reports that scenario as
-// skipped for a capability they are not permitted to claim. The report is
-// well-formed, the suite is green, and the new scenario is never executed by
-// anybody. That is the unclaimable-capability failure Appendix F describes, and
-// nothing else in the suite would notice it: the under-collection guard is
-// satisfied, because the scenario was collected and gated rather than dropped,
-// and a capability-gated skip is explicitly not a gap.
+// It is the expiry check on reservedCapabilities. A reserved capability cannot
+// be declared, so when the specification adds the first scenario for one, every
+// adopter's run would report that scenario as skipped for a capability nobody
+// is permitted to claim: well-formed report, green suite, scenario never
+// executed by anybody. Nothing else in the suite would notice, the
+// under-collection guard being satisfied by a scenario that was collected and
+// gated rather than dropped.
 //
-// So a reserved tag on a real scenario fails the run. The tags come from the
-// scenario godog parsed, which is the parser the runner itself uses, so the
-// check cannot disagree with the run about which tags a scenario carries --
-// including tags inherited from the feature and tags on an Examples block.
+// The tags come from the scenario godog parsed, which is the parser the runner
+// itself uses, so the check cannot disagree with the run about which tags a
+// scenario carries -- feature-level tags and tags on an Examples block
+// included.
 func expiredReservation(sc *godog.Scenario) (Capability, bool) {
 	for _, tag := range sc.Tags {
 		capability, known := CapabilityForTag(tag.Name)
@@ -280,28 +273,15 @@ func expiredReservation(sc *godog.Scenario) (Capability, bool) {
 // unknownCapabilityTag reports whether a canonical scenario carries a tag this
 // suite's vocabulary cannot resolve.
 //
-// It is expiredReservation's own direction reversed -- that one catches a tag
-// the vocabulary still holds and the assets have grown scenarios for, this one
-// a tag the assets carry and the vocabulary has never heard of -- and it is the
-// one that is easy to leave out, because ignoring an unknown tag looks like the
-// tolerant thing to do. It is not. A tag that resolves to nothing gates
-// nothing, so the scenarios carrying it stay mandatory for every adopter: a
-// suite that has not learned a new capability does not report a new capability,
-// it silently keeps demanding the old behaviour. The symptom is a provider
-// that legitimately withholds the capability showing unexplained failures while
-// every other provider stays green, and nothing in the results says why.
+// It is expiredReservation reversed: that one catches a tag the vocabulary
+// still holds and the assets have grown scenarios for, this one a tag the
+// assets carry and the vocabulary has never heard of. See allCapabilities for
+// why ignoring it is not the tolerant option it looks like.
 //
-// Only canonical scenarios are subject to it. An adopter's extension features
-// are mounted under their own prefix precisely so that the URI space
-// partitions, and a vendor's organisational tags are theirs to choose -- this
-// suite has no vocabulary for them and should not pretend to. So the check is
-// scoped by the same partition the coverage guard and the Messages stream key
-// on, rather than by a second notion of what is canonical.
-//
-// Like expiredReservation it reads the tags from the scenario godog parsed,
-// which is the parser the runner itself uses, so it cannot disagree with the
-// run about which tags a scenario carries -- feature-level tags and tags on an
-// Examples block included.
+// Only canonical scenarios are subject to it: a vendor's organisational tags
+// are theirs to choose, so the check is scoped by the same URI partition the
+// coverage guard and the Messages stream key on. Like expiredReservation it
+// reads the tags from the scenario godog parsed.
 func unknownCapabilityTag(sc *godog.Scenario) (string, bool) {
 	if !isCanonicalScenario(sc) {
 		return "", false
@@ -336,10 +316,10 @@ func (r *runner) recordSkip(scenario string, capability Capability, inexpressibl
 
 // reportSkips prints every capability-gated skip with its reason.
 //
-// This is not decoration. A conformance suite that quietly goes green on
-// scenarios it did not run is worse than no suite at all, so the skips and the
-// reason for each one are surfaced next to the result rather than left to be
-// inferred from a scenario count.
+// A conformance suite that quietly goes green on scenarios it did not run is
+// worse than no suite at all, so the skips and the reason for each are
+// surfaced next to the result rather than left to be inferred from a scenario
+// count.
 func (r *runner) reportSkips() {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -29,19 +29,14 @@ type ProviderFactory func(ctx context.Context) (openfeature.FeatureProvider, err
 // EndpointProviderFactory creates a provider under test against the running
 // Compose stack.
 //
-// The endpoint carries the dynamically mapped host ports, which is why this is
-// a factory rather than a value: the ports do not exist until the stack has
-// started. See WithProviderFromEndpoint.
+// The endpoint carries the dynamically mapped host ports, which do not exist
+// until the stack has started. See WithProviderFromEndpoint.
 type EndpointProviderFactory func(ctx context.Context, endpoint BackendEndpoint) (openfeature.FeatureProvider, error)
 
 // config is the accumulated result of the options passed to Run.
 //
-// It is unexported on purpose. Every field here is reachable through exactly
-// one Option, so the set of things an adopter can say is the set of With*
-// functions in this package — which is what lets a later capability be added
-// without breaking a struct literal, and what lets Run grow a second entry
-// point (a TCK for something other than a provider) without a second config
-// type.
+// Every field is reachable through exactly one Option, so the set of things an
+// adopter can say is the set of With* functions in this package.
 type config struct {
 	// Name identifies the suite in test output. Set by WithName. Required.
 	Name string
@@ -70,10 +65,9 @@ type config struct {
 	Capabilities []Capability
 
 	// capabilitiesDeclared records that WithCapabilities was passed at all, so
-	// that declaring nothing stays different from declaring nothing in
-	// particular. Without it a bare WithCapabilities() would be indistinguishable
-	// from silence and would quietly declare everything, which is the opposite
-	// of what it says.
+	// that declaring nothing stays different from saying nothing. Without it a
+	// bare WithCapabilities() would quietly declare everything, the opposite of
+	// what it says.
 	capabilitiesDeclared bool
 
 	// KnownDeviations records gaps the provider is known to have against parts
@@ -102,12 +96,6 @@ type config struct {
 }
 
 // Option configures a Run.
-//
-// Options rather than a struct literal, so that the suite can gain a
-// capability — a Compose stack it starts itself, a tag filter, a TCK for
-// something other than a provider — without every adoption having to be
-// edited, and so that a required setting is named in one place rather than
-// being a zero value someone has to remember means "unset".
 type Option func(*config)
 
 // WithName identifies the suite in test output. Required.
@@ -139,9 +127,9 @@ func WithProvider(factory ProviderFactory) Option {
 
 // WithControl supplies the seam through which the TCK manipulates the backend.
 //
-// See BackendControl for which implementation is right for your provider. The
-// short version: a provider with a real backend drives it over the HTTP control
-// API; a provider with no backend at all may control it in-process.
+// See BackendControl for which implementation is right for your provider: a
+// provider with a real backend drives it over the HTTP control API; a provider
+// with no backend at all may control it in-process.
 //
 // Required, unless the suite owns the stack: with WithComposeFile the TCK
 // builds an HTTPControl against the stack's control API itself, and passing
@@ -163,9 +151,8 @@ func WithControl(control BackendControl) Option {
 // time for the error event, and a provider with a 30-second connect timeout will
 // not make it.
 //
-// Required only when WithCapabilities includes UnavailableInit. Leaving both out
-// is the honest configuration for a provider with no backend, and the scenarios
-// that would call this are then skipped with the reason reported.
+// Required only when WithCapabilities includes UnavailableInit; leaving both out
+// skips those scenarios with the reason reported.
 func WithUnavailableProvider(factory ProviderFactory) Option {
 	return func(c *config) { c.NewUnavailableProvider = factory }
 }
@@ -174,17 +161,16 @@ func WithUnavailableProvider(factory ProviderFactory) Option {
 // provider supports. Scenarios tagged with an undeclared capability are
 // reported as skipped with the reason, never as passed.
 //
-// Omitting the option declares AllCapabilities, which excludes the ones no
-// provider may declare. Narrow rather than widen: start from the default, run
-// the suite, and remove only what your provider genuinely cannot do. Passing no
-// capability at all is a declaration too — it says this provider supports none
-// of the optional parts — and is not the same as omitting the option.
+// Omitting the option declares AllCapabilities. Narrow rather than widen: start
+// from the default, run the suite, and remove only what your provider genuinely
+// cannot do. Passing no capability at all is a declaration too — it says this
+// provider supports none of the optional parts — and is not the same as
+// omitting the option.
 //
-// Two kinds of capability are rejected here rather than passed into a report,
-// and the error says which is which because they mean different things: a
-// reserved capability (see Capability.IsReserved) and one the Go SDK cannot
-// express (see Capability.IsInexpressible). Either way an unverifiable claim is
-// a configuration mistake, not a conformance result.
+// A reserved capability (see Capability.IsReserved) and one the Go SDK cannot
+// express (see Capability.IsInexpressible) are both rejected here, as
+// configuration mistakes rather than conformance results. The error says which
+// is which, because they mean different things.
 func WithCapabilities(capabilities ...Capability) Option {
 	return func(c *config) {
 		c.Capabilities = capabilities
@@ -200,17 +186,15 @@ func WithCapabilities(capabilities ...Capability) Option {
 // same reason. This is where the author says which.
 //
 // Empty by default, which is silence rather than a claim. See KnownDeviation,
-// TrackedDeviation and UntrackedDeviation for what belongs here and what does
-// not.
+// TrackedDeviation and UntrackedDeviation for what belongs here.
 func WithKnownDeviations(deviations ...KnownDeviation) Option {
 	return func(c *config) { c.KnownDeviations = deviations }
 }
 
 // WithEventTimeout sets how long to wait for a provider event to arrive.
 //
-// This is the single most important knob for a provider author, because
-// providers observe backend changes on wildly different timescales. A streaming
-// provider sees a configuration change in milliseconds; one that polls every 30
+// Providers observe backend changes on wildly different timescales: a streaming
+// provider sees a configuration change in milliseconds, one that polls every 30
 // seconds may need most of a poll interval to notice. Set it to comfortably
 // exceed your worst-case detection latency, or the suite reports timeouts that
 // are really just impatience.
@@ -238,11 +222,9 @@ func WithReadyTimeout(timeout time.Duration) Option {
 // WithFeatures supplies feature files of your own, to run in the same suite as
 // the canonical ones and under the same backend lifecycle.
 //
-// This is for behaviour the specification does not describe and cannot —
-// flagd's fractional targeting, a vendor's segment rules — where the scenarios
-// still need a provider registered per scenario, a backend reset between them,
-// and the event plumbing the TCK already owns. Running them in a harness of
-// your own means reimplementing that, and the two then drift.
+// This is for behaviour the specification does not describe and cannot, where
+// the scenarios still need a provider registered per scenario, a backend reset
+// between them, and the event plumbing the TCK already owns.
 //
 // Any .feature file anywhere in the filesystem is picked up, so a directory is
 // the usual thing to pass:
@@ -252,17 +234,15 @@ func WithReadyTimeout(timeout time.Duration) Option {
 // The files appear to the run under an "extensions/" prefix, and the canonical
 // assets keep their "gherkin/" one. Nothing you supply is reachable under the
 // canonical prefix, so an extension file named evaluation.feature is an
-// addition and never a replacement — which is the failure the Java TCK had,
-// where a same-named file in a second classpath root silently displaced the
-// canonical one. The same partition is what distinguishes the two in a
-// conformance report: a result whose feature URI starts with "gherkin/" is
+// addition and never a replacement. The same partition distinguishes the two in
+// a conformance report: a result whose feature URI starts with "gherkin/" is
 // canonical, one under "extensions/" is yours.
 //
 // A filesystem holding no .feature file is refused rather than quietly running
 // the canonical suite alone, that being how mis-wired extensions otherwise go
 // unnoticed.
 //
-// Optional. Omitting it runs the canonical suite exactly as before.
+// Optional.
 func WithFeatures(features fs.FS) Option {
 	return func(c *config) { c.ExtensionFeatures = features }
 }
@@ -384,9 +364,8 @@ func (c *config) validateProviderSource() []error {
 	return problems
 }
 
-// capabilities returns the declared capability list, defaulting to everything
-// declarable — AllCapabilities, which omits the reserved capabilities and any
-// the Go SDK cannot express.
+// capabilities returns the declared capability list, defaulting to
+// AllCapabilities.
 func (c *config) capabilities() []Capability {
 	if !c.capabilitiesDeclared {
 		return AllCapabilities()

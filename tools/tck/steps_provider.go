@@ -63,11 +63,10 @@ func aStableProvider(ctx context.Context) (context.Context, error) {
 // anUnavailableProvider registers a provider pointed at a backend that does not
 // exist.
 //
-// Neither a failed registration nor a returned error is a failure here: what
-// the contract requires is that the provider settles into an observable error
-// state promptly instead of hanging or panicking, and the scenario asserts that
-// through the event and the client state. A panic is fatal, because a provider
-// that panics out of registration takes the application with it.
+// Neither a failed registration nor a returned error is a failure here: the
+// scenario asserts the provider settling into an observable error state, through
+// the event and the client state. A panic is fatal, because a provider that
+// panics out of registration takes the application with it.
 func anUnavailableProvider(ctx context.Context) (context.Context, error) {
 	state, err := stateFrom(ctx)
 	if err != nil {
@@ -90,10 +89,8 @@ func anUnavailableProvider(ctx context.Context) (context.Context, error) {
 		return ctx, errors.New("the factory from tck.WithUnavailableProvider returned a nil provider")
 	}
 
-	// The registration error is deliberately discarded. What the contract
-	// requires is an observable error state, which the scenario checks through
-	// the event and the client status; whether registration also returned an
-	// error is an SDK detail rather than part of the provider contract.
+	// The registration error is deliberately discarded: whether registration
+	// returned one is an SDK detail rather than part of the provider contract.
 	panicValue, _ := registerProvider(ctx, state.cfg.domain(), provider, state.cfg.readyTimeout())
 	if panicValue != nil {
 		return ctx, fmt.Errorf(
@@ -137,14 +134,8 @@ func theProviderMetadataNameShouldNotBeEmpty(ctx context.Context) error {
 // and the client still reaches it.
 //
 // A provider that does not implement openfeature.StateHandler has no shutdown
-// to call, and the step records an instantaneous no-op: there is nothing that
-// could hang, panic or be repeated. The @lifecycle gate keeps such a provider
-// out of these scenarios in the ordinary course of things.
-//
-// The duration and any panic are recorded rather than asserted here, because
-// the assertions belong to later steps: "the shutdown should have completed
-// within" reads the duration, "no exception should have been thrown" the
-// panic. Only a shutdown that never returns fails this step itself.
+// to call, and the step records an instantaneous no-op; the @lifecycle gate
+// normally keeps such a provider out of these scenarios.
 func theProviderIsShutDown(ctx context.Context) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
@@ -175,23 +166,16 @@ func theProviderIsShutDown(ctx context.Context) error {
 // theProviderIsInitializedAgain calls the provider's own Init, directly, on the
 // instance the scenario shut down.
 //
-// The same instance is the point. Requirement 2.5.2 says a shut-down provider
-// reverts to its uninitialised state, and the only observable proof is that it
-// can be initialised again and then serves flags, which the evaluation step
-// that follows checks through the client. The client still routes to this
-// instance because it was never replaced in the SDK, and the SDK still holds
-// it as READY because the SDK was never told about the shutdown; both are what
-// let that evaluation reach the provider at all.
+// The same instance is the point: requirement 2.5.2's only observable proof is
+// that a shut-down provider can be initialised again and then serves flags.
+// The client still routes to this instance because it was never replaced in
+// the SDK, and the SDK still holds it as READY because it was never told about
+// the shutdown; both are what let the following evaluation reach the provider.
 //
 // Registering it with the SDK again would not do. The SDK compares providers
 // with reflect.DeepEqual unless they are pointers, so it can conclude that the
 // provider has not changed and initialise nothing — and even where it does
 // re-initialise, the outcome would be the SDK's rather than the provider's.
-//
-// An error from Init is recorded like a panic and fails "no exception should
-// have been thrown". Unlike an evaluation error, which is the normal shape of
-// a code default, an initialisation error is the provider refusing to come
-// back, which is what the other languages' initialize() throws to say.
 func theProviderIsInitializedAgain(ctx context.Context) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
@@ -220,10 +204,9 @@ func theProviderIsInitializedAgain(ctx context.Context) error {
 
 // theShutdownShouldHaveCompletedWithin bounds the most recent shutdown.
 //
-// What is being asserted is that shutdown returns at all rather than waiting
-// on a backend that will never answer; the bound the feature file gives is
-// generous. A shutdown that panicked is reported by "no exception should have
-// been thrown" rather than here — its duration is still real.
+// What is being asserted is that shutdown returns at all rather than waiting on
+// a backend that will never answer; the bound the feature file gives is
+// generous.
 func theShutdownShouldHaveCompletedWithin(ctx context.Context, millis int) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
