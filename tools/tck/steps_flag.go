@@ -52,16 +52,12 @@ func aFlagWithKeyAndDefault(ctx context.Context, rawType, key, rawDefault string
 // aContextContainingATargetingKey builds the evaluation context the following
 // evaluation is made with.
 //
-// The wording is Appendix B's, verbatim, and the Java TCK already carries a
-// definition for it. Inventing a second way to say "a context containing a
-// targeting key" is the divergence Appendix F exists to prevent, so the
-// expression is copied rather than paraphrased.
+// The wording is Appendix B's, verbatim: the expression is copied rather than
+// paraphrased so that the languages' suites do not diverge.
 //
-// A scenario with no such step evaluates with the zero EvaluationContext,
-// which is what every scenario did before this step existed. That is not the
-// same as this step with an empty value: requirement 2.2.1 makes the context a
-// parameter of every resolve method, and "no context supplied" is the case the
-// third @targeting scenario asserts.
+// A scenario with no such step evaluates with the zero EvaluationContext, which
+// is not the same as this step with an empty value: "no context supplied" is a
+// case the @targeting scenarios assert.
 func aContextContainingATargetingKey(ctx context.Context, targetingKey string) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
@@ -102,10 +98,8 @@ func theFlagWasEvaluatedWithDetails(ctx context.Context) error {
 //
 // evalCtx is whatever the scenario built with "a context containing a targeting
 // key", and the zero value when it built none. Passing it rather than an empty
-// literal is what makes the context reach the provider at all: requirement
-// 2.2.1 makes it a parameter of every resolve method, and every scenario used
-// to discard it here, so a provider that threw on any context or serialised one
-// into a malformed request passed the whole suite.
+// literal is what makes the context reach the provider at all; discarding it
+// here would let a provider that mishandles any context pass the whole suite.
 func evaluate(
 	ctx context.Context,
 	client *openfeature.Client,
@@ -145,9 +139,8 @@ func evaluate(
 }
 
 // errorSuffix appends the error the client returned, when there was one, to a
-// value mismatch. It is usually the shortest route to the cause: a code default
-// where a resolved value was expected almost always arrives with an error
-// explaining why.
+// value mismatch. A code default where a resolved value was expected almost
+// always arrives with an error explaining why.
 func errorSuffix(err error) string {
 	if err == nil {
 		return ""
@@ -226,10 +219,6 @@ func theReasonShouldBe(ctx context.Context, expected string) error {
 
 // theErrorCodeShouldBe asserts the reported error code, where the empty string
 // means no error code at all.
-//
-// The empty case matters as much as the populated ones. A provider that reports
-// a plausible value with no error code is the failure mode the suite is most
-// concerned with, because the application has no way to notice.
 func theErrorCodeShouldBe(ctx context.Context, expected string) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
@@ -256,10 +245,6 @@ func theErrorCodeShouldBe(ctx context.Context, expected string) error {
 
 // theErrorMessageShouldBeEmpty asserts that a successful evaluation carried no
 // error message (requirement 2.3.2).
-//
-// A provider that reports a value and an error message is sending two
-// contradictory signals, and an application reading the message believes the
-// wrong one.
 func theErrorMessageShouldBeEmpty(ctx context.Context) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
@@ -392,11 +377,6 @@ func theResolvedValueIsRemembered(ctx context.Context) error {
 
 // theResolvedValueShouldHaveChanged asserts that re-evaluation produced a
 // different value.
-//
-// This is the half of the configuration-change contract that providers actually
-// get wrong. Emitting PROVIDER_CONFIGURATION_CHANGED and then continuing to
-// resolve the old value is worse than emitting nothing, because the application
-// acted on a signal that was not true.
 func theResolvedValueShouldHaveChanged(ctx context.Context) error {
 	state, err := stateFrom(ctx)
 	if err != nil {
