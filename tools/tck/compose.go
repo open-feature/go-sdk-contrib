@@ -13,9 +13,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// Defaults for the Compose harness. They are the same four defaults in every
-// language's suite, so an adoption that says nothing about them behaves the
-// same way everywhere.
+// Defaults for the Compose harness.
 const (
 	// defaultBackendService is the Compose service expected to host both the
 	// control API and the backend the provider connects to.
@@ -86,9 +84,8 @@ type composeConfig struct {
 //
 // # The stack starts once and is never restarted
 //
-// Appendix F's invariant, not a preference of this harness: backend
-// unavailability is always simulated inside the running stack, through the
-// control API. See HTTPControl.
+// Appendix F's invariant: backend unavailability is always simulated inside
+// the running stack, through the control API. See HTTPControl.
 //
 // # This does not replace WithControl
 //
@@ -112,10 +109,9 @@ func WithBackendService(service string) Option {
 // WithBackendPorts declares the container-internal ports on the backend service
 // that the *provider* connects to, so they are exposed and mapped.
 //
-// Required with WithComposeFile: a stack whose provider ports are not exposed
-// has nothing for a provider to reach, and the failure surfaces as a connection
-// refused inside the first scenario rather than as the configuration mistake it
-// is.
+// Required with WithComposeFile: without them the stack publishes nothing the
+// provider can reach, and the failure surfaces as a connection refused inside
+// the first scenario rather than as the configuration mistake it is.
 //
 // The control port is exposed automatically and must not be listed here. Resolve
 // the mapped ports through BackendEndpoint.Port.
@@ -157,9 +153,8 @@ func WithAdditionalPorts(service string, ports ...int) Option {
 // test must support.
 //
 // It is not the provider's configuration. The conformance report's
-// "configuration" field is the provider's own mode — flagd RPC against flagd
-// in-process — and that one comes from WithName. This is the backend's config
-// file, and the two are named apart because they were confused once already.
+// "configuration" field is the provider's own mode and comes from WithName;
+// this is the backend's config file.
 func WithBackendConfiguration(name string) Option {
 	return func(c *config) { c.composeConfig().backendConfiguration = name }
 }
@@ -177,7 +172,7 @@ func WithStartupTimeout(timeout time.Duration) Option {
 //
 // Any compose option creates it, so a configuration that describes ports and
 // services but forgets the file is reported as a missing file rather than as a
-// stray option — which is the mistake that actually happens.
+// stray option.
 func (c *config) composeConfig() *composeConfig {
 	if c.compose == nil {
 		c.compose = &composeConfig{}

@@ -30,8 +30,8 @@ const (
 // CanonicalFlags returns — rather than transcribed, so that the in-memory
 // suites cannot drift from the file every other language seeds from. The assets
 // module's README lists the properties of that file a seeding step is most
-// likely to break; two things about this decoder in particular are worth
-// knowing, because both would otherwise look like omissions:
+// likely to break. Two things about this decoder are worth knowing, because
+// both would otherwise look like omissions:
 //
 //   - No flag gets a ContextEvaluator, so every evaluation reports reason
 //     STATIC, which is what the untargeted feature files expect.
@@ -39,8 +39,7 @@ const (
 //     flagd's JsonLogic into a ContextEvaluator would make these suites a test
 //     of a rule engine written here. So the flag resolves to its miss variant
 //     whatever the context, and a suite over this flag set leaves Targeting
-//     undeclared rather than failing the match scenario — which is the accurate
-//     report, an in-memory flag set evaluating no rules.
+//     undeclared rather than failing the match scenario.
 //   - A number keeps the type it was written with: 10 becomes an int64 and 10.0
 //     a float64. memprovider type-asserts, so that is what keeps integer-flag
 //     an integer and integral-float-flag a float. Plain encoding/json would
@@ -199,8 +198,7 @@ func changingFlag(defaultVariant string) memprovider.InMemoryFlag {
 // rather than one the TCK synthesised.
 //
 // This is not a shortcut for providers that do have a backend; those drive the
-// HTTP control API instead. See BackendControl for why that is not a matter of
-// taste.
+// HTTP control API instead. See BackendControl.
 //
 // # Connection control
 //

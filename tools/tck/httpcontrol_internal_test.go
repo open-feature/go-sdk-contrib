@@ -11,34 +11,23 @@ import (
 	"time"
 )
 
-// The request sequence HTTPControl issues is normative, and until now nothing
-// here tested it.
+// The request sequence HTTPControl issues is normative. Three rules in
+// control-api.yaml constrain the order and the repetition of control calls
+// rather than any single call, so none of them is visible in the code of one
+// method:
 //
-// Three rules in control-api.yaml constrain the order and the repetition of
-// control calls rather than any single call, so none of them is visible in the
-// code of one method:
+//   - /reset is the preferred scenario-isolation primitive and /start the
+//     fallback, because /start causes an availability blip that can inject a
+//     spurious lifecycle event into the next scenario.
+//   - The fallback is detected once per suite and cached, so an intermittent
+//     404 cannot look like a supported endpoint.
+//   - /reset must not be expected to start a stopped backend, so the scenario
+//     following a disconnect is prepared with /start.
 //
-//   - /reset is the preferred scenario-isolation primitive, because it causes no
-//     availability blip and therefore cannot inject a spurious lifecycle event
-//     into the next scenario. /start is the fallback, not the default.
-//   - "The fallback is detected once per suite and cached." A backend that
-//     answers 404 or 501 must be asked once, not once per scenario: over a few
-//     hundred scenarios the difference is hundreds of pointless round trips and,
-//     worse, hundreds of chances for an intermittent 404 to look like a
-//     supported endpoint.
-//   - "/reset MUST NOT be expected to start a backend that is currently
-//     stopped." So the scenario following a disconnect is prepared with /start,
-//     and a suite that reset instead would silently run its next scenario
-//     against a backend that is still down.
-//
-// Every one of the three was previously reachable only by starting Docker and
-// reading a container's logs, which means in practice they were not checked at
-// all. These tests need no Docker: the control API is HTTP, so a recording
+// These tests need no Docker: the control API is HTTP, so a recording
 // httptest.Server is a complete stand-in for a backend, and it can answer
 // things a real launchpad cannot be made to answer on demand — a 501, an
 // intermittent 500, a /healthz that is unready for exactly three probes.
-//
-// Python and JS already test these three rules. Go and Java did not.
 
 // fakeControlAPI is a recording stand-in for a backend's control API.
 //
@@ -338,8 +327,8 @@ func TestAwaitReadyRetriesUntilTheControlAPIAnswers(t *testing.T) {
 
 	// The one wait in the suite that is a wait rather than an assertion. A
 	// launchpad accepts connections slightly before it will act on one, and
-	// this is where that window is absorbed — not in a fixed sleep after every
-	// control call, which is what it replaced.
+	// this is where that window is absorbed, not in a fixed sleep after every
+	// control call.
 	if err := control.AwaitReady(context.Background(), 5*time.Second); err != nil {
 		t.Fatalf("AwaitReady: %v", err)
 	}

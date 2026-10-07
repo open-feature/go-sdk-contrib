@@ -12,8 +12,8 @@ import (
 // It is always a test-configuration bug rather than a provider defect: the
 // scenarios needing connection control are gated behind Stale and
 // UnavailableInit, so reaching an unsupported operation means a capability was
-// declared the backend cannot back up. Appendix F requires this to fail loudly
-// rather than skip, a silent no-op reporting the scenario as passed.
+// declared the backend cannot back up. It fails loudly rather than skipping,
+// because a silent no-op would report the scenario as passed.
 var ErrUnsupportedControl = errors.New("backend control operation not supported")
 
 // ControlAPI names the path a run took to manipulate the backend under test.
@@ -32,8 +32,7 @@ const (
 	// ControlAPIInProcess means flag state was manipulated in this process,
 	// which is the narrow allowance made for a provider that has no backend at
 	// all. A report claiming it for a provider that does have one should be
-	// treated with suspicion, which is precisely why it is recorded rather
-	// than assumed.
+	// treated with suspicion, which is why it is recorded rather than assumed.
 	ControlAPIInProcess ControlAPI = "in-process"
 )
 
@@ -53,10 +52,8 @@ const (
 // HTTPControl for you. A provider that has no backend to contract with may
 // control one in-process; see InProcessControl.
 //
-// The choice is not a matter of taste, and [Appendix F] states why in the terms
-// that matter: in-process control is a narrow allowance for backend-less
-// providers, and a control that reaches into an external backend through a side
-// channel passes while proving nothing.
+// In-process control is a narrow allowance for backend-less providers, not a
+// choice; [Appendix F] explains why.
 //
 // # Operations a backend may not support
 //
@@ -94,12 +91,10 @@ type BackendControl interface {
 	// ControlAPI states which path this control drives the backend over, for
 	// the conformance report.
 	//
-	// Required, with no default and nothing inferred from the concrete type,
-	// which is Appendix F's rule and its argument for it. Both controls this
-	// package ships answer it already, so an adopter using WithComposeFile or
-	// InProcessControl writes nothing. The only author who has to state it is
-	// the one writing a control of their own — which is exactly the case where
-	// it cannot be guessed.
+	// Required, with no default and nothing inferred from the concrete type.
+	// Both controls this package ships answer it already, so the only author
+	// who has to state it is the one writing a control of their own — which is
+	// exactly the case where it cannot be guessed.
 	ControlAPI() ControlAPI
 }
 

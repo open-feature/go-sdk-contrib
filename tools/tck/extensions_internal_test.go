@@ -179,9 +179,7 @@ func TestCanonicalAndExtensionURIsArePartitioned(t *testing.T) {
 // TestAnExtensionCannotReachTheCanonicalPrefix is the shadowing constraint at
 // the level it is enforced.
 //
-// The Java TCK's failure was that a same-named file in a second classpath root
-// replaced the canonical one and the suite went green on the adopter's version.
-// Here the two roots are mounted at disjoint prefixes, so the property to pin is
+// The two roots are mounted at disjoint prefixes, so the property to pin is
 // that nothing an adopter supplies is reachable under the canonical prefix —
 // not even a filesystem deliberately shaped to look like the embedded assets.
 func TestAnExtensionCannotReachTheCanonicalPrefix(t *testing.T) {
