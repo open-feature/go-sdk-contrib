@@ -27,7 +27,6 @@ const (
 	proxyPort   = 8000
 )
 
-// Deviations. Summaries stay self-contained: they travel into a cross-language report.
 var (
 	numericCoercionDeviation = tck.UntrackedDeviation(
 		tck.NumericCoercion,
@@ -71,8 +70,6 @@ func runConformance(t *testing.T, name string, local bool) {
 	tck.Run(t,
 		tck.WithName(name),
 
-		// The TCK owns the stack: it brings Compose up, waits for the control API, resolves the
-		// mapped host ports and tears down. Nothing here touches testcontainers.
 		tck.WithComposeFile(composeFile),
 		tck.WithBackendPorts(proxyPort),
 		tck.WithStartupTimeout(90*time.Second),
@@ -99,11 +96,9 @@ func runConformance(t *testing.T, name string, local bool) {
 				return provider, nil
 			}
 
-			// Wait for the first environment sync before handing the provider back.
-			//
-			// Compensates for a provider defect, not a harness quirk: with no StateHandler there is
-			// no Init to block in, so the SDK reports READY while the first poll is still in flight
-			// and evaluations in that window return the code default with GENERAL.
+			// Wait for the first environment sync before handing the provider back. With no
+			// StateHandler there is no Init to block in, so the SDK reports READY while the first
+			// poll is still in flight and evaluations in that window return the code default.
 			if err := waitForLocalSync(provider); err != nil {
 				return nil, err
 			}
@@ -113,15 +108,14 @@ func runConformance(t *testing.T, name string, local bool) {
 		// Withheld, all permitted rather than defective, so none carries a deviation:
 		//   @lifecycle @events @stale @configuration-change @unavailable @reinitialization --
 		//     the provider implements no StateHandler or EventHandler, so there is no lifecycle to
-		//     assert against. A consequence worth knowing: /change, /restart and /reset are
-		//     implemented by the testbed and observed by nothing here.
+		//     assert against.
 		//   @variants -- Flagsmith names no value; a feature state is `enabled` plus a value.
 		//   @fully-typed-values -- feature_state_value is natively boolean, integer or string, so
 		//     float-flag and object-flag are stored as text and the string accessor answers them
 		//     correctly. Nothing to mismatch.
 		//
 		// @string-typing IS declared: boolean and integer are native, and both report TYPE_MISMATCH
-		// through the string accessor. Flagsmith is partially typed, which is why the tag is split.
+		// through the string accessor.
 		//
 		// @numeric-coercion and @standard-reasons are declared and each fails one scenario; see the
 		// deviations above.
