@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.1...providers/go-feature-flag/v1.1.2) (2026-10-07)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** do not block flag evaluation on data collector sends ([#1024](https://github.com/open-feature/go-sdk-contrib/issues/1024)) ([a28cb76](https://github.com/open-feature/go-sdk-contrib/commit/a28cb76717dcb7e6aa1bf5dbe2532d58a939ca0b))
+
 ## [1.1.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.0...providers/go-feature-flag/v1.1.1) (2026-07-02)
 
 
