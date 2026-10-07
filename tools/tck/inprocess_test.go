@@ -18,10 +18,10 @@ import (
 // Named once because two tests need the same list from opposite sides: the
 // table in TestCanonicalFlagSetMatchesTheFile asserts that each of these
 // decoded as DISABLED, and TestOnlyTheDisabledFlagsAreDisabled asserts that
-// nothing else did. Appendix F states that these four are the only ones, and a
-// fifth appearing in a later revision of the assets breaks the untagged
-// scenarios that expect every flag to serve its own value — which is a thing to
-// find out from a failing test here rather than from a provider suite.
+// nothing else did. Appendix F names the set; a fifth flag appearing in a later
+// revision of the assets breaks the untagged scenarios that expect every flag
+// to serve its own value, which is a thing to find out from a failing test
+// here rather than from a provider suite.
 var disabledFlagKeys = []string{
 	"disabled-boolean-flag",
 	"disabled-string-flag",
@@ -286,27 +286,20 @@ func TestOnlyTheDisabledFlagsAreDisabled(t *testing.T) {
 }
 
 // TestCanonicalFlagSetDisabledFlagsCarryAnError is the evidence behind every
-// in-memory suite leaving tck.DisabledFlags undeclared, and it is the
-// uncomfortable kind: the gap is in the Go SDK rather than in this suite or in
-// the flag set.
+// in-memory suite leaving tck.DisabledFlags undeclared, and the gap is in the
+// Go SDK rather than in this suite or in the flag set.
 //
-// memprovider.InMemoryProvider does return the caller's default for a disabled
-// flag, which is the value half of the capability and the half that matters
-// most. But it attaches a GENERAL resolution error to it while setting reason
-// DISABLED (Resolve in openfeature/memprovider/in_memory_provider.go), and the
-// two do not go together: DISABLED is one of the reason strings 2.2.5 lists for
-// a resolution that worked, and an error code alongside it tells the
-// application something went wrong when nothing did. So "the error-code should
-// be \"\"" fails, all four rows of the outline with it, and the capability is
+// memprovider.InMemoryProvider returns the caller's default for a disabled flag,
+// which is the value half of the capability, but attaches a GENERAL resolution
+// error to it while setting reason DISABLED (Resolve in
+// openfeature/memprovider/in_memory_provider.go). So "the error-code should be
+// \"\"" fails, all four rows of the outline with it, and the capability is
 // withheld.
 //
-// Pinned here because the withholding is otherwise invisible — it is an
-// absence from three Config literals — and because this is a bug rather than a
-// property of in-memory evaluation: an in-memory provider is the architecture
-// that CAN satisfy this capability, since the caller's default never has to
-// leave the process. When the SDK stops attaching the error this test fails,
-// and the fix is to declare the capability in the self-test suites rather than
-// to relax the assertion.
+// Pinned here because the withholding is otherwise invisible, being an absence
+// from the self-test Config literals. When the SDK stops attaching the error
+// this test fails, and the fix is to declare the capability in the self-test
+// suites rather than to relax the assertion.
 func TestCanonicalFlagSetDisabledFlagsCarryAnError(t *testing.T) {
 	ctx := context.Background()
 	provider := tck.NewInProcessControl().NewProvider()

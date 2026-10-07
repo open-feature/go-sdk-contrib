@@ -4,9 +4,8 @@
 // OpenFeature provider contract correctly? It is the Go implementation of
 // [Appendix F] of the OpenFeature specification, and it runs the same Gherkin
 // scenarios, against the same canonical flag set, that every other language's
-// TCK runs. That shared basis is the whole point — "conformant" only means
-// something if the question is identical everywhere. Appendix F is the contract;
-// this package documents the Go binding of it, and [the README] the rest.
+// TCK runs. Appendix F is the contract; this package documents the Go binding
+// of it, and [the README] the rest.
 //
 // # What a provider author writes
 //
@@ -14,8 +13,7 @@
 // stack, discovering its host ports, driving the backend's control API,
 // registering the provider with the OpenFeature API, waiting for it to become
 // ready, awaiting events, resetting the backend between scenarios, tearing down
-// — belongs to the TCK. If you find yourself writing test infrastructure, that
-// is a defect in this package rather than something for you to work around.
+// — belongs to the TCK.
 //
 //	func TestMyProviderConformance(t *testing.T) {
 //	    tck.Run(t,
@@ -37,13 +35,11 @@
 // constraint. The directory is what selects the suite — `make tck` runs those
 // modules and `make e2e` runs the others — and the tag is what keeps it out of
 // an untagged build, so `make test` and a bare `go test ./...` start no
-// containers. A conformance run and an e2e run mean different things by a red
-// result, which is why they are separate.
+// containers.
 //
 // A provider with no backend to contain — in-memory, in-process — supplies its
 // own control and builds its provider without an endpoint instead, through
-// [WithControl] and [WithProvider]. See [BackendControl] for which path fits,
-// which is not a matter of taste.
+// [WithControl] and [WithProvider]. See [BackendControl] for which path fits.
 //
 // Every setting is one [Option]; [Capability] is how a provider declares the
 // optional parts of the contract it supports; [WithFeatures] and [WithSteps]

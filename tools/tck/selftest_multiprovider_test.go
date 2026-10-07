@@ -17,21 +17,12 @@ import (
 // hop, a reason rewritten to DEFAULT, an error code flattened to GENERAL, an
 // event that never reaches the client. Wrapping exactly one child makes each of
 // those observable, because the correct answer is precisely what
-// TestControllableProvider already asserts about the child on its own. Any
+// TestControllableProvider already asserts about the child on its own, so any
 // difference between the two suites is attributable to the multi-provider and
 // nothing else.
 //
-// That framing is why this belongs here rather than in the SDK: it is not a
-// test of aggregation across several backends, it is a test that delegation is
-// transparent. It costs one file and needs no Docker.
-//
-// The equivalent Java suite has to leave ConfigurationChange undeclared,
-// because Java's MultiProvider never subscribes to its children and swallows
-// their events (open-feature/java-sdk#1882). Go's forwards
-// PROVIDER_CONFIGURATION_CHANGED straight through, explicitly matching the JS
-// reference behaviour, so the capability is declared here and the scenario is
-// expected to pass. If it does not, the two SDKs disagree and this suite is
-// where that shows up.
+// It is not a test of aggregation across several backends, it is a test that
+// delegation is transparent. It costs one file and needs no Docker.
 func TestMultiProvider(t *testing.T) {
 	control := tck.NewInProcessControl()
 
@@ -48,54 +39,30 @@ func TestMultiProvider(t *testing.T) {
 			}
 			return provider, nil
 		}),
-		// Lifecycle is omitted although TestControllableProvider declares it for
-		// the very same child, and the asymmetry is intentional. There is no
-		// backend to reach on either side; what makes the child's readiness
-		// worth asserting is that it comes out of its own Init, and that is a
-		// claim about the child, which its own suite already makes. Asserting
-		// it again through the wrapper would say nothing about delegation —
-		// which is the only thing this suite is for — while spending a green
-		// scenario on it. Before @lifecycle existed the readiness scenario ran
-		// here on the strength of Events and passed vacuously.
+		// Lifecycle is omitted although TestControllableProvider declares it
+		// for the very same child, and the asymmetry is intentional: what makes
+		// the child's readiness worth asserting is that it comes out of its own
+		// Init, which is a claim about the child that its own suite already
+		// makes. Asserting it again through the wrapper would say nothing about
+		// delegation.
 		//
-		// NumericCoercion is not declared because the child is memprovider
-		// underneath, which type-asserts rather than coerces — see
-		// TestInMemoryProvider — and a wrapper cannot pass a scenario its child
-		// fails. LargeIntegers is declared: the child returns its int64 exactly,
-		// and whether the value survives the hop is precisely a delegation
-		// question. Variants is declared for exactly that reason and is the
-		// clearest case of it: a variant that does not survive the hop is the
-		// first thing a delegating provider drops, and now it has scenarios of
-		// its own to drop it in.
+		// A wrapper cannot pass a scenario its child fails, so NumericCoercion,
+		// Targeting and DisabledFlags are omitted for the reasons
+		// TestInMemoryProvider gives. DisabledFlags is worth revisiting:
+		// dropping an error code on the hop is one of the failure modes this
+		// suite exists to see, so declare it here as soon as the child can pass
+		// it rather than leaving it withheld.
 		//
-		// Targeting is not declared: the child resolves targeting-key-flag to
-		// its miss variant whatever the context, because the canonical flag
-		// set's rule is not translated into a ContextEvaluator, and a wrapper
-		// cannot pass a scenario its child fails. See TestInMemoryProvider.
-		//
-		// DisabledFlags is not declared, for that same rule applied to a
-		// defect rather than to a design choice: the child returns the
-		// caller's default for a disabled flag but attaches a GENERAL error to
-		// it, so the outline fails underneath and a wrapper cannot pass a
-		// scenario its child fails. Worth noting that a delegating provider
-		// could plausibly get this wrong on its own — dropping an error code on
-		// the hop is one of the failure modes this suite exists to see — so
-		// this is a scenario to declare here as soon as the child can pass it,
-		// not one to leave withheld.
-		//
-		// StandardReasons is declared, and it is the most interesting of these
-		// here: the reason has to survive the hop through the multi-provider
-		// intact, and a wrapper that rewrote STATIC to DEFAULT or lost ERROR on
-		// a type mismatch would be caught by reason.feature and by nothing
-		// else.
-		//
-		// StringTyping is declared, and it is a delegation question of the same
-		// shape: the child refuses to format a non-string value as text, and
-		// what this suite adds is that the refusal reaches the caller as
-		// TYPE_MISMATCH rather than being swallowed on the hop.
-		// FullyTypedValues is declared with it, which widens that same question
-		// to the float and the structure -- the two values a wrapper is most
-		// likely to flatten on the way through, a map especially.
+		// The declared ones are each a delegation question. LargeIntegers: does
+		// the int64 survive the hop. Variants: a dropped variant name is the
+		// first thing a delegating provider loses. StandardReasons: a wrapper
+		// that rewrote STATIC to DEFAULT, or lost ERROR on a type mismatch,
+		// would be caught by reason.feature and by nothing else. StringTyping
+		// and FullyTypedValues: the child's refusal to format a value as text
+		// has to reach the caller as TYPE_MISMATCH rather than being swallowed,
+		// and a float or a map is what a wrapper is most likely to flatten.
+		// ConfigurationChange: Go's multi-provider forwards
+		// PROVIDER_CONFIGURATION_CHANGED straight through.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.ConfigurationChange,

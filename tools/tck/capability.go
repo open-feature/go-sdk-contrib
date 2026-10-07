@@ -15,10 +15,9 @@ import (
 // with the reason, never as passed. Scenarios with no capability tag are
 // mandatory and always run.
 //
-// The vocabulary, what each tag means and the rules for deciding whether to
-// declare one belong to [Appendix F]; the comments below add only what is
-// specific to Go. Two kinds of capability cannot be declared, and this package
-// refuses both rather than leaving them to adopters: see [Capability.IsReserved]
+// [Appendix F] owns the vocabulary, what each tag means and the rules for
+// deciding whether to declare one; the comments below add what is specific to
+// Go. Two kinds of capability cannot be declared: see [Capability.IsReserved]
 // and [Capability.IsInexpressible].
 //
 // [Appendix F]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#capabilities-how-a-provider-says-what-it-cannot-do
@@ -36,12 +35,11 @@ const (
 	// In Go, declare it when the provider implements openfeature.StateHandler
 	// and Init can fail. A provider that does not implement StateHandler cannot
 	// have it however promptly its client reports READY, because that readiness
-	// was synthesised by the SDK rather than produced by the provider — a
-	// NoopProvider passes the scenario identically. Appendix F has why this is
-	// deliberately separate from Events.
+	// was synthesised by the SDK — a NoopProvider passes the scenario
+	// identically.
 	//
 	// Whether such a provider can be started again after being shut down is a
-	// separate question with its own capability: see Reinitialization.
+	// separate question: see Reinitialization.
 	Lifecycle Capability = "@lifecycle"
 
 	// Stale means the provider enters STALE and emits PROVIDER_STALE when it
@@ -55,32 +53,24 @@ const (
 	// Object means the provider supports structured (object) flag values.
 	Object Capability = "@object"
 
-	// Variants means the provider names the variant it resolved, which
-	// Requirement 2.2.4 makes a SHOULD and types.md types as optional.
+	// Variants means the provider names the variant it resolved.
 	//
-	// Declare it when the backend names its variants and the provider passes the
-	// name through. Withholding it skips the variant scenarios with that reason
-	// and leaves the value assertions untouched, 2.2.3 making the value a MUST.
-	// The reason field is modelled the same way, for the same reason and one
-	// more: see StandardReasons.
+	// Declare it when the backend names its variants and the provider passes
+	// the name through. Withholding it skips the variant scenarios with that
+	// reason and leaves the value assertions untouched. Optional; Appendix F
+	// explains why.
 	Variants Capability = "@variants"
 
 	// DisabledFlags means the provider resolves a flag that is disabled in the
 	// flag management system to the caller's default value, with no error.
 	//
-	// It is gated because the answer turns on where the caller's default is
-	// substituted rather than on provider quality, and it deliberately does not
-	// compose with Variants. Appendix F has both arguments, and why the
-	// scenarios assert the value and the absence of an error rather than the
-	// reason.
-	//
 	// Declare it when a disabled flag comes back as the code default with no
-	// error code. The Go SDK's memprovider.InMemoryProvider does not manage that
-	// — it returns the default value but attaches a GENERAL resolution error
-	// alongside reason DISABLED, so the error-code assertion fails — which is
-	// why none of the in-memory self-tests declares this. See
-	// TestCanonicalFlagSetDisabledFlagsCarryAnError, which is the evidence for
-	// that and will fail if the SDK stops doing it.
+	// error code. The Go SDK's memprovider.InMemoryProvider attaches a GENERAL
+	// resolution error alongside reason DISABLED, so the error-code assertion
+	// fails and none of the in-memory self-tests declares this — measured by
+	// TestCanonicalFlagSetDisabledFlagsCarryAnError, which will fail if the SDK
+	// stops doing it. Optional, and deliberately not composed with Variants;
+	// Appendix F explains why.
 	DisabledFlags Capability = "@disabled-flags"
 
 	// UnavailableInit means the provider reports an error state promptly,
@@ -94,23 +84,15 @@ const (
 	// integer must succeed and 10 requested as a float must widen; 0.5 requested
 	// as an integer must not.
 	//
-	// The rule is borrowed from flagd's numeric coercion ADR rather than
-	// normative: the specification does not define numeric coercion, and a
-	// provider that behaves differently is not violating it. Appendix F carries
-	// that argument, and the one an adopter actually needs — a provider that
-	// coerces and gets one direction wrong declares the capability and records a
-	// KnownDeviation beside the failing scenario, rather than withholding.
-	//
 	// The Go SDK's memprovider.InMemoryProvider type-asserts and never converts
 	// between int64 and float64, which is why the in-memory self-tests do not
-	// declare this.
+	// declare this. Declarable in Go because the integer and float accessors
+	// are genuinely distinct types — measured by
+	// TestTheIntegerAndFloatAccessorsAreDistinctTypes rather than assumed.
+	// Optional; Appendix F explains why, and what a provider that coerces and
+	// gets one direction wrong should do instead of withholding.
 	//
-	// It is declarable in Go because the integer and float accessors are
-	// genuinely distinct types — measured by
-	// TestTheIntegerAndFloatAccessorsAreDistinctTypes rather than asserted. A
-	// language with a single numeric type cannot put the question at all; see
-	// inexpressibleCapabilities. Accessor width is a separate property with its
-	// own capability: see LargeIntegers.
+	// Accessor width is a separate property: see LargeIntegers.
 	NumericCoercion Capability = "@numeric-coercion"
 
 	// LargeIntegers means the provider resolves integers up to 2^53-1 exactly.
@@ -121,86 +103,43 @@ const (
 	// rather than assumed — so every Go provider can be asked, and what it
 	// declares here is that the value survives the trip, which anything routed
 	// through a 32-bit integer, or through a float and back with rounding, does
-	// not. Where the accessor is narrower the capability is inexpressible; see
-	// inexpressibleCapabilities.
+	// not.
 	LargeIntegers Capability = "@large-integers"
 
 	// StringTyping means the provider reports TYPE_MISMATCH when a boolean or
 	// integer flag is requested through the string accessor, rather than
 	// returning the value's string representation.
 	//
-	// It is gated because every value has a string representation, so a backend
-	// that stores flag values as strings satisfies the string accessor for
-	// every flag and has no mismatch to report: Requirement 2.2.3 asks it for
-	// the resolved flag value, and a string is what it holds. The only
-	// normative statement nearby is Requirement 1.3.4, a SHOULD on the *client*
-	// rather than on the provider, so a provider over an untyped backend
-	// withholds this tag and is not thereby non-conformant. Appendix F carries
-	// the argument; it is optional for the same reason NumericCoercion is.
-	//
 	// Declare it when the backend records a boolean as a boolean and an integer
-	// as an integer, and the provider type-asserts rather than formats. Withhold
-	// it when the backend stores everything as text. Flagsmith is the worked
-	// example of the *partial* case and is why this is no longer one tag: its
-	// feature_state_value is natively boolean, integer or string, so it can be
-	// asked the two questions here and not the two behind FullyTypedValues.
+	// as an integer, and the provider type-asserts rather than formats.
+	// Withhold it when the backend stores everything as text. Optional;
+	// Appendix F explains why a provider over an untyped backend is not thereby
+	// non-conformant.
 	//
-	// It gates two rows, asking for boolean-flag and integer-flag as strings.
-	// The float and structured cases are the same question one type further
-	// out and carry FullyTypedValues as well, so a backend that records those
-	// natively declares both tags and runs all four -- see FullyTypedValues for
-	// why splitting them is what keeps a defect from hiding inside a permitted
-	// absence.
-	//
-	// It is expressible in Go: Client.StringValueDetails takes and returns a
-	// string, distinct from every other accessor, so the request can be made.
+	// The float and structured cases carry FullyTypedValues as well.
 	StringTyping Capability = "@string-typing"
 
 	// FullyTypedValues means the backend records a native type for float and
 	// structured values too, so the StringTyping question can be asked of them
 	// as well.
 	//
-	// It is never declared alone. The two scenarios carrying it carry
-	// @string-typing too -- float-flag and object-flag requested through the
-	// string accessor -- so this widens StringTyping's question rather than
-	// asking a new one, and the object scenario carries @object on top, a
-	// provider with no structured values having no way to be asked at all.
-	//
-	// Why it is separate from StringTyping: a store can record booleans and
-	// integers natively and still keep floats and structures as text, and one
-	// tag over all four cases would let a provider that fails the first two --
-	// its own defect, over a backend that types them -- withhold the tag and
-	// have that reported as a permitted absence. Appendix F carries the
-	// measurement that settled it: over one Flagsmith backend, Go and Java
-	// answer boolean-flag and integer-flag with TYPE_MISMATCH while JavaScript
-	// returns "true" and "10", and all three stringify the float and the
-	// structure because the backend has no type for them. Under one tag the
-	// JavaScript defect and the shared backend limit are the same absence.
-	//
-	// The general rule, which is worth reaching for when adding a capability: a
-	// capability coarser than the variation providers actually show will hide
-	// defects inside permitted absences.
-	//
+	// It is never declared alone: the scenarios carrying it carry @string-typing
+	// too, so it widens StringTyping's question rather than asking a new one.
 	// Declare it when the backend has a float type and a structure type and the
-	// provider type-asserts on both; the Go flagd and OFREP adoptions do.
-	// Withhold it where the backend records neither, which is the Go Flagsmith
-	// adoption -- and withholding it there costs StringTyping nothing, which is
-	// the whole point of the split.
+	// provider type-asserts on both. Appendix F explains why it is separate
+	// from StringTyping.
 	FullyTypedValues Capability = "@fully-typed-values"
 
 	// Reinitialization means the provider can be initialised again after it has
 	// been shut down, and serves flags afterwards.
 	//
-	// Requirement 2.5.2 permits reuse rather than requiring it, so a provider
-	// that releases its client on shutdown and declines to start again is taking
-	// an option the specification offers it. Leave the tag undeclared; it needs
-	// no known-deviation entry. Appendix F records why the scenario is gated
-	// rather than mandatory, and what the tag buys for a provider that does
-	// offer reuse.
+	// A provider that releases its client on shutdown and declines to start
+	// again leaves the tag undeclared and needs no known-deviation entry.
+	// Optional; Appendix F explains why.
 	//
-	// It is separate from Lifecycle because the scenario's feature carries
-	// @lifecycle too: a provider with no observable initialisation is not being
-	// asked this question at all, and one that has it may still decline reuse.
+	// Separate from Lifecycle because the scenario's feature carries @lifecycle
+	// too: a provider with no observable initialisation is not being asked this
+	// question at all, and one that has it may still decline reuse.
 	Reinitialization Capability = "@reinitialization"
 
 	// Targeting means the provider resolves a flag differently for a matching
@@ -212,46 +151,33 @@ const (
 	// rather than syntax, so a backend expresses it however it expresses
 	// targeting.
 	//
-	// Declare it when the backend evaluates targeting rules at all. A provider
-	// whose backend has no notion of them — an in-memory flag set, an
-	// environment-variable provider — leaves it undeclared, and the three
-	// scenarios are skipped with that reason rather than failed.
+	// Declare it when the backend evaluates targeting rules at all.
 	Targeting Capability = "@targeting"
 
 	// StandardReasons means the provider reports the standard resolution
 	// reasons, with the meanings Appendix F gives them.
 	//
-	// It is a claim, not an exemption. Requirement 2.2.5 is a SHOULD that lets a
-	// provider populate reason with "some other string indicating the semantic
-	// reason for the returned flag value", so a provider whose backend reports
+	// It is a claim, not an exemption: a provider whose backend reports
 	// vendor-specific reasons is conformant and simply does not declare this.
-	// It loses nothing by that: its values, variants and error codes are
-	// asserted elsewhere, on MUST requirements.
-	//
 	// Appendix F carries the reason-by-reason mapping the claim is checked
-	// against, which reasons are deliberately not asserted, and why STATIC for a
-	// rule-less flag is the call worth knowing about before declaring.
+	// against, and which reasons are deliberately not asserted.
 	StandardReasons Capability = "@standard-reasons"
 
-	// Caching is reserved and must not be declared — see IsReserved. No
-	// scenario carries this tag yet, and it is the only reserved tag left.
+	// Caching is reserved and must not be declared — see IsReserved.
 	Caching Capability = "@caching"
 )
 
 // allCapabilities is every capability the TCK knows about, reserved ones
-// included. It is the vocabulary, and being absent from it is not the same
-// thing in the two places a tag can come from.
+// included. It is the vocabulary, and being absent from it means different
+// things in the two places a tag can come from.
 //
-// On an **extension** scenario a tag that is not in this list gates nothing and
-// is ignored, which is what lets an adopter's own feature files carry
-// organisational tags freely.
+// On an extension scenario an unknown tag gates nothing and is ignored, which
+// is what lets an adopter's own feature files carry organisational tags freely.
 //
-// On a **canonical** scenario it fails the run. An unknown tag there means the
-// specification has grown a capability this vocabulary has not learned, and
-// ignoring it is not the harmless default it looks like: the tag gates nothing,
-// so its scenarios stay mandatory for every adopter, and a provider that
-// legitimately withholds the new capability shows unexplained failures while
-// the suite says nothing about why. See unknownCapabilityTag in run.go.
+// On a canonical scenario it fails the run: ignoring it is not the harmless
+// default it looks like, because the tag then gates nothing, its scenarios stay
+// mandatory for every adopter, and a provider that legitimately withholds the
+// new capability shows unexplained failures. See unknownCapabilityTag in run.go.
 var allCapabilities = []Capability{
 	Events,
 	Lifecycle,
@@ -273,43 +199,32 @@ var allCapabilities = []Capability{
 
 // reservedCapabilities is every capability no scenario carries.
 //
-// It is a single list rather than a property repeated at each use, because the
-// rule and the set it applies to have to move together: adding the first
-// scenario for one of these means deleting one line here and nothing else.
-// Targeting left it exactly that way when spec 26362f85 gave it scenarios.
+// It is a single list rather than a property repeated at each use, so that
+// adding the first scenario for one of these means deleting one line here and
+// nothing else.
 var reservedCapabilities = []Capability{
 	Caching,
 }
 
 // inexpressibleCapabilities names every capability whose question this
 // language's SDK cannot put to a provider, mapped to the property of the SDK
-// that prevents it. Appendix F requires the refusal to exist whether or not a
-// language has an instance today, and says why it must stay distinguishable
-// from a reserved capability.
+// that prevents it.
 //
-// **It is empty, and that is a measurement rather than an assumption.** Go can
-// express both of the capabilities that are inexpressible somewhere else, and
-// each is checked by a test rather than argued from the SDK's source:
+// It is empty, and that is a measurement rather than an assumption: Go can
+// express both of the capabilities that are inexpressible somewhere else, each
+// checked by a test rather than argued from the SDK's source —
+// TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger for @large-integers,
+// TestTheIntegerAndFloatAccessorsAreDistinctTypes for @numeric-coercion.
 //
-//   - @large-integers, which a 32-bit integer accessor has no room for. Go's is
-//     int64 -- see TestTheIntegerAccessorIsWideEnoughToAskForALargeInteger, and
-//     the scenario runs and passes in all three self-test suites.
-//   - @numeric-coercion, which a single numeric type cannot express, "a float
-//     requested as an integer" not being a question its API can ask. Go has
-//     genuinely distinct accessors -- see
-//     TestTheIntegerAndFloatAccessorsAreDistinctTypes -- and the OFREP provider
-//     declares the capability and satisfies all three scenarios.
-//
-// This map is where a future one goes: adding a line here is the whole change,
-// and the message, the default set, the deviation check and the skip reason all
-// follow from it. See newCapabilitySet and runner.beforeScenario for the two
-// refusals being kept apart deliberately.
+// Adding a line here is the whole change for a future one: the message, the
+// default set, the deviation check and the skip reason all follow from it. See
+// newCapabilitySet and runner.beforeScenario for the two refusals being kept
+// apart deliberately.
 //
 // It is a var rather than a const map so that the tests can install an entry
-// and exercise a path Go itself never takes. That is the point of testing it:
-// an unused refusal is discovered by the first adopter who needs it, and being
-// discovered that way means somebody already published a claim no scenario
-// could have verified.
+// and exercise a path Go itself never takes; an untested refusal is first
+// discovered by the adopter who needs it, by which point a claim no scenario
+// could verify has already been published.
 var inexpressibleCapabilities = map[Capability]string{}
 
 // IsInexpressible reports whether this language's SDK can put the question this
@@ -317,13 +232,9 @@ var inexpressibleCapabilities = map[Capability]string{}
 // that prevents it when it cannot.
 //
 // It is not a judgement about the provider and it is not a reservation: the
-// scenarios exist, are carried by the canonical Gherkin, and pass for providers
-// in other languages; what is missing is an API through which any provider here
-// could be asked.
-//
-// Go has none: the second return is always false. See
-// inexpressibleCapabilities for the evidence and for what to do when that stops
-// being true.
+// scenarios exist and pass for providers in other languages; what is missing is
+// an API through which any provider here could be asked. Go has none, so the
+// second return is always false.
 func (c Capability) IsInexpressible() (string, bool) {
 	reason, inexpressible := inexpressibleCapabilities[c]
 	return reason, inexpressible
@@ -332,10 +243,9 @@ func (c Capability) IsInexpressible() (string, bool) {
 // IsReserved reports whether this capability is reserved: part of the
 // vocabulary, carried by no scenario, and therefore not declarable.
 //
-// Appendix F states that a reserved capability must not be declared and must
-// not appear in a conformance report's declaration. So AllCapabilities does not
-// return one, and naming one in tck.WithCapabilities is a configuration error
-// rather than a conformance result.
+// A reserved capability is not returned by AllCapabilities, and naming one in
+// tck.WithCapabilities is a configuration error rather than a conformance
+// result.
 func (c Capability) IsReserved() bool {
 	for _, reserved := range reservedCapabilities {
 		if c == reserved {
@@ -345,23 +255,18 @@ func (c Capability) IsReserved() bool {
 	return false
 }
 
-// AllCapabilities returns every capability the TCK recognises **except the
-// reserved ones**, which no scenario carries, **and the ones the Go SDK cannot
-// express**, which no provider here could satisfy however it is written. It is
+// AllCapabilities returns every capability the TCK recognises except the
+// reserved ones, which no scenario carries, and the ones the Go SDK cannot
+// express, which no provider here could satisfy however it is written. It is
 // the default when tck.WithCapabilities is unset.
 //
 // It is a reasonable starting point for a new adoption: declare everything, run
-// the suite, and remove only what your provider genuinely cannot do. Narrowing
-// from the full set surfaces gaps; widening towards it hides them until
-// something fails for an apparently unrelated reason.
+// the suite, and remove only what your provider genuinely cannot do.
 //
-// Both exclusions are Appendix F's, and the reserved one exists because this is
-// the convenience through which a reserved tag gets claimed by accident: an
-// adoption that starts from everything and removes what it cannot do picks the
-// tag up on the way past, and the published report then asserts a capability
-// nothing examined. Go has no inexpressible capability today, so the second
-// exclusion changes nothing here; it is in place so that adding one is a single
-// line in one file rather than a fact every adopter has to know.
+// The reserved exclusion matters because this is the convenience through which
+// a reserved tag gets claimed by accident: an adoption that starts from
+// everything and removes what it cannot do picks the tag up on the way past,
+// and the published report then asserts a capability nothing examined.
 func AllCapabilities() []Capability {
 	out := make([]Capability, 0, len(allCapabilities))
 	for _, c := range allCapabilities {
@@ -386,12 +291,9 @@ func (c Capability) String() string { return string(c) }
 // CapabilityForTag maps a Gherkin tag onto the capability it gates, reporting
 // whether the tag gates anything at all.
 //
-// Exported because a caller outside this package has to tell a capability-gating
-// tag from a merely organisational one -- deciding whether a scenario was skipped
-// legitimately is exactly that question. Conformance reporting is the case that
-// needs it, and it is exported here rather than there so that adding reporting
-// widens no API: the suite works without it, and the branch that adds it should
-// only add.
+// Exported because a caller outside this package has to tell a
+// capability-gating tag from a merely organisational one — deciding whether a
+// scenario was skipped legitimately is exactly that question.
 func CapabilityForTag(tag string) (Capability, bool) {
 	for _, c := range allCapabilities {
 		if string(c) == tag {
@@ -407,14 +309,12 @@ type capabilitySet map[Capability]struct{}
 // newCapabilitySet turns a declared capability list into lookup form, rejecting
 // anything that cannot legitimately be declared.
 //
-// The reserved check lives here rather than in config.validate so that the set
-// the conformance report's declaration is built from cannot be constructed with
-// a reserved capability in it at all. config.validate calls this, so an adopter
-// still sees the problem reported as a configuration error before any scenario
-// runs; the point of putting it here is that there is no second path to a
-// declaration that could drift from the rule. The inexpressibility check is
-// here for the same reason and says a different thing -- see
-// inexpressibleCapabilities.
+// The checks live here rather than in config.validate so that the set the
+// conformance report's declaration is built from cannot be constructed with an
+// undeclarable capability in it at all; there is no second path to a
+// declaration that could drift from the rule. config.validate calls this, so an
+// adopter still sees the problem reported as a configuration error before any
+// scenario runs.
 func newCapabilitySet(caps []Capability) (capabilitySet, error) {
 	set := make(capabilitySet, len(caps))
 	for _, c := range caps {

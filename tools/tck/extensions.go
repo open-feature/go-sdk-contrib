@@ -11,20 +11,10 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
-// WHY EXTENSIONS ARE CONFIGURED RATHER THAN DISCOVERED
-//
-// An adopter with provider-specific behaviour — flagd's fractional targeting,
-// say — needs its own scenarios to run inside the TCK's backend lifecycle: the
-// same per-scenario provider, the same PrepareScenario reset, the same event
-// plumbing. Running them in a parallel harness means reimplementing all of
-// that, and the two harnesses then drift.
-//
-// The other TCK implementations discover extensions by convention: Java scans
-// the classpath for glue packages, Python picks up a conftest.py beside the
-// feature files. Go has no runtime scanning — a step definition is a function
-// that has to be called, and a feature file has to be named — so extension here
-// is explicit configuration. The goal is that it stays small: two fields, and
-// no test infrastructure of the adopter's own.
+// Extensions are explicit configuration rather than discovered by convention,
+// because Go has no runtime scanning: a step definition is a function that has
+// to be called, and a feature file has to be named. The goal is that it stays
+// small — two fields, and no test infrastructure of the adopter's own.
 //
 // See tck.WithFeatures and tck.WithSteps.
 
@@ -33,10 +23,8 @@ import (
 //
 // This is the seam that makes an extension step worth running inside the TCK
 // rather than beside it. The provider is registered under a suite-scoped domain
-// the adopter never sees, so without this an extension step could observe the
-// lifecycle the TCK set up but not use it, and would end up registering a
-// second provider of its own — which is the parallel harness the extension
-// mechanism exists to avoid.
+// the adopter never sees, so without this an extension step would end up
+// registering a second provider of its own.
 //
 // It reports an error before the scenario has registered a provider, which in
 // the canonical vocabulary means before a "Given a stable provider" step. Put
@@ -52,20 +40,15 @@ func ClientFromContext(ctx context.Context) (*openfeature.Client, error) {
 // extensionsRoot is the path prefix an adopter's feature files appear under
 // while the suite runs.
 //
-// It is a prefix rather than the adopter's own directory name because the
-// canonical assets and the extension filesystem are two roots presented to
-// godog as one, and because it partitions the URI space: everything the run
-// executed under gherkin/ is canonical, everything under extensions/ is
-// not. That partition is what the coverage check and a reader of the Cucumber
-// Messages stream both key on, so it is a contract rather than a detail.
+// It partitions the URI space: everything the run executed under gherkin/ is
+// canonical, everything under extensions/ is not. The coverage check and a
+// reader of the Cucumber Messages stream both key on that partition, so it is a
+// contract rather than a detail.
 const extensionsRoot = "extensions"
 
 // featureSet is what godog is pointed at: one filesystem and the paths within
-// it to parse.
-//
-// Both come from one place because they have to agree, and because passing
-// canonical and extension features through two different godog mechanisms is
-// not an option — see featureSources.
+// it to parse. Both come from one place because they have to agree — see
+// featureSources.
 type featureSet struct {
 	fsys  fs.FS
 	paths []string
@@ -75,8 +58,7 @@ type featureSet struct {
 // into a single filesystem for godog.
 //
 // With no extensions configured this returns the embedded assets and the
-// canonical path unchanged, so a configuration without them behaves exactly as it did
-// before this existed.
+// canonical path unchanged.
 //
 // godog 0.15.1 also has Options.FeatureContents, which would let extension
 // features be read and handed over as bytes, and that is the obvious shortcut.
