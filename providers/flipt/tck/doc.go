@@ -1,4 +1,4 @@
-// Package e2e runs the OpenFeature Provider Conformance Suite against the Flipt
+// Package tck runs the OpenFeature Provider Conformance Suite against the Flipt
 // backend, measuring two providers on the same throwaway stack: the flipt
 // provider (pkg/provider, driven over Flipt's gRPC/HTTP SDK) and the OFREP
 // provider (providers/ofrep, driven over Flipt's OFREP endpoint).
@@ -16,7 +16,7 @@
 // and flag changes without ever restarting the container. See README.md for the
 // seed model and the known deviations.
 //
-// The suites themselves are behind the e2e build tag, matching the repository's
-// `make e2e` target. This file carries no build tag so that the package still
+// The suites themselves are behind the tck build tag, matching the repository's
+// `make tck` target. This file carries no build tag so that the package still
 // has a buildable file when that tag is absent.
-package e2e
+package tck

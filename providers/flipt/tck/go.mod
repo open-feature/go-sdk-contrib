@@ -1,4 +1,4 @@
-module github.com/open-feature/go-sdk-contrib/providers/flipt/e2e
+module github.com/open-feature/go-sdk-contrib/providers/flipt/tck
 
 go 1.26
 

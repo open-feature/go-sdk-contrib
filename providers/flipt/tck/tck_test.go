@@ -1,6 +1,6 @@
-//go:build e2e
+//go:build tck
 
-package e2e
+package tck
 
 import (
 	"context"
@@ -22,7 +22,7 @@ const (
 
 func TestFliptConformance(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e tests in short mode")
+		t.Skip("skipping tck tests in short mode")
 	}
 
 	tck.Run(t,
@@ -42,22 +42,33 @@ func TestFliptConformance(t *testing.T) {
 			tck.LargeIntegers,
 		),
 
+		// Vendor extensions cover the Flipt-specific behavior the canonical
+		// suite cannot assert: a non-matching targeting rule reports STATIC
+		// (Flipt returns the same DEFAULT evaluation reason as a rule-less
+		// flag) and string-zero-flag resolves to the "zero" key (Flipt
+		// forbids empty variant keys). The disabled names silence those two
+		// canonical rows; every other row they share a name with keeps its
+		// vendor equivalent in testdata/features.
+		tck.WithFeatures(os.DirFS("testdata/features")),
+
 		tck.WithKnownDeviations(
 			// string-zero-flag cannot be seeded with the empty string: Flipt
 			// variant keys must be non-empty. It resolves to the "zero" key
-			// instead, so the mandatory falsy-value scenario fails its
-			// string-zero-flag row alone.
+			// instead. Disabling names the whole falsy outline: its rows
+			// share one scenario name, and the boolean/integer rows are
+			// re-asserted as vendor scenarios.
 			tck.UntrackedDeviation("",
-				"Flipt variant keys must be non-empty, so canonical string-zero-flag's empty-string value cannot be represented; it resolves to \"zero\"."),
+				"A falsy value is a value, not an absence: Flipt variant keys must be non-empty, so canonical string-zero-flag's empty-string value cannot be represented; it resolves to \"zero\".",
+			),
 
 			// Flipt's evaluation reason for a targeting rule that resolved
 			// nothing is the same DEFAULT it reports for a flag with no rules
 			// at all, so the provider cannot tell the two OpenFeature reasons
-			// apart and reports STATIC for both. The @standard-reasons pairing
-			// still passes its matching half: the TARGETING_MATCH row is what
-			// Flipt reports for a rule that matched.
+			// apart and reports STATIC for both. The vendor suite asserts
+			// that STATIC.
 			tck.UntrackedDeviation(tck.StandardReasons,
-				"A targeting rule that does not match reports STATIC rather than DEFAULT: Flipt's evaluation response does not distinguish a rule that matched nothing from a rule-less flag, so the two reasons cannot be told apart."),
+				"A targeting rule that does not match reports the default: Flipt reports STATIC rather than DEFAULT. Flipt's evaluation response does not distinguish a rule that matched nothing from a rule-less flag, so the two reasons cannot be told apart.",
+			),
 		),
 	)
 }
@@ -67,7 +78,7 @@ const ofrepRunEnv = "OFREP_TCK_RUN"
 
 func TestOFREPConformance(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e tests in short mode")
+		t.Skip("skipping tck tests in short mode")
 	}
 	if os.Getenv(ofrepRunEnv) == "" {
 		t.Skipf("the OFREP conformance suite is excluded: set %s=1 to run it.", ofrepRunEnv)

@@ -112,6 +112,24 @@ func withRule(fp *flagPayload, r rule) {
 	fp.Rules = []rule{r}
 }
 
+// customFlags returns vendor flags the canonical set does not carry. A
+// variant flag with no default variant makes Flipt answer UNKNOWN with no
+// match, which is the provider's DEFAULT-reason path; every canonical flag
+// carries a default, so only a hand-seeded flag can cover it.
+func customFlags() []flagDef {
+	return []flagDef{{
+		key: "no-default-flag",
+		payload: flagPayload{
+			AtType:   "flipt.core.Flag",
+			Key:      "no-default-flag",
+			Name:     "no-default-flag",
+			Type:     flagTypeVariant,
+			Enabled:  true,
+			Variants: []variant{plainVariant("on")},
+		},
+	}}
+}
+
 // segmentsFor returns the segment resources the canonical set needs. The
 // targeting rule lives on targeting-key-flag and is expressed as a segment
 // whose constraint matches the canonical targeting key.

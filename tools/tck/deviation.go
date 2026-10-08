@@ -3,6 +3,7 @@ package tck
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // KnownDeviation says one thing: this provider fails to do something it is
@@ -46,7 +47,26 @@ type KnownDeviation struct {
 
 	// Summary is what the gap is, in a form someone comparing providers can
 	// use. Required.
+	//
+	// A summary of the form "<scenario name>: <explanation>" additionally
+	// disables the named scenario: it is skipped rather than run to
+	// failure, and reported as disabled. The name is the exact godog
+	// scenario name. Outline rows share one scenario name, so naming an
+	// outline disables every row it has — re-assert the rows that do pass
+	// as vendor scenarios under WithFeatures when that matters. A summary
+	// without a colon disables nothing.
 	Summary string `json:"summary"`
+}
+
+// DisabledScenario reports the scenario this deviation disables, if any.
+//
+// See Summary for the "<scenario name>: <explanation>" convention.
+func (d KnownDeviation) DisabledScenario() (string, bool) {
+	idx := strings.Index(d.Summary, ":")
+	if idx <= 0 {
+		return "", false
+	}
+	return d.Summary[:idx], true
 }
 
 // TrackedDeviation records a deviation that is tracked somewhere.

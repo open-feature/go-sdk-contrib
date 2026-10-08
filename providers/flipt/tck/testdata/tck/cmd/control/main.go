@@ -94,6 +94,20 @@ func (c *control) seed(ctx context.Context) error {
 			return fmt.Errorf("seed flag %q: %w", fp.Key, err)
 		}
 	}
+
+	for _, def := range customFlags() {
+		payload, err := json.Marshal(def.payload)
+		if err != nil {
+			return fmt.Errorf("marshal flag %q: %w", def.key, err)
+		}
+		if err := c.flipt.putOrCreate(ctx, resourceRequest{
+			NamespaceKey: namespaceKey,
+			Key:          def.key,
+			Payload:      payload,
+		}); err != nil {
+			return fmt.Errorf("seed flag %q: %w", def.key, err)
+		}
+	}
 	return nil
 }
 
