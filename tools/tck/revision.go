@@ -27,7 +27,7 @@ package tck
 // apart on purpose -- this one says which revision is being claimed, that one
 // says the bytes match the claim -- and Appendix F's run-integrity rules are
 // satisfied by the second.
-const SpecRevision = "v0.0.0-20261002084519-9a1b36d54700"
+const SpecRevision = "v0.0.0-20261007125800-068f936b8eb4"
 
 // SpecModulePath is the module the conformance assets come from.
 //
