@@ -15,6 +15,7 @@ import (
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thomaspoignant/go-feature-flag/modules/core/flag"
 )
 
 const initialConfiguration = `{
@@ -241,4 +242,18 @@ func assertNoEvent(t *testing.T, events <-chan openfeature.Event) {
 		t.Fatalf("unexpected provider event: %+v", event)
 	default:
 	}
+}
+
+func TestInProcess_IsFlagTrackable(t *testing.T) {
+	off := false
+	on := true
+	i := &InProcess{flagConfig: map[string]flag.InternalFlag{
+		"untracked": {TrackEvents: &off},
+		"tracked":   {TrackEvents: &on},
+		"unset":     {},
+	}}
+	assert.False(t, i.IsFlagTrackable("untracked"))
+	assert.True(t, i.IsFlagTrackable("tracked"))
+	assert.True(t, i.IsFlagTrackable("unset"))
+	assert.True(t, i.IsFlagTrackable("missing"))
 }

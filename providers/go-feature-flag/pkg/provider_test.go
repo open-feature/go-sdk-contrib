@@ -2042,3 +2042,43 @@ func TestProvider_Remote_DataCollector(t *testing.T) {
 		assert.Equal(t, 0, cli.collectorCallCount)
 	})
 }
+
+func TestProvider_InProcess_DataCollectorRespectsTrackEvents(t *testing.T) {
+	var mu sync.Mutex
+	var collected []string
+	cli := &inprocessMockClient{}
+	transport := func(req *http.Request) *http.Response {
+		if strings.HasSuffix(req.URL.Path, "/v1/data/collector") {
+			body, _ := io.ReadAll(req.Body)
+			var captured struct {
+				Events []model.FeatureEvent `json:"events"`
+			}
+			require.NoError(t, json.Unmarshal(body, &captured))
+			mu.Lock()
+			for _, e := range captured.Events {
+				collected = append(collected, e.Key)
+			}
+			mu.Unlock()
+		}
+		return cli.roundTripFunc(req)
+	}
+	provider, err := NewProvider(ProviderOptions{
+		Endpoint:       "https://gofeatureflag.org/",
+		HTTPClient:     NewMockClient(transport),
+		EvaluationType: EvaluationTypeInProcess,
+	})
+	require.NoError(t, err)
+	require.NoError(t, openfeature.SetNamedProviderAndWait(t.Name(), provider))
+	t.Cleanup(func() { _ = openfeature.SetNamedProviderAndWait(t.Name(), openfeature.NoopProvider{}) })
+	client := openfeature.NewClient(t.Name())
+
+	_, err = client.StringValueDetails(context.TODO(), "string_key", "default", defaultEvaluationCtx())
+	require.NoError(t, err)
+	_, err = client.BooleanValueDetails(context.TODO(), "bool_targeting_match", false, defaultEvaluationCtx())
+	require.NoError(t, err)
+
+	require.NoError(t, provider.dataCollectorMgr.SendData(context.Background()))
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []string{"bool_targeting_match"}, collected)
+}
