@@ -301,6 +301,7 @@ github.com/oklog/ulid/v2 v2.1.1 h1:suPZ4ARWLOJLegGFiZZ1dFAkqzhMjL3J1TzI+5wHz8s=
 github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/open-feature/go-sdk v1.18.0 h1:+Ge8LAJjqDwQBqAWaWiTbnsiJ22d5SPQq7/hOiBwpqM=
 github.com/open-feature/go-sdk v1.18.0/go.mod h1:LOlB7jvyi3hz9mp7R2uIwCv+wcabCB4ir76AZJ1z2IQ=
+github.com/open-feature/spec v0.9.1-0.20261008102837-347974f8ae53 h1:KvuvtQrVQ0kD3XTYRr6eU3RpawHfJdbEF+9Db0wNMNE=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260916063014-bda599f1db44 h1:ybmm41t1ijjmrox9F1WvqMtUYDSfXjjsYvI+SyN9mJQ=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260916063014-bda599f1db44/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20260916193100-ff68adb4c761 h1:2Lfvw0Gn9YB+7MOhzqyk1FzElD//hQzRBZD7FQWULqM=
@@ -311,6 +312,8 @@ github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-2026100208
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261002084519-9a1b36d54700/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261007125800-068f936b8eb4 h1:9dCt/jt4KviMfXDYUhKm59Jq1Uj65OWBipd+EOsmZVY=
 github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261007125800-068f936b8eb4/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
+github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261008102837-347974f8ae53 h1:FsHqzelYnAPBbFNWEDOUBcBtW77ShS/Ey5iNZ1TgpLA=
+github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261008102837-347974f8ae53/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
