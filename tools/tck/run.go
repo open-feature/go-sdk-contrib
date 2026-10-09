@@ -127,8 +127,18 @@ type runner struct {
 	caps capabilitySet
 	t    *testing.T
 
-	mu    sync.Mutex
-	skips []skippedScenario
+	mu       sync.Mutex
+	skips    []skippedScenario
+	disabled []disabledScenario
+}
+
+// disabledScenario records a scenario that did not run because a known
+// deviation named it explicitly. Unlike a capability skip, which says the
+// provider declined the question, this says the provider cannot answer yet
+// and the deviation summary says why.
+type disabledScenario struct {
+	name    string
+	summary string
 }
 
 // skippedScenario records a scenario that did not run because the capability it
@@ -192,6 +202,13 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 			sc.Name, sc.Uri, tag, extensionsRoot)
 	}
 
+	if deviation, disabled := r.disabledDeviation(sc.Name); disabled {
+		r.recordDisabled(sc.Name, deviation.Summary)
+		return ctx, fmt.Errorf(
+			"%w: scenario explicitly disabled by a known deviation: %s",
+			godog.ErrSkip, deviation.Summary)
+	}
+
 	if capability, missing := r.missingCapability(sc); missing {
 		reason, inexpressible := capability.IsInexpressible()
 		r.recordSkip(sc.Name, capability, reason)
@@ -225,6 +242,18 @@ func (r *runner) afterScenario(ctx context.Context, _ *godog.Scenario, err error
 		state.teardown()
 	}
 	return ctx, err
+}
+
+// disabledDeviation reports the known deviation that disables a scenario,
+// if any. The name comes from the deviation summary's "<scenario name>:"
+// prefix; see KnownDeviation.Summary.
+func (r *runner) disabledDeviation(name string) (KnownDeviation, bool) {
+	for _, d := range r.cfg.KnownDeviations {
+		if scenario, ok := d.DisabledScenario(); ok && scenario == name {
+			return d, true
+		}
+	}
+	return KnownDeviation{}, false
 }
 
 // missingCapability reports the first capability a scenario needs that the
@@ -314,7 +343,14 @@ func (r *runner) recordSkip(scenario string, capability Capability, inexpressibl
 	})
 }
 
-// reportSkips prints every capability-gated skip with its reason.
+func (r *runner) recordDisabled(scenario, summary string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.disabled = append(r.disabled, disabledScenario{name: scenario, summary: summary})
+}
+
+// reportSkips prints every capability-gated skip and every explicitly disabled
+// scenario with its reason.
 //
 // A conformance suite that quietly goes green on scenarios it did not run is
 // worse than no suite at all, so the skips and the reason for each are
@@ -324,56 +360,78 @@ func (r *runner) reportSkips() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if len(r.skips) == 0 {
+	if len(r.skips) == 0 && len(r.disabled) == 0 {
 		r.t.Logf("tck [%s]: every applicable scenario ran; no capability was left undeclared",
 			r.cfg.Name)
 		return
 	}
 
-	sorted := make([]skippedScenario, len(r.skips))
-	copy(sorted, r.skips)
-	sort.Slice(sorted, func(i, j int) bool {
-		if sorted[i].capability != sorted[j].capability {
-			return sorted[i].capability < sorted[j].capability
+	report := []string{}
+
+	if len(r.skips) > 0 {
+		sorted := make([]skippedScenario, len(r.skips))
+		copy(sorted, r.skips)
+		sort.Slice(sorted, func(i, j int) bool {
+			if sorted[i].capability != sorted[j].capability {
+				return sorted[i].capability < sorted[j].capability
+			}
+			return sorted[i].name < sorted[j].name
+		})
+
+		withheld, unaskable := 0, 0
+		for _, s := range sorted {
+			if s.inexpressible == "" {
+				withheld++
+			} else {
+				unaskable++
+			}
 		}
-		return sorted[i].name < sorted[j].name
-	})
 
-	withheld, unaskable := 0, 0
-	for _, s := range sorted {
-		if s.inexpressible == "" {
-			withheld++
-		} else {
-			unaskable++
+		// The headline splits the two only when both are present, so the common
+		// case reads as it always did. Conflating them would tell a reader that a
+		// provider declined something no provider in this language can be asked.
+		headline := fmt.Sprintf("tck [%s]: %d scenario(s) skipped because a capability was not declared.",
+			r.cfg.Name, len(sorted))
+		if unaskable > 0 {
+			headline = fmt.Sprintf(
+				"tck [%s]: %d scenario(s) skipped -- %d because this provider does not declare the "+
+					"capability, %d because the Go SDK cannot express it and no provider here could.",
+				r.cfg.Name, len(sorted), withheld, unaskable)
 		}
-	}
 
-	// The headline splits the two only when both are present, so the common
-	// case reads as it always did. Conflating them would tell a reader that a
-	// provider declined something no provider in this language can be asked.
-	headline := fmt.Sprintf("tck [%s]: %d scenario(s) skipped because a capability was not declared.",
-		r.cfg.Name, len(sorted))
-	if unaskable > 0 {
-		headline = fmt.Sprintf(
-			"tck [%s]: %d scenario(s) skipped -- %d because this provider does not declare the "+
-				"capability, %d because the Go SDK cannot express it and no provider here could.",
-			r.cfg.Name, len(sorted), withheld, unaskable)
-	}
-
-	report := []string{
-		headline,
-		"These were NOT run and are NOT part of the conformance result:",
-	}
-	for _, s := range sorted {
 		report = append(report,
-			fmt.Sprintf("  - %s", s.name),
-			fmt.Sprintf("      needs %s (tag %s)", s.capability, s.capability.Tag()))
-		if s.inexpressible != "" {
+			headline,
+			"These were NOT run and are NOT part of the conformance result:",
+		)
+		for _, s := range sorted {
 			report = append(report,
-				fmt.Sprintf("      the Go SDK cannot express it, so this says nothing about the provider: %s",
-					s.inexpressible))
+				fmt.Sprintf("  - %s", s.name),
+				fmt.Sprintf("      needs %s (tag %s)", s.capability, s.capability.Tag()))
+			if s.inexpressible != "" {
+				report = append(report,
+					fmt.Sprintf("      the Go SDK cannot express it, so this says nothing about the provider: %s",
+						s.inexpressible))
+			}
 		}
 	}
+
+	if len(r.disabled) > 0 {
+		sorted := make([]disabledScenario, len(r.disabled))
+		copy(sorted, r.disabled)
+		sort.Slice(sorted, func(i, j int) bool { return sorted[i].name < sorted[j].name })
+
+		report = append(report,
+			fmt.Sprintf("tck [%s]: %d scenario(s) disabled by known deviations.",
+				r.cfg.Name, len(sorted)),
+			"These were NOT run and are NOT part of the conformance result:",
+		)
+		for _, s := range sorted {
+			report = append(report,
+				fmt.Sprintf("  - %s", s.name),
+				fmt.Sprintf("      disabled: %s", s.summary))
+		}
+	}
+
 	report = append(report, "Declared capabilities: "+formatCapabilities(r.caps.sorted()))
 
 	r.t.Log(strings.Join(report, "\n"))

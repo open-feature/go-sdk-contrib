@@ -217,6 +217,12 @@ a reserved capability, and so is one naming a capability the SDK cannot express 
 cases the entry would explain a skip that says nothing about your provider. The list is empty by
 default, which is silence rather than a claim.
 
+A summary of the form "<scenario name>: <explanation>" additionally disables the named scenario
+by exact godog scenario name: it is skipped rather than run to failure, and reported as disabled
+rather than as a capability skip. A summary without a colon disables nothing. Outline rows share
+one scenario name, so naming an outline disables every row it has — re-assert the rows that do
+pass as vendor scenarios under `tck.WithFeatures` when that matters.
+
 ## Controlling the backend
 
 `tck.BackendControl` is the single seam between the scenarios and whatever manipulates the backend,
