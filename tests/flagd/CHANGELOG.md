@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.3.0...tests/flagd/v2.4.0) (2026-10-10)
+
+
+### ✨ New Features
+
+* **flagd:** add new context enrichment approach for in-process provider ([#730](https://github.com/open-feature/go-sdk-contrib/issues/730)) ([fa4217b](https://github.com/open-feature/go-sdk-contrib/commit/fa4217b185b745eb9f4b59f76e0aab1b46616c9a))
+
 ## [2.3.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.2.0...tests/flagd/v2.3.0) (2026-09-23)
 
 
