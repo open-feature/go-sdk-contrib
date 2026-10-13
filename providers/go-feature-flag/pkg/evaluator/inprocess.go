@@ -289,3 +289,11 @@ func toResolutionError(errorCode flag.ErrorCode, msg string) openfeature.Resolut
 		return openfeature.NewGeneralResolutionError(msg)
 	}
 }
+
+// IsFlagTrackable reports the flag's trackEvents setting; unknown flags are trackable so their errors stay visible.
+func (i *InProcess) IsFlagTrackable(flagName string) bool {
+	i.mu.RLock()
+	f, ok := i.flagConfig[flagName]
+	i.mu.RUnlock()
+	return !ok || f.IsTrackEvents()
+}

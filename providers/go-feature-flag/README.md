@@ -191,6 +191,8 @@ if adminFlag {
 
 In `INPROCESS` mode, the provider automatically collects a flag evaluation event every time a flag is evaluated. These events are batched in memory and flushed to the relay-proxy data collector endpoint (`POST /v1/data/collector`) periodically or when the buffer is full.
 
+Flags configured with `trackEvents: false` are skipped, matching the GO Feature Flag flag configuration.
+
 Each event records:
 - The flag key and the variation that was served
 - The user key and whether the user was anonymous

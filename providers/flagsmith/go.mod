@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/flagsmith
 go 1.26.0
 
 require (
-	github.com/Flagsmith/flagsmith-go-client/v5 v5.2.0
+	github.com/Flagsmith/flagsmith-go-client/v5 v5.3.0
 	github.com/open-feature/go-sdk v1.19.0
 	github.com/stretchr/testify v1.12.1
 )
@@ -15,5 +15,5 @@ require (
 	github.com/ohler55/ojg v1.28.1 // indirect
 	go.uber.org/mock v0.6.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 )
