@@ -174,7 +174,7 @@ if adminFlag {
 | `ExporterMetadata` | Metadata attached to exported evaluation and tracking events. |
 | `EvaluationType` | Selects `INPROCESS` or `REMOTE`. Default is `INPROCESS`. |
 | `FlagChangePollingInterval` | In `INPROCESS` mode: how often local flag configuration is refreshed. In `REMOTE` mode: how often the provider checks for flag changes to invalidate the evaluation cache. Default 2 minutes. |
-| `DataCollectorMaxEventStored` | Maximum number of buffered events before the collector flushes the queue on a subsequent add. |
+| `DataCollectorMaxEventStored` | Maximum number of buffered events. Reaching it triggers a background flush; beyond it the oldest events are dropped. |
 | `DataCollectorCollectInterval` | Interval used to send buffered events to the relay-proxy data collector. |
 | `DataCollectorDisabled` | Disables event collection and tracking export. |
 | `DataCollectorBaseURL` | Overrides the base URL used only for the data collector endpoint. |
@@ -190,6 +190,8 @@ if adminFlag {
 ### Flag usage events (automatic)
 
 In `INPROCESS` mode, the provider automatically collects a flag evaluation event every time a flag is evaluated. These events are batched in memory and flushed to the relay-proxy data collector endpoint (`POST /v1/data/collector`) periodically or when the buffer is full.
+
+Flags configured with `trackEvents: false` are skipped, matching the GO Feature Flag flag configuration.
 
 Each event records:
 - The flag key and the variation that was served
@@ -227,7 +229,7 @@ Use the `DataCollector` options to tune or disable collection:
 | --- | --- | --- |
 | `DataCollectorDisabled` | `false` | Set to `true` to disable all event collection. |
 | `DataCollectorCollectInterval` | 2 minutes | How often buffered events are flushed to the relay-proxy. |
-| `DataCollectorMaxEventStored` | 100 000 | Buffer size. When the buffer is full the provider flushes immediately before queuing the next event. |
+| `DataCollectorMaxEventStored` | 100 000 | Buffer size. When the buffer is full a flush is triggered in the background; flag evaluations never wait on it. If the relay-proxy is unreachable, the oldest events are dropped. |
 | `DataCollectorBaseURL` | same as `Endpoint` | Override the base URL used only for the data collector endpoint. |
 
 ## Operational notes

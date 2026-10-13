@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.2...providers/go-feature-flag/v1.1.3) (2026-10-12)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** respect trackEvents in the in-process data collector ([#1034](https://github.com/open-feature/go-sdk-contrib/issues/1034)) ([092134b](https://github.com/open-feature/go-sdk-contrib/commit/092134b6421453040469c964e76483156d1102da))
+
+## [1.1.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.1...providers/go-feature-flag/v1.1.2) (2026-10-07)
+
+
+### 🐛 Bug Fixes
+
+* **go-feature-flag:** do not block flag evaluation on data collector sends ([#1024](https://github.com/open-feature/go-sdk-contrib/issues/1024)) ([a28cb76](https://github.com/open-feature/go-sdk-contrib/commit/a28cb76717dcb7e6aa1bf5dbe2532d58a939ca0b))
+
 ## [1.1.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.0...providers/go-feature-flag/v1.1.1) (2026-07-02)
 
 
