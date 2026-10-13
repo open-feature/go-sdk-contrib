@@ -63,7 +63,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 
 	var dcm controller.DataCollectorManager
 	if !options.DataCollectorDisabled {
-		dcm = controller.NewDataCollectorManager(*goffAPI, options.DataCollectorMaxEventStored, options.DataCollectorCollectInterval)
+		dcm = controller.NewDataCollectorManager(*goffAPI, options.DataCollectorMaxEventStored, options.DataCollectorCollectInterval, options.Logger)
 	}
 
 	eventStream := make(chan openfeature.Event, eventChannelBuffer)
@@ -75,7 +75,7 @@ func NewProviderWithContext(ctx context.Context, options ProviderOptions) (*Prov
 		evaluator:        ev,
 		logger:           options.Logger,
 	}
-	p.hooks = buildHooks(options, &p.dataCollectorMgr)
+	p.hooks = buildHooks(options, &p.dataCollectorMgr, ev)
 	return p, nil
 }
 
@@ -189,14 +189,18 @@ func selectEvaluator(options ProviderOptions, goffAPI *api.GoFeatureFlagAPI, eve
 }
 
 // buildHooks constructs the list of hooks for the provider.
-func buildHooks(options ProviderOptions, dcm *controller.DataCollectorManager) []openfeature.Hook {
+func buildHooks(options ProviderOptions, dcm *controller.DataCollectorManager, ev evaluator.Evaluator) []openfeature.Hook {
 	hooks := []openfeature.Hook{
 		hook.NewEvaluationEnrichmentHook(options.ExporterMetadata),
 	}
 
 	if !options.DataCollectorDisabled &&
 		(options.EvaluationType != EvaluationTypeRemote || !options.DisableCache) {
-		hooks = append(hooks, hook.NewDataCollectorHook(dcm, string(options.EvaluationType)))
+		var isTrackable []func(string) bool
+		if t, ok := ev.(interface{ IsFlagTrackable(string) bool }); ok {
+			isTrackable = append(isTrackable, t.IsFlagTrackable)
+		}
+		hooks = append(hooks, hook.NewDataCollectorHook(dcm, string(options.EvaluationType), isTrackable...))
 	}
 	return hooks
 }

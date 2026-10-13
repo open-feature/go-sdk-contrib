@@ -220,3 +220,23 @@ func Test_DataCollectorHook_Remote_NonCachedReason_DoesNotCollectEvent(t *testin
 	// No events collected → collector should not have called the endpoint
 	assert.Equal(t, 0, mrt.numberCall)
 }
+
+func Test_DataCollectorHook_SkipsUntrackableFlags(t *testing.T) {
+	mrt := &hookMockRoundTripper{status: http.StatusOK}
+	goffAPI := *api.NewGoFeatureFlagAPI(api.GoFeatureFlagAPIOptions{
+		Endpoint:   "http://localhost:1031",
+		HTTPClient: &http.Client{Transport: mrt},
+	})
+	collector := manager.NewDataCollectorManager(goffAPI, 100, 0)
+	h := hook.NewDataCollectorHook(&collector, "INPROCESS", func(flagKey string) bool { return flagKey != "test-flag" })
+	hookCtx := newHookContext("user-123", map[string]any{})
+	evalDetails := openfeature.InterfaceEvaluationDetails{
+		Value:             true,
+		EvaluationDetails: openfeature.EvaluationDetails{FlagKey: "test-flag", FlagType: openfeature.Boolean},
+	}
+
+	require.NoError(t, h.After(context.Background(), hookCtx, evalDetails, openfeature.HookHints{}))
+	h.Error(context.Background(), hookCtx, errors.New("boom"), openfeature.HookHints{})
+	require.NoError(t, collector.SendData(context.Background()))
+	assert.Equal(t, 0, mrt.numberCall)
+}

@@ -10,14 +10,21 @@ import (
 
 const evaluationTypeRemote = "REMOTE"
 
-func NewDataCollectorHook(dataCollectorManager *manager.DataCollectorManager, evaluationType string) openfeature.Hook {
-	return &dataCollectorHook{dataCollectorManager: dataCollectorManager, evaluationType: evaluationType}
+// NewDataCollectorHook collects evaluation events; the optional isTrackable skips flags whose trackEvents is false.
+func NewDataCollectorHook(dataCollectorManager *manager.DataCollectorManager, evaluationType string,
+	isTrackable ...func(flagKey string) bool) openfeature.Hook {
+	h := &dataCollectorHook{dataCollectorManager: dataCollectorManager, evaluationType: evaluationType}
+	if len(isTrackable) > 0 {
+		h.isTrackable = isTrackable[0]
+	}
+	return h
 }
 
 type dataCollectorHook struct {
 	openfeature.UnimplementedHook
 	dataCollectorManager *manager.DataCollectorManager
 	evaluationType       string
+	isTrackable          func(flagKey string) bool
 }
 
 func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookContext,
@@ -25,6 +32,9 @@ func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookCon
 	if d.evaluationType == evaluationTypeRemote &&
 		evalDetails.Reason != openfeature.CachedReason {
 		// only collect events for remote evaluation if the reason is cached
+		return nil
+	}
+	if !d.trackable(hookCtx.FlagKey()) {
 		return nil
 	}
 
@@ -43,6 +53,9 @@ func (d *dataCollectorHook) After(_ context.Context, hookCtx openfeature.HookCon
 
 func (d *dataCollectorHook) Error(_ context.Context, hookCtx openfeature.HookContext,
 	err error, hint openfeature.HookHints) {
+	if !d.trackable(hookCtx.FlagKey()) {
+		return
+	}
 	event := model.NewFeatureEvent(
 		hookCtx.EvaluationContext(),
 		hookCtx.FlagKey(),
@@ -53,6 +66,10 @@ func (d *dataCollectorHook) Error(_ context.Context, hookCtx openfeature.HookCon
 		getSource(d.evaluationType),
 	)
 	_ = d.dataCollectorManager.AddEvent(event)
+}
+
+func (d *dataCollectorHook) trackable(flagKey string) bool {
+	return d.isTrackable == nil || d.isTrackable(flagKey)
 }
 
 func getSource(evaluationType string) string {
