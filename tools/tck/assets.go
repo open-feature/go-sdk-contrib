@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strconv"
 
 	spectck "github.com/open-feature/spec/specification/assets/provider-tck"
 )
@@ -94,7 +95,7 @@ func assetsDigest() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("reading the embedded asset %s: %w", name, err)
 		}
-		hash.Write([]byte(fmt.Sprintf("%s\n%d\n", name, len(body))))
+		hash.Write([]byte(name + "\n" + strconv.Itoa(len(body)) + "\n"))
 		hash.Write(body)
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
