@@ -70,7 +70,14 @@ the provider changed, the question got asked at the right granularity.
 
 ## Capabilities
 
-Declared: `@object`, `@large-integers`, `@targeting`.
+Declared: `@object`, `@large-integers`, `@targeting`, `@disabled-flags`, `@standard-reasons`,
+`@numeric-coercion`, `@string-typing`.
+
+`@standard-reasons` and `@numeric-coercion` are declared **and each fails one scenario** — see "Why
+the 2 fail" above. Declared rather than withheld because the provider attempts both and answers
+wrongly, which a skip cannot express. Withholding `@standard-reasons` would also be expensive:
+`reason.feature` is gated at feature level, so it would discard eight passing scenarios to hide one
+failure.
 
 `@targeting` holds via the one mechanism Flagsmith has for it. A targeting key **is** a Flagsmith
 identifier — the provider calls `GetIdentityFlags(targetingKey)` whenever one is present — so the
@@ -105,12 +112,6 @@ an `openfeature.EventHandler`.
 
 None of these get a `KnownDeviation`. The specification does not require a provider to implement
 `StateHandler` or `EventHandler`, so declining them is an option the contract offers, not a defect.
-
-`@numeric-coercion` is the exception: it is withheld because of a **defect**, and it carries a
-deviation entry. The two numeric accessors disagree about the wire type — `IntEvaluation` asserts
-`float64` (a JSON number) while `FloatEvaluation` asserts `string` and calls `ParseFloat` — so a
-Flagsmith integer feature resolves through `GetIntValue` and returns `TYPE_MISMATCH` through
-`GetFloatValue`. No seeding satisfies both.
 
 ## Consequences worth knowing
 
