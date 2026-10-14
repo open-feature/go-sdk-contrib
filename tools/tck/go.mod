@@ -6,7 +6,7 @@ require (
 	github.com/cucumber/godog v0.16.0
 	github.com/cucumber/messages/go/v34 v34.2.1
 	github.com/open-feature/go-sdk v1.19.0
-	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261013183345-986958f8f326
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261014140542-2c5e8bb8e264
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/compose v0.44.0
 )
