@@ -65,12 +65,11 @@ const (
 	// flag management system to the caller's default value, with no error.
 	//
 	// Declare it when a disabled flag comes back as the code default with no
-	// error code. The Go SDK's memprovider.InMemoryProvider attaches a GENERAL
-	// resolution error alongside reason DISABLED, so the error-code assertion
-	// fails and none of the in-memory self-tests declares this — measured by
-	// TestCanonicalFlagSetDisabledFlagsCarryAnError, which will fail if the SDK
-	// stops doing it. Optional, and deliberately not composed with Variants;
-	// Appendix F explains why.
+	// error code. A provider that serves the default but attaches a resolution
+	// error to it fails the error-code assertion and every row of the outline
+	// with it, which is what the Go SDK's memprovider did before go-sdk#574.
+	// Optional, and deliberately not composed with Variants; Appendix F
+	// explains why.
 	DisabledFlags Capability = "@disabled-flags"
 
 	// UnavailableInit means the provider reports an error state promptly,

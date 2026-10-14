@@ -46,12 +46,8 @@ func TestMultiProvider(t *testing.T) {
 		// makes. Asserting it again through the wrapper would say nothing about
 		// delegation.
 		//
-		// A wrapper cannot pass a scenario its child fails, so NumericCoercion,
-		// Targeting and DisabledFlags are omitted for the reasons
-		// TestInMemoryProvider gives. DisabledFlags is worth revisiting:
-		// dropping an error code on the hop is one of the failure modes this
-		// suite exists to see, so declare it here as soon as the child can pass
-		// it rather than leaving it withheld.
+		// A wrapper cannot pass a scenario its child fails, so NumericCoercion
+		// and Targeting are omitted for the reasons TestInMemoryProvider gives.
 		//
 		// The declared ones are each a delegation question. LargeIntegers: does
 		// the int64 survive the hop. Variants: a dropped variant name is the
@@ -62,7 +58,10 @@ func TestMultiProvider(t *testing.T) {
 		// has to reach the caller as TYPE_MISMATCH rather than being swallowed,
 		// and a float or a map is what a wrapper is most likely to flatten.
 		// ConfigurationChange: Go's multi-provider forwards
-		// PROVIDER_CONFIGURATION_CHANGED straight through.
+		// PROVIDER_CONFIGURATION_CHANGED straight through. DisabledFlags:
+		// dropping an error code on the hop is one of the failure modes this
+		// suite exists to see, and the capability asserts an *empty* one, so a
+		// wrapper that invented an error would be caught here.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.ConfigurationChange,
@@ -72,6 +71,7 @@ func TestMultiProvider(t *testing.T) {
 			tck.StandardReasons,
 			tck.StringTyping,
 			tck.FullyTypedValues,
+			tck.DisabledFlags,
 		),
 	)
 }

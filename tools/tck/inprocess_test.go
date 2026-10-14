@@ -285,48 +285,6 @@ func TestOnlyTheDisabledFlagsAreDisabled(t *testing.T) {
 	}
 }
 
-// TestCanonicalFlagSetDisabledFlagsCarryAnError is the evidence behind every
-// in-memory suite leaving tck.DisabledFlags undeclared, and the gap is in the
-// Go SDK rather than in this suite or in the flag set.
-//
-// memprovider.InMemoryProvider returns the caller's default for a disabled flag,
-// which is the value half of the capability, but attaches a GENERAL resolution
-// error to it while setting reason DISABLED (Resolve in
-// openfeature/memprovider/in_memory_provider.go). So "the error-code should be
-// \"\"" fails, all four rows of the outline with it, and the capability is
-// withheld.
-//
-// Pinned here because the withholding is otherwise invisible, being an absence
-// from the self-test Config literals. When the SDK stops attaching the error
-// this test fails, and the fix is to declare the capability in the self-test
-// suites rather than to relax the assertion.
-func TestCanonicalFlagSetDisabledFlagsCarryAnError(t *testing.T) {
-	ctx := context.Background()
-	provider := tck.NewInProcessControl().NewProvider()
-
-	result := provider.BooleanEvaluation(ctx, "disabled-boolean-flag", false, nil)
-
-	if result.Value {
-		t.Errorf("disabled-boolean-flag resolved to true, so the state was ignored and its " +
-			"configured variant was served; the caller passed false")
-	}
-	code := result.ResolutionDetail().ErrorCode
-	if code == "" {
-		t.Fatal("disabled-boolean-flag now resolves with no error code, which is the whole of " +
-			"tck.DisabledFlags: declare the capability in the in-memory self-test suites and " +
-			"delete this test")
-	}
-	if code != openfeature.GeneralCode {
-		t.Errorf("disabled-boolean-flag resolved with error code %q; the capability is withheld "+
-			"on the strength of it being %q, so a different code means the reason for "+
-			"withholding has changed", code, openfeature.GeneralCode)
-	}
-	if result.Reason != openfeature.DisabledReason {
-		t.Errorf("disabled-boolean-flag resolved with reason %q, want %q", result.Reason,
-			openfeature.DisabledReason)
-	}
-}
-
 // TestCanonicalFlagSetEvaluatesNoTargeting is the evidence behind every
 // in-process suite leaving tck.Targeting undeclared.
 //
