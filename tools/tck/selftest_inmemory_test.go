@@ -50,21 +50,17 @@ func TestInMemoryProvider(t *testing.T) {
 		//     refuses integral-float-flag (10.0) as an integer and
 		//     integer-flag (10) as a float as well as the lossy
 		//     float-flag (0.5) — and the lossless direction is required too.
-		//   - DisabledFlags: the one omission here that records a defect rather
-		//     than an absence. memprovider returns the caller's default but
-		//     attaches a GENERAL resolution error while reporting reason
-		//     DISABLED, so all four rows fail on the empty error-code —
-		//     measured by TestCanonicalFlagSetDisabledFlagsCarryAnError, which
-		//     also fails when the SDK stops doing it so the declaration can be
-		//     added. Withholding for an identified defect is allowed only under
-		//     Appendix F's self-test carve-out, whose condition is exactly that
-		//     pinning test. An adoption has no such licence.
 		//
 		// LargeIntegers, Variants, StandardReasons, StringTyping,
 		// FullyTypedValues and Object are declared: it hands back the int64 it
 		// was seeded with, reports the variant name, reports STATIC for a
 		// rule-less flag, and holds Go values, so there is no text
 		// representation for a float or a structure to be mistaken for.
+		//
+		// DisabledFlags is declared too, which it was not until go-sdk v1.19.0:
+		// memprovider used to return the caller's default for a disabled flag
+		// and attach a GENERAL resolution error to it, so all four rows failed
+		// on the empty error-code assertion. go-sdk#574 dropped the error.
 		tck.WithCapabilities(
 			tck.Events,
 			tck.Object,
@@ -73,6 +69,7 @@ func TestInMemoryProvider(t *testing.T) {
 			tck.StandardReasons,
 			tck.StringTyping,
 			tck.FullyTypedValues,
+			tck.DisabledFlags,
 		),
 	)
 }
