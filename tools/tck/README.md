@@ -406,13 +406,15 @@ than costing: a boolean, a number or a structure asked for through the string ac
 rather than formatted. The split between those two tags is about backends that keep floats and
 structures as text, which no in-memory flag set is — it holds Go values, so there is no text
 representation for either to be mistaken for.
-Two omissions are defects
-rather than absences — `@configuration-change` ([go-sdk#530][gosdk-530]: no update method, which
-[Appendix A][appendix-a] requires) and `@disabled-flags` ([go-sdk#552][gosdk-552], fixed by
-go-sdk#574 but unreleased: a disabled flag comes back with the caller's default *and* a `GENERAL`
-error) — and each is pinned by a test of its own, which is the condition [Appendix F's self-test
-carve-out][appendix-f-deviations] attaches to a TCK's own suites withholding a capability to stay
-green. An adoption has no such licence.
+One omission is a defect rather than an absence — `@configuration-change` ([go-sdk#530][gosdk-530]:
+no update method, which [Appendix A][appendix-a] requires) — and it is pinned by a test of its own,
+which is the condition [Appendix F's self-test carve-out][appendix-f-deviations] attaches to a TCK's
+own suites withholding a capability to stay green. An adoption has no such licence.
+
+`@disabled-flags` was the second until go-sdk v1.19.0, which carries the fix ([go-sdk#552][gosdk-552],
+fixed by go-sdk#574): a disabled flag used to come back with the caller's default *and* a `GENERAL`
+error. All three suites declare it now, and its pinning test is gone — which is what a pinning test
+is for.
 
 The flag set they are seeded from is decoded from the specification's `canonical-flags.json` rather
 than transcribed, keeping the type each number was written with — `10` an `int64` flag and `10.0` a

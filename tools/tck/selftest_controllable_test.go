@@ -45,9 +45,9 @@ func TestControllableProvider(t *testing.T) {
 		//
 		// Every resolution decision is still memprovider's, so the
 		// resolution-shaped capabilities match TestInMemoryProvider's exactly:
-		// NumericCoercion, Targeting and DisabledFlags are omitted for the
-		// reasons given there, and LargeIntegers, Variants, StandardReasons,
-		// StringTyping and FullyTypedValues are declared for the same reasons
+		// NumericCoercion and Targeting are omitted for the reasons given
+		// there, and LargeIntegers, Variants, StandardReasons, StringTyping,
+		// FullyTypedValues and DisabledFlags are declared for the same reasons
 		// in reverse. Wrapping changes nothing: this provider adds
 		// update-and-emit and delegates the rest.
 		tck.WithCapabilities(
@@ -61,6 +61,7 @@ func TestControllableProvider(t *testing.T) {
 			tck.StandardReasons,
 			tck.StringTyping,
 			tck.FullyTypedValues,
+			tck.DisabledFlags,
 		),
 	)
 }
