@@ -91,7 +91,7 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
-	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261013183345-986958f8f326 // indirect
+	github.com/open-feature/spec/specification/assets/provider-tck v0.0.0-20261014140542-2c5e8bb8e264 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.1 // indirect
