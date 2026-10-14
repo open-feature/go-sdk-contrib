@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	messages "github.com/cucumber/messages/go/v21"
+	messages "github.com/cucumber/messages/go/v34"
 )
 
 // The guard's job is to make a partial run impossible to mistake for a

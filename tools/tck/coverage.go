@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/cucumber/godog"
-	messages "github.com/cucumber/messages/go/v21"
+	messages "github.com/cucumber/messages/go/v34"
 )
 
 // WHY THE CANONICAL SET IS CHECKED AGAINST ITSELF

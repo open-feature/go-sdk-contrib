@@ -135,7 +135,7 @@ type ReportResults struct {
 	// produced against.
 	//
 	// Messages is versioned and implementations pin different releases -- this
-	// one builds against messages/go/v21 while cucumber-jvm ships a
+	// one builds against messages/go/v34 while cucumber-jvm ships a
 	// considerably later one -- and the message types differ between them.
 	// Without recording it a consumer validating this stream has to guess which
 	// schema to validate against, and guessing wrong is worse than not checking:

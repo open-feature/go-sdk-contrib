@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	messages "github.com/cucumber/messages/go/v21"
+	messages "github.com/cucumber/messages/go/v34"
 )
 
 // These tests drive the Messages formatter through godog's formatter events

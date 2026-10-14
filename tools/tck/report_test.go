@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	messages "github.com/cucumber/messages/go/v21"
+	messages "github.com/cucumber/messages/go/v34"
 	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"

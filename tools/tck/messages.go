@@ -12,7 +12,7 @@ import (
 
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/formatters"
-	messages "github.com/cucumber/messages/go/v21"
+	messages "github.com/cucumber/messages/go/v34"
 )
 
 // WHY THIS FILE EXISTS
@@ -81,11 +81,11 @@ import (
 // with it.
 const messagesFormatterName = "openfeature-tck-messages"
 
-const messagesModule = "github.com/cucumber/messages/go/v21"
+const messagesModule = "github.com/cucumber/messages/go/v34"
 
 // messagesProtocolVersionFallback is used when the build carries no module
 // version, which happens for a test binary built from the module itself.
-const messagesProtocolVersionFallback = "21.0.1"
+const messagesProtocolVersionFallback = "34.2.1"
 
 // resultsFormatCucumberMessages is the results format the report envelope
 // names. It is the schema's expected value.

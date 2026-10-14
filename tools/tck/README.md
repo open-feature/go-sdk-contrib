@@ -411,7 +411,7 @@ $ jq . reports/in-memory.json
   "declaration": { "declared": ["@events", "@fully-typed-values", "@large-integers", "@object", "@standard-reasons", "@string-typing", "@variants"] },
   "results": {
     "format": "cucumber-messages",
-    "formatVersion": "21.0.1",
+    "formatVersion": "34.2.1",
     "location": "in-memory.ndjson",
     "digest": "sha256:d2d9794229a3b644d7bcc2e29e0fc96b6cc66b1fb23564cf61896ae1b7738e1a"
   }
