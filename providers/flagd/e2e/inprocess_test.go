@@ -36,7 +36,7 @@ func TestInProcessProviderE2E(t *testing.T) {
 		" && ~@metadata" + // framework assertResolvedMetadata* steps are unimplemented stubs
 		" && ~@deprecated" +
 		" && ~@fractional-v1" + // legacy fractional algorithm
-		" && ~@fractional-v3" // cbor fractional not yet implemented
+		" && ~@fractional-v2" // pre-cbor fractional algorithm
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)
