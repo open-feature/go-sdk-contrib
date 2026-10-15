@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.7.1...providers/flagd/v0.8.0) (2026-10-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* bucket on any context type; (fractional re-assignment) ([#932](https://github.com/open-feature/go-sdk-contrib/issues/932))
+
+### ✨ New Features
+
+* bucket on any context type; (fractional re-assignment) ([#932](https://github.com/open-feature/go-sdk-contrib/issues/932)) ([4eda95c](https://github.com/open-feature/go-sdk-contrib/commit/4eda95caf7372f21c468cf121e19057ce5123317))
+
 ## [0.7.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.7.0...providers/flagd/v0.7.1) (2026-09-29)
 
 
