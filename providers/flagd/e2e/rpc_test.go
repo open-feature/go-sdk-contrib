@@ -31,7 +31,7 @@ func TestRPCProviderE2E(t *testing.T) {
 		" && ~@targetURI" + // target-uri scenarios not supported
 		" && ~@deprecated" +
 		" && ~@fractional-v1" + // legacy fractional algorithm
-		" && ~@fractional-v3" // cbor fractional not yet implemented
+		" && ~@fractional-v2" // pre-cbor fractional algorithm
 
 	if err := runner.RunGherkinTestsWithSubtests(t, featurePaths, tags); err != nil {
 		t.Fatalf("Gherkin tests failed: %v", err)
