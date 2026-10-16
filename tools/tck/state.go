@@ -82,7 +82,14 @@ type scenarioState struct {
 	// provider is the provider under test, held so that the lifecycle and
 	// metadata steps can address it directly. Evaluations go through client.
 	provider openfeature.FeatureProvider
-	client   *openfeature.Client
+
+	// providerName is the name the provider reports through its own metadata,
+	// captured so the conformance report identifies the provider rather than the
+	// suite. tck.WithName is chosen to read well in failure messages -- "flagd-rpc"
+	// -- and is the configuration, not the provider.
+	providerName string
+
+	client *openfeature.Client
 
 	flag *flagUnderTest
 
