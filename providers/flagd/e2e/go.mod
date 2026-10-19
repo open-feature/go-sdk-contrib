@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/cucumber/godog v0.16.0
-	github.com/open-feature/go-sdk-contrib/providers/flagd v0.7.1
+	github.com/open-feature/go-sdk-contrib/providers/flagd v0.8.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.7.0
 )
 
@@ -12,7 +12,7 @@ require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1 // indirect
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1 // indirect
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.12-20260824202443-4824facda674.2 // indirect
-	connectrpc.com/connect v1.21.0 // indirect
+	connectrpc.com/connect v1.21.1 // indirect
 	connectrpc.com/connect/v2 v2.0.0 // indirect
 	connectrpc.com/otelconnect v0.12.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
