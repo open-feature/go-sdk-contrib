@@ -94,17 +94,29 @@ type BackendControl interface {
 	// Description returns a short description of what is being controlled, for
 	// startup logging and for the failure messages of unsupported operations.
 	Description() string
+}
 
-	// BackendType states what kind of backend this control drives, for the
-	// conformance report.
-	//
-	// Required, with no default and nothing inferred from the concrete type.
-	// Both controls this package ships answer it already, so the only author
-	// who has to state it is the one writing a control of their own — which is
-	// exactly the case where it cannot be guessed. Such an author should
-	// answer BackendTypeCustom unless they genuinely drive the normative HTTP
-	// control API.
+// BackendTyper is implemented by a BackendControl that states what kind of
+// backend it drives, for the conformance report.
+//
+// It is a separate interface rather than a method on BackendControl so that a
+// control which cannot honestly claim either shipped path does not have to
+// claim one: a control that does not implement this is reported as
+// BackendTypeCustom. Both controls this package ships implement it, so the only
+// author who decides is the one writing a control of their own -- and the
+// default is the claim that overstates nothing.
+type BackendTyper interface {
+	// BackendType states what kind of backend this control drives.
 	BackendType() BackendType
+}
+
+// backendTypeOf reports what kind of backend a control drives, defaulting to
+// BackendTypeCustom for a control that does not say.
+func backendTypeOf(control BackendControl) BackendType {
+	if typed, ok := any(control).(BackendTyper); ok {
+		return typed.BackendType()
+	}
+	return BackendTypeCustom
 }
 
 // ConnectionControl is implemented by a BackendControl whose backend can be cut
