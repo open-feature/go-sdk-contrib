@@ -30,7 +30,11 @@ func TestMyProviderConformance(t *testing.T) {
 		tck.WithComposeFile("testdata/docker-compose.yaml"),
 		tck.WithBackendPorts(8013),
 		tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
-			return myprovider.New(e.Host(), e.Port(8013)), nil
+			port, err := e.Port(8013)
+			if err != nil {
+				return nil, err
+			}
+			return myprovider.New(e.Host(), port), nil
 		}),
 		tck.WithUnavailableProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return myprovider.New("localhost", 9999), nil
@@ -226,9 +230,10 @@ manipulated in-process.
 **If your provider talks to a backend, drive it over the HTTP control API** in
 [`control-api.yaml`][control-api], which this module exposes as bytes through `tck.ControlAPISpec()`.
 You do not have to write the client: `tck.WithComposeFile` builds a `tck.HTTPControl` for you, and it
-is also constructible directly with `tck.NewHTTPControl(tck.HTTPControlOptions{BaseURL: …})`.
-`BaseURL` is the only required field and must be built from the **dynamically mapped** host port
-discovered after the stack is up. `BackendConfiguration` defaults to
+is also constructible directly with `tck.NewHTTPControl(baseURL)`.
+The base URL must be built from the **dynamically mapped** host port
+discovered after the stack is up. `tck.WithControlBackendConfiguration` overrides the backend
+configuration, which defaults to
 `tck.DefaultBackendConfiguration`, the one name Appendix F requires every backend under test to
 serve.
 
@@ -254,7 +259,7 @@ tck.Run(t,
 	tck.WithName("in-memory"),
 	tck.WithControl(control),
 	tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
-		return control.NewProvider(), nil
+		return control.NewProvider()
 	}),
 	tck.WithCapabilities(tck.Events, tck.ConfigurationChange, tck.Object, tck.LargeIntegers),
 )

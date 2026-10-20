@@ -29,9 +29,13 @@ func TestMultiProvider(t *testing.T) {
 		WithName("multi-provider"),
 		WithControl(control),
 		WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+			inMemory, err := control.NewProvider()
+			if err != nil {
+				return nil, err
+			}
 			provider, err := multi.NewProvider(
 				multi.StrategyFirstMatch,
-				multi.WithProvider("in-memory", control.NewProvider()),
+				multi.WithProvider("in-memory", inMemory),
 			)
 			if err != nil {
 				return nil, err

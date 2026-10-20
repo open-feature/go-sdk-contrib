@@ -26,7 +26,7 @@ func TestControllableProvider(t *testing.T) {
 		WithName("controllable-in-memory"),
 		WithControl(control),
 		WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
-			return control.NewProvider(), nil
+			return control.NewProvider()
 		}),
 		// ConfigurationChange is what this suite adds over
 		// TestInMemoryProvider, and it is the whole point of it. Stale and

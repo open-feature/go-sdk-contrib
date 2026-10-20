@@ -68,7 +68,11 @@ type composeConfig struct {
 //	    tck.WithComposeFile("testdata/docker-compose.yaml"),
 //	    tck.WithBackendPorts(8013),
 //	    tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
-//	        return myprovider.New(e.Host(), e.Port(8013)), nil
+//	        port, err := e.Port(8013)
+//	        if err != nil {
+//	            return nil, err
+//	        }
+//	        return myprovider.New(e.Host(), port), nil
 //	    }),
 //	    tck.WithUnavailableProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 //	        return myprovider.New("localhost", 9999), nil
@@ -273,15 +277,20 @@ type servicePort struct {
 // Desktop on some platforms, or a rootless setup it can be an arbitrary address.
 // Always use this rather than hard-coding a host.
 func (e BackendEndpoint) Host() string {
-	return e.ServiceHost(e.defaultService)
+	// The backend service is always resolved, so there is nothing to fail.
+	return e.hosts[e.defaultService]
 }
 
 // ServiceHost returns the host a named service is reachable on.
-func (e BackendEndpoint) ServiceHost(service string) string {
+//
+// It fails for a service the suite did not expose.
+func (e BackendEndpoint) ServiceHost(service string) (string, error) {
 	if host, ok := e.hosts[service]; ok {
-		return host
+		return host, nil
 	}
-	panic(undeclaredService(service, e.services()))
+	return "", fmt.Errorf(
+		"tck: service %q is not part of the stack this suite exposed, so it has no host. Exposed: %v",
+		service, e.services())
 }
 
 // Port returns the host port mapped to a container-internal port on the backend
@@ -289,7 +298,7 @@ func (e BackendEndpoint) ServiceHost(service string) string {
 //
 // The port must have been declared through WithBackendPorts, which is what
 // caused it to be exposed at all.
-func (e BackendEndpoint) Port(internal int) int {
+func (e BackendEndpoint) Port(internal int) (int, error) {
 	return e.ServicePort(e.defaultService, internal)
 }
 
@@ -299,19 +308,19 @@ func (e BackendEndpoint) Port(internal int) int {
 // Use it for multi-service stacks. The service and port must have been declared
 // through WithAdditionalPorts, otherwise nothing exposed it.
 //
-// Asking for a port that was never declared panics rather than returning zero. A
+// Asking for a port that was never declared is an error rather than zero. A
 // provider handed port 0 fails with a connection error inside the first
-// scenario, which reads as a provider defect; the panic names the option that is
-// missing instead.
-func (e BackendEndpoint) ServicePort(service string, internal int) int {
+// scenario, which reads as a provider defect; the error names the option that
+// is missing instead.
+func (e BackendEndpoint) ServicePort(service string, internal int) (int, error) {
 	if port, ok := e.ports[servicePort{service: service, port: internal}]; ok {
-		return port
+		return port, nil
 	}
-	panic(fmt.Sprintf(
+	return 0, fmt.Errorf(
 		"tck: container port %d of service %q was never exposed, so it has no host port. "+
 			"Declare it with tck.WithBackendPorts (for the backend service) or "+
 			"tck.WithAdditionalPorts (for any other). Exposed: %s",
-		internal, service, e.describe()))
+		internal, service, e.describe())
 }
 
 func (e BackendEndpoint) services() []string {
@@ -336,12 +345,6 @@ func (e BackendEndpoint) describe() string {
 	return fmt.Sprint(mappings)
 }
 
-func undeclaredService(service string, known []string) string {
-	return fmt.Sprintf(
-		"tck: service %q is not part of the stack this suite exposed, so it has no host. Exposed: %v",
-		service, known)
-}
-
 // WithProviderFromEndpoint supplies the factory that creates the provider under
 // test against the Compose stack the suite started.
 //
@@ -350,7 +353,11 @@ func undeclaredService(service string, known []string) string {
 // stack is up, and each scenario gets its own provider.
 //
 //	tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
-//	    return myprovider.New(e.Host(), e.Port(8013)), nil
+//	    port, err := e.Port(8013)
+//	    if err != nil {
+//	        return nil, err
+//	    }
+//	    return myprovider.New(e.Host(), port), nil
 //	})
 //
 // Return a configured but uninitialised provider; the TCK owns the lifecycle
@@ -401,10 +408,15 @@ func startCompose(ctx context.Context, cc *composeConfig) (BackendEndpoint, *HTT
 		return BackendEndpoint{}, nil, nil, err
 	}
 
-	control, err := NewHTTPControl(HTTPControlOptions{
-		BaseURL:              fmt.Sprintf("http://%s:%d", endpoint.Host(), endpoint.Port(cc.control())),
-		BackendConfiguration: cc.backendConfig(),
-	})
+	controlPort, err := endpoint.Port(cc.control())
+	if err != nil {
+		stop()
+		return BackendEndpoint{}, nil, nil, err
+	}
+	control, err := NewHTTPControl(
+		fmt.Sprintf("http://%s:%d", endpoint.Host(), controlPort),
+		WithControlBackendConfiguration(cc.backendConfig()),
+	)
 	if err != nil {
 		stop()
 		return BackendEndpoint{}, nil, nil, err

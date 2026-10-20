@@ -69,55 +69,52 @@ var (
 	_ ConnectionControl = (*HTTPControl)(nil)
 )
 
-// HTTPControlOptions configures an HTTPControl.
-type HTTPControlOptions struct {
-	// BaseURL is the root of the control API, for example
-	// http://localhost:32768. Required.
-	//
-	// It must be built from the dynamically mapped host port of the control
-	// service, discovered after the stack is up. A stack under test must not
-	// pin host ports.
-	BaseURL string
+// HTTPControlOption configures an HTTPControl.
+type HTTPControlOption func(*HTTPControl)
 
-	// BackendConfiguration is the named flag configuration the backend is
-	// asked to serve. Defaults to DefaultBackendConfiguration, which is the
-	// only name every backend must support and the one serving the canonical
-	// flag set.
-	//
-	// Not to be confused with the provider's own configuration — its mode,
-	// which the report calls "configuration" and WithName supplies.
-	BackendConfiguration string
-
-	// Client is the HTTP client to use. Defaults to one with a 30 second
-	// timeout.
-	Client *http.Client
+// WithControlBackendConfiguration names the flag configuration the backend is
+// asked to serve. Without it the control asks for DefaultBackendConfiguration,
+// which is the only name every backend must support and the one serving the
+// canonical flag set.
+//
+// Not to be confused with the provider's own configuration — its mode, which
+// the report calls "configuration" and WithName supplies.
+func WithControlBackendConfiguration(name string) HTTPControlOption {
+	return func(c *HTTPControl) { c.backendConfiguration = name }
 }
 
-// NewHTTPControl returns a control that drives the backend at opts.BaseURL.
-func NewHTTPControl(opts HTTPControlOptions) (*HTTPControl, error) {
-	if opts.BaseURL == "" {
-		return nil, errors.New("HTTPControlOptions.BaseURL is required: it is the root of the " +
+// WithControlHTTPClient sets the HTTP client the control uses. Without it the
+// control uses one with a 30 second timeout.
+func WithControlHTTPClient(client *http.Client) HTTPControlOption {
+	return func(c *HTTPControl) { c.client = client }
+}
+
+// NewHTTPControl returns a control that drives the backend whose control API is
+// rooted at baseURL, for example http://localhost:32768.
+//
+// baseURL must be built from the dynamically mapped host port of the control
+// service, discovered after the stack is up. A stack under test must not pin
+// host ports.
+func NewHTTPControl(baseURL string, opts ...HTTPControlOption) (*HTTPControl, error) {
+	if baseURL == "" {
+		return nil, errors.New("the HTTP control needs a base URL: it is the root of the " +
 			"control API, built from the dynamically mapped host port of the control service")
 	}
-	if _, err := url.Parse(opts.BaseURL); err != nil {
-		return nil, fmt.Errorf("HTTPControlOptions.BaseURL %q is not a valid URL: %w", opts.BaseURL, err)
+	if _, err := url.Parse(baseURL); err != nil {
+		return nil, fmt.Errorf("control API base URL %q is not a valid URL: %w", baseURL, err)
 	}
 
-	backendConfiguration := opts.BackendConfiguration
-	if backendConfiguration == "" {
-		backendConfiguration = DefaultBackendConfiguration
+	control := &HTTPControl{baseURL: strings.TrimSuffix(baseURL, "/")}
+	for _, opt := range opts {
+		opt(control)
 	}
-
-	client := opts.Client
-	if client == nil {
-		client = &http.Client{Timeout: defaultControlTimeout}
+	if control.backendConfiguration == "" {
+		control.backendConfiguration = DefaultBackendConfiguration
 	}
-
-	return &HTTPControl{
-		baseURL:              strings.TrimSuffix(opts.BaseURL, "/"),
-		backendConfiguration: backendConfiguration,
-		client:               client,
-	}, nil
+	if control.client == nil {
+		control.client = &http.Client{Timeout: defaultControlTimeout}
+	}
+	return control, nil
 }
 
 // AwaitReady blocks until the control API is willing to accept commands, or

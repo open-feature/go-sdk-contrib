@@ -21,7 +21,11 @@
 //	        tck.WithComposeFile("testdata/docker-compose.yaml"),
 //	        tck.WithBackendPorts(8013),
 //	        tck.WithProviderFromEndpoint(func(_ context.Context, e tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
-//	            return myprovider.New(e.Host(), e.Port(8013)), nil
+//	            port, err := e.Port(8013)
+//	            if err != nil {
+//	                return nil, err
+//	            }
+//	            return myprovider.New(e.Host(), port), nil
 //	        }),
 //	        tck.WithUnavailableProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 //	            return myprovider.New("localhost", 9999), nil

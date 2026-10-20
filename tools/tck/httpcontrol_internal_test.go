@@ -102,11 +102,10 @@ func (a *fakeControlAPI) recorded() []string {
 	return append([]string(nil), a.calls...)
 }
 
-func (a *fakeControlAPI) control(t *testing.T, opts HTTPControlOptions) *HTTPControl {
+func (a *fakeControlAPI) control(t *testing.T, opts ...HTTPControlOption) *HTTPControl {
 	t.Helper()
 
-	opts.BaseURL = a.server.URL
-	control, err := NewHTTPControl(opts)
+	control, err := NewHTTPControl(a.server.URL, opts...)
 	if err != nil {
 		t.Fatalf("NewHTTPControl: %v", err)
 	}
@@ -131,7 +130,7 @@ const startDefault = "POST /start?config=default"
 
 func TestPrepareScenarioPrefersResetOverStart(t *testing.T) {
 	api := newFakeControlAPI(t)
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 
 	for scenario := range 3 {
 		if err := control.PrepareScenario(context.Background()); err != nil {
@@ -153,7 +152,7 @@ func TestPrepareScenarioFallsBackToStartWhenResetIsNotImplemented(t *testing.T) 
 		t.Run(fmt.Sprint(code), func(t *testing.T) {
 			api := newFakeControlAPI(t)
 			api.answer("/reset", code)
-			control := api.control(t, HTTPControlOptions{})
+			control := api.control(t)
 
 			if err := control.PrepareScenario(context.Background()); err != nil {
 				t.Fatalf("PrepareScenario: %v", err)
@@ -168,7 +167,7 @@ func TestPrepareScenarioFallsBackToStartWhenResetIsNotImplemented(t *testing.T) 
 func TestTheResetFallbackIsProbedOncePerSuiteAndThenRemembered(t *testing.T) {
 	api := newFakeControlAPI(t)
 	api.answer("/reset", http.StatusNotImplemented)
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 
 	for scenario := range 4 {
 		if err := control.PrepareScenario(context.Background()); err != nil {
@@ -185,7 +184,7 @@ func TestTheResetFallbackIsProbedOncePerSuiteAndThenRemembered(t *testing.T) {
 
 func TestADisconnectForcesStartRatherThanReset(t *testing.T) {
 	api := newFakeControlAPI(t)
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 	ctx := context.Background()
 
 	if err := control.PrepareScenario(ctx); err != nil {
@@ -220,7 +219,7 @@ func TestADisconnectForcesStartRatherThanReset(t *testing.T) {
 
 func TestReconnectEndsTheOutageSoTheNextScenarioResets(t *testing.T) {
 	api := newFakeControlAPI(t)
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 	ctx := context.Background()
 
 	if err := control.Disconnect(ctx); err != nil {
@@ -242,7 +241,7 @@ func TestReconnectEndsTheOutageSoTheNextScenarioResets(t *testing.T) {
 func TestAResetThatFailsIsNotTreatedAsAMissingEndpoint(t *testing.T) {
 	api := newFakeControlAPI(t)
 	api.answer("/reset", http.StatusInternalServerError)
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 
 	err := control.PrepareScenario(context.Background())
 	if err == nil {
@@ -262,7 +261,7 @@ func TestAResetThatFailsIsNotTreatedAsAMissingEndpoint(t *testing.T) {
 func TestTheBackendConfigurationTravelsOnEveryStart(t *testing.T) {
 	api := newFakeControlAPI(t)
 	api.answer("/reset", http.StatusNotFound)
-	control := api.control(t, HTTPControlOptions{BackendConfiguration: "custom-config"})
+	control := api.control(t, WithControlBackendConfiguration("custom-config"))
 	ctx := context.Background()
 
 	if err := control.PrepareScenario(ctx); err != nil {
@@ -285,7 +284,7 @@ func TestTheBackendConfigurationTravelsOnEveryStart(t *testing.T) {
 
 func TestChangeFlagCallsChangeAndNothingElse(t *testing.T) {
 	api := newFakeControlAPI(t)
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 
 	if err := control.ChangeFlag(context.Background()); err != nil {
 		t.Fatalf("ChangeFlag: %v", err)
@@ -306,7 +305,7 @@ func TestAwaitReadyTreatsAMissingHealthzAsReady(t *testing.T) {
 		t.Run(fmt.Sprint(code), func(t *testing.T) {
 			api := newFakeControlAPI(t)
 			api.healthz = []int{code}
-			control := api.control(t, HTTPControlOptions{})
+			control := api.control(t)
 
 			if err := control.AwaitReady(context.Background(), 2*time.Second); err != nil {
 				t.Fatalf("AwaitReady: %v", err)
@@ -323,7 +322,7 @@ func TestAwaitReadyRetriesUntilTheControlAPIAnswers(t *testing.T) {
 		http.StatusServiceUnavailable,
 		http.StatusOK,
 	}
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 
 	// The one wait in the suite that is a wait rather than an assertion. A
 	// launchpad accepts connections slightly before it will act on one, and
@@ -337,7 +336,7 @@ func TestAwaitReadyRetriesUntilTheControlAPIAnswers(t *testing.T) {
 func TestAwaitReadyGivesUpWithAMessageNamingTheLastFailure(t *testing.T) {
 	api := newFakeControlAPI(t)
 	api.healthz = []int{http.StatusBadGateway}
-	control := api.control(t, HTTPControlOptions{})
+	control := api.control(t)
 
 	err := control.AwaitReady(context.Background(), 300*time.Millisecond)
 	if err == nil {

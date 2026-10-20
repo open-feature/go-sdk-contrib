@@ -146,14 +146,14 @@ func verifyCanonicalAssets() error {
 // It is exposed so that an adopting provider can seed a backend directly from
 // the canonical definition rather than transcribing it, transcription being the
 // usual way the two drift apart.
-func CanonicalFlags() []byte {
+//
+// It fails only if the spec module's embed directives and this path disagree.
+func CanonicalFlags() ([]byte, error) {
 	b, err := fs.ReadFile(assets, "flags/canonical-flags.json")
 	if err != nil {
-		// Unreachable: the file is embedded at compile time, so a failure here
-		// means the spec module's embed directives and this path disagree.
-		panic("tck: canonical flag set missing from embedded assets: " + err.Error())
+		return nil, fmt.Errorf("tck: canonical flag set missing from embedded assets: %w", err)
 	}
-	return b
+	return b, nil
 }
 
 // ControlAPISpec returns the OpenAPI document describing the HTTP control API
@@ -167,10 +167,10 @@ func CanonicalFlags() []byte {
 // scenario is an unbounded outage, which this suite drives with /stop followed
 // by /start. Implement /restart if you want a future caching scenario, which
 // needs flag-state preservation, testable against your backend.
-func ControlAPISpec() []byte {
+func ControlAPISpec() ([]byte, error) {
 	b, err := fs.ReadFile(assets, "openapi/control-api.yaml")
 	if err != nil {
-		panic("tck: control API spec missing from embedded assets: " + err.Error())
+		return nil, fmt.Errorf("tck: control API spec missing from embedded assets: %w", err)
 	}
-	return b
+	return b, nil
 }

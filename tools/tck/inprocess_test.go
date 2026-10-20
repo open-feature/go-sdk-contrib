@@ -41,7 +41,7 @@ var disabledFlagKeys = []string{
 func TestChangeFlagActuallyChangesTheResolvedValue(t *testing.T) {
 	ctx := context.Background()
 	control := NewInProcessControl()
-	provider := control.NewProvider()
+	provider := newProvider(t, control)
 
 	before := provider.StringEvaluation(ctx, ChangingFlagKey, "unset", nil)
 	if before.Error() != nil {
@@ -68,7 +68,7 @@ func TestChangeFlagActuallyChangesTheResolvedValue(t *testing.T) {
 func TestChangeFlagEmitsAConfigurationChangeEvent(t *testing.T) {
 	ctx := context.Background()
 	control := NewInProcessControl()
-	provider := control.NewProvider()
+	provider := newProvider(t, control)
 
 	if err := control.ChangeFlag(ctx); err != nil {
 		t.Fatalf("ChangeFlag: %v", err)
@@ -96,7 +96,7 @@ func TestChangeDoesNotLeakIntoTheNextScenario(t *testing.T) {
 	ctx := context.Background()
 	control := NewInProcessControl()
 
-	first := control.NewProvider()
+	first := newProvider(t, control)
 	baseline := first.StringEvaluation(ctx, ChangingFlagKey, "unset", nil).Value
 
 	if err := control.ChangeFlag(ctx); err != nil {
@@ -110,7 +110,7 @@ func TestChangeDoesNotLeakIntoTheNextScenario(t *testing.T) {
 		t.Fatalf("PrepareScenario: %v", err)
 	}
 
-	second := control.NewProvider()
+	second := newProvider(t, control)
 	if got := second.StringEvaluation(ctx, ChangingFlagKey, "unset", nil).Value; got != baseline {
 		t.Fatalf("the next scenario starts with %s resolving to %q, want the baseline %q",
 			ChangingFlagKey, got, baseline)
@@ -151,7 +151,7 @@ func TestInProcessControlDoesNotPretendToHaveAConnection(t *testing.T) {
 // scenario depends on. Seeding missing-flag would turn that scenario green for
 // the wrong reason, and nothing else in the suite would notice.
 func TestCanonicalFlagSetOmitsMissingFlag(t *testing.T) {
-	if _, present := CanonicalFlagSet()["missing-flag"]; present {
+	if _, present := canonicalFlagSet(t)["missing-flag"]; present {
 		t.Fatal("the canonical flag set contains missing-flag; its absence is what the " +
 			"FLAG_NOT_FOUND scenario tests")
 	}
@@ -180,7 +180,7 @@ func TestCanonicalFlagSetOmitsMissingFlag(t *testing.T) {
 // asserted here rather than assumed, and disabledFlagKeys below is the same
 // statement in the other direction: nothing outside that set is disabled.
 func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
-	flags := CanonicalFlagSet()
+	flags := canonicalFlagSet(t)
 
 	for _, want := range []struct {
 		key     string
@@ -270,7 +270,7 @@ func TestOnlyTheDisabledFlagsAreDisabled(t *testing.T) {
 		expected[key] = true
 	}
 
-	for key, flag := range CanonicalFlagSet() {
+	for key, flag := range canonicalFlagSet(t) {
 		disabled := flag.State == memprovider.Disabled
 		switch {
 		case disabled && !expected[key]:
@@ -306,7 +306,7 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 		hitting = "5c3d8535-f81a-4478-a6d3-afaa4d51199e"
 	)
 
-	flag, present := CanonicalFlagSet()[key]
+	flag, present := canonicalFlagSet(t)[key]
 	if !present {
 		t.Fatalf("%s is missing from the canonical flag set", key)
 	}
@@ -317,7 +317,7 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	provider := NewInProcessControl().NewProvider()
+	provider := newProvider(t, NewInProcessControl())
 	result := provider.StringEvaluation(ctx, key, "fallback", map[string]any{
 		openfeature.TargetingKey: hitting,
 	})
@@ -335,7 +335,7 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 // panicking on a closed channel.
 func TestControllableProviderRejectsUpdatesAfterShutdown(t *testing.T) {
 	control := NewInProcessControl()
-	provider := control.NewProvider()
+	provider := newProvider(t, control)
 
 	provider.Shutdown()
 	provider.Shutdown() // must be idempotent; the SDK may call it more than once
@@ -344,4 +344,25 @@ func TestControllableProviderRejectsUpdatesAfterShutdown(t *testing.T) {
 	if !errors.Is(err, errProviderShutdown) {
 		t.Fatalf("ChangeFlag after shutdown returned %v, want %v", err, errProviderShutdown)
 	}
+}
+
+// newProvider is NewProvider for a test, where a broken canonical flag set is a
+// fatal setup failure rather than something to handle.
+func newProvider(t *testing.T, control *InProcessControl) *controllableProvider {
+	t.Helper()
+	provider, err := control.NewProvider()
+	if err != nil {
+		t.Fatalf("NewProvider: %v", err)
+	}
+	return provider
+}
+
+// canonicalFlagSet is CanonicalFlagSet for a test.
+func canonicalFlagSet(t *testing.T) map[string]memprovider.InMemoryFlag {
+	t.Helper()
+	flags, err := CanonicalFlagSet()
+	if err != nil {
+		t.Fatalf("CanonicalFlagSet: %v", err)
+	}
+	return flags
 }

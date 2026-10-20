@@ -25,7 +25,11 @@ func TestInMemoryProvider(t *testing.T) {
 		WithName("in-memory"),
 		WithControl(plainMemoryControl{}),
 		WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
-			return memprovider.NewInMemoryProvider(CanonicalFlagSet()), nil
+			flags, err := CanonicalFlagSet()
+			if err != nil {
+				return nil, err
+			}
+			return memprovider.NewInMemoryProvider(flags), nil
 		}),
 		// Every omission is a fact about memprovider rather than a
 		// convenience:

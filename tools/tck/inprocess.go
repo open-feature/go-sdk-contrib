@@ -46,16 +46,19 @@ const (
 //     decode both as float64, and a loader that then turned integral floats
 //     back into int64 would make the lossless coercion scenario pass without
 //     coercing anything. See numberValue.
-func CanonicalFlagSet() map[string]memprovider.InMemoryFlag {
-	flags, err := decodeCanonicalFlags(CanonicalFlags())
+//
+// It fails only if the pinned assets and this decoder disagree about the file's
+// shape, which moving the pin should have surfaced.
+func CanonicalFlagSet() (map[string]memprovider.InMemoryFlag, error) {
+	data, err := CanonicalFlags()
 	if err != nil {
-		// Unreachable for a pinned spec revision: the file is embedded at
-		// compile time, so a failure here means the pinned assets and this
-		// decoder disagree about the file's shape, which moving the pin should
-		// have surfaced.
-		panic("tck: canonical flag set could not be decoded: " + err.Error())
+		return nil, err
 	}
-	return flags
+	flags, err := decodeCanonicalFlags(data)
+	if err != nil {
+		return nil, fmt.Errorf("tck: canonical flag set could not be decoded: %w", err)
+	}
+	return flags, nil
 }
 
 // canonicalFlagFile is the shape of canonical-flags.json — the flagd
@@ -220,7 +223,7 @@ func changingFlag(defaultVariant string) memprovider.InMemoryFlag {
 //	    tck.WithName("in-memory"),
 //	    tck.WithControl(control),
 //	    tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
-//	        return control.NewProvider(), nil
+//	        return control.NewProvider()
 //	    }),
 //	    tck.WithCapabilities(tck.Events, tck.ConfigurationChange, tck.Object, tck.LargeIntegers),
 //	)
@@ -248,13 +251,18 @@ func NewInProcessControl() *InProcessControl {
 // Each call returns a fresh instance over a fresh copy of the baseline, which
 // is what makes PrepareScenario nothing more than dropping the previous
 // reference.
-func (c *InProcessControl) NewProvider() *controllableProvider {
+func (c *InProcessControl) NewProvider() (*controllableProvider, error) {
+	flags, err := CanonicalFlagSet()
+	if err != nil {
+		return nil, err
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.changingVariant = changingBaseline
-	c.current = newControllableProvider(CanonicalFlagSet())
-	return c.current
+	c.current = newControllableProvider(flags)
+	return c.current, nil
 }
 
 // Description implements BackendControl.
