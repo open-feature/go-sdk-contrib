@@ -195,11 +195,11 @@ func (c *HTTPControl) Description() string {
 	return fmt.Sprintf("the backend at %s, driven over the control API", c.baseURL)
 }
 
-// ControlAPI implements BackendControl.
+// BackendType implements BackendControl.
 //
-// Always ControlAPIHTTP: this type exists to speak the normative HTTP control
+// Always BackendTypeHTTP: this type exists to speak the normative HTTP control
 // API, and it has no other mode to be in.
-func (c *HTTPControl) ControlAPI() ControlAPI { return ControlAPIHTTP }
+func (c *HTTPControl) BackendType() BackendType { return BackendTypeHTTP }
 
 // PrepareScenario implements BackendControl.
 func (c *HTTPControl) PrepareScenario(ctx context.Context) error {

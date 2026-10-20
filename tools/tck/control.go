@@ -16,24 +16,31 @@ import (
 // because a silent no-op would report the scenario as passed.
 var ErrUnsupportedControl = errors.New("backend control operation not supported")
 
-// ControlAPI names the path a run took to manipulate the backend under test.
+// BackendType names what kind of backend a run drove.
 //
 // It is a defined type with a closed set of values rather than a string,
 // because the value ends up in the conformance report against a schema enum:
 // "HTTP" or "in_process" would compile, pass every test, and produce a report
 // that fails validation somewhere the author cannot see it.
-type ControlAPI string
+type BackendType string
 
 const (
-	// ControlAPIHTTP means the backend was driven over the normative HTTP
+	// BackendTypeHTTP means the backend was driven over the normative HTTP
 	// control API. Every provider with a real backend answers this.
-	ControlAPIHTTP ControlAPI = "http"
+	BackendTypeHTTP BackendType = "http"
 
-	// ControlAPIInProcess means flag state was manipulated in this process,
+	// BackendTypeInProcess means flag state was manipulated in this process,
 	// which is the narrow allowance made for a provider that has no backend at
 	// all. A report claiming it for a provider that does have one should be
 	// treated with suspicion, which is why it is recorded rather than assumed.
-	ControlAPIInProcess ControlAPI = "in-process"
+	BackendTypeInProcess BackendType = "in-process"
+
+	// BackendTypeCustom means the run drove a control this package does not
+	// ship, so the claim is not directly comparable with the two above. It is
+	// the honest answer for a control of one's own: better a report that says
+	// the suite cannot vouch for how the backend was driven than one claiming
+	// the normative path it did not take.
+	BackendTypeCustom BackendType = "custom"
 )
 
 // BackendControl is the single seam between the TCK's scenarios and whatever
@@ -88,14 +95,16 @@ type BackendControl interface {
 	// startup logging and for the failure messages of unsupported operations.
 	Description() string
 
-	// ControlAPI states which path this control drives the backend over, for
-	// the conformance report.
+	// BackendType states what kind of backend this control drives, for the
+	// conformance report.
 	//
 	// Required, with no default and nothing inferred from the concrete type.
 	// Both controls this package ships answer it already, so the only author
 	// who has to state it is the one writing a control of their own — which is
-	// exactly the case where it cannot be guessed.
-	ControlAPI() ControlAPI
+	// exactly the case where it cannot be guessed. Such an author should
+	// answer BackendTypeCustom unless they genuinely drive the normative HTTP
+	// control API.
+	BackendType() BackendType
 }
 
 // ConnectionControl is implemented by a BackendControl whose backend can be cut
