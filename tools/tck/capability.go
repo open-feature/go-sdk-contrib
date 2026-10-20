@@ -284,9 +284,6 @@ func AllCapabilities() []Capability {
 // capability.
 func (c Capability) Tag() string { return string(c) }
 
-// String implements fmt.Stringer.
-func (c Capability) String() string { return string(c) }
-
 // CapabilityForTag maps a Gherkin tag onto the capability it gates, reporting
 // whether the tag gates anything at all.
 //

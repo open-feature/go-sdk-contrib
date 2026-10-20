@@ -1,11 +1,10 @@
-package tck_test
+package tck
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
@@ -20,13 +19,13 @@ import (
 // first and points at the TCK rather than at a provider.
 //
 // It does not license providers that have a backend to test themselves this
-// way — see tck.BackendControl.
+// way — see BackendControl.
 func TestInMemoryProvider(t *testing.T) {
-	tck.Run(t,
-		tck.WithName("in-memory"),
-		tck.WithControl(plainMemoryControl{}),
-		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
-			return memprovider.NewInMemoryProvider(tck.CanonicalFlagSet()), nil
+	Run(t,
+		WithName("in-memory"),
+		WithControl(plainMemoryControl{}),
+		WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+			return memprovider.NewInMemoryProvider(CanonicalFlagSet()), nil
 		}),
 		// Every omission is a fact about memprovider rather than a
 		// convenience:
@@ -35,12 +34,12 @@ func TestInMemoryProvider(t *testing.T) {
 		//     event at all — see plainMemoryControl.
 		//   - Stale and UnavailableInit: there is no connection to lose, which
 		//     is also why plainMemoryControl does not implement
-		//     tck.ConnectionControl. The two omissions keep each other honest.
+		//     ConnectionControl. The two omissions keep each other honest.
 		//   - Lifecycle: it does not implement openfeature.StateHandler, so the
 		//     SDK synthesises PROVIDER_READY for it and the readiness scenario
 		//     would pass without exercising anything.
 		//   - Targeting: an in-memory flag set evaluates no rules.
-		//     tck.CanonicalFlagSet deliberately ignores the targeting member of
+		//     CanonicalFlagSet deliberately ignores the targeting member of
 		//     targeting-key-flag rather than translating JsonLogic into a
 		//     ContextEvaluator. The untagged scenario that supplies a context
 		//     to an untargeted flag still runs: it asserts only that supplying
@@ -61,15 +60,15 @@ func TestInMemoryProvider(t *testing.T) {
 		// memprovider used to return the caller's default for a disabled flag
 		// and attach a GENERAL resolution error to it, so all four rows failed
 		// on the empty error-code assertion. go-sdk#574 dropped the error.
-		tck.WithCapabilities(
-			tck.Events,
-			tck.Object,
-			tck.Variants,
-			tck.LargeIntegers,
-			tck.StandardReasons,
-			tck.StringTyping,
-			tck.FullyTypedValues,
-			tck.DisabledFlags,
+		WithCapabilities(
+			Events,
+			Object,
+			Variants,
+			LargeIntegers,
+			StandardReasons,
+			StringTyping,
+			FullyTypedValues,
+			DisabledFlags,
 		),
 	)
 }
@@ -77,7 +76,7 @@ func TestInMemoryProvider(t *testing.T) {
 // plainMemoryControl is the backend control for the SDK's in-memory provider.
 //
 // PrepareScenario is a no-op because the provider is rebuilt from
-// tck.CanonicalFlagSet for every scenario, so each one already starts from an
+// CanonicalFlagSet for every scenario, so each one already starts from an
 // untouched baseline.
 //
 // ChangeFlag cannot be implemented at all, and the error says why. The suite
@@ -93,7 +92,7 @@ func (plainMemoryControl) ChangeFlag(context.Context) error {
 		"memprovider.InMemoryProvider cannot change its flag set: it exposes no update method and " +
 			"does not implement openfeature.EventHandler, so a configuration change can be neither " +
 			"applied nor signalled. Appendix A of the specification requires both. See " +
-			"tck.ControllableProvider for what the SDK's provider is missing")
+			"controllableProvider for what the SDK's provider is missing")
 }
 
 func (plainMemoryControl) Description() string {
@@ -103,4 +102,4 @@ func (plainMemoryControl) Description() string {
 // ControlAPI is in-process because this control manipulates a provider in this
 // process rather than a backend over HTTP. It is required rather than optional
 // precisely so that a custom control like this one has to say.
-func (plainMemoryControl) ControlAPI() tck.ControlAPI { return tck.ControlAPIInProcess }
+func (plainMemoryControl) ControlAPI() ControlAPI { return ControlAPIInProcess }

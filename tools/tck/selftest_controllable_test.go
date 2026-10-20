@@ -1,10 +1,9 @@
-package tck_test
+package tck
 
 import (
 	"context"
 	"testing"
 
-	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -21,22 +20,22 @@ import (
 // It is also the reference for an in-process control path where the provider
 // does support updates.
 func TestControllableProvider(t *testing.T) {
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 
-	tck.Run(t,
-		tck.WithName("controllable-in-memory"),
-		tck.WithControl(control),
-		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+	Run(t,
+		WithName("controllable-in-memory"),
+		WithControl(control),
+		WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			return control.NewProvider(), nil
 		}),
 		// ConfigurationChange is what this suite adds over
 		// TestInMemoryProvider, and it is the whole point of it. Stale and
 		// UnavailableInit stay undeclared: there is still no connection to
-		// lose, and tck.InProcessControl does not implement
-		// tck.ConnectionControl.
+		// lose, and InProcessControl does not implement
+		// ConnectionControl.
 		//
 		// Lifecycle is declared here and nowhere else among the self-tests, for
-		// a mechanical reason: tck.ControllableProvider implements
+		// a mechanical reason: controllableProvider implements
 		// openfeature.StateHandler, so the client's READY is the observable
 		// outcome of its own Init. This is therefore the only suite covering
 		// the @lifecycle steps without Docker. Reinitialization comes with it
@@ -50,18 +49,18 @@ func TestControllableProvider(t *testing.T) {
 		// FullyTypedValues and DisabledFlags are declared for the same reasons
 		// in reverse. Wrapping changes nothing: this provider adds
 		// update-and-emit and delegates the rest.
-		tck.WithCapabilities(
-			tck.Events,
-			tck.Lifecycle,
-			tck.Reinitialization,
-			tck.ConfigurationChange,
-			tck.Object,
-			tck.Variants,
-			tck.LargeIntegers,
-			tck.StandardReasons,
-			tck.StringTyping,
-			tck.FullyTypedValues,
-			tck.DisabledFlags,
+		WithCapabilities(
+			Events,
+			Lifecycle,
+			Reinitialization,
+			ConfigurationChange,
+			Object,
+			Variants,
+			LargeIntegers,
+			StandardReasons,
+			StringTyping,
+			FullyTypedValues,
+			DisabledFlags,
 		),
 	)
 }

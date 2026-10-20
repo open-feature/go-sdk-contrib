@@ -1,10 +1,9 @@
-package tck_test
+package tck
 
 import (
 	"context"
 	"testing"
 
-	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/multi"
 )
@@ -24,12 +23,12 @@ import (
 // It is not a test of aggregation across several backends, it is a test that
 // delegation is transparent. It costs one file and needs no Docker.
 func TestMultiProvider(t *testing.T) {
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 
-	tck.Run(t,
-		tck.WithName("multi-provider"),
-		tck.WithControl(control),
-		tck.WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
+	Run(t,
+		WithName("multi-provider"),
+		WithControl(control),
+		WithProvider(func(context.Context) (openfeature.FeatureProvider, error) {
 			provider, err := multi.NewProvider(
 				multi.StrategyFirstMatch,
 				multi.WithProvider("in-memory", control.NewProvider()),
@@ -62,16 +61,16 @@ func TestMultiProvider(t *testing.T) {
 		// dropping an error code on the hop is one of the failure modes this
 		// suite exists to see, and the capability asserts an *empty* one, so a
 		// wrapper that invented an error would be caught here.
-		tck.WithCapabilities(
-			tck.Events,
-			tck.ConfigurationChange,
-			tck.Object,
-			tck.Variants,
-			tck.LargeIntegers,
-			tck.StandardReasons,
-			tck.StringTyping,
-			tck.FullyTypedValues,
-			tck.DisabledFlags,
+		WithCapabilities(
+			Events,
+			ConfigurationChange,
+			Object,
+			Variants,
+			LargeIntegers,
+			StandardReasons,
+			StringTyping,
+			FullyTypedValues,
+			DisabledFlags,
 		),
 	)
 }

@@ -229,7 +229,7 @@ type InProcessControl struct {
 
 	// current is the provider serving the scenario in flight, or nil between
 	// scenarios.
-	current *ControllableProvider
+	current *controllableProvider
 
 	// changingVariant is which variant changing-flag currently resolves to.
 	changingVariant string
@@ -248,12 +248,12 @@ func NewInProcessControl() *InProcessControl {
 // Each call returns a fresh instance over a fresh copy of the baseline, which
 // is what makes PrepareScenario nothing more than dropping the previous
 // reference.
-func (c *InProcessControl) NewProvider() *ControllableProvider {
+func (c *InProcessControl) NewProvider() *controllableProvider {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.changingVariant = changingBaseline
-	c.current = NewControllableProvider(CanonicalFlagSet())
+	c.current = newControllableProvider(CanonicalFlagSet())
 	return c.current
 }
 

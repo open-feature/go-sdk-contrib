@@ -1,4 +1,4 @@
-package tck_test
+package tck
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
@@ -41,26 +40,26 @@ var disabledFlagKeys = []string{
 // certifying a signal with nothing behind it.
 func TestChangeFlagActuallyChangesTheResolvedValue(t *testing.T) {
 	ctx := context.Background()
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 	provider := control.NewProvider()
 
-	before := provider.StringEvaluation(ctx, tck.ChangingFlagKey, "unset", nil)
+	before := provider.StringEvaluation(ctx, ChangingFlagKey, "unset", nil)
 	if before.Error() != nil {
-		t.Fatalf("resolving %s before the change failed: %v", tck.ChangingFlagKey, before.Error())
+		t.Fatalf("resolving %s before the change failed: %v", ChangingFlagKey, before.Error())
 	}
 
 	if err := control.ChangeFlag(ctx); err != nil {
 		t.Fatalf("ChangeFlag: %v", err)
 	}
 
-	after := provider.StringEvaluation(ctx, tck.ChangingFlagKey, "unset", nil)
+	after := provider.StringEvaluation(ctx, ChangingFlagKey, "unset", nil)
 	if after.Error() != nil {
-		t.Fatalf("resolving %s after the change failed: %v", tck.ChangingFlagKey, after.Error())
+		t.Fatalf("resolving %s after the change failed: %v", ChangingFlagKey, after.Error())
 	}
 
 	if before.Value == after.Value {
 		t.Fatalf("ChangeFlag left %s resolving to %q; the change was not applied",
-			tck.ChangingFlagKey, after.Value)
+			ChangingFlagKey, after.Value)
 	}
 }
 
@@ -68,7 +67,7 @@ func TestChangeFlagActuallyChangesTheResolvedValue(t *testing.T) {
 // scenarios await is the provider's own, and that it names the flag.
 func TestChangeFlagEmitsAConfigurationChangeEvent(t *testing.T) {
 	ctx := context.Background()
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 	provider := control.NewProvider()
 
 	if err := control.ChangeFlag(ctx); err != nil {
@@ -80,8 +79,8 @@ func TestChangeFlagEmitsAConfigurationChangeEvent(t *testing.T) {
 		if event.EventType != openfeature.ProviderConfigChange {
 			t.Fatalf("got event type %q, want %q", event.EventType, openfeature.ProviderConfigChange)
 		}
-		if len(event.FlagChanges) != 1 || event.FlagChanges[0] != tck.ChangingFlagKey {
-			t.Fatalf("event named %v, want [%s]", event.FlagChanges, tck.ChangingFlagKey)
+		if len(event.FlagChanges) != 1 || event.FlagChanges[0] != ChangingFlagKey {
+			t.Fatalf("event named %v, want [%s]", event.FlagChanges, ChangingFlagKey)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("no configuration-change event was emitted")
@@ -95,15 +94,15 @@ func TestChangeFlagEmitsAConfigurationChangeEvent(t *testing.T) {
 // and the failure would look like a provider defect.
 func TestChangeDoesNotLeakIntoTheNextScenario(t *testing.T) {
 	ctx := context.Background()
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 
 	first := control.NewProvider()
-	baseline := first.StringEvaluation(ctx, tck.ChangingFlagKey, "unset", nil).Value
+	baseline := first.StringEvaluation(ctx, ChangingFlagKey, "unset", nil).Value
 
 	if err := control.ChangeFlag(ctx); err != nil {
 		t.Fatalf("ChangeFlag: %v", err)
 	}
-	if changed := first.StringEvaluation(ctx, tck.ChangingFlagKey, "unset", nil).Value; changed == baseline {
+	if changed := first.StringEvaluation(ctx, ChangingFlagKey, "unset", nil).Value; changed == baseline {
 		t.Fatalf("precondition failed: ChangeFlag did not change the resolved value")
 	}
 
@@ -112,9 +111,9 @@ func TestChangeDoesNotLeakIntoTheNextScenario(t *testing.T) {
 	}
 
 	second := control.NewProvider()
-	if got := second.StringEvaluation(ctx, tck.ChangingFlagKey, "unset", nil).Value; got != baseline {
+	if got := second.StringEvaluation(ctx, ChangingFlagKey, "unset", nil).Value; got != baseline {
 		t.Fatalf("the next scenario starts with %s resolving to %q, want the baseline %q",
-			tck.ChangingFlagKey, got, baseline)
+			ChangingFlagKey, got, baseline)
 	}
 }
 
@@ -123,7 +122,7 @@ func TestChangeDoesNotLeakIntoTheNextScenario(t *testing.T) {
 // flag store and the provider are the same object, so there is nothing to
 // change; saying so beats a nil dereference.
 func TestChangeFlagWithoutAProviderFailsClearly(t *testing.T) {
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 
 	err := control.ChangeFlag(context.Background())
 	if err == nil {
@@ -135,13 +134,13 @@ func TestChangeFlagWithoutAProviderFailsClearly(t *testing.T) {
 //
 // A no-op Disconnect would report the @stale scenarios as passed against a
 // provider that cannot go stale, which is precisely the silent-green failure a
-// conformance suite must never have. tck.InProcessControl therefore does not
-// implement tck.ConnectionControl at all, and the TCK turns that into a skip
+// conformance suite must never have. InProcessControl therefore does not
+// implement ConnectionControl at all, and the TCK turns that into a skip
 // with a reason rather than a pass.
 func TestInProcessControlDoesNotPretendToHaveAConnection(t *testing.T) {
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 
-	if _, implements := any(control).(tck.ConnectionControl); implements {
+	if _, implements := any(control).(ConnectionControl); implements {
 		t.Fatal("InProcessControl implements ConnectionControl: an in-memory provider has no " +
 			"connection to lose, and a no-op implementation would make the @stale scenarios " +
 			"pass without testing anything")
@@ -152,7 +151,7 @@ func TestInProcessControlDoesNotPretendToHaveAConnection(t *testing.T) {
 // scenario depends on. Seeding missing-flag would turn that scenario green for
 // the wrong reason, and nothing else in the suite would notice.
 func TestCanonicalFlagSetOmitsMissingFlag(t *testing.T) {
-	if _, present := tck.CanonicalFlagSet()["missing-flag"]; present {
+	if _, present := CanonicalFlagSet()["missing-flag"]; present {
 		t.Fatal("the canonical flag set contains missing-flag; its absence is what the " +
 			"FLAG_NOT_FOUND scenario tests")
 	}
@@ -181,7 +180,7 @@ func TestCanonicalFlagSetOmitsMissingFlag(t *testing.T) {
 // asserted here rather than assumed, and disabledFlagKeys below is the same
 // statement in the other direction: nothing outside that set is disabled.
 func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
-	flags := tck.CanonicalFlagSet()
+	flags := CanonicalFlagSet()
 
 	for _, want := range []struct {
 		key     string
@@ -201,7 +200,7 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 		{"string-zero-flag", "zero", "", memprovider.Enabled},
 		{"wrong-flag", "one", "uno", memprovider.Enabled},
 		{"targeting-key-flag", "miss", "miss", memprovider.Enabled},
-		{tck.ChangingFlagKey, "foo", "foo", memprovider.Enabled},
+		{ChangingFlagKey, "foo", "foo", memprovider.Enabled},
 		{"disabled-boolean-flag", "on", true, memprovider.Disabled},
 		{"disabled-string-flag", "greeting", "hi", memprovider.Disabled},
 		{"disabled-integer-flag", "ten", int64(10), memprovider.Disabled},
@@ -238,10 +237,10 @@ func TestCanonicalFlagSetMatchesTheFile(t *testing.T) {
 
 	// ChangeFlag flips changing-flag between two variants it names itself, so
 	// the file has to define exactly those.
-	changing := flags[tck.ChangingFlagKey]
+	changing := flags[ChangingFlagKey]
 	for _, variant := range []string{"foo", "bar"} {
 		if _, present := changing.Variants[variant]; !present {
-			t.Errorf("%s has no variant %q, which ChangeFlag switches to", tck.ChangingFlagKey, variant)
+			t.Errorf("%s has no variant %q, which ChangeFlag switches to", ChangingFlagKey, variant)
 		}
 	}
 
@@ -271,7 +270,7 @@ func TestOnlyTheDisabledFlagsAreDisabled(t *testing.T) {
 		expected[key] = true
 	}
 
-	for key, flag := range tck.CanonicalFlagSet() {
+	for key, flag := range CanonicalFlagSet() {
 		disabled := flag.State == memprovider.Disabled
 		switch {
 		case disabled && !expected[key]:
@@ -286,10 +285,10 @@ func TestOnlyTheDisabledFlagsAreDisabled(t *testing.T) {
 }
 
 // TestCanonicalFlagSetEvaluatesNoTargeting is the evidence behind every
-// in-process suite leaving tck.Targeting undeclared.
+// in-process suite leaving Targeting undeclared.
 //
 // canonical-flags.json gives targeting-key-flag a JsonLogic rule, and
-// tck.CanonicalFlagSet deliberately does not read it: translating that rule
+// CanonicalFlagSet deliberately does not read it: translating that rule
 // into a memprovider ContextEvaluator would make these self-tests a test of a
 // rule engine written here. The consequence is that a matching targeting key
 // resolves the miss variant, so the @targeting scenarios cannot pass against
@@ -307,7 +306,7 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 		hitting = "5c3d8535-f81a-4478-a6d3-afaa4d51199e"
 	)
 
-	flag, present := tck.CanonicalFlagSet()[key]
+	flag, present := CanonicalFlagSet()[key]
 	if !present {
 		t.Fatalf("%s is missing from the canonical flag set", key)
 	}
@@ -318,7 +317,7 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	provider := tck.NewInProcessControl().NewProvider()
+	provider := NewInProcessControl().NewProvider()
 	result := provider.StringEvaluation(ctx, key, "fallback", map[string]any{
 		openfeature.TargetingKey: hitting,
 	})
@@ -327,7 +326,7 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 	}
 	if result.Value != "miss" {
 		t.Fatalf("%s resolved to %q for a matching targeting key; the rule is being evaluated "+
-			"after all, so the in-memory suites should declare tck.Targeting", key, result.Value)
+			"after all, so the in-memory suites should declare Targeting", key, result.Value)
 	}
 }
 
@@ -335,14 +334,14 @@ func TestCanonicalFlagSetEvaluatesNoTargeting(t *testing.T) {
 // arriving after the SDK has shut the provider down is reported rather than
 // panicking on a closed channel.
 func TestControllableProviderRejectsUpdatesAfterShutdown(t *testing.T) {
-	control := tck.NewInProcessControl()
+	control := NewInProcessControl()
 	provider := control.NewProvider()
 
 	provider.Shutdown()
 	provider.Shutdown() // must be idempotent; the SDK may call it more than once
 
 	err := control.ChangeFlag(context.Background())
-	if !errors.Is(err, tck.ErrProviderShutdown) {
-		t.Fatalf("ChangeFlag after shutdown returned %v, want %v", err, tck.ErrProviderShutdown)
+	if !errors.Is(err, errProviderShutdown) {
+		t.Fatalf("ChangeFlag after shutdown returned %v, want %v", err, errProviderShutdown)
 	}
 }

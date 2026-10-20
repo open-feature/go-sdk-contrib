@@ -10,16 +10,16 @@ import (
 	"github.com/open-feature/go-sdk/openfeature/memprovider"
 )
 
-// eventBuffer is the depth of a ControllableProvider's event channel. The suite
+// eventBuffer is the depth of a controllableProvider's event channel. The suite
 // produces at most one event per scenario, so anything above one is slack; the
 // buffer exists so that emitting never blocks the caller.
 const eventBuffer = 16
 
-// ErrProviderShutdown is returned by ControllableProvider mutators called after
+// errProviderShutdown is returned by controllableProvider mutators called after
 // the provider has been shut down.
-var ErrProviderShutdown = errors.New("provider has been shut down")
+var errProviderShutdown = errors.New("provider has been shut down")
 
-// ControllableProvider is an in-memory provider whose flag set can be changed
+// controllableProvider is an in-memory provider whose flag set can be changed
 // at runtime, emitting PROVIDER_CONFIGURATION_CHANGED when it is.
 //
 // # Why this type exists
@@ -50,7 +50,7 @@ var ErrProviderShutdown = errors.New("provider has been shut down")
 // isolation would silently not happen.
 //
 // [Appendix A]: https://github.com/open-feature/spec/blob/main/specification/appendix-a-included-utilities.md
-type ControllableProvider struct {
+type controllableProvider struct {
 	// mu guards every field below. It is held across event emission, which is
 	// safe because emission is non-blocking.
 	mu sync.Mutex
@@ -76,21 +76,21 @@ type ControllableProvider struct {
 // so a missing method is not a compile error anywhere else — it just silently
 // stops the provider from ever emitting an event.
 var (
-	_ openfeature.FeatureProvider = (*ControllableProvider)(nil)
-	_ openfeature.StateHandler    = (*ControllableProvider)(nil)
-	_ openfeature.EventHandler    = (*ControllableProvider)(nil)
+	_ openfeature.FeatureProvider = (*controllableProvider)(nil)
+	_ openfeature.StateHandler    = (*controllableProvider)(nil)
+	_ openfeature.EventHandler    = (*controllableProvider)(nil)
 )
 
-// NewControllableProvider returns a provider serving a copy of the given flag
+// newControllableProvider returns a provider serving a copy of the given flag
 // set.
 //
 // The caller keeps ownership of the map it passes; the provider copies it.
-func NewControllableProvider(flags map[string]memprovider.InMemoryFlag) *ControllableProvider {
+func newControllableProvider(flags map[string]memprovider.InMemoryFlag) *controllableProvider {
 	owned := maps.Clone(flags)
 	if owned == nil {
 		owned = map[string]memprovider.InMemoryFlag{}
 	}
-	return &ControllableProvider{
+	return &controllableProvider{
 		inner:  memprovider.NewInMemoryProvider(owned),
 		flags:  owned,
 		events: make(chan openfeature.Event, eventBuffer),
@@ -98,50 +98,50 @@ func NewControllableProvider(flags map[string]memprovider.InMemoryFlag) *Control
 }
 
 // Metadata implements openfeature.FeatureProvider.
-func (p *ControllableProvider) Metadata() openfeature.Metadata {
+func (p *controllableProvider) Metadata() openfeature.Metadata {
 	return openfeature.Metadata{Name: "TckControllableProvider"}
 }
 
 // snapshot returns the provider to evaluate against. The returned value shares
 // an immutable flag map with no writer, so evaluation happens outside the lock.
-func (p *ControllableProvider) snapshot() memprovider.InMemoryProvider {
+func (p *controllableProvider) snapshot() memprovider.InMemoryProvider {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.inner
 }
 
 // BooleanEvaluation implements openfeature.FeatureProvider.
-func (p *ControllableProvider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, flatCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
+func (p *controllableProvider) BooleanEvaluation(ctx context.Context, flag string, defaultValue bool, flatCtx openfeature.FlattenedContext) openfeature.BoolResolutionDetail {
 	inner := p.snapshot()
 	return inner.BooleanEvaluation(ctx, flag, defaultValue, flatCtx)
 }
 
 // StringEvaluation implements openfeature.FeatureProvider.
-func (p *ControllableProvider) StringEvaluation(ctx context.Context, flag string, defaultValue string, flatCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
+func (p *controllableProvider) StringEvaluation(ctx context.Context, flag string, defaultValue string, flatCtx openfeature.FlattenedContext) openfeature.StringResolutionDetail {
 	inner := p.snapshot()
 	return inner.StringEvaluation(ctx, flag, defaultValue, flatCtx)
 }
 
 // FloatEvaluation implements openfeature.FeatureProvider.
-func (p *ControllableProvider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, flatCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
+func (p *controllableProvider) FloatEvaluation(ctx context.Context, flag string, defaultValue float64, flatCtx openfeature.FlattenedContext) openfeature.FloatResolutionDetail {
 	inner := p.snapshot()
 	return inner.FloatEvaluation(ctx, flag, defaultValue, flatCtx)
 }
 
 // IntEvaluation implements openfeature.FeatureProvider.
-func (p *ControllableProvider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, flatCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
+func (p *controllableProvider) IntEvaluation(ctx context.Context, flag string, defaultValue int64, flatCtx openfeature.FlattenedContext) openfeature.IntResolutionDetail {
 	inner := p.snapshot()
 	return inner.IntEvaluation(ctx, flag, defaultValue, flatCtx)
 }
 
 // ObjectEvaluation implements openfeature.FeatureProvider.
-func (p *ControllableProvider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, flatCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
+func (p *controllableProvider) ObjectEvaluation(ctx context.Context, flag string, defaultValue any, flatCtx openfeature.FlattenedContext) openfeature.InterfaceResolutionDetail {
 	inner := p.snapshot()
 	return inner.ObjectEvaluation(ctx, flag, defaultValue, flatCtx)
 }
 
 // Hooks implements openfeature.FeatureProvider.
-func (p *ControllableProvider) Hooks() []openfeature.Hook {
+func (p *controllableProvider) Hooks() []openfeature.Hook {
 	inner := p.snapshot()
 	return inner.Hooks()
 }
@@ -151,13 +151,13 @@ func (p *ControllableProvider) Hooks() []openfeature.Hook {
 // An in-memory provider has nothing to connect to, so initialisation always
 // succeeds. The interface is implemented for Shutdown, which the SDK calls when
 // this provider is replaced and which is what closes the event channel.
-func (p *ControllableProvider) Init(openfeature.EvaluationContext) error { return nil }
+func (p *controllableProvider) Init(openfeature.EvaluationContext) error { return nil }
 
 // Shutdown implements openfeature.StateHandler.
 //
 // Closing the event channel is what ends the SDK's listener goroutine for this
 // provider. It is safe to call more than once.
-func (p *ControllableProvider) Shutdown() {
+func (p *controllableProvider) Shutdown() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.closed {
@@ -168,18 +168,18 @@ func (p *ControllableProvider) Shutdown() {
 }
 
 // EventChannel implements openfeature.EventHandler.
-func (p *ControllableProvider) EventChannel() <-chan openfeature.Event {
+func (p *controllableProvider) EventChannel() <-chan openfeature.Event {
 	return p.events
 }
 
 // UpdateFlag replaces one flag and emits PROVIDER_CONFIGURATION_CHANGED naming
 // it.
-func (p *ControllableProvider) UpdateFlag(key string, flag memprovider.InMemoryFlag) error {
+func (p *controllableProvider) UpdateFlag(key string, flag memprovider.InMemoryFlag) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.closed {
-		return ErrProviderShutdown
+		return errProviderShutdown
 	}
 
 	updated := maps.Clone(p.flags)
@@ -190,14 +190,6 @@ func (p *ControllableProvider) UpdateFlag(key string, flag memprovider.InMemoryF
 	return p.emitLocked([]string{key})
 }
 
-// Flag returns the flag currently registered under key.
-func (p *ControllableProvider) Flag(key string) (memprovider.InMemoryFlag, bool) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	flag, ok := p.flags[key]
-	return flag, ok
-}
-
 // emitLocked publishes a configuration-change event. The caller holds p.mu.
 //
 // The send is non-blocking. A provider that was created but never registered
@@ -205,7 +197,7 @@ func (p *ControllableProvider) Flag(key string) (memprovider.InMemoryFlag, bool)
 // there would hang the scenario with no indication of why; a full buffer is
 // reported instead, which cannot happen for the one-event-per-scenario the
 // suite produces.
-func (p *ControllableProvider) emitLocked(changed []string) error {
+func (p *controllableProvider) emitLocked(changed []string) error {
 	event := openfeature.Event{
 		ProviderName: p.Metadata().Name,
 		EventType:    openfeature.ProviderConfigChange,
