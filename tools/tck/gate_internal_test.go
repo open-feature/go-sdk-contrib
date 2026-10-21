@@ -1322,4 +1322,4 @@ type stubControl struct{}
 func (stubControl) PrepareScenario(context.Context) error { return nil }
 func (stubControl) ChangeFlag(context.Context) error      { return nil }
 func (stubControl) Description() string                   { return "stub" }
-func (stubControl) BackendType() BackendType                { return BackendTypeInProcess }
+func (stubControl) BackendType() BackendType              { return BackendTypeInProcess }
