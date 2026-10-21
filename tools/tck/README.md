@@ -90,6 +90,8 @@ is needed, depends on whether the provider has a backend.
 | `tck.WithReadyTimeout(d)` | no | 30s | how long to wait for `READY`; also bounds each direct `Init` and `Shutdown` |
 | `tck.WithFeatures(fsys)` | no | none | extension feature files — see [Extending it](#extending-it) |
 | `tck.WithSteps(register)` | no | none | extension step definitions |
+| `tck.WithIncludeTags(tags...)` | no | none | run only the extension scenarios carrying one of these tags — see [Selecting extension scenarios](#selecting-extension-scenarios) |
+| `tck.WithExcludeTags(tags...)` | no | none | skip the extension scenarios carrying any of these tags |
 
 `tck.BackendEndpoint` is what the factory receives: `Host()` and `Port(internal)`, plus
 `ServiceHost`/`ServicePort` for a named service. `Port` panics on a container port that was never
@@ -331,6 +333,40 @@ own would be testing a different provider.
 Extension features mount under an `extensions/` prefix while the suite runs and the canonical ones
 keep their `gherkin/` paths; [Appendix F prescribes that partition][appendix-f-extending] and the
 rules that come with it. Both options are optional.
+
+### Selecting extension scenarios
+
+One directory of extension features often has to serve two suites that cannot both run all of it — a
+provider with an RPC mode and an in-process mode, a targeting dialect only the newer backend speaks.
+`tck.WithIncludeTags` and `tck.WithExcludeTags` select among them by Gherkin tag:
+
+```go
+tck.Run(t,
+	// ... name, provider factory and capabilities as above ...
+	tck.WithFeatures(os.DirFS("testdata/tck-extensions")),
+	tck.WithIncludeTags("@rpc"),
+	tck.WithExcludeTags("@fractional-v1"),
+)
+```
+
+Four things to know, because the quiet failure here is a scenario left out of a run that reports
+green:
+
+- **An include set is a filter, not a hint.** Name anything in `tck.WithIncludeTags` and an extension
+  scenario carrying none of those tags is skipped — **including an untagged one**. The forgiving
+  reading would run a mode-specific scenario in the wrong mode the first time someone forgot a tag.
+  Naming nothing, the default, selects every extension scenario.
+- **Excluding wins.** A scenario carrying an excluded tag is skipped even when it carries an included
+  one, so a scenario parked by an exclusion does not come back when the include set grows.
+- **The canonical scenarios are exempt.** This selects among *your* extension scenarios only.
+  Appendix F's scenarios are the conformance result, and a suite able to filter them would publish a
+  narrower run under the same name. Use `tck.WithCapabilities` for those.
+- **A capability tag is refused**, as a configuration error rather than a conformance result, so this
+  selection can never skip what [Declaring capabilities](#declaring-capabilities) already gates. A
+  malformed tag, and a tag named as both included and excluded, are refused the same way — at suite
+  start, so a misconfiguration is one clean failure rather than a silently empty run.
+
+Each skip reports the tag that caused it, next to the result.
 
 ## Go-specific notes
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -192,6 +193,14 @@ func (r *runner) beforeScenario(ctx context.Context, sc *godog.Scenario) (contex
 			sc.Name, sc.Uri, tag, extensionsRoot)
 	}
 
+	// Ahead of the capability gate on purpose: a scenario this suite's own
+	// configuration left out is not a capability the provider withheld, and
+	// reporting it as one would put an adopter's selection into the conformance
+	// skip report.
+	if reason, skip := r.adopterTagSkip(sc); skip {
+		return ctx, fmt.Errorf("%w: %s", godog.ErrSkip, reason)
+	}
+
 	if capability, missing := r.missingCapability(sc); missing {
 		reason, inexpressible := capability.IsInexpressible()
 		r.recordSkip(sc.Name, capability, reason)
@@ -243,6 +252,58 @@ func (r *runner) missingCapability(sc *godog.Scenario) (Capability, bool) {
 		}
 	}
 	return "", false
+}
+
+// adopterTagSkip reports why this suite's own tag selection leaves a scenario
+// out, or false when the scenario is selected. See WithIncludeTags and
+// WithExcludeTags.
+//
+// It is the capability gate's neighbour and deliberately not its equal: that
+// gate answers a question about the provider, this one answers a question about
+// how an adoption chose to divide its own extension features. The canonical
+// scenarios are therefore exempt, by the same URI partition the coverage guard
+// keys on.
+//
+// A capability tag cannot reach it in either list — validateAdopterTags refuses
+// one at suite start — so this gate cannot skip what capabilities() already
+// gates. Like the capability gate it reads the tags from the scenario godog
+// parsed, so it cannot disagree with the run about which tags a scenario
+// carries.
+func (r *runner) adopterTagSkip(sc *godog.Scenario) (string, bool) {
+	if isCanonicalScenario(sc) {
+		return "", false
+	}
+
+	// Excluding wins over including, so a scenario parked by an exclusion stays
+	// parked however broadly the include set is drawn.
+	var carried []string
+	for _, tag := range sc.Tags {
+		if slices.Contains(r.cfg.ExcludeTags, tag.Name) {
+			carried = append(carried, tag.Name)
+		}
+	}
+	if len(carried) > 0 {
+		return fmt.Sprintf(
+			"extension scenario carries %s, which tck.WithExcludeTags names. This suite selected it "+
+				"out; the skip says nothing about the provider",
+			strings.Join(carried, ", ")), true
+	}
+
+	// An include set filters rather than hints: an extension scenario carrying
+	// none of its tags is left out, an untagged scenario among them. See
+	// WithIncludeTags for why the forgiving reading is the dangerous one.
+	if len(r.cfg.IncludeTags) == 0 {
+		return "", false
+	}
+	for _, tag := range sc.Tags {
+		if slices.Contains(r.cfg.IncludeTags, tag.Name) {
+			return "", false
+		}
+	}
+	return fmt.Sprintf(
+		"extension scenario carries none of %s, which tck.WithIncludeTags requires. This suite "+
+			"selected it out; the skip says nothing about the provider",
+		strings.Join(r.cfg.IncludeTags, ", ")), true
 }
 
 // expiredReservation reports whether a scenario carries the tag of a capability

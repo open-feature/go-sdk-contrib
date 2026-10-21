@@ -644,6 +644,196 @@ func TestAnExtensionScenarioMayCarryAnyTag(t *testing.T) {
 	}
 }
 
+// The adopter tag selection is the second gate in beforeScenario and the only
+// one an adopter configures directly. Its failure mode mirrors the capability
+// gate's -- a scenario quietly left out of a run that reports green -- so these
+// pin the readings that distinguish a filter from a hint, and the exemption
+// that keeps the canonical scenarios out of an adopter's reach.
+
+// adopterTagConfig is validConfig with a capability declaration narrow enough
+// to need no further options, so a test of the tag selection sees that
+// selection's error rather than the tck.WithUnavailableProvider one that the
+// default tck.AllCapabilities() raises.
+func adopterTagConfig(opts ...Option) *config {
+	return validConfig(append([]Option{WithCapabilities(Events)}, opts...)...)
+}
+
+// adopterRunner builds a runner from a configuration that has been validated,
+// so a test of the gate cannot accidentally exercise a selection the suite
+// would have refused at start-up.
+func adopterRunner(t *testing.T, opts ...Option) *runner {
+	t.Helper()
+
+	cfg := adopterTagConfig(opts...)
+	if err := cfg.validate(); err != nil {
+		t.Fatalf("the configuration under test was rejected: %v", err)
+	}
+	caps, err := newCapabilitySet(cfg.capabilities())
+	if err != nil {
+		t.Fatalf("newCapabilitySet: %v", err)
+	}
+	return &runner{cfg: *cfg, caps: caps}
+}
+
+// TestAnUntaggedExtensionScenarioIsSkippedUnderAnInclude is the case that
+// separates the two readings of an include set. Reading it as a hint -- an
+// untagged scenario belongs to every suite -- runs a mode-specific scenario in
+// the wrong mode the first time someone forgets a tag, and reports the pass as
+// conformance.
+func TestAnUntaggedExtensionScenarioIsSkippedUnderAnInclude(t *testing.T) {
+	r := adopterRunner(t, WithIncludeTags("@rpc"))
+
+	reason, skip := r.adopterTagSkip(extensionScenarioWithTags("an extension scenario with no tags at all"))
+	if !skip {
+		t.Fatal("an untagged extension scenario ran under tck.WithIncludeTags(\"@rpc\"); an include " +
+			"set is a filter and not a hint, so a scenario carrying none of its tags is left out " +
+			"whether it carries other tags or none at all")
+	}
+	if !strings.Contains(reason, "@rpc") {
+		t.Fatalf("the skip reason does not name the tag the scenario lacks: %s", reason)
+	}
+
+	if _, skip := r.adopterTagSkip(extensionScenarioWithTags("a selected scenario", "@rpc")); skip {
+		t.Fatal("an extension scenario carrying the included tag was skipped")
+	}
+}
+
+// TestNoTagSelectionSelectsEveryExtensionScenario keeps the default silent: the
+// filter exists only once an adopter asks for it.
+func TestNoTagSelectionSelectsEveryExtensionScenario(t *testing.T) {
+	r := adopterRunner(t)
+
+	for _, sc := range []*godog.Scenario{
+		extensionScenarioWithTags("a tagged extension scenario", "@anything"),
+		extensionScenarioWithTags("an untagged extension scenario"),
+	} {
+		if reason, skip := r.adopterTagSkip(sc); skip {
+			t.Errorf("%q was skipped with no tag selection configured: %s", sc.Name, reason)
+		}
+	}
+}
+
+// TestTheAdopterTagGateLeavesCanonicalScenariosAlone is the exemption: an
+// adoption selects among its own extension scenarios, never among Appendix F's.
+func TestTheAdopterTagGateLeavesCanonicalScenariosAlone(t *testing.T) {
+	r := adopterRunner(t, WithIncludeTags("@rpc"), WithExcludeTags("@fractional-v1"))
+
+	for _, sc := range []*godog.Scenario{
+		canonicalScenarioWithTags("a canonical scenario carrying no included tag"),
+		canonicalScenarioWithTags("a canonical scenario carrying an excluded tag", "@fractional-v1"),
+	} {
+		if reason, skip := r.adopterTagSkip(sc); skip {
+			t.Errorf("the canonical scenario %q was skipped by the adopter tag gate: %s. Appendix F's "+
+				"scenarios are the conformance result, and a suite able to filter them would publish "+
+				"a narrower run under the same name", sc.Name, reason)
+		}
+	}
+}
+
+// TestAnExcludedTagWinsOverAnIncludedOne: an exclusion a suite made
+// deliberately must not be undone by widening the include set.
+func TestAnExcludedTagWinsOverAnIncludedOne(t *testing.T) {
+	r := adopterRunner(t, WithIncludeTags("@rpc"), WithExcludeTags("@fractional-v1"))
+
+	sc := extensionScenarioWithTags("a scenario included and excluded at once", "@rpc", "@fractional-v1")
+	reason, skip := r.adopterTagSkip(sc)
+	if !skip {
+		t.Fatal("a scenario carrying both an included and an excluded tag ran; excluding has to win, " +
+			"or a parked scenario comes back the moment the include set grows")
+	}
+	if !strings.Contains(reason, "@fractional-v1") {
+		t.Fatalf("the skip reason does not name the excluded tag that caused it: %s", reason)
+	}
+	if strings.Contains(reason, "none of") {
+		t.Fatalf("the scenario was blamed for lacking an included tag it carries: %s", reason)
+	}
+}
+
+// TestAnAdopterTagSkipReachesGodogAsASkip pins the wiring as well as the rule:
+// the gate is in beforeScenario and uses the same godog.ErrSkip channel the
+// capability gate does, so an excluded scenario is reported as not run rather
+// than failing the suite.
+func TestAnAdopterTagSkipReachesGodogAsASkip(t *testing.T) {
+	r := adopterRunner(t, WithExcludeTags("@fractional-v1"))
+
+	_, hookErr := r.beforeScenario(context.Background(),
+		extensionScenarioWithTags("a parked scenario", "@fractional-v1"))
+	if hookErr == nil {
+		t.Fatal("the Before hook allowed an excluded extension scenario to run")
+	}
+	if !errors.Is(hookErr, godog.ErrSkip) {
+		t.Fatalf("the Before hook returned %v, which godog would treat as a failure rather than a skip", hookErr)
+	}
+	if !strings.Contains(hookErr.Error(), "@fractional-v1") {
+		t.Fatalf("the skip reason does not name the tag that caused it: %v", hookErr)
+	}
+}
+
+// TestValidateRejectsACapabilityTagInEitherTagOption keeps the two gates from
+// overlapping. A capability tag named here would report a capability skip as
+// this suite's own selection, or the reverse.
+func TestValidateRejectsACapabilityTagInEitherTagOption(t *testing.T) {
+	for _, tc := range []struct {
+		option string
+		opt    Option
+	}{
+		{option: "tck.WithIncludeTags", opt: WithIncludeTags(Events.Tag())},
+		{option: "tck.WithExcludeTags", opt: WithExcludeTags(Events.Tag())},
+	} {
+		t.Run(tc.option, func(t *testing.T) {
+			err := adopterTagConfig(tc.opt).validate()
+			if err == nil {
+				t.Fatalf("%s naming %s was accepted; whether a capability-gated scenario runs belongs "+
+					"to tck.WithCapabilities alone", tc.option, Events.Tag())
+			}
+			if !strings.Contains(err.Error(), Events.Tag()) {
+				t.Errorf("the error does not name the offending tag: %v", err)
+			}
+			if !strings.Contains(err.Error(), "WithCapabilities") {
+				t.Errorf("the error does not name the option that owns that decision: %v", err)
+			}
+		})
+	}
+}
+
+// TestValidateRejectsAMalformedOrContradictoryTagSelection: a tag that can
+// match nothing is refused at suite start, because once the run is under way it
+// is indistinguishable from a tag meant to match nothing.
+func TestValidateRejectsAMalformedOrContradictoryTagSelection(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		opts []Option
+		want string
+	}{
+		{name: "no at-sign", opts: []Option{WithExcludeTags("rpc")}, want: `"rpc"`},
+		{name: "nothing after the at-sign", opts: []Option{WithIncludeTags("@")}, want: `"@"`},
+		{name: "surrounding whitespace", opts: []Option{WithIncludeTags(" @rpc")}, want: `" @rpc"`},
+		{name: "trailing whitespace", opts: []Option{WithExcludeTags("@rpc ")}, want: `"@rpc "`},
+		{
+			name: "both included and excluded",
+			opts: []Option{WithIncludeTags("@rpc"), WithExcludeTags("@rpc")},
+			want: "@rpc",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := adopterTagConfig(tc.opts...).validate()
+			if err == nil {
+				t.Fatal("the selection was accepted; a misconfigured include set skips every extension " +
+					"scenario in the suite and reports each skip as the adopter's own choice")
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("the error does not name %s: %v", tc.want, err)
+			}
+		})
+	}
+}
+
+func TestAWellFormedTagSelectionValidates(t *testing.T) {
+	if err := adopterTagConfig(WithIncludeTags("@rpc"), WithExcludeTags("@fractional-v1")).validate(); err != nil {
+		t.Fatalf("a well-formed tag selection was rejected: %v", err)
+	}
+}
+
 // TestTheCanonicalScenariosCarryNoUnknownTag is the same check against the
 // assets actually pinned, so moving the pin is what trips it rather than some
 // future adopter's run.

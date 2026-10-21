@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/cucumber/godog"
@@ -69,6 +71,14 @@ type config struct {
 	// bare WithCapabilities() would quietly declare everything, the opposite of
 	// what it says.
 	capabilitiesDeclared bool
+
+	// IncludeTags narrows the adopter's own extension scenarios to those
+	// carrying one of these Gherkin tags. Set by WithIncludeTags.
+	IncludeTags []string
+
+	// ExcludeTags skips the adopter's own extension scenarios carrying any of
+	// these Gherkin tags. Set by WithExcludeTags.
+	ExcludeTags []string
 
 	// KnownDeviations records gaps the provider is known to have against parts
 	// of the specification that are not optional. Set by WithKnownDeviations.
@@ -176,6 +186,58 @@ func WithCapabilities(capabilities ...Capability) Option {
 		c.Capabilities = capabilities
 		c.capabilitiesDeclared = true
 	}
+}
+
+// WithIncludeTags narrows this suite to the extension scenarios carrying at
+// least one of the named Gherkin tags.
+//
+// It is a filter and not a hint: once anything is named here, an extension
+// scenario carrying none of those tags is skipped, and that includes a scenario
+// carrying no tag at all. The other reading — an untagged scenario belonging to
+// every suite — would run a mode-specific scenario in the wrong mode the first
+// time someone forgot a tag, and report the pass as conformance.
+//
+// This is how one directory of extension features serves two suites that cannot
+// both run all of it: a provider with an RPC mode and an in-process mode points
+// both at the same filesystem, and each suite includes its own tag.
+//
+//	tck.WithIncludeTags("@rpc")
+//
+// Naming nothing — the default — selects every extension scenario.
+//
+// Only an adopter's own tags can be named. A capability tag is refused as a
+// configuration error, so this selection can never skip what WithCapabilities
+// already gates, and the canonical scenarios are exempt from it altogether:
+// Appendix F's scenarios are the conformance result, and an adoption that could
+// filter them would publish a narrower run under the same name.
+//
+// A later WithIncludeTags replaces an earlier one rather than adding to it, as
+// every option here does. Optional.
+func WithIncludeTags(tags ...string) Option {
+	return func(c *config) { c.IncludeTags = tags }
+}
+
+// WithExcludeTags skips the extension scenarios carrying any of the named
+// Gherkin tags.
+//
+// It is the half of the selection that wins: a scenario carrying an excluded
+// tag is skipped even when it carries an included one too, so an exclusion a
+// suite made deliberately is not undone by widening the include set.
+//
+//	tck.WithExcludeTags("@fractional-v1")
+//
+// Use it for an extension scenario this suite is known not to be able to run —
+// a targeting dialect the backend predates, a scenario parked while a defect is
+// open. The skip reason names the tag, which is what makes the omission
+// visible next to the result rather than inferrable from a scenario count.
+//
+// The same two restrictions as WithIncludeTags apply: a capability tag is a
+// configuration error, and the canonical scenarios are exempt. Naming one tag
+// as both included and excluded is refused as well.
+//
+// A later WithExcludeTags replaces an earlier one. Optional.
+func WithExcludeTags(tags ...string) Option {
+	return func(c *config) { c.ExcludeTags = tags }
 }
 
 // WithKnownDeviations records gaps the provider is known to have against parts
@@ -295,6 +357,10 @@ func (c *config) validate() error {
 		problems = append(problems, err)
 	}
 
+	if err := validateAdopterTags(c.IncludeTags, c.ExcludeTags); err != nil {
+		problems = append(problems, err)
+	}
+
 	caps, err := newCapabilitySet(c.capabilities())
 	if err != nil {
 		problems = append(problems, err)
@@ -360,6 +426,66 @@ func (c *config) validateProviderSource() []error {
 				"tck.WithProviderFromEndpoint"))
 	}
 	problems = append(problems, c.compose.validate()...)
+
+	return problems
+}
+
+// validateAdopterTags checks the include and exclude selection once, at suite
+// start, rather than only as each scenario reaches the gate.
+//
+// A misconfiguration here is invisible at scenario time: a tag that matches
+// nothing and a tag meant to match nothing produce the same run, and an include
+// set holding only a malformed tag skips every extension scenario while
+// reporting each skip as the adopter's own choice. Refusing it up front makes
+// that one clean failure instead.
+func validateAdopterTags(include, exclude []string) error {
+	var problems []error
+
+	problems = append(problems, validateAdopterTagList("tck.WithIncludeTags", include)...)
+	problems = append(problems, validateAdopterTagList("tck.WithExcludeTags", exclude)...)
+
+	var both []string
+	for _, tag := range exclude {
+		if slices.Contains(include, tag) && !slices.Contains(both, tag) {
+			both = append(both, tag)
+		}
+	}
+	if len(both) > 0 {
+		problems = append(problems, fmt.Errorf(
+			"tck.WithIncludeTags and tck.WithExcludeTags both name %s: a tag is one or the other. "+
+				"Excluding wins, so naming it twice says nothing the exclusion did not, and reads as "+
+				"though the inclusion were in force", strings.Join(both, ", ")))
+	}
+
+	return errors.Join(problems...)
+}
+
+// validateAdopterTagList rejects a malformed tag and a capability tag, which
+// are different mistakes: the first can match nothing, the second would put a
+// second gate over a decision tck.WithCapabilities already makes.
+func validateAdopterTagList(option string, tags []string) []error {
+	var problems []error
+	var capabilityTags []string
+
+	for _, tag := range tags {
+		if len(tag) < 2 || !strings.HasPrefix(tag, "@") || strings.TrimSpace(tag) != tag {
+			problems = append(problems, fmt.Errorf(
+				"%s names %q: a Gherkin tag starts with '@', has something after it, and carries no "+
+					"surrounding whitespace", option, tag))
+			continue
+		}
+		if _, gates := CapabilityForTag(tag); gates {
+			capabilityTags = append(capabilityTags, tag)
+		}
+	}
+
+	if len(capabilityTags) > 0 {
+		problems = append(problems, fmt.Errorf(
+			"%s names the TCK capability tag(s) %s: whether a capability-gated scenario runs is "+
+				"tck.WithCapabilities' decision, and a second gate over the same tag would report a "+
+				"capability skip as this suite's own selection, or the reverse. Declare or withhold "+
+				"the capability instead", option, strings.Join(capabilityTags, ", ")))
+	}
 
 	return problems
 }
