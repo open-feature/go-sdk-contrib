@@ -11,6 +11,7 @@ import (
 	"github.com/launchdarkly/go-sdk-common/v3/ldlog"
 	"github.com/launchdarkly/go-server-sdk/v7/ldcomponents"
 	"github.com/launchdarkly/go-server-sdk/v7/ldfiledata"
+	"github.com/launchdarkly/go-server-sdk/v7/ldhooks"
 	"github.com/open-feature/go-sdk/openfeature"
 
 	ld "github.com/launchdarkly/go-server-sdk/v7"
@@ -53,9 +54,10 @@ func (l *spyLogger) Warn(msg string, args ...any) {
 	l.warnCalls = append(l.warnCalls, loggedCall{msg: msg, args: args})
 }
 
-func makeLDClient(t *testing.T, flagsFilePath string) *ld.LDClient {
+func makeLDClient(t *testing.T, flagsFilePath string, hooks ...ldhooks.Hook) *ld.LDClient {
 	var config ld.Config
 	config.DataSource = ldfiledata.DataSource().FilePaths(flagsFilePath)
+	config.Hooks = hooks
 	config.Logging = ldcomponents.Logging().MinLevel(ldlog.Debug)
 	config.Events = ldcomponents.NoEvents()
 	config.Offline = false
@@ -376,4 +378,45 @@ func TestShutdown(t *testing.T) {
 		openfeature.Shutdown()
 		assert.Cond(t, mockClient.closeCalled, "expected client.Close() to be called")
 	})
+}
+
+type callerContextKey struct{}
+
+// callerContextHook records the value stored under callerContextKey in the
+// Go context that the SDK passes to its hooks.
+type callerContextHook struct {
+	ldhooks.Unimplemented
+	captured any
+}
+
+func (h *callerContextHook) Metadata() ldhooks.Metadata {
+	return ldhooks.NewMetadata("caller-context-hook")
+}
+
+func (h *callerContextHook) BeforeEvaluation(ctx context.Context, _ ldhooks.EvaluationSeriesContext, data ldhooks.EvaluationSeriesData) (ldhooks.EvaluationSeriesData, error) {
+	h.captured = ctx.Value(callerContextKey{})
+	return data, nil
+}
+
+func TestCallerContextReachesSDKHooks(t *testing.T) {
+	hook := &callerContextHook{}
+	err := openfeature.SetProviderAndWait(NewProvider(
+		makeLDClient(t, "testdata/flags.json", hook),
+		WithLogger(newTestLogger(t)),
+	))
+	assert.Ok(t, err)
+
+	evalCtx := openfeature.NewEvaluationContext("redpanda-blah12342", map[string]any{
+		"kind":            "redpanda-id",
+		"organization-id": "blah1234",
+		"redpanda-id":     "redpanda-blah12342",
+		"key":             "redpanda-blah12343",
+		"cloud-provider":  "aws",
+		"anonymous":       true,
+	})
+	ctx := context.WithValue(context.Background(), callerContextKey{}, "caller value")
+	client := openfeature.NewClient("hookTests")
+	_, err = client.BooleanValue(ctx, "mtls_enabled", false, evalCtx)
+	assert.Ok(t, err)
+	assert.Equals(t, "caller value", hook.captured)
 }
