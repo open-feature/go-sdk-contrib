@@ -271,6 +271,24 @@ tck.Run(t,
 not implement `tck.ConnectionControl`, so `Stale` and `UnavailableInit` are left undeclared and their
 scenarios skip; declaring them anyway fails loudly rather than passing silently.
 
+### Serving another flag configuration
+
+An extension scenario sometimes needs the backend on a flag set other than the baseline. A control
+with another one to offer implements `tck.ConfigurationControl`, which `tck.HTTPControl` already
+does, and the scenario asks for it in the step that registers the provider:
+
+```gherkin
+Given a stable provider with "metadata" configuration
+```
+
+One step rather than two, because the backend has to be serving that configuration *before* the
+provider connects. The name is the backend's own, so only extension scenarios use one: the canonical
+scenarios are written against the baseline every control serves. Within the scenario a reconnect
+restores the configuration it asked for, and the scenario after it is taken back to the suite's own —
+`POST /reset` restores flag state, not which configuration is served. A control over a single
+in-process flag set does not implement the interface, and a scenario naming a configuration then
+fails with the fix rather than running against the wrong flags.
+
 ## Running it
 
 ```console

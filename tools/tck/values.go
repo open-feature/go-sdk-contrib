@@ -24,6 +24,18 @@ const (
 
 var allFlagTypes = []flagType{typeBoolean, typeString, typeInteger, typeFloat, typeObject}
 
+// The two value types a context table may declare on top of the five the
+// Evaluation API exposes.
+//
+// Neither names a flag type, and neither could: there is no Long accessor to
+// ask a flag for, and no StringList one. They exist because a context table is
+// where a scenario reaches for the types a targeting operator takes rather than
+// the types a flag resolves to.
+const (
+	contextTypeLong       = "Long"
+	contextTypeStringList = "StringList"
+)
+
 // parseFlagType resolves the type named in a scenario, case-insensitively.
 func parseFlagType(raw string) (flagType, error) {
 	for _, t := range allFlagTypes {
@@ -31,11 +43,17 @@ func parseFlagType(raw string) (flagType, error) {
 			return t, nil
 		}
 	}
+	return "", fmt.Errorf("unknown flag type %q: expected one of %s", raw, strings.Join(flagTypeNames(), ", "))
+}
+
+// flagTypeNames lists the flag types for a failure message, in declaration
+// order.
+func flagTypeNames() []string {
 	names := make([]string, len(allFlagTypes))
 	for i, t := range allFlagTypes {
 		names[i] = string(t)
 	}
-	return "", fmt.Errorf("unknown flag type %q: expected one of %s", raw, strings.Join(names, ", "))
+	return names
 }
 
 // parseValue converts a value written in a scenario into the Go type the
@@ -76,6 +94,60 @@ func (t flagType) parseValue(raw string) (any, error) {
 	default:
 		return nil, fmt.Errorf("unknown flag type %q", t)
 	}
+}
+
+// parseContextValue converts a value written in a context table into the Go
+// type an evaluation context attribute carries.
+//
+// Its vocabulary is parseValue's plus Long and StringList, because a context
+// table is where a scenario reaches for the types a targeting operator takes
+// rather than the five the Evaluation API resolves.
+//
+// Java's TCK needs a second conversion rule here that this one does not. There
+// an Integer flag default is bounded to 32 bits, because getIntegerDetails
+// cannot be asked for more, and a context entry has to widen past that bound
+// instead of failing: nothing reads a context entry back through an accessor,
+// and a targeting operator may hash 4294967295. Go's IntValueDetails already
+// takes an int64, so parseValue is 64 bits wide to begin with and there is
+// nothing left for a context entry to widen. Long is therefore accepted as a
+// synonym rather than as a wider type, so that a table written against another
+// language's TCK runs here unchanged.
+func parseContextValue(raw, rawType string) (any, error) {
+	switch {
+	case strings.EqualFold(rawType, contextTypeLong):
+		v, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("%q is not a long: %w", raw, err)
+		}
+		return v, nil
+	case strings.EqualFold(rawType, contextTypeStringList):
+		return parseStringList(raw), nil
+	}
+
+	typ, err := parseFlagType(rawType)
+	if err != nil {
+		return nil, fmt.Errorf("unknown context value type %q: expected one of %s, %s, %s",
+			rawType, strings.Join(flagTypeNames(), ", "), contextTypeLong, contextTypeStringList)
+	}
+	return typ.parseValue(raw)
+}
+
+// parseStringList splits a comma-separated cell into the list a targeting
+// operator reads.
+//
+// An empty cell is the empty list and not a list holding one empty string: a
+// scenario leaving the column blank is saying the key carries no entries, and
+// an operator asked whether "" is among them would otherwise answer yes.
+func parseStringList(raw string) []string {
+	if raw == "" {
+		return []string{}
+	}
+
+	parts := strings.Split(raw, ",")
+	for i, part := range parts {
+		parts[i] = strings.TrimSpace(part)
+	}
+	return parts
 }
 
 // valuesEqual compares an expected value from a scenario with what a provider

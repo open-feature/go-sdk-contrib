@@ -19,6 +19,8 @@ func registerEventSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a (ready|stale|error|change) event was fired$`, anEventWasFired)
 	ctx.Step(`^the (ready|stale|error|change) event handler should have been executed$`, theEventHandlerShouldHaveBeenExecuted)
 	ctx.Step(`^the (ready|stale|error|change) event handler should have been executed within (\d+)ms$`, theEventHandlerShouldHaveBeenExecutedWithin)
+	ctx.Step(`^the (ready|stale|error|change) event handler should have been executed with no (ready|stale|error|change) event before it$`,
+		theEventHandlerShouldHaveBeenExecutedWithNoneBefore)
 	ctx.Step(`^the flag should be part of the event payload$`, theFlagShouldBePartOfTheEventPayload)
 	ctx.Step(`^the connection is lost$`, theConnectionIsLost)
 	ctx.Step(`^the connection is restored$`, theConnectionIsRestored)
@@ -64,7 +66,9 @@ func aEventHandler(ctx context.Context, name string) error {
 		return nil
 	}
 
-	state.recorders[eventType] = newEventRecorder(client, eventType)
+	recorder := newEventRecorder(eventType, &state.clock)
+	recorder.attach(client)
+	state.recorders[eventType] = recorder
 	return nil
 }
 
@@ -88,6 +92,61 @@ func theEventHandlerShouldHaveBeenExecuted(ctx context.Context, name string) err
 // clamped by it.
 func theEventHandlerShouldHaveBeenExecutedWithin(ctx context.Context, name string, millis int) error {
 	return awaitEvent(ctx, name, time.Duration(millis)*time.Millisecond)
+}
+
+// theEventHandlerShouldHaveBeenExecutedWithNoneBefore awaits an event of one
+// kind and asserts that no event of another kind was recorded before it.
+//
+// This is how a scenario says "and no error": as an order, not as a window. "No
+// error event fired" can only be answered over some stretch of time, and at any
+// one instant an event that never fires and one that fires a moment later are
+// the same observation — so a step asking it that way either slows every run
+// down or passes because nothing has arrived yet. "No error before the provider
+// came back ready" is a question about what was recorded, and the recording
+// answers it with no waiting at all.
+func theEventHandlerShouldHaveBeenExecutedWithNoneBefore(ctx context.Context, name, forbidden string) error {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return err
+	}
+
+	eventType, ok := eventTypeByName[name]
+	if !ok {
+		return fmt.Errorf("unknown event kind %q", name)
+	}
+	forbiddenType, ok := eventTypeByName[forbidden]
+	if !ok {
+		return fmt.Errorf("unknown event kind %q", forbidden)
+	}
+	if eventType == forbiddenType {
+		return fmt.Errorf("a %s event cannot be forbidden before itself: this step asks for an "+
+			"order between two kinds of event", name)
+	}
+
+	recorder, err := state.recorder(eventType)
+	if err != nil {
+		return err
+	}
+	// The forbidden kind needs a handler too, and a missing one is an error
+	// rather than "none were seen": with nothing recording them the assertion
+	// would hold for every provider, including one that fires the forbidden
+	// event first every time.
+	forbiddenRecorder, err := state.recorder(forbiddenType)
+	if err != nil {
+		return err
+	}
+
+	event, err := recorder.await(ctx, state.cfg.eventTimeout())
+	if err != nil {
+		return err
+	}
+
+	if forbiddenRecorder.observedBefore(event.seq) {
+		return fmt.Errorf("a %s event was recorded before the %s event. The scenario asks for the "+
+			"%s event to be reached without one, so an intervening %s event means the provider "+
+			"passed through a state it forbids", forbidden, name, name, forbidden)
+	}
+	return nil
 }
 
 // awaitEvent consumes the next event of the named type. A timeout of zero means

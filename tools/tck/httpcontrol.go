@@ -50,7 +50,9 @@ const defaultControlTimeout = 30 * time.Second
 //
 // After a disconnect the backend may be down, and /reset is specified to reset
 // flag state rather than to start a stopped backend. HTTPControl tracks that
-// and uses /start for the scenario following any disconnect.
+// and uses /start for the scenario following any disconnect. A scenario that
+// served a configuration of its own is tracked the same way and for the same
+// reason: /reset restores flag state, not which configuration is being served.
 type HTTPControl struct {
 	baseURL              string
 	backendConfiguration string
@@ -62,11 +64,16 @@ type HTTPControl struct {
 	// backendMaybeDown records that a disconnect happened, so the next
 	// PrepareScenario starts the backend rather than merely resetting flags.
 	backendMaybeDown bool
+	// scenarioConfiguration is a configuration one scenario asked for, which
+	// the next scenario has to be taken off again. Empty means the suite's own
+	// is in effect.
+	scenarioConfiguration string
 }
 
 var (
-	_ BackendControl    = (*HTTPControl)(nil)
-	_ ConnectionControl = (*HTTPControl)(nil)
+	_ BackendControl       = (*HTTPControl)(nil)
+	_ ConnectionControl    = (*HTTPControl)(nil)
+	_ ConfigurationControl = (*HTTPControl)(nil)
 )
 
 // HTTPControlOption configures an HTTPControl.
@@ -201,18 +208,26 @@ func (c *HTTPControl) BackendType() BackendType { return BackendTypeHTTP }
 // PrepareScenario implements BackendControl.
 func (c *HTTPControl) PrepareScenario(ctx context.Context) error {
 	c.mu.Lock()
-	mustStart := c.backendMaybeDown
+	mustStart := c.backendMaybeDown || c.scenarioConfiguration != ""
 	resetSupported := c.resetSupported
 	c.mu.Unlock()
 
 	// A backend that may be stopped has to be started; /reset is specified to
-	// restore flag state, not to bring a stopped backend back up.
+	// restore flag state, not to bring a stopped backend back up. So does one
+	// left serving a configuration the last scenario asked for: /reset would
+	// restore that configuration's baseline rather than take the backend off
+	// it, and the next scenario would run against the wrong flag set.
 	if mustStart || (resetSupported != nil && !*resetSupported) {
-		if err := c.start(ctx); err != nil {
+		// This suite's own configuration rather than the one in effect: taking
+		// the backend back to it is what preparing a scenario means.
+		if err := c.startWith(ctx, c.backendConfiguration); err != nil {
 			return err
 		}
 		c.mu.Lock()
-		c.backendMaybeDown = false
+		// Cleared only now that the start succeeded, so a failure is retried by
+		// the next scenario rather than downgraded to a /reset that would leave
+		// the old configuration serving.
+		c.scenarioConfiguration = ""
 		c.mu.Unlock()
 		return nil
 	}
@@ -263,19 +278,55 @@ func (c *HTTPControl) Disconnect(ctx context.Context) error {
 //
 // Restarting with the configuration already in effect restores the same
 // baseline flag state, so the provider observes a change in availability and
-// never a change in flag values.
+// never a change in flag values. In effect means the scenario's own, where one
+// served a configuration: losing the connection is not how a scenario changes
+// what the backend serves.
 func (c *HTTPControl) Reconnect(ctx context.Context) error {
-	if err := c.start(ctx); err != nil {
+	return c.start(ctx)
+}
+
+// ServeConfiguration implements ConfigurationControl.
+//
+// POST /start?config=<name>, which also seeds that configuration's flag state.
+// The name is remembered for as long as the scenario lasts, so that a Reconnect
+// within it restores this configuration and the next PrepareScenario knows it
+// has to start rather than reset.
+func (c *HTTPControl) ServeConfiguration(ctx context.Context, configuration string) error {
+	if err := c.startWith(ctx, configuration); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	c.scenarioConfiguration = configuration
+	c.mu.Unlock()
+	return nil
+}
+
+// start brings the backend up on the configuration in effect: the one a
+// scenario served, else this suite's own.
+func (c *HTTPControl) start(ctx context.Context) error {
+	c.mu.Lock()
+	configuration := c.scenarioConfiguration
+	c.mu.Unlock()
+
+	if configuration == "" {
+		configuration = c.backendConfiguration
+	}
+	return c.startWith(ctx, configuration)
+}
+
+// startWith brings the backend up on one named configuration.
+//
+// A /start that returned 2xx is a backend that is up, so this is also where the
+// outage flag is cleared — any other arrangement leaves a path that starts the
+// backend without recording it and costs every later scenario a restart.
+func (c *HTTPControl) startWith(ctx context.Context, configuration string) error {
+	if err := c.require(ctx, "/start", url.Values{"config": []string{configuration}}); err != nil {
 		return err
 	}
 	c.mu.Lock()
 	c.backendMaybeDown = false
 	c.mu.Unlock()
 	return nil
-}
-
-func (c *HTTPControl) start(ctx context.Context) error {
-	return c.require(ctx, "/start", url.Values{"config": []string{c.backendConfiguration}})
 }
 
 // require performs a control call and fails on any non-2xx response.

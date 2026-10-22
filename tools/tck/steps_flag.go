@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -13,6 +15,7 @@ import (
 func registerFlagSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^an? ([A-Za-z]+)-flag with key "([^"]*)" and a default value "([^"]*)"$`, aFlagWithKeyAndDefault)
 	ctx.Step(`^a context containing a targeting key with value "([^"]*)"$`, aContextContainingATargetingKey)
+	ctx.Step(`^a context with the following keys:$`, aContextWithTheFollowingKeys)
 	ctx.Step(`^the flag was evaluated with details$`, theFlagWasEvaluatedWithDetails)
 	ctx.Step(`^the resolved details value should be "([^"]*)"$`, theResolvedValueShouldBe)
 	ctx.Step(`^the variant should be "([^"]*)"$`, theVariantShouldBe)
@@ -23,6 +26,8 @@ func registerFlagSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the resolved object value should contain$`, theResolvedObjectValueShouldContain)
 	ctx.Step(`^the resolved value is remembered$`, theResolvedValueIsRemembered)
 	ctx.Step(`^the resolved details value should have changed$`, theResolvedValueShouldHaveChanged)
+	ctx.Step(`^the resolved metadata should contain$`, theResolvedMetadataShouldContain)
+	ctx.Step(`^the resolved metadata is empty$`, theResolvedMetadataIsEmpty)
 	ctx.Step(`^the flag was modified$`, theFlagWasModified)
 }
 
@@ -65,6 +70,62 @@ func aContextContainingATargetingKey(ctx context.Context, targetingKey string) e
 	}
 
 	state.evalContext = openfeature.NewEvaluationContext(targetingKey, nil)
+	return nil
+}
+
+// aContextWithTheFollowingKeys adds several typed entries to the evaluation
+// context at once.
+//
+// The table form of the step above, for a scenario whose targeting depends on
+// more than one key. Its type vocabulary is parseContextValue's, which is wider
+// than the five types a flag resolves to, because a table is where a scenario
+// reaches for the types a targeting operator takes.
+//
+// The context is rebuilt rather than added to, openfeature.EvaluationContext
+// being immutable by construction, and rebuilding is where an earlier statement
+// can be lost: a targeting key set before this step and the entries of an
+// earlier table are both carried over deliberately.
+func aContextWithTheFollowingKeys(ctx context.Context, table *godog.Table) error {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return err
+	}
+
+	rows, err := dataRows(table, "key", "type", "value")
+	if err != nil {
+		return err
+	}
+
+	attributes := state.evalContext.Attributes()
+	targetingKey := state.evalContext.TargetingKey()
+
+	for _, row := range rows {
+		key, rawType, rawValue := row[0], row[1], row[2]
+
+		value, err := parseContextValue(rawValue, rawType)
+		if err != nil {
+			return fmt.Errorf("context key %q: %w", key, err)
+		}
+
+		// The SDK keeps the targeting key beside the attributes rather than
+		// among them, so a row naming it has to be routed there: left in the
+		// map, the provider would see an attribute called targetingKey and no
+		// targeting key at all. A row is the later statement about it, so it
+		// overrides one an earlier step set.
+		if key == openfeature.TargetingKey {
+			text, ok := value.(string)
+			if !ok {
+				return fmt.Errorf("the %s row declares type %q, but a targeting key is a string",
+					openfeature.TargetingKey, rawType)
+			}
+			targetingKey = text
+			continue
+		}
+
+		attributes[key] = value
+	}
+
+	state.evalContext = openfeature.NewEvaluationContext(targetingKey, attributes)
 	return nil
 }
 
@@ -154,6 +215,7 @@ func fill(result *evaluation, value any, detail openfeature.ResolutionDetail, er
 	result.reason = detail.Reason
 	result.errorCode = detail.ErrorCode
 	result.errorMessage = detail.ErrorMessage
+	result.metadata = detail.FlagMetadata
 	result.err = err
 }
 
@@ -397,6 +459,125 @@ func theResolvedValueShouldHaveChanged(ctx context.Context) error {
 			describeValue(result.value))
 	}
 	return nil
+}
+
+// metadataTypes are the four types flag metadata can carry.
+//
+// Object is absent on purpose: openfeature.FlagMetadata is specified to hold a
+// boolean, a string, an int64 or a float64, so a structured entry is not
+// something a provider can put there and an application read back.
+var metadataTypes = []flagType{typeString, typeBoolean, typeInteger, typeFloat}
+
+// theResolvedMetadataShouldContain asserts typed flag-metadata entries on the
+// last evaluation; an entry the table does not list is not checked.
+//
+// The wording and the columns are the specification's own, from
+// assets/gherkin/metadata.feature: flag metadata is spec behaviour rather than
+// a vendor's, so the question belongs here rather than in each adoption's glue.
+func theResolvedMetadataShouldContain(ctx context.Context, table *godog.Table) error {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return err
+	}
+	result, err := state.requireEvaluation()
+	if err != nil {
+		return err
+	}
+
+	rows, err := dataRows(table, "key", "metadata_type", "value")
+	if err != nil {
+		return err
+	}
+
+	for _, row := range rows {
+		key, rawType, rawValue := row[0], row[1], row[2]
+
+		typ, err := metadataType(rawType)
+		if err != nil {
+			return fmt.Errorf("metadata %q: %w", key, err)
+		}
+		expected, err := typ.parseValue(rawValue)
+		if err != nil {
+			return fmt.Errorf("expected metadata %q: %w", key, err)
+		}
+
+		actual, err := metadataValue(result.metadata, key, typ)
+		if err != nil {
+			return err
+		}
+		if !valuesEqual(expected, actual) {
+			return fmt.Errorf("metadata %q (%s) was %s, expected %s. The resolution carried %v",
+				key, typ, describeValue(actual), describeValue(expected), result.metadata)
+		}
+	}
+	return nil
+}
+
+// theResolvedMetadataIsEmpty asserts that the last evaluation carries no flag
+// metadata.
+func theResolvedMetadataIsEmpty(ctx context.Context) error {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return err
+	}
+	result, err := state.requireEvaluation()
+	if err != nil {
+		return err
+	}
+
+	if len(result.metadata) > 0 {
+		return fmt.Errorf("the resolution carried flag metadata %v, expected none",
+			result.metadata)
+	}
+	return nil
+}
+
+// metadataType resolves the type a metadata row declares, rejecting the one
+// flag type flag metadata cannot carry.
+func metadataType(raw string) (flagType, error) {
+	typ, err := parseFlagType(raw)
+	if err == nil && slices.Contains(metadataTypes, typ) {
+		return typ, nil
+	}
+
+	names := make([]string, len(metadataTypes))
+	for i, t := range metadataTypes {
+		names[i] = string(t)
+	}
+	return "", fmt.Errorf("unknown metadata type %q: flag metadata is %s",
+		raw, strings.Join(names, ", "))
+}
+
+// metadataValue reads one flag-metadata entry through the typed accessor the
+// row declares.
+//
+// Through the accessor rather than straight out of the map, because that is the
+// question being asked: openfeature.FlagMetadata is a map[string]any, and an
+// entry a provider stored as a float64 where the scenario declared an Integer
+// is one no application can read back with GetInt.
+func metadataValue(metadata openfeature.FlagMetadata, key string, typ flagType) (any, error) {
+	var (
+		value any
+		err   error
+	)
+	switch typ {
+	case typeString:
+		value, err = metadata.GetString(key)
+	case typeBoolean:
+		value, err = metadata.GetBool(key)
+	case typeInteger:
+		value, err = metadata.GetInt(key)
+	case typeFloat:
+		value, err = metadata.GetFloat(key)
+	default:
+		return nil, fmt.Errorf("metadata %q: flag metadata cannot carry a %s", key, typ)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("metadata %q is not readable as %s: %w. The resolution carried %v",
+			key, typ, err, metadata)
+	}
+	return value, nil
 }
 
 // theFlagWasModified changes flag configuration on the backend.

@@ -141,6 +141,32 @@ type ConnectionControl interface {
 	Reconnect(ctx context.Context) error
 }
 
+// ConfigurationControl is implemented by a BackendControl whose backend serves
+// more than one named flag configuration.
+//
+// A separate interface for the reason ConnectionControl is one: a control over
+// a single in-process flag set has no second configuration to offer, and a
+// no-op would keep serving the baseline while the scenario believed it had
+// asked for something else.
+//
+// The names belong to the backend rather than to the TCK — the control API
+// takes config as a free string defaulting to DefaultBackendConfiguration — so
+// a scenario naming one is naming something only that backend's control
+// defines. That makes this an extension-scenario operation. The canonical
+// scenarios never ask: the baseline every control already serves is the
+// configuration they are written against.
+type ConfigurationControl interface {
+	// ServeConfiguration restarts the backend on one of its own named flag
+	// configurations, which also seeds that configuration's flag state.
+	//
+	// It has to take effect before the provider connects, which is why the one
+	// step that calls it registers the provider too. Reconnect afterwards
+	// brings this configuration back rather than the suite's, because losing
+	// the connection is not how a scenario changes what is served; the next
+	// PrepareScenario takes the backend back to the suite's own.
+	ServeConfiguration(ctx context.Context, configuration string) error
+}
+
 // unsupportedControl builds the error the connection operations return when the
 // backend has no connection to control. The message names the fix, because the
 // mistake it reports is always the same one.
@@ -160,6 +186,26 @@ func connectionControl(control BackendControl, operation string) (ConnectionCont
 	cc, ok := control.(ConnectionControl)
 	if !ok {
 		return nil, unsupportedControl(control, operation)
+	}
+	return cc, nil
+}
+
+// configurationControl returns the ConfigurationControl view of a
+// BackendControl, or an error naming what is missing.
+//
+// Its own message rather than unsupportedControl's: no capability gates this
+// operation, so the fix is never "remove a capability". A scenario reaches it
+// by naming a configuration, which only an extension feature does.
+func configurationControl(control BackendControl) (ConfigurationControl, error) {
+	cc, ok := control.(ConfigurationControl)
+	if !ok {
+		return nil, fmt.Errorf(
+			"%w: %s does not support %q. A scenario asked the backend to serve a named flag "+
+				"configuration, which only an extension feature does — the canonical scenarios "+
+				"are written against the baseline every control already serves. Either drop the "+
+				"configuration from that scenario, or supply a BackendControl that implements "+
+				"tck.ConfigurationControl",
+			ErrUnsupportedControl, control.Description(), "ServeConfiguration")
 	}
 	return cc, nil
 }

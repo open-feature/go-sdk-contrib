@@ -42,6 +42,9 @@ type fakeControlAPI struct {
 	calls []string
 	// status answers a path with a code; anything unlisted answers 200.
 	status map[string]int
+	// scripted answers a path with one code per call, in order, and falls back
+	// to status once exhausted. It is how a single failing call is staged.
+	scripted map[string][]int
 	// healthz, when non-empty, is consumed one entry per GET /healthz and the
 	// last entry repeats forever.
 	healthz []int
@@ -50,7 +53,7 @@ type fakeControlAPI struct {
 func newFakeControlAPI(t *testing.T) *fakeControlAPI {
 	t.Helper()
 
-	api := &fakeControlAPI{status: map[string]int{}}
+	api := &fakeControlAPI{status: map[string]int{}, scripted: map[string][]int{}}
 	api.server = httptest.NewServer(http.HandlerFunc(api.handle))
 	t.Cleanup(api.server.Close)
 
@@ -79,11 +82,21 @@ func (a *fakeControlAPI) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	a.calls = append(a.calls, line)
 
-	code, ok := a.status[r.URL.Path]
-	if !ok {
-		code = http.StatusOK
+	code := http.StatusOK
+	if codes := a.scripted[r.URL.Path]; len(codes) > 0 {
+		code = codes[0]
+		a.scripted[r.URL.Path] = codes[1:]
+	} else if listed, ok := a.status[r.URL.Path]; ok {
+		code = listed
 	}
 	w.WriteHeader(code)
+}
+
+// script makes path answer each of codes in turn, one per call.
+func (a *fakeControlAPI) script(path string, codes ...int) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.scripted[path] = codes
 }
 
 // answer makes path respond with code from now on.
@@ -279,6 +292,113 @@ func TestTheBackendConfigurationTravelsOnEveryStart(t *testing.T) {
 		"POST /reset",
 		"POST /start?config=custom-config",
 		"POST /start?config=custom-config",
+	)
+}
+
+func TestServingAConfigurationStartsTheBackendOnThatName(t *testing.T) {
+	api := newFakeControlAPI(t)
+	control := api.control(t)
+	ctx := context.Background()
+
+	if err := control.PrepareScenario(ctx); err != nil {
+		t.Fatalf("PrepareScenario: %v", err)
+	}
+	if err := control.ServeConfiguration(ctx, "metadata"); err != nil {
+		t.Fatalf("ServeConfiguration: %v", err)
+	}
+
+	// /start?config=<name> rather than a mutation, because the name also seeds
+	// that configuration's flag state, and the scenario asking for it is
+	// asking for the whole flag set rather than for one value.
+	requireSequence(t, api, "POST /reset", "POST /start?config=metadata")
+}
+
+func TestAReconnectRestoresTheConfigurationTheScenarioServed(t *testing.T) {
+	api := newFakeControlAPI(t)
+	control := api.control(t)
+	ctx := context.Background()
+
+	if err := control.ServeConfiguration(ctx, "metadata"); err != nil {
+		t.Fatalf("ServeConfiguration: %v", err)
+	}
+	if err := control.Disconnect(ctx); err != nil {
+		t.Fatalf("Disconnect: %v", err)
+	}
+	if err := control.Reconnect(ctx); err != nil {
+		t.Fatalf("Reconnect: %v", err)
+	}
+
+	// Losing the connection is not how a scenario changes what the backend
+	// serves. A reconnect onto the suite's configuration would silently swap
+	// the flag set under a scenario asserting across an outage, and the
+	// failure would read as a wrong value rather than as the wrong flags.
+	requireSequence(t, api,
+		"POST /start?config=metadata",
+		"POST /stop",
+		"POST /start?config=metadata",
+	)
+}
+
+func TestAServedConfigurationDoesNotLeakIntoTheNextScenario(t *testing.T) {
+	api := newFakeControlAPI(t)
+	control := api.control(t)
+	ctx := context.Background()
+
+	if err := control.PrepareScenario(ctx); err != nil {
+		t.Fatalf("first PrepareScenario: %v", err)
+	}
+	if err := control.ServeConfiguration(ctx, "metadata"); err != nil {
+		t.Fatalf("ServeConfiguration: %v", err)
+	}
+	if err := control.PrepareScenario(ctx); err != nil {
+		t.Fatalf("PrepareScenario after the served configuration: %v", err)
+	}
+	if err := control.PrepareScenario(ctx); err != nil {
+		t.Fatalf("PrepareScenario after that: %v", err)
+	}
+
+	// /reset restores flag state, not which configuration is being served, so
+	// preferring it here would leave the metadata configuration serving every
+	// scenario that followed — each of them green against the wrong flag set.
+	// The scenario after the restoration resets again, the outage being over.
+	requireSequence(t, api,
+		"POST /reset",
+		"POST /start?config=metadata",
+		startDefault,
+		"POST /reset",
+	)
+}
+
+func TestARestorationThatFailsIsRetriedRatherThanDowngradedToReset(t *testing.T) {
+	api := newFakeControlAPI(t)
+	control := api.control(t)
+	ctx := context.Background()
+
+	if err := control.PrepareScenario(ctx); err != nil {
+		t.Fatalf("first PrepareScenario: %v", err)
+	}
+	if err := control.ServeConfiguration(ctx, "metadata"); err != nil {
+		t.Fatalf("ServeConfiguration: %v", err)
+	}
+	// The scenario's own /start has already been spent, so this scripts the
+	// restoration after it: fail once, then succeed.
+	api.script("/start", http.StatusInternalServerError, http.StatusOK)
+
+	if err := control.PrepareScenario(ctx); err == nil {
+		t.Fatal("PrepareScenario reported success although the restoration failed")
+	}
+	if err := control.PrepareScenario(ctx); err != nil {
+		t.Fatalf("PrepareScenario after the failed restoration: %v", err)
+	}
+
+	// Two starts, no reset in between. Clearing the served configuration
+	// before the start succeeded would have downgraded the retry to /reset,
+	// which cannot take the backend off that configuration at all.
+	requireSequence(t, api,
+		"POST /reset",
+		"POST /start?config=metadata",
+		startDefault,
+		startDefault,
 	)
 }
 

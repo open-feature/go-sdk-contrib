@@ -16,6 +16,7 @@ import (
 func registerProviderSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^a stable provider$`, aStableProvider)
 	ctx.Step(`^an? unavailable provider$`, anUnavailableProvider)
+	ctx.Step(`^an? (stable|unavailable) provider with "([^"]*)" configuration$`, aProviderWithConfiguration)
 	ctx.Step(`^the provider metadata name should not be empty$`, theProviderMetadataNameShouldNotBeEmpty)
 	ctx.Step(`^the provider is shut down$`, theProviderIsShutDown)
 	ctx.Step(`^the provider is initialized again$`, theProviderIsInitializedAgain)
@@ -101,6 +102,44 @@ func anUnavailableProvider(ctx context.Context) (context.Context, error) {
 	state.provider = provider
 	state.client = openfeature.NewClient(state.cfg.domain())
 	return ctx, nil
+}
+
+// aProviderWithConfiguration puts a provider under test against one of the
+// backend's own named flag configurations.
+//
+// One step rather than two, because the order was the whole difficulty: the
+// backend has to be serving that configuration before the provider connects to
+// it, and a scenario that said so in a separate Given could put it after "a
+// stable provider" and watch the provider connect to the wrong flags. Here it
+// cannot.
+//
+// The name is the backend's own — see ConfigurationControl — so this is for
+// extension scenarios. A canonical scenario names no configuration: the
+// baseline every control serves is what it is written against.
+func aProviderWithConfiguration(ctx context.Context, flavour, configuration string) (context.Context, error) {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return ctx, err
+	}
+
+	control, err := configurationControl(state.cfg.Control)
+	if err != nil {
+		return ctx, err
+	}
+	if err := control.ServeConfiguration(ctx, configuration); err != nil {
+		return ctx, fmt.Errorf("could not make %s serve the %q configuration: %w",
+			state.cfg.Control.Description(), configuration, err)
+	}
+
+	switch flavour {
+	case "stable":
+		return aStableProvider(ctx)
+	case "unavailable":
+		return anUnavailableProvider(ctx)
+	default:
+		return ctx, fmt.Errorf("unknown provider flavour %q: the TCK recognises stable and unavailable",
+			flavour)
+	}
 }
 
 // theProviderMetadataNameShouldNotBeEmpty asserts that the provider identifies
