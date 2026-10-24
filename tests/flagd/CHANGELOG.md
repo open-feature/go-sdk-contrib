@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.3.0...tests/flagd/v3.0.0) (2026-10-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* bucket on any context type; (fractional re-assignment) ([#932](https://github.com/open-feature/go-sdk-contrib/issues/932))
+
+### ✨ New Features
+
+* bucket on any context type; (fractional re-assignment) ([#932](https://github.com/open-feature/go-sdk-contrib/issues/932)) ([4eda95c](https://github.com/open-feature/go-sdk-contrib/commit/4eda95caf7372f21c468cf121e19057ce5123317))
+* **flagd:** add new context enrichment approach for in-process provider ([#730](https://github.com/open-feature/go-sdk-contrib/issues/730)) ([fa4217b](https://github.com/open-feature/go-sdk-contrib/commit/fa4217b185b745eb9f4b59f76e0aab1b46616c9a))
+
 ## [2.3.0](https://github.com/open-feature/go-sdk-contrib/compare/tests/flagd/v2.2.0...tests/flagd/v2.3.0) (2026-09-23)
 
 
