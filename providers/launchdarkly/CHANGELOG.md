@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.7...providers/launchdarkly/v0.2.0) (2026-10-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **launchdarkly:** Pass the caller's context to LaunchDarkly evaluations ([#1022](https://github.com/open-feature/go-sdk-contrib/issues/1022))
+
+### ✨ New Features
+
+* **launchdarkly:** Pass the caller's context to LaunchDarkly evaluations ([#1022](https://github.com/open-feature/go-sdk-contrib/issues/1022)) ([c52efa3](https://github.com/open-feature/go-sdk-contrib/commit/c52efa3e2d56630b872ff37ca9244656f1ed05ba))
+
 ## [0.1.7](https://github.com/open-feature/go-sdk-contrib/compare/providers/launchdarkly/v0.1.6...providers/launchdarkly/v0.1.7) (2026-09-10)
 
 
