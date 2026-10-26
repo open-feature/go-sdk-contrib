@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/cucumber/godog"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -26,8 +25,6 @@ func InitializeFlagSteps(ctx *godog.ScenarioContext) {
 		withStateNoArgs((*TestState).assertFlagInEventPayload))
 	ctx.Step(`^the flag was modified$`,
 		withStateNoArgs((*TestState).modifyFlag))
-	ctx.Step(`^a change event was fired$`,
-		withStateNoArgs((*TestState).triggerChangeEvent))
 	ctx.Step(`^the variant should be "([^"]*)"$`,
 		withState1Arg((*TestState).assertVariant))
 	ctx.Step(`^the resolved details value should be "{"([^"]*)": true, "([^"]*)": "([^"]*)", "([^"]*)": (\d+)\.(\d+) }"$`,
@@ -248,18 +245,6 @@ func (s *TestState) modifyFlag(ctx context.Context) error {
 	}
 
 	return fmt.Errorf("container does not support flag modification")
-}
-
-// triggerChangeEvent triggers a flag change event
-func (s *TestState) triggerChangeEvent(ctx context.Context) error {
-	// Add change event handler
-	handler := func(details openfeature.EventDetails) {
-		s.addEvent("CONFIGURATION_CHANGE", details)
-	}
-	s.Client.AddHandler(openfeature.ProviderConfigChange, &handler)
-
-	// Wait a moment for the change to propagate
-	return s.waitForEvents("CONFIGURATION_CHANGE", 2*time.Second)
 }
 
 // Helper methods for flag evaluation
