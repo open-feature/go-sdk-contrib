@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -810,6 +811,108 @@ func TestRetriedInitStartsSingleEventPump(t *testing.T) {
 	// give a wrongly spawned extra pump time to show up
 	time.Sleep(50 * time.Millisecond)
 	waitForEventPumps(t, baseline, 1)
+}
+
+func TestRetriedInitReceivesReady(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event, 5)
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+	defer provider.Shutdown()
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().AnyTimes()
+
+	var attempts atomic.Int32
+	svcMock.EXPECT().Init().DoAndReturn(func() error {
+		eventType := of.ProviderError
+		if attempts.Add(1) == 2 {
+			eventType = of.ProviderReady
+		}
+		eventChan <- of.Event{ProviderName: "flagd", EventType: eventType}
+		return nil
+	}).Times(2)
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected the first init to fail")
+	}
+
+	if err := provider.Init(of.EvaluationContext{}); err != nil {
+		t.Fatal("expected the retried init to succeed, got", err)
+	}
+	if provider.Status() != of.ReadyState {
+		t.Errorf("expected status to be ready, but got %v", provider.Status())
+	}
+
+	select {
+	case event := <-provider.EventChannel():
+		t.Errorf("unexpected event %v published", event.EventType)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestRetriedInitNotBlockedByPumpHoldingEarlierEvent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event, 5)
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+	defer provider.Shutdown()
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().AnyTimes()
+
+	var attempts atomic.Int32
+	retryStarted := make(chan struct{})
+	svcMock.EXPECT().Init().DoAndReturn(func() error {
+		if attempts.Add(1) == 1 {
+			eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderError}
+			return nil
+		}
+		eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+		close(retryStarted)
+		return nil
+	}).Times(2)
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected the first init to fail")
+	}
+
+	// the pump takes this event and blocks publishing it until the test reads the provider channel
+	eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderError}
+	for len(eventChan) > 0 {
+		time.Sleep(time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	retried := make(chan error, 1)
+	go func() { retried <- provider.Init(of.EvaluationContext{}) }()
+
+	// Init holds the lock now, so reading releases the pump into setStatus
+	<-retryStarted
+	<-provider.EventChannel()
+
+	select {
+	case err := <-retried:
+		if err != nil {
+			t.Fatal("expected the retried init to succeed, got", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("retried init never returned")
+	}
 }
 
 func TestShutdownStopsEventPump(t *testing.T) {
