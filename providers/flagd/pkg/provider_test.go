@@ -776,6 +776,13 @@ func waitForEventPumps(t *testing.T, baseline, want int) {
 	}
 }
 
+// shutdownAndWait stops the provider and waits for its pump, so it cannot skew the next test's baseline.
+func shutdownAndWait(t *testing.T, provider *Provider, baseline int) {
+	t.Helper()
+	provider.Shutdown()
+	waitForEventPumps(t, baseline, 0)
+}
+
 func newFailingInitProvider(t *testing.T, ctrl *gomock.Controller) (*Provider, *mock.MockIService) {
 	t.Helper()
 
@@ -799,7 +806,7 @@ func TestRetriedInitStartsSingleEventPump(t *testing.T) {
 	defer ctrl.Finish()
 
 	provider, _ := newFailingInitProvider(t, ctrl)
-	defer provider.Shutdown()
+	defer shutdownAndWait(t, provider, baseline)
 
 	for range 3 {
 		if err := provider.Init(of.EvaluationContext{}); err == nil {
@@ -814,6 +821,7 @@ func TestRetriedInitStartsSingleEventPump(t *testing.T) {
 }
 
 func TestRetriedInitReceivesReady(t *testing.T) {
+	baseline := countEventPumps()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -823,7 +831,7 @@ func TestRetriedInitReceivesReady(t *testing.T) {
 	if err != nil {
 		t.Fatal("error creating new provider", err)
 	}
-	defer provider.Shutdown()
+	defer shutdownAndWait(t, provider, baseline)
 
 	svcMock := mock.NewMockIService(ctrl)
 	provider.service = svcMock
@@ -859,6 +867,7 @@ func TestRetriedInitReceivesReady(t *testing.T) {
 }
 
 func TestRetriedInitNotBlockedByPumpHoldingEarlierEvent(t *testing.T) {
+	baseline := countEventPumps()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -868,7 +877,7 @@ func TestRetriedInitNotBlockedByPumpHoldingEarlierEvent(t *testing.T) {
 	if err != nil {
 		t.Fatal("error creating new provider", err)
 	}
-	defer provider.Shutdown()
+	defer shutdownAndWait(t, provider, baseline)
 
 	svcMock := mock.NewMockIService(ctrl)
 	provider.service = svcMock
