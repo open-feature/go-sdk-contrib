@@ -783,7 +783,7 @@ func shutdownAndWait(t *testing.T, provider *Provider, baseline int) {
 	waitForEventPumps(t, baseline, 0)
 }
 
-func newFailingInitProvider(t *testing.T, ctrl *gomock.Controller) (*Provider, *mock.MockIService) {
+func newFailingInitProvider(t *testing.T, ctrl *gomock.Controller, eventChan chan of.Event) (*Provider, *mock.MockIService) {
 	t.Helper()
 
 	provider, err := NewProvider()
@@ -794,7 +794,7 @@ func newFailingInitProvider(t *testing.T, ctrl *gomock.Controller) (*Provider, *
 	svcMock := mock.NewMockIService(ctrl)
 	provider.service = svcMock
 	svcMock.EXPECT().Init().Return(fmt.Errorf("connection failed")).AnyTimes()
-	svcMock.EXPECT().EventChannel().Return(make(chan of.Event, 5)).AnyTimes()
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
 	svcMock.EXPECT().Shutdown().AnyTimes()
 
 	return provider, svcMock
@@ -805,7 +805,7 @@ func TestRetriedInitStartsSingleEventPump(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	provider, _ := newFailingInitProvider(t, ctrl)
+	provider, _ := newFailingInitProvider(t, ctrl, make(chan of.Event, 5))
 	defer shutdownAndWait(t, provider, baseline)
 
 	for range 3 {
@@ -929,7 +929,7 @@ func TestShutdownStopsEventPump(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	provider, _ := newFailingInitProvider(t, ctrl)
+	provider, _ := newFailingInitProvider(t, ctrl, make(chan of.Event, 5))
 
 	if err := provider.Init(of.EvaluationContext{}); err == nil {
 		t.Fatal("expected init to fail")
@@ -947,8 +947,7 @@ func TestShutdownStopsEventPumpBlockedOnPublish(t *testing.T) {
 	defer ctrl.Finish()
 
 	eventChan := make(chan of.Event, 1)
-	provider, svcMock := newFailingInitProvider(t, ctrl)
-	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	provider, _ := newFailingInitProvider(t, ctrl, eventChan)
 
 	if err := provider.Init(of.EvaluationContext{}); err == nil {
 		t.Fatal("expected init to fail")
@@ -956,6 +955,10 @@ func TestShutdownStopsEventPumpBlockedOnPublish(t *testing.T) {
 
 	// nobody reads provider.EventChannel(), so the pump blocks forwarding this event
 	eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderError}
+	// pump has taken the event and is now blocked publishing it
+	for len(eventChan) > 0 {
+		time.Sleep(time.Millisecond)
+	}
 	time.Sleep(20 * time.Millisecond)
 
 	provider.Shutdown()
@@ -968,7 +971,7 @@ func TestInitAfterShutdownRestartsEventPump(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	provider, _ := newFailingInitProvider(t, ctrl)
+	provider, _ := newFailingInitProvider(t, ctrl, make(chan of.Event, 5))
 
 	if err := provider.Init(of.EvaluationContext{}); err == nil {
 		t.Fatal("expected init to fail")
