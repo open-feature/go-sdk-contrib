@@ -6,6 +6,7 @@ import (
 	"time"
 
 	parallel "sync"
+	"sync/atomic"
 
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
@@ -22,9 +23,13 @@ type Provider struct {
 	providerConfiguration *ProviderConfiguration
 	service               IService
 	status                of.State
+	statusMtx             parallel.Mutex // separate from mtx so the pump never waits on Init
 	mtx                   parallel.RWMutex
 	hooks                 []of.Hook
 	eventStream           chan of.Event
+	pumpDone              chan struct{} // non-nil while the event pump runs, closed by Shutdown
+	initEvents            chan of.Event
+	initPending           atomic.Bool
 }
 
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
@@ -37,6 +42,7 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	provider := &Provider{
 		initialized:           false,
 		eventStream:           make(chan of.Event),
+		initEvents:            make(chan of.Event, 1),
 		providerConfiguration: providerConfiguration,
 		status:                of.NotReadyState,
 		hooks:                 []of.Hook{},
@@ -124,6 +130,17 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 	// Get the event channel before starting goroutine to avoid race with service.Init()
 	serviceEventChan := p.service.EventChannel()
 
+	// the pump is the only reader of the service channel, so a retried Init cannot race it, see #926
+	p.startEventPump(serviceEventChan)
+
+	// drop a stranded outcome from an earlier Init
+	select {
+	case <-p.initEvents:
+	default:
+	}
+	p.initPending.Store(true)
+	defer p.initPending.Store(false)
+
 	// Run service.Init() in a goroutine so we can timeout if it hangs
 	initDone := make(chan error, 1)
 	go func() {
@@ -141,12 +158,10 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 			// Init succeeded, disable this case and continue loop to wait for ProviderReady
 			initDoneChan = nil
 
-		case e := <-serviceEventChan:
+		case e := <-p.initEvents:
 			if e.EventType == of.ProviderReady {
-				p.status = of.ReadyState
+				p.setStatus(of.ReadyState)
 				p.initialized = true
-				// start event handling after the first ready event
-				go p.handleEvents()
 				return nil
 			}
 			// If we got a ProviderError or ProviderStale during init, return it as an error
@@ -161,16 +176,55 @@ func (p *Provider) Init(_ of.EvaluationContext) error {
 	}
 }
 
-// handleEvents runs in a separate goroutine and processes events from the service
-func (p *Provider) handleEvents() {
-	serviceEventChan := p.service.EventChannel()
-	for event := range serviceEventChan {
-		p.eventStream <- event
-		switch event.EventType {
-		case of.ProviderReady, of.ProviderConfigChange:
-			p.setStatus(of.ReadyState)
-		case of.ProviderError:
-			p.setStatus(of.ErrorState)
+// startEventPump starts the event pump unless one is already running, so a retried Init reuses it.
+// The caller must hold p.mtx.
+func (p *Provider) startEventPump(serviceEventChan <-chan of.Event) {
+	if p.pumpDone != nil {
+		return
+	}
+	p.pumpDone = make(chan struct{})
+	go p.handleEvents(serviceEventChan, p.pumpDone)
+}
+
+// relayToInit passes the first event after Init started to Init instead of publishing it.
+func (p *Provider) relayToInit(event of.Event) bool {
+	// claim the flag so only the first event is relayed
+	if !p.initPending.CompareAndSwap(true, false) {
+		return false
+	}
+	select {
+	case p.initEvents <- event:
+		return true
+	default:
+		return false
+	}
+}
+
+// handleEvents runs in a separate goroutine and processes events from the service until done is closed
+func (p *Provider) handleEvents(serviceEventChan <-chan of.Event, done <-chan struct{}) {
+	for {
+		select {
+		case <-done:
+			return
+		case event, ok := <-serviceEventChan:
+			if !ok {
+				return
+			}
+			// relay first, publishing can block while Init waits
+			if p.relayToInit(event) {
+				continue
+			}
+			select {
+			case p.eventStream <- event:
+			case <-done:
+				return
+			}
+			switch event.EventType {
+			case of.ProviderReady, of.ProviderConfigChange:
+				p.setStatus(of.ReadyState)
+			case of.ProviderError:
+				p.setStatus(of.ErrorState)
+			}
 		}
 	}
 }
@@ -178,6 +232,8 @@ func (p *Provider) handleEvents() {
 func (p *Provider) Status() of.State {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()
+	p.statusMtx.Lock()
+	defer p.statusMtx.Unlock()
 	return p.status
 }
 
@@ -186,6 +242,10 @@ func (p *Provider) Shutdown() {
 	defer p.mtx.Unlock()
 
 	p.initialized = false
+	if p.pumpDone != nil {
+		close(p.pumpDone)
+		p.pumpDone = nil
+	}
 	p.service.Shutdown()
 }
 
@@ -236,7 +296,7 @@ func (p *Provider) ObjectEvaluation(
 }
 
 func (p *Provider) setStatus(status of.State) {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
+	p.statusMtx.Lock()
+	defer p.statusMtx.Unlock()
 	p.status = status
 }
