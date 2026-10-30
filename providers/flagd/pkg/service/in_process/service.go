@@ -155,7 +155,8 @@ func NewInProcessService(cfg Configuration) *InProcess {
 	flagStore := store.NewFlags()
 	flagStore.FlagSources = append(flagStore.FlagSources, uri)
 	var evaluatorOptions []evaluator.JSONEvaluatorOption
-	if cfg.TracerProvider != nil {
+	rv := reflect.ValueOf(cfg.TracerProvider)
+	if cfg.TracerProvider != nil && !(rv.Kind() == reflect.Ptr && rv.IsNil()) {
 		evaluatorOptions = append(evaluatorOptions, evaluator.WithTracerProvider(cfg.TracerProvider))
 	}
 
