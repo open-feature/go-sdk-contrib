@@ -1,0 +1,9 @@
+# The Flipt provider-TCK backend: Flipt plus a control server that starts,
+# stops and reseeds the bundled /flipt process.
+# https://github.com/flipt-io/openfeature-tck
+services:
+  backend:
+    image: ${FLIPT_TESTBED_IMAGE:-ghcr.io/flipt-io/openfeature-tck:0.1.0}
+    ports:
+      - 8080 # control API, exposed by the TCK automatically
+      - 8888 # Flipt evaluation API
