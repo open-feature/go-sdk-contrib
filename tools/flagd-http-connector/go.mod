@@ -10,7 +10,7 @@ require (
 	go.uber.org/zap v1.28.0
 )
 
-require github.com/open-feature/flagd/core v0.19.0
+require github.com/open-feature/flagd/core v0.19.1
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1 // indirect

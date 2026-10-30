@@ -11,7 +11,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/open-feature/flagd/core v0.19.0
+	github.com/open-feature/flagd/core v0.19.1
 	github.com/open-feature/go-sdk v1.19.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
