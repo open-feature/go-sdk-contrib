@@ -2,12 +2,121 @@ package process
 
 import (
 	"context"
-	of "github.com/open-feature/go-sdk/openfeature"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	of "github.com/open-feature/go-sdk/openfeature"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
+
+type recordingTracerProvider struct {
+	noop.TracerProvider
+	tracer *recordingTracer
+}
+
+func (p *recordingTracerProvider) Tracer(_ string, _ ...trace.TracerOption) trace.Tracer {
+	return p.tracer
+}
+
+type recordingTracer struct {
+	trace.Tracer
+	started bool
+}
+
+func (t *recordingTracer) Start(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	t.started = true
+	return t.Tracer.Start(ctx, name, opts...)
+}
+
+func TestInProcessUsesTracerProvider(t *testing.T) {
+	previousTracerProvider := otel.GetTracerProvider()
+	exporter := tracetest.NewInMemoryExporter()
+	testTracerProvider := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	otel.SetTracerProvider(testTracerProvider)
+	t.Cleanup(func() {
+		otel.SetTracerProvider(previousTracerProvider)
+		if err := testTracerProvider.Shutdown(context.Background()); err != nil {
+			t.Errorf("failed to shut down test tracer provider: %v", err)
+		}
+	})
+
+	offlinePath := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(offlinePath, []byte(flagRsp), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	tracer := &recordingTracer{Tracer: noop.NewTracerProvider().Tracer("test")}
+	service := NewInProcessService(Configuration{
+		OfflineFlagSource: offlinePath,
+		TracerProvider:    &recordingTracerProvider{tracer: tracer},
+	})
+	if err := service.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer service.Shutdown()
+
+	exporter.Reset()
+	if detail := service.ResolveBoolean(t.Context(), "myBoolFlag", false, map[string]any{}); !detail.Value {
+		t.Fatal("expected true from offline flag configuration")
+	}
+	if !tracer.started {
+		t.Fatal("expected the configured tracer to start an evaluation span")
+	}
+	if spans := exporter.GetSpans(); len(spans) != 0 {
+		t.Fatalf("expected no spans from the global tracer provider, got %d", len(spans))
+	}
+}
+
+func TestInProcessNilTracerProvider(t *testing.T) {
+	previousTracerProvider := otel.GetTracerProvider()
+	exporter := tracetest.NewInMemoryExporter()
+	testTracerProvider := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	otel.SetTracerProvider(testTracerProvider)
+	t.Cleanup(func() {
+		otel.SetTracerProvider(previousTracerProvider)
+		if err := testTracerProvider.Shutdown(context.Background()); err != nil {
+			t.Errorf("failed to shut down test tracer provider: %v", err)
+		}
+	})
+
+	offlinePath := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(offlinePath, []byte(flagRsp), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range []struct {
+		name     string
+		provider trace.TracerProvider
+	}{
+		{name: "nil interface"},
+		{name: "typed nil pointer", provider: (*recordingTracerProvider)(nil)},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			service := NewInProcessService(Configuration{
+				OfflineFlagSource: offlinePath,
+				TracerProvider:    test.provider,
+			})
+			if err := service.Init(); err != nil {
+				t.Fatal(err)
+			}
+			defer service.Shutdown()
+
+			exporter.Reset()
+			if detail := service.ResolveBoolean(t.Context(), "myBoolFlag", false, map[string]any{}); !detail.Value {
+				t.Fatal("expected true from offline flag configuration")
+			}
+			if spans := exporter.GetSpans(); len(spans) == 0 {
+				t.Fatal("expected an evaluation span from the global tracer provider")
+			}
+		})
+	}
+}
 
 func TestInProcessOfflineMode(t *testing.T) {
 	// given
