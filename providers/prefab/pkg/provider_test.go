@@ -1,7 +1,6 @@
 package prefab_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -23,13 +22,13 @@ var (
 func TestBooleanEvaluation(t *testing.T) {
 	flattenedContext := map[string]any{}
 
-	resolution := provider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
+	resolution := provider.BooleanEvaluation(t.Context(), "sample_bool", false, flattenedContext)
 	if resolution.Value != true {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
 	t.Run("evalCtx empty", func(t *testing.T) {
-		resolution := provider.BooleanEvaluation(context.Background(), "non-existing", false, nil)
+		resolution := provider.BooleanEvaluation(t.Context(), "non-existing", false, nil)
 		require.Equal(t, false, resolution.Value)
 	})
 
@@ -37,7 +36,7 @@ func TestBooleanEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	enabled, err := ofClient.BooleanValue(context.Background(), "sample_bool", false, evalCtx)
+	enabled, err := ofClient.BooleanValue(t.Context(), "sample_bool", false, evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, true, enabled)
 }
@@ -53,7 +52,7 @@ func TestBooleanEvaluation(t *testing.T) {
 // 	err = provider.Init(of.EvaluationContext{})
 // 	require.Nil(t, err)
 
-// 	ctx := context.Background()
+// 	ctx := t.Context()
 
 // 	evalCtx := map[string]interface{}{
 // 		"user.key":         "key1",
@@ -80,13 +79,13 @@ func TestBooleanEvaluation(t *testing.T) {
 func TestFloatEvaluation(t *testing.T) {
 	flattenedContext := map[string]any{}
 
-	resolution := provider.FloatEvaluation(context.Background(), "sample_double", 1.2, flattenedContext)
+	resolution := provider.FloatEvaluation(t.Context(), "sample_double", 1.2, flattenedContext)
 	if resolution.Value != 12.12 {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
 	t.Run("evalCtx empty", func(t *testing.T) {
-		resolution := provider.FloatEvaluation(context.Background(), "non-existing", 1.2, nil)
+		resolution := provider.FloatEvaluation(t.Context(), "non-existing", 1.2, nil)
 		require.Equal(t, 1.2, resolution.Value)
 	})
 
@@ -94,7 +93,7 @@ func TestFloatEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	value, err := ofClient.FloatValue(context.Background(), "sample_double", 1.2, evalCtx)
+	value, err := ofClient.FloatValue(t.Context(), "sample_double", 1.2, evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, 12.12, value)
 }
@@ -102,13 +101,13 @@ func TestFloatEvaluation(t *testing.T) {
 func TestIntEvaluation(t *testing.T) {
 	flattenedContext := map[string]any{}
 
-	resolution := provider.IntEvaluation(context.Background(), "sample_int", 1, flattenedContext)
+	resolution := provider.IntEvaluation(t.Context(), "sample_int", 1, flattenedContext)
 	if resolution.Value != 123 {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
 	t.Run("evalCtx empty", func(t *testing.T) {
-		resolution := provider.IntEvaluation(context.Background(), "non-existing", 1, nil)
+		resolution := provider.IntEvaluation(t.Context(), "non-existing", 1, nil)
 		require.Equal(t, int64(1), resolution.Value)
 	})
 
@@ -116,7 +115,7 @@ func TestIntEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	value, err := ofClient.IntValue(context.Background(), "sample_int", 1, evalCtx)
+	value, err := ofClient.IntValue(t.Context(), "sample_int", 1, evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, int64(123), value)
 }
@@ -124,13 +123,13 @@ func TestIntEvaluation(t *testing.T) {
 func TestStringEvaluation(t *testing.T) {
 	flattenedContext := map[string]any{}
 
-	resolution := provider.StringEvaluation(context.Background(), "sample", "default", flattenedContext)
+	resolution := provider.StringEvaluation(t.Context(), "sample", "default", flattenedContext)
 	if resolution.Value != "test sample value" {
 		t.Fatalf("Expected one of the variant payloads")
 	}
 
 	t.Run("nil evalCtx", func(t *testing.T) {
-		resolution := provider.StringEvaluation(context.Background(), "non-existing", "default", nil)
+		resolution := provider.StringEvaluation(t.Context(), "non-existing", "default", nil)
 		require.Equal(t, "default", resolution.Value)
 	})
 
@@ -138,7 +137,7 @@ func TestStringEvaluation(t *testing.T) {
 		"",
 		map[string]any{},
 	)
-	value, err := ofClient.StringValue(context.Background(), "sample", "default", evalCtx)
+	value, err := ofClient.StringValue(t.Context(), "sample", "default", evalCtx)
 	require.Nil(t, err)
 	require.Equal(t, "test sample value", value)
 }
@@ -148,7 +147,7 @@ func TestObjectEvaluation(t *testing.T) {
 	flattenedContext := map[string]any{}
 
 	t.Run("example.nested.path", func(t *testing.T) {
-		resolution := provider.ObjectEvaluation(context.Background(), "example.nested.path", "default", flattenedContext)
+		resolution := provider.ObjectEvaluation(t.Context(), "example.nested.path", "default", flattenedContext)
 		require.Equal(t, "hello", resolution.Value)
 	})
 
@@ -158,20 +157,20 @@ func TestObjectEvaluation(t *testing.T) {
 	)
 
 	t.Run("example.nested.path", func(t *testing.T) {
-		value, err := ofClient.ObjectValueDetails(context.Background(), "example.nested.path", "default", evalCtx)
+		value, err := ofClient.ObjectValueDetails(t.Context(), "example.nested.path", "default", evalCtx)
 		require.Equal(t, "hello", value.Value)
 		require.Nil(t, err)
 	})
 
 	t.Run("sample_list", func(t *testing.T) {
-		value, err := ofClient.ObjectValueDetails(context.Background(), "sample_list", []string{"a2", "b2"}, evalCtx)
+		value, err := ofClient.ObjectValueDetails(t.Context(), "sample_list", []string{"a2", "b2"}, evalCtx)
 		require.Equal(t, []string{"a", "b"}, value.Value)
 		require.Nil(t, err)
 	})
 
 	// TODO
 	// t.Run("sample_json", func(t *testing.T) {
-	// 	value, err := ofClient.ObjectValueDetails(context.Background(), "sample_json", map[string]interface{}{
+	// 	value, err := ofClient.ObjectValueDetails(t.Context(), "sample_json", map[string]interface{}{
 	// 		"nested": "value",
 	// 	}, evalCtx)
 	// 	require.Equal(t, []string{"a", "b"}, value.Value)
@@ -211,19 +210,19 @@ func TestUninitializedProviderStates(t *testing.T) {
 	}
 	uninitializedProvider, _ := prefabProvider.NewProvider(providerConfig)
 
-	boolRes := uninitializedProvider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
+	boolRes := uninitializedProvider.BooleanEvaluation(t.Context(), "sample_bool", false, flattenedContext)
 	require.Equal(t, of.ProviderNotReadyCode, boolRes.ResolutionDetail().ErrorCode)
 
-	intRes := uninitializedProvider.IntEvaluation(context.Background(), "sample_int", 0, flattenedContext)
+	intRes := uninitializedProvider.IntEvaluation(t.Context(), "sample_int", 0, flattenedContext)
 	require.Equal(t, of.ProviderNotReadyCode, intRes.ResolutionDetail().ErrorCode)
 
-	floatRes := uninitializedProvider.FloatEvaluation(context.Background(), "sample_float", 0, flattenedContext)
+	floatRes := uninitializedProvider.FloatEvaluation(t.Context(), "sample_float", 0, flattenedContext)
 	require.Equal(t, of.ProviderNotReadyCode, floatRes.ResolutionDetail().ErrorCode)
 
-	strRes := uninitializedProvider.StringEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	strRes := uninitializedProvider.StringEvaluation(t.Context(), "sample_string", "default", flattenedContext)
 	require.Equal(t, of.ProviderNotReadyCode, strRes.ResolutionDetail().ErrorCode)
 
-	objRes := uninitializedProvider.ObjectEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	objRes := uninitializedProvider.ObjectEvaluation(t.Context(), "sample_string", "default", flattenedContext)
 	require.Equal(t, of.ProviderNotReadyCode, objRes.ResolutionDetail().ErrorCode)
 }
 
@@ -237,19 +236,19 @@ func TestErrorProviderStates(t *testing.T) {
 	err := errorProvider.Init(of.EvaluationContext{})
 	require.Error(t, err)
 
-	boolRes := errorProvider.BooleanEvaluation(context.Background(), "sample_bool", false, flattenedContext)
+	boolRes := errorProvider.BooleanEvaluation(t.Context(), "sample_bool", false, flattenedContext)
 	require.Equal(t, of.GeneralCode, boolRes.ResolutionDetail().ErrorCode)
 
-	intRes := errorProvider.IntEvaluation(context.Background(), "sample_int", 0, flattenedContext)
+	intRes := errorProvider.IntEvaluation(t.Context(), "sample_int", 0, flattenedContext)
 	require.Equal(t, of.GeneralCode, intRes.ResolutionDetail().ErrorCode)
 
-	floatRes := errorProvider.FloatEvaluation(context.Background(), "sample_float", 0, flattenedContext)
+	floatRes := errorProvider.FloatEvaluation(t.Context(), "sample_float", 0, flattenedContext)
 	require.Equal(t, of.GeneralCode, floatRes.ResolutionDetail().ErrorCode)
 
-	strRes := errorProvider.StringEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	strRes := errorProvider.StringEvaluation(t.Context(), "sample_string", "default", flattenedContext)
 	require.Equal(t, of.GeneralCode, strRes.ResolutionDetail().ErrorCode)
 
-	objRes := errorProvider.ObjectEvaluation(context.Background(), "sample_string", "default", flattenedContext)
+	objRes := errorProvider.ObjectEvaluation(t.Context(), "sample_string", "default", flattenedContext)
 	require.Equal(t, of.GeneralCode, objRes.ResolutionDetail().ErrorCode)
 
 	providerConfig = prefabProvider.ProviderConfig{}
@@ -259,7 +258,7 @@ func TestErrorProviderStates(t *testing.T) {
 }
 
 func TestEvaluationMethods(t *testing.T) {
-	err := of.SetProvider(provider)
+	err := of.SetProviderAndWait(provider)
 	require.Nil(t, err)
 
 	evalCtx := of.NewEvaluationContext(
@@ -317,30 +316,31 @@ func TestEvaluationMethods(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fmt.Println("test: {}", test)
-		rt := reflect.TypeOf(test.expected)
-		switch rt.Kind() {
-		case reflect.Bool:
-			res, _ := ofClient.BooleanValueDetails(context.Background(), test.flag, test.defaultValue.(bool), test.evalCtx)
-			require.Equal(t, test.expected, res.Value)
-			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
-		case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
-			res, _ := ofClient.IntValueDetails(context.Background(), test.flag, test.defaultValue.(int64), test.evalCtx)
-			require.Equal(t, test.expected, res.Value)
-			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
-		case reflect.Float32, reflect.Float64:
-			res, _ := ofClient.FloatValueDetails(context.Background(), test.flag, test.defaultValue.(float64), test.evalCtx)
-			require.Equal(t, test.expected, res.Value)
-			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
-		case reflect.String:
-			res, _ := ofClient.StringValueDetails(context.Background(), test.flag, test.defaultValue.(string), test.evalCtx)
-			require.Equal(t, test.expected, res.Value)
-			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
-		default:
-			res, _ := ofClient.ObjectValueDetails(context.Background(), test.flag, test.defaultValue, test.evalCtx)
-			require.Equal(t, test.expected, res.Value)
-			require.Equal(t, test.expectedErrorCode, res.ErrorCode)
-		}
+		t.Run(test.flag, func(t *testing.T) {
+			rt := reflect.TypeOf(test.expected)
+			switch rt.Kind() {
+			case reflect.Bool:
+				res, _ := ofClient.BooleanValueDetails(t.Context(), test.flag, test.defaultValue.(bool), test.evalCtx)
+				require.Equal(t, test.expected, res.Value)
+				require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+			case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
+				res, _ := ofClient.IntValueDetails(t.Context(), test.flag, test.defaultValue.(int64), test.evalCtx)
+				require.Equal(t, test.expected, res.Value)
+				require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+			case reflect.Float32, reflect.Float64:
+				res, _ := ofClient.FloatValueDetails(t.Context(), test.flag, test.defaultValue.(float64), test.evalCtx)
+				require.Equal(t, test.expected, res.Value)
+				require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+			case reflect.String:
+				res, _ := ofClient.StringValueDetails(t.Context(), test.flag, test.defaultValue.(string), test.evalCtx)
+				require.Equal(t, test.expected, res.Value)
+				require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+			default:
+				res, _ := ofClient.ObjectValueDetails(t.Context(), test.flag, test.defaultValue, test.evalCtx)
+				require.Equal(t, test.expected, res.Value)
+				require.Equal(t, test.expectedErrorCode, res.ErrorCode)
+			}
+		})
 	}
 }
 
