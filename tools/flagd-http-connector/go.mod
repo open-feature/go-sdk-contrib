@@ -10,7 +10,7 @@ require (
 	go.uber.org/zap v1.28.0
 )
 
-require github.com/open-feature/flagd/core v0.19.1
+require github.com/open-feature/flagd/core v0.19.2
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/hashicorp/go-memdb v1.3.5 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/open-feature/flagd-schemas v0.2.13 // indirect
+	github.com/open-feature/flagd-schemas v0.2.15 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/x448/float16 v0.8.4 // indirect

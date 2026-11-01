@@ -11,7 +11,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/open-feature/flagd/core v0.19.1
+	github.com/open-feature/flagd/core v0.19.2
 	github.com/open-feature/go-sdk v1.20.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
@@ -32,7 +32,7 @@ require (
 	github.com/hashicorp/go-memdb v1.3.5 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
-	github.com/open-feature/flagd-schemas v0.2.13 // indirect
+	github.com/open-feature/flagd-schemas v0.2.15 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
