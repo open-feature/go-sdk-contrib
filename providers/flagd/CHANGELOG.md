@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.8.0...providers/flagd/v0.8.1) (2026-11-01)
+
+
+### 🐛 Bug Fixes
+
+* **flagd:** start event handling when Init fails ([#1054](https://github.com/open-feature/go-sdk-contrib/issues/1054)) ([1cc11b3](https://github.com/open-feature/go-sdk-contrib/commit/1cc11b39b741529973e10a301cef91e31d9b75d3))
+
 ## [0.8.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.7.1...providers/flagd/v0.8.0) (2026-10-15)
 
 
