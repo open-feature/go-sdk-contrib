@@ -59,36 +59,38 @@ would replace that failure with three skips that cannot distinguish "does not co
 and loses information one way round". The price is a second failure that is not flagd's —
 `integral-float-flag` is absent from the testbed — named in the deviation summary.
 
+## flagd-testbed extensions
+
+Both suites also run flagd-testbed's [`tck-extensions`][tck-extensions] scenarios, the flagd-specific
+ones the canonical set does not ask, pinned in `go.mod`. Each suite selects the scenarios tagged
+with its resolver and drops `@fractional-v2`, since both resolvers bucket with v3. The flagd steps
+(`an option …`, the two envoy steps) are in [`extensions_test.go`](extensions_test.go).
+
 ## The tally
 
-**65 scenarios each. In-process: 59 pass, 2 skip, 4 fail. RPC: 58 pass, 3 skip, 4 fail.** The
-resolvers differ by one skip because RPC also withholds `@stale`.
+| | RPC | in-process |
+| --- | --- | --- |
+| canonical (65) | 62 pass, 3 skip | 62 pass, 2 skip, 1 fail |
+| extensions run | 262: 259 pass, 3 fail | 268: 263 pass, 5 fail |
+| extensions deselected | 37 | 31 |
 
-**Read those numbers from the suite's own summary line, not from godog's.** godog prints
-`65 scenarios (61 passed, 4 failed)` for both resolvers, because it counts a capability-gated skip as
-a pass — the exact defect the conformance report exists to correct, visible in this suite's own
-output. The honest count is on the line underneath:
+godog's summary counts every skipped and deselected scenario as passed; read the suite's own skip
+line under it.
 
-```
-65 scenarios (61 passed, 4 failed)
-    tck [flagd-rpc]: 3 scenario(s) skipped because a capability was not declared.
-```
+Failures, none of them wiring:
 
-The four failures are the same set in both resolvers. One is the provider's — the lossy narrowing
-above. The other three are the two flags the pinned testbed image does not serve, which
-[flagd-testbed#392][testbed-392] adds; none gets a known-deviation entry, because an entry there
-would attribute a fixture gap to the provider.
-
-**Re-run a red result before reading anything into it.** Six consecutive runs against
-`flagd-testbed:v3.8.0` gave 2, 2, 3, 3, 17 and 20 failures, with almost disjoint failing sets above
-three — and the worst of the six came from the hand-rolled container wrapper this module replaced, so
-the flapping belongs to the backend. It is the launchpad's `POST /start` returning before the flags
-are evaluable, measured and explained in [flagd-testbed#394][testbed-394]; having an initialisation
-to block on makes it less frequent, not absent. **No sleep is being added to compensate**; that
-belongs in the testbed.
+- **Canonical, in-process:** the lossy narrowing above.
+- **Provider forbidden, both:** the TCK registers with `SetNamedProviderWithContextAndWait`, so
+  `PROVIDER_ERROR` fires before the scenario attaches its handler, and go-sdk replays a late
+  handler for `ErrorState` but not for `FatalState`.
+- **Connection via TargetUri, RPC:** the RPC resolver does not dial an `envoy://` target; the e2e
+  suite excludes `@targetURI` for RPC for the same reason.
+- **Resolves Object details with caching, both:** undefined step. The expected value is JSON with
+  inner quotes, which the canonical `"([^"]*)"` value step cannot match.
+- **Three metadata scenarios, in-process:** integer metadata comes back as `float64`.
 
 [testbed-392]: https://github.com/open-feature/flagd-testbed/pull/392
-[testbed-394]: https://github.com/open-feature/flagd-testbed/pull/394
+[tck-extensions]: https://github.com/open-feature/flagd-testbed/tree/main/tck-extensions
 
 [appendix-f-ci]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#running-the-suite-in-ci
 [appendix-f-rules]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md#rules-for-declaring

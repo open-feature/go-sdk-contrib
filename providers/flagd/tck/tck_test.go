@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	tckextensions "github.com/open-feature/flagd-testbed/tck-extensions"
 	flagd "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg"
 	"github.com/open-feature/go-sdk-contrib/tools/tck"
 	"github.com/open-feature/go-sdk/openfeature"
@@ -60,9 +61,10 @@ var (
 // TestFlagdRPCConformance runs the suite against the RPC resolver.
 func TestFlagdRPCConformance(t *testing.T) {
 	runConformance(t, conformanceSuite{
-		name:        "flagd-rpc",
-		backendPort: rpcPort,
-		resolver:    flagd.WithRPCResolver(),
+		name:         "flagd-rpc",
+		backendPort:  rpcPort,
+		resolver:     flagd.WithRPCResolver(),
+		extensionTag: "@rpc",
 
 		// Withheld here, each measured rather than inferred:
 		//
@@ -104,6 +106,7 @@ func TestFlagdRPCConformance(t *testing.T) {
 		// The RPC resolver asks flagd to resolve each flag, so it is ready as
 		// soon as the stream is up.
 		readyTimeout: 30 * time.Second,
+		deadlineMs:   1000,
 		gracePeriod:  10,
 	})
 }
@@ -111,9 +114,10 @@ func TestFlagdRPCConformance(t *testing.T) {
 // TestFlagdInProcessConformance runs the suite against the in-process resolver.
 func TestFlagdInProcessConformance(t *testing.T) {
 	runConformance(t, conformanceSuite{
-		name:        "flagd-in-process",
-		backendPort: inProcessPort,
-		resolver:    flagd.WithInProcessResolver(),
+		name:         "flagd-in-process",
+		backendPort:  inProcessPort,
+		resolver:     flagd.WithInProcessResolver(),
+		extensionTag: "@in-process",
 
 		// As RPC, except that tck.Stale IS declared: this resolver emits
 		// PROVIDER_STALE on connection loss and only escalates to
@@ -146,6 +150,7 @@ func TestFlagdInProcessConformance(t *testing.T) {
 		// In-process syncs the whole ruleset before reporting ready, so it
 		// needs longer than RPC to initialise.
 		readyTimeout: 60 * time.Second,
+		deadlineMs:   15000,
 
 		// The grace period has to outlast the outage in the @stale scenario.
 		// The resolver goes STALE immediately on connection loss and escalates
@@ -161,9 +166,11 @@ type conformanceSuite struct {
 	name            string
 	backendPort     int
 	resolver        flagd.ProviderOption
+	extensionTag    string
 	capabilities    []tck.Capability
 	knownDeviations []tck.KnownDeviation
 	readyTimeout    time.Duration
+	deadlineMs      int
 	gracePeriod     int
 }
 
@@ -177,20 +184,34 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 
 		tck.WithComposeFile(composeFile),
 		tck.WithBackendPorts(suite.backendPort),
+		tck.WithAdditionalPorts(envoyService, envoyRoutingPort, envoyForbiddenPort),
 
-		tck.WithProviderFromEndpoint(func(_ context.Context, endpoint tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
-			provider, err := flagd.NewProvider(
-				suite.resolver,
-				flagd.WithHost(endpoint.Host()),
-				flagd.WithPort(uint16(endpoint.Port(suite.backendPort))),
-				flagd.WithDeadline(1000),
-				flagd.WithRetryGracePeriod(suite.gracePeriod),
-				flagd.WithRetryBackoffMs(500),
-			)
+		// flagd-testbed's scenarios beyond the canonical set, each tagged with
+		// the resolvers it applies to.
+		tck.WithFeatures(tckextensions.FS),
+		tck.WithSteps(registerFlagdSteps),
+		tck.WithIncludeTags(suite.extensionTag),
+		// Both resolvers bucket with fractional v3.
+		tck.WithExcludeTags("@fractional-v2"),
+
+		tck.WithProviderFromEndpoint(func(ctx context.Context, endpoint tck.BackendEndpoint) (openfeature.FeatureProvider, error) {
+			recordEndpoint(endpoint)
+			port, err := endpoint.Port(suite.backendPort)
 			if err != nil {
 				return nil, err
 			}
-			return provider, nil
+			scenario, err := scenarioProviderOptions(optionsFrom(ctx), endpoint)
+			if err != nil {
+				return nil, err
+			}
+			return flagd.NewProvider(append([]flagd.ProviderOption{
+				suite.resolver,
+				flagd.WithHost(endpoint.Host()),
+				flagd.WithPort(uint16(port)),
+				flagd.WithDeadline(suite.deadlineMs),
+				flagd.WithRetryGracePeriod(suite.gracePeriod),
+				flagd.WithRetryBackoffMs(500),
+			}, scenario...)...)
 		}),
 
 		// Pointed at a closed port on localhost, never at the backend under
@@ -199,19 +220,27 @@ func runConformance(t *testing.T, suite conformanceSuite) {
 		// asserts that failure is reported promptly, so a provider that took
 		// 30 seconds to give up would pass a test about eventual failure and
 		// fail the one that matters.
-		tck.WithUnavailableProvider(func(context.Context) (openfeature.FeatureProvider, error) {
-			provider, err := flagd.NewProvider(
+		tck.WithUnavailableProvider(func(ctx context.Context) (openfeature.FeatureProvider, error) {
+			options := []flagd.ProviderOption{
 				suite.resolver,
 				flagd.WithHost("localhost"),
 				flagd.WithPort(unavailablePort),
 				flagd.WithDeadline(500),
 				flagd.WithRetryGracePeriod(1),
 				flagd.WithRetryBackoffMs(100),
-			)
-			if err != nil {
-				return nil, err
 			}
-			return provider, nil
+			if o := optionsFrom(ctx); o.forbidden || o.targetURI != "" || len(o.options) > 0 {
+				endpoint, err := recordedEndpoint()
+				if err != nil {
+					return nil, err
+				}
+				scenario, err := scenarioProviderOptions(o, endpoint)
+				if err != nil {
+					return nil, err
+				}
+				options = append(options, scenario...)
+			}
+			return flagd.NewProvider(options...)
 		}),
 
 		tck.WithCapabilities(suite.capabilities...),
