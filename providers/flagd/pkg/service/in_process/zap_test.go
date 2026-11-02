@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// TestLogrCorePassesErrorAndCaller checks that an error logged through flagd core reaches logr's
+// Error with the zap error as err and the caller set to the real call site.
 func TestLogrCorePassesErrorAndCaller(t *testing.T) {
 	var lines []string
 	l := funcr.New(func(_, args string) { lines = append(lines, args) }, funcr.Options{LogCaller: funcr.All})
