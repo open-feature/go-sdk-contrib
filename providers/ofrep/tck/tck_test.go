@@ -57,7 +57,11 @@ func TestOFREPConformance(t *testing.T) {
 			// The timeout is well under the TCK's own step deadlines so that a
 			// wedged backend surfaces as a resolution error attributable to
 			// this provider rather than as a suite-level timeout.
-			baseURI := fmt.Sprintf("http://%s:%d", endpoint.Host(), endpoint.Port(ofrepPort))
+			port, err := endpoint.Port(ofrepPort)
+			if err != nil {
+				return nil, err
+			}
+			baseURI := fmt.Sprintf("http://%s:%d", endpoint.Host(), port)
 			return ofrep.NewProvider(baseURI, ofrep.WithTimeout(5*time.Second)), nil
 		}),
 
