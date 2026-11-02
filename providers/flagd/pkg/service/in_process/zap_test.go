@@ -26,6 +26,9 @@ func TestLogrCorePassesErrorAndCaller(t *testing.T) {
 	if !strings.Contains(lines[0], `"error"="boom"`) || strings.Contains(lines[0], `"error"=null`) {
 		t.Errorf("expected the zap error passed as logr err, got %q", lines[0])
 	}
+	if !strings.Contains(lines[0], `"msg"="bad"`) {
+		t.Errorf("expected the zap message passed to logr, got %q", lines[0])
+	}
 	// funcr writes a "level" key only for Info entries, so its absence proves the logr Error path.
 	if strings.Contains(lines[0], `"level"=`) {
 		t.Errorf("expected an Error entry without an info level key, got %q", lines[0])
