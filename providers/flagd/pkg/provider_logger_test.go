@@ -94,6 +94,8 @@ func TestInProcessResolversRespectWithLogger(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// runs before swapStderr's cleanup; Shutdown is idempotent, so the explicit call below is fine
+			t.Cleanup(p.Shutdown)
 			if err := p.Init(of.EvaluationContext{}); err != nil {
 				t.Fatal(err)
 			}
