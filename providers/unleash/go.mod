@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/Unleash/unleash-client-go/v4 v4.5.0
-	github.com/open-feature/go-sdk v1.19.0
+	github.com/open-feature/go-sdk v1.20.0
 	github.com/stretchr/testify v1.12.1
 )
 

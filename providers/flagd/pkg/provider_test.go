@@ -1,7 +1,11 @@
 package flagd
 
 import (
+	"fmt"
 	"reflect"
+	"runtime"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -681,6 +685,307 @@ func TestInitProviderStaleEvent(t *testing.T) {
 	if provider.initialized {
 		t.Errorf("expected provider to not be initialized after error event")
 	}
+}
+
+func TestEventHandlingAfterFailedInit(t *testing.T) {
+	// given
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// buffered like the in-process service channel, so a missing consumer blocks the publisher
+	eventChan := make(chan of.Event, 5)
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().Init().DoAndReturn(func() error {
+		eventChan <- of.Event{
+			ProviderName: "flagd",
+			EventType:    of.ProviderError,
+			ProviderEventDetails: of.ProviderEventDetails{
+				Message: "connection failed",
+			},
+		}
+		return nil
+	}).Times(1)
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+
+	err = provider.Init(of.EvaluationContext{})
+	if err == nil {
+		t.Fatal("expected error from provider error event, but got nil")
+	}
+
+	// the service keeps retrying after init gave up, then recovers
+	published := make(chan struct{})
+	go func() {
+		defer close(published)
+		for range 10 {
+			eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderError}
+		}
+		eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+	}()
+
+	timeout := time.After(time.Second)
+	ready := false
+	for !ready {
+		select {
+		case event := <-provider.EventChannel():
+			ready = event.EventType == of.ProviderReady
+		case <-timeout:
+			t.Fatal("expected ProviderReady on the provider event channel after a failed init")
+		}
+	}
+
+	select {
+	case <-published:
+	case <-timeout:
+		t.Fatal("expected the service to publish all events without blocking")
+	}
+
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) && provider.Status() != of.ReadyState {
+		time.Sleep(time.Millisecond)
+	}
+
+	if provider.Status() != of.ReadyState {
+		t.Errorf("expected status to be ready, but got %v", provider.Status())
+	}
+}
+
+// countEventPumps returns how many handleEvents goroutines are currently running.
+func countEventPumps() int {
+	buf := make([]byte, 1<<20)
+	buf = buf[:runtime.Stack(buf, true)]
+	return strings.Count(string(buf), "(*Provider).handleEvents(")
+}
+
+// waitForEventPumps polls until want pumps run beyond baseline, since pumps start and stop asynchronously.
+// baseline accounts for pumps leaked by other tests that never call Shutdown.
+func waitForEventPumps(t *testing.T, baseline, want int) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for countEventPumps()-baseline != want {
+		if time.Now().After(deadline) {
+			t.Fatalf("expected %d event pump(s), got %d", want, countEventPumps()-baseline)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// shutdownAndWait stops the provider and waits for its pump, so it cannot skew the next test's baseline.
+func shutdownAndWait(t *testing.T, provider *Provider, baseline int) {
+	t.Helper()
+	provider.Shutdown()
+	waitForEventPumps(t, baseline, 0)
+}
+
+func newFailingInitProvider(t *testing.T, ctrl *gomock.Controller, eventChan chan of.Event) (*Provider, *mock.MockIService) {
+	t.Helper()
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().Init().Return(fmt.Errorf("connection failed")).AnyTimes()
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().AnyTimes()
+
+	return provider, svcMock
+}
+
+func TestRetriedInitStartsSingleEventPump(t *testing.T) {
+	baseline := countEventPumps()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	provider, _ := newFailingInitProvider(t, ctrl, make(chan of.Event, 5))
+	defer shutdownAndWait(t, provider, baseline)
+
+	for range 3 {
+		if err := provider.Init(of.EvaluationContext{}); err == nil {
+			t.Fatal("expected init to fail")
+		}
+	}
+
+	waitForEventPumps(t, baseline, 1)
+	// give a wrongly spawned extra pump time to show up
+	time.Sleep(50 * time.Millisecond)
+	waitForEventPumps(t, baseline, 1)
+}
+
+func TestRetriedInitReceivesReady(t *testing.T) {
+	baseline := countEventPumps()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event, 5)
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+	defer shutdownAndWait(t, provider, baseline)
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().AnyTimes()
+
+	var attempts atomic.Int32
+	svcMock.EXPECT().Init().DoAndReturn(func() error {
+		eventType := of.ProviderError
+		if attempts.Add(1) == 2 {
+			eventType = of.ProviderReady
+		}
+		eventChan <- of.Event{ProviderName: "flagd", EventType: eventType}
+		return nil
+	}).Times(2)
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected the first init to fail")
+	}
+
+	if err := provider.Init(of.EvaluationContext{}); err != nil {
+		t.Fatal("expected the retried init to succeed, got", err)
+	}
+	if provider.Status() != of.ReadyState {
+		t.Errorf("expected status to be ready, but got %v", provider.Status())
+	}
+
+	select {
+	case event := <-provider.EventChannel():
+		t.Errorf("unexpected event %v published", event.EventType)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestRetriedInitNotBlockedByPumpHoldingEarlierEvent(t *testing.T) {
+	baseline := countEventPumps()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event, 5)
+
+	provider, err := NewProvider()
+	if err != nil {
+		t.Fatal("error creating new provider", err)
+	}
+	defer shutdownAndWait(t, provider, baseline)
+
+	svcMock := mock.NewMockIService(ctrl)
+	provider.service = svcMock
+	svcMock.EXPECT().EventChannel().Return(eventChan).AnyTimes()
+	svcMock.EXPECT().Shutdown().AnyTimes()
+
+	var attempts atomic.Int32
+	retryStarted := make(chan struct{})
+	svcMock.EXPECT().Init().DoAndReturn(func() error {
+		if attempts.Add(1) == 1 {
+			eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderError}
+			return nil
+		}
+		eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderReady}
+		close(retryStarted)
+		return nil
+	}).Times(2)
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected the first init to fail")
+	}
+
+	// the pump takes this event and blocks publishing it until the test reads the provider channel
+	eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderError}
+	for len(eventChan) > 0 {
+		time.Sleep(time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	retried := make(chan error, 1)
+	go func() { retried <- provider.Init(of.EvaluationContext{}) }()
+
+	// Init holds the lock now, so reading releases the pump into setStatus
+	<-retryStarted
+	<-provider.EventChannel()
+
+	select {
+	case err := <-retried:
+		if err != nil {
+			t.Fatal("expected the retried init to succeed, got", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("retried init never returned")
+	}
+}
+
+func TestShutdownStopsEventPump(t *testing.T) {
+	baseline := countEventPumps()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	provider, _ := newFailingInitProvider(t, ctrl, make(chan of.Event, 5))
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected init to fail")
+	}
+	waitForEventPumps(t, baseline, 1)
+
+	provider.Shutdown()
+
+	waitForEventPumps(t, baseline, 0)
+}
+
+func TestShutdownStopsEventPumpBlockedOnPublish(t *testing.T) {
+	baseline := countEventPumps()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventChan := make(chan of.Event, 1)
+	provider, _ := newFailingInitProvider(t, ctrl, eventChan)
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected init to fail")
+	}
+
+	// nobody reads provider.EventChannel(), so the pump blocks forwarding this event
+	eventChan <- of.Event{ProviderName: "flagd", EventType: of.ProviderError}
+	// pump has taken the event and is now blocked publishing it
+	for len(eventChan) > 0 {
+		time.Sleep(time.Millisecond)
+	}
+	time.Sleep(20 * time.Millisecond)
+
+	provider.Shutdown()
+
+	waitForEventPumps(t, baseline, 0)
+}
+
+func TestInitAfterShutdownRestartsEventPump(t *testing.T) {
+	baseline := countEventPumps()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	provider, _ := newFailingInitProvider(t, ctrl, make(chan of.Event, 5))
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected init to fail")
+	}
+	provider.Shutdown()
+	waitForEventPumps(t, baseline, 0)
+
+	if err := provider.Init(of.EvaluationContext{}); err == nil {
+		t.Fatal("expected init to fail")
+	}
+	waitForEventPumps(t, baseline, 1)
+
+	provider.Shutdown()
+	waitForEventPumps(t, baseline, 0)
 }
 
 func TestInitWithCustomDeadline(t *testing.T) {
