@@ -64,17 +64,24 @@ func TestInMemoryProvider(t *testing.T) {
 		// memprovider used to return the caller's default for a disabled flag
 		// and attach a GENERAL resolution error to it, so all four rows failed
 		// on the empty error-code assertion. go-sdk#574 dropped the error.
-		WithCapabilities(
-			Events,
-			Object,
-			Variants,
-			LargeIntegers,
-			StandardReasons,
-			StringTyping,
-			FullyTypedValues,
-			DisabledFlags,
-		),
+		WithCapabilities(inMemoryCapabilities()...),
 	)
+}
+
+// inMemoryCapabilities is everything memprovider.InMemoryProvider can honestly
+// claim. Every self-test that drives this backend shares it, so a capability the
+// provider turns out not to have is withdrawn once rather than per copy.
+func inMemoryCapabilities() []Capability {
+	return []Capability{
+		Events,
+		Object,
+		Variants,
+		LargeIntegers,
+		StandardReasons,
+		StringTyping,
+		FullyTypedValues,
+		DisabledFlags,
+	}
 }
 
 // plainMemoryControl is the backend control for the SDK's in-memory provider.
