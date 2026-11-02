@@ -85,12 +85,24 @@ func (c logrCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.Ch
 }
 
 func (c logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
-	kv := keysAndValues(fields)
-	if ent.Level >= zapcore.ErrorLevel {
-		c.l.Error(nil, ent.Message, kv...)
-	} else {
-		c.l.V(vLevel(ent.Level)).Info(ent.Message, kv...)
+	// skip logrCore.Write, zapcore.CheckedEntry.Write and the zap/flagd logger method,
+	// so sinks that record the caller report the real call site
+	l := c.l.WithCallDepth(3)
+	if ent.Level < zapcore.ErrorLevel {
+		l.V(vLevel(ent.Level)).Info(ent.Message, keysAndValues(fields)...)
+		return nil
 	}
+	// hand the first zap.Error field to logr as err instead of a duplicate "error" value
+	var err error
+	rest := make([]zapcore.Field, 0, len(fields))
+	for _, f := range fields {
+		if e, ok := f.Interface.(error); ok && err == nil && f.Type == zapcore.ErrorType {
+			err = e
+			continue
+		}
+		rest = append(rest, f)
+	}
+	l.Error(err, ent.Message, keysAndValues(rest)...)
 	return nil
 }
 
