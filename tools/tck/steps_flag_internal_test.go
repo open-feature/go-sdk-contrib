@@ -131,6 +131,30 @@ func TestEntriesFromTwoContextTablesAddUp(t *testing.T) {
 	}
 }
 
+func TestSingleContextKeysKeepTheTargetingKeyAndEachOther(t *testing.T) {
+	ctx, state := stepState(t)
+
+	if err := aContextContainingATargetingKey(ctx, "user-1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := aContextContainingAKey(ctx, "age", "Integer", "42"); err != nil {
+		t.Fatalf("a context containing a key: %v", err)
+	}
+	if err := aContextContainingANestedProperty(ctx, "user", "email", "a@b.c"); err != nil {
+		t.Fatalf("a context containing a nested property: %v", err)
+	}
+
+	if got := state.evalContext.TargetingKey(); got != "user-1" {
+		t.Errorf("targeting key is %q, want \"user-1\"", got)
+	}
+	if got := state.evalContext.Attribute("age"); got != int64(42) {
+		t.Errorf("age is %s, want int64(42)", describeValue(got))
+	}
+	if got := state.evalContext.Attribute("user"); !reflect.DeepEqual(got, map[string]any{"email": "a@b.c"}) {
+		t.Errorf("user is %s, want a structure holding email", describeValue(got))
+	}
+}
+
 // The flag-metadata assertions. Each case is written so that the opposite
 // implementation would fail it: a value that matches and one that does not,
 // metadata that is empty and metadata that is not.

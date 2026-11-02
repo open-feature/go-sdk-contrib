@@ -24,7 +24,7 @@ func registerEventSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the flag should be part of the event payload$`, theFlagShouldBePartOfTheEventPayload)
 	ctx.Step(`^the connection is lost$`, theConnectionIsLost)
 	ctx.Step(`^the connection is restored$`, theConnectionIsRestored)
-	ctx.Step(`^the client should be in (ready|stale|error) state$`, theClientShouldBeInState)
+	ctx.Step(`^the client should be in (ready|stale|error|fatal) state$`, theClientShouldBeInState)
 }
 
 // eventTypeByName maps the words the feature files use onto SDK event types.
@@ -40,6 +40,7 @@ var stateByName = map[string]openfeature.State{
 	"ready": openfeature.ReadyState,
 	"stale": openfeature.StaleState,
 	"error": openfeature.ErrorState,
+	"fatal": openfeature.FatalState,
 }
 
 // aEventHandler attaches a recorder for one event type.

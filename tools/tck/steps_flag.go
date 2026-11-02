@@ -16,6 +16,10 @@ func registerFlagSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^an? ([A-Za-z]+)-flag with key "([^"]*)" and a default value "([^"]*)"$`, aFlagWithKeyAndDefault)
 	ctx.Step(`^a context containing a targeting key with value "([^"]*)"$`, aContextContainingATargetingKey)
 	ctx.Step(`^a context with the following keys:$`, aContextWithTheFollowingKeys)
+	ctx.Step(`^a context containing a key "([^"]*)", with type "([^"]*)" and with value "([^"]*)"$`,
+		aContextContainingAKey)
+	ctx.Step(`^a context containing a nested property with outer key "([^"]*)" and inner key "([^"]*)", with value "([^"]*)"$`,
+		aContextContainingANestedProperty)
 	ctx.Step(`^the flag was evaluated with details$`, theFlagWasEvaluatedWithDetails)
 	ctx.Step(`^the resolved details value should be "([^"]*)"$`, theResolvedValueShouldBe)
 	ctx.Step(`^the variant should be "([^"]*)"$`, theVariantShouldBe)
@@ -126,6 +130,35 @@ func aContextWithTheFollowingKeys(ctx context.Context, table *godog.Table) error
 	}
 
 	state.evalContext = openfeature.NewEvaluationContext(targetingKey, attributes)
+	return nil
+}
+
+// aContextContainingAKey adds one typed entry to the evaluation context, with
+// the table step's type vocabulary.
+func aContextContainingAKey(ctx context.Context, key, rawType, rawValue string) error {
+	value, err := parseContextValue(rawValue, rawType)
+	if err != nil {
+		return fmt.Errorf("context key %q: %w", key, err)
+	}
+	return addContextAttribute(ctx, key, value)
+}
+
+// aContextContainingANestedProperty adds a structure holding one string entry.
+func aContextContainingANestedProperty(ctx context.Context, outerKey, innerKey, value string) error {
+	return addContextAttribute(ctx, outerKey, map[string]any{innerKey: value})
+}
+
+// addContextAttribute rebuilds the immutable evaluation context with one more
+// attribute, keeping its targeting key.
+func addContextAttribute(ctx context.Context, key string, value any) error {
+	state, err := stateFrom(ctx)
+	if err != nil {
+		return err
+	}
+
+	attributes := state.evalContext.Attributes()
+	attributes[key] = value
+	state.evalContext = openfeature.NewEvaluationContext(state.evalContext.TargetingKey(), attributes)
 	return nil
 }
 
