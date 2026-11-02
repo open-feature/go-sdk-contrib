@@ -34,6 +34,8 @@ type Provider struct {
 	initPending           atomic.Bool
 }
 
+// NewProvider creates a flagd provider configured by opts, using the RPC, in-process or file resolver.
+// A logger set with WithLogger is used by every resolver.
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	providerConfiguration, err := NewProviderConfiguration(opts)
 

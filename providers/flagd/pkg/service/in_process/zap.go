@@ -58,6 +58,7 @@ type logrCore struct {
 	l logr.Logger
 }
 
+// vLevel maps a zap level below Error to the provider's logr V-level.
 func vLevel(lvl zapcore.Level) int {
 	switch {
 	case lvl <= zapcore.DebugLevel:
@@ -69,14 +70,17 @@ func vLevel(lvl zapcore.Level) int {
 	}
 }
 
+// Enabled reports whether the logr logger accepts entries at lvl. Error and above are always on.
 func (c logrCore) Enabled(lvl zapcore.Level) bool {
 	return lvl >= zapcore.ErrorLevel || c.l.V(vLevel(lvl)).Enabled()
 }
 
+// With returns a core whose logr logger carries fields as key/value pairs.
 func (c logrCore) With(fields []zapcore.Field) zapcore.Core {
 	return logrCore{l: c.l.WithValues(keysAndValues(fields)...)}
 }
 
+// Check adds this core to ce when the entry's level is enabled.
 func (c logrCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
 	if c.Enabled(ent.Level) {
 		return ce.AddCore(ent, c)
@@ -84,6 +88,7 @@ func (c logrCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.Ch
 	return ce
 }
 
+// Write sends the entry to logr: Error and above to Error, lower levels to V(level).Info.
 func (c logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 	// skip logrCore.Write, zapcore.CheckedEntry.Write and the zap/flagd logger method,
 	// so sinks that record the caller report the real call site
@@ -106,6 +111,7 @@ func (c logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 	return nil
 }
 
+// Sync is a no-op; logr has no flush.
 func (c logrCore) Sync() error { return nil }
 
 // keysAndValues encodes zap fields into logr key/value pairs, sorted by key.

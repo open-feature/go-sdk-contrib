@@ -128,7 +128,8 @@ type Configuration struct {
 	DeadlineMs              int
 	StreamDeadlineMs        int
 	KeepAliveTime           int64
-	// Logger receives all logs from the service, sync provider and evaluator.
+	// Logger receives logs from the service, the built-in sync providers and the evaluator.
+	// A CustomSyncProvider logs through its own logger, which is not changed.
 	// Nil keeps the default zap JSON logger on stderr.
 	Logger *logr.Logger
 }

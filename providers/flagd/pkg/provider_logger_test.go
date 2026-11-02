@@ -48,6 +48,8 @@ func swapStderr(t *testing.T) func() string {
 	return stop
 }
 
+// TestInProcessResolversRespectWithLogger checks that the in-process and file resolvers log through
+// the WithLogger logger and not the default zap stderr logger, and that the default stays without it.
 func TestInProcessResolversRespectWithLogger(t *testing.T) {
 	tests := []struct {
 		name       string
