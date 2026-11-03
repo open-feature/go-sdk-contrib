@@ -7,7 +7,7 @@ require (
 	github.com/open-feature/go-sdk v1.20.0
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/mock v0.6.0
-	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
+	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	golang.org/x/sync v0.24.0
 )
 
