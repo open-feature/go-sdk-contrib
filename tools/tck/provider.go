@@ -62,7 +62,7 @@ type controllableProvider struct {
 	// while an evaluation is in flight is a data race — one the race detector
 	// would report against the SDK rather than against this code. Rebuilding
 	// over a copied map keeps every reader on an immutable snapshot.
-	inner memprovider.InMemoryProvider
+	inner *memprovider.InMemoryProvider
 
 	// flags is the current flag set, owned by this provider after construction.
 	flags map[string]memprovider.InMemoryFlag
@@ -104,7 +104,7 @@ func (p *controllableProvider) Metadata() openfeature.Metadata {
 
 // snapshot returns the provider to evaluate against. The returned value shares
 // an immutable flag map with no writer, so evaluation happens outside the lock.
-func (p *controllableProvider) snapshot() memprovider.InMemoryProvider {
+func (p *controllableProvider) snapshot() *memprovider.InMemoryProvider {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.inner
