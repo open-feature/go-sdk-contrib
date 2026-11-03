@@ -12,8 +12,8 @@ make tck                                 # from the repository root
 go test -tags=tck -timeout=20m ./...     # equivalently, from here
 ```
 
-Docker is the only prerequisite; there is no submodule to check out and no container code in
-`tck_test.go`.
+Docker is the only prerequisite, except for the extension scenario with a custom certificate, which
+reads `ssl/` from the `providers/flagd/flagd-testbed` submodule.
 
 ## What it runs
 
@@ -71,7 +71,7 @@ with its resolver and drops `@fractional-v2`, since both resolvers bucket with v
 | | RPC | in-process |
 | --- | --- | --- |
 | canonical (65) | 62 pass, 3 skip | 62 pass, 2 skip, 1 fail |
-| extensions run | 262: 259 pass, 3 fail | 268: 263 pass, 5 fail |
+| extensions run | 262: 260 pass, 2 fail | 268: 264 pass, 4 fail |
 | extensions deselected | 37 | 31 |
 
 godog's summary counts every skipped and deselected scenario as passed; read the suite's own skip
@@ -85,8 +85,6 @@ Failures, none of them wiring:
   handler for `ErrorState` but not for `FatalState`.
 - **Connection via TargetUri, RPC:** the RPC resolver does not dial an `envoy://` target; the e2e
   suite excludes `@targetURI` for RPC for the same reason.
-- **Resolves Object details with caching, both:** undefined step. The expected value is JSON with
-  inner quotes, which the canonical `"([^"]*)"` value step cannot match.
 - **Three metadata scenarios, in-process:** integer metadata comes back as `float64`.
 
 [testbed-392]: https://github.com/open-feature/flagd-testbed/pull/392

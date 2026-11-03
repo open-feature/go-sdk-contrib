@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -27,10 +28,9 @@ const (
 	envoyRoutingPort   = 9211
 	envoyForbiddenPort = 9212
 
-	// The extension features name testbed files by the path a Java adoption
-	// mounts the testbed at; this module checks it out here instead.
-	featureTestbedDir = "test-harness/"
-	testbedDir        = "../flagd-testbed/"
+	// Where this module finds testbed files the features name relative to the
+	// testbed root, such as the custom certificate.
+	testbedDir = "../flagd-testbed"
 )
 
 type scenarioOptionsKey struct{}
@@ -61,7 +61,7 @@ func registerFlagdSteps(ctx *godog.ScenarioContext) {
 // the way the flagd e2e suites do.
 func anOption(ctx context.Context, option, valueType, value string) (context.Context, error) {
 	if option == "certPath" {
-		value = strings.Replace(value, featureTestbedDir, testbedDir, 1)
+		value = path.Join(testbedDir, value)
 	}
 
 	field := testframework.ToFieldName(option)
