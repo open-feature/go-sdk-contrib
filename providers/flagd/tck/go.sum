@@ -314,8 +314,8 @@ github.com/open-feature/flagd-testbed/tck-extensions v0.0.0-20261103065835-c5ac5
 github.com/open-feature/flagd-testbed/tck-extensions v0.0.0-20261103065835-c5ac5de5730f/go.mod h1:h/fzcdgoDFjTV/5x0r8LhbfOhfQBTE0W6Ni+qc2Csa8=
 github.com/open-feature/flagd/core v0.19.0 h1:bglWn4AnXLAzSETFlLGYt2H0ko/74xr6V5iux1iSK54=
 github.com/open-feature/flagd/core v0.19.0/go.mod h1:dSUGvUAx9k1xoh79Gj1HUSpor+SJw6Xefmcwk9gHbFY=
-github.com/open-feature/go-sdk v1.19.0 h1:vahRSX/kYzLny7bUuxssNiiHOGqHlDIG47z+jJ/DCEY=
-github.com/open-feature/go-sdk v1.19.0/go.mod h1:JlS8ClrWUzfywMOOeFo0Ro3BeT8cS5O/KbZUOOjwtyQ=
+github.com/open-feature/go-sdk v1.20.0 h1:cQV15LaPAQi1bLEoR2KHlzVxm6UuEqrohJ7qXVq+ZAk=
+github.com/open-feature/go-sdk v1.20.0/go.mod h1:lnLzUUPhw3J9gfj1utYmc7vXG9eM0apShLvr/rGAyCs=
 github.com/open-feature/spec/specification/assets/provider-tck v0.1.0 h1:EX5Y2nAgHQ/tbXalpJ0Q8Txzee44stH0Hq9ydRS2g54=
 github.com/open-feature/spec/specification/assets/provider-tck v0.1.0/go.mod h1:ahylkphRyKE/DTt7SNhPNOiGcMcx0AUFbklTMz25P40=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
