@@ -25,11 +25,11 @@ var _ openfeature.StateHandler = (*Provider)(nil)
 // LDClient is the narrowed local interface for the parts of the
 // `*ld.LDClient` LaunchDarkly client used by the provider.
 type LDClient interface {
-	BoolVariationDetail(key string, context ldcontext.Context, defaultVal bool) (bool, ldreason.EvaluationDetail, error)
-	IntVariationDetail(key string, context ldcontext.Context, defaultVal int) (int, ldreason.EvaluationDetail, error)
-	Float64VariationDetail(key string, context ldcontext.Context, defaultVal float64) (float64, ldreason.EvaluationDetail, error)
-	StringVariationDetail(key string, context ldcontext.Context, defaultVal string) (string, ldreason.EvaluationDetail, error)
-	JSONVariationDetail(key string, context ldcontext.Context, defaultVal ldvalue.Value) (ldvalue.Value, ldreason.EvaluationDetail, error)
+	BoolVariationDetailCtx(ctx context.Context, key string, context ldcontext.Context, defaultVal bool) (bool, ldreason.EvaluationDetail, error)
+	IntVariationDetailCtx(ctx context.Context, key string, context ldcontext.Context, defaultVal int) (int, ldreason.EvaluationDetail, error)
+	Float64VariationDetailCtx(ctx context.Context, key string, context ldcontext.Context, defaultVal float64) (float64, ldreason.EvaluationDetail, error)
+	StringVariationDetailCtx(ctx context.Context, key string, context ldcontext.Context, defaultVal string) (string, ldreason.EvaluationDetail, error)
+	JSONVariationDetailCtx(ctx context.Context, key string, context ldcontext.Context, defaultVal ldvalue.Value) (ldvalue.Value, ldreason.EvaluationDetail, error)
 	Close() error
 }
 
@@ -291,7 +291,7 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flagKey string, defaul
 		}
 	}
 
-	value, detail, err := p.client.BoolVariationDetail(flagKey, ldCtx, defaultValue)
+	value, detail, err := p.client.BoolVariationDetailCtx(ctx, flagKey, ldCtx, defaultValue)
 	if err != nil {
 		p.l.Error("boolean evaluation error", "error", err)
 	}
@@ -312,7 +312,7 @@ func (p *Provider) StringEvaluation(ctx context.Context, flagKey string, default
 		}
 	}
 
-	value, detail, err := p.client.StringVariationDetail(flagKey, ldCtx, defaultValue)
+	value, detail, err := p.client.StringVariationDetailCtx(ctx, flagKey, ldCtx, defaultValue)
 	if err != nil {
 		p.l.Error("string evaluation error", "error", err)
 	}
@@ -333,7 +333,7 @@ func (p *Provider) FloatEvaluation(ctx context.Context, flagKey string, defaultV
 		}
 	}
 
-	value, detail, err := p.client.Float64VariationDetail(flagKey, ldCtx, defaultValue)
+	value, detail, err := p.client.Float64VariationDetailCtx(ctx, flagKey, ldCtx, defaultValue)
 	if err != nil {
 		p.l.Error("float evaluation error", "error", err)
 	}
@@ -354,7 +354,7 @@ func (p *Provider) IntEvaluation(ctx context.Context, flagKey string, defaultVal
 		}
 	}
 
-	value, detail, err := p.client.IntVariationDetail(flagKey, ldCtx, int(defaultValue))
+	value, detail, err := p.client.IntVariationDetailCtx(ctx, flagKey, ldCtx, int(defaultValue))
 	if err != nil {
 		p.l.Error("int evaluation error", "error", err)
 	}
@@ -375,7 +375,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flagKey string, default
 		}
 	}
 
-	value, detail, err := p.client.JSONVariationDetail(flagKey, ldCtx, ldvalue.CopyArbitraryValue(defaultValue))
+	value, detail, err := p.client.JSONVariationDetailCtx(ctx, flagKey, ldCtx, ldvalue.CopyArbitraryValue(defaultValue))
 	if err != nil {
 		p.l.Error("object evaluation error", "error", err)
 	}

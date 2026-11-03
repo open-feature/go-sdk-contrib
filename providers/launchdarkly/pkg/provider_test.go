@@ -11,6 +11,7 @@ import (
 	"github.com/launchdarkly/go-sdk-common/v3/ldlog"
 	"github.com/launchdarkly/go-server-sdk/v7/ldcomponents"
 	"github.com/launchdarkly/go-server-sdk/v7/ldfiledata"
+	"github.com/launchdarkly/go-server-sdk/v7/ldhooks"
 	"github.com/open-feature/go-sdk/openfeature"
 
 	ld "github.com/launchdarkly/go-server-sdk/v7"
@@ -53,9 +54,10 @@ func (l *spyLogger) Warn(msg string, args ...any) {
 	l.warnCalls = append(l.warnCalls, loggedCall{msg: msg, args: args})
 }
 
-func makeLDClient(t *testing.T, flagsFilePath string) *ld.LDClient {
+func makeLDClient(t *testing.T, flagsFilePath string, hooks ...ldhooks.Hook) *ld.LDClient {
 	var config ld.Config
 	config.DataSource = ldfiledata.DataSource().FilePaths(flagsFilePath)
+	config.Hooks = hooks
 	config.Logging = ldcomponents.Logging().MinLevel(ldlog.Debug)
 	config.Events = ldcomponents.NoEvents()
 	config.Offline = false
@@ -180,7 +182,7 @@ func TestContextEvaluation(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			evalCtx := openfeature.NewEvaluationContext(test.targetKey, test.evalCtx)
 			client := openfeature.NewClient("tests")
-			mtlsEnabled, err := client.BooleanValue(context.Background(), test.flagKey, false, evalCtx)
+			mtlsEnabled, err := client.BooleanValue(t.Context(), test.flagKey, false, evalCtx)
 			assert.Equals(t, test.expErr, errors.Unwrap(err))
 			assert.Equals(t, test.expFlagValue, mtlsEnabled)
 		})
@@ -203,7 +205,7 @@ func TestStringEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("stringEvalTests")
-	generation, err := client.StringValue(context.Background(), "dataplane_generation", "k8s.v1", evalCtx)
+	generation, err := client.StringValue(t.Context(), "dataplane_generation", "k8s.v1", evalCtx)
 	assert.Ok(t, err)
 	assert.Equals(t, "metal.v1", generation)
 }
@@ -224,13 +226,13 @@ func TestFloatEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("floatEvalTests")
-	discount, err := client.FloatValue(context.Background(), "global_discount_pct", 1.5, evalCtx)
+	discount, err := client.FloatValue(t.Context(), "global_discount_pct", 1.5, evalCtx)
 	assert.Ok(t, err)
 	assert.Equals(t, 5.5, discount)
 }
 
 func TestIntEvaluation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProviderAndWait(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -245,13 +247,13 @@ func TestIntEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("intEvalTests")
-	abuseRiskWeight, err := client.IntValue(context.Background(), "abuse_risk_weight", 10, evalCtx)
+	abuseRiskWeight, err := client.IntValue(t.Context(), "abuse_risk_weight", 10, evalCtx)
 	assert.Ok(t, err)
 	assert.Equals(t, int64(50), abuseRiskWeight)
 }
 
 func TestObjectEvaluation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProviderAndWait(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -266,7 +268,7 @@ func TestObjectEvaluation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("objectEvalTests")
-	rateLimits, err := client.ObjectValue(context.Background(), "rate_limit_config", nil, evalCtx)
+	rateLimits, err := client.ObjectValue(t.Context(), "rate_limit_config", nil, evalCtx)
 	assert.Ok(t, err)
 	assert.Equals(t, map[string]any{
 		"target_quota_byte_rate":       float64(2147483648), // 2GB per second
@@ -276,7 +278,7 @@ func TestObjectEvaluation(t *testing.T) {
 }
 
 func TestContextCancellation(t *testing.T) {
-	err := openfeature.SetProvider(NewProvider(
+	err := openfeature.SetProviderAndWait(NewProvider(
 		makeLDClient(t, "testdata/flags.json"),
 		WithLogger(newTestLogger(t)),
 	))
@@ -291,7 +293,7 @@ func TestContextCancellation(t *testing.T) {
 		"anonymous":       true,
 	})
 	client := openfeature.NewClient("objectEvalTests")
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	_, err = client.ObjectValue(ctx, "rate_limit_config", nil, evalCtx)
 	assert.Equals(t, errors.New("GENERAL: context canceled"), errors.Unwrap(err))
@@ -376,4 +378,45 @@ func TestShutdown(t *testing.T) {
 		openfeature.Shutdown()
 		assert.Cond(t, mockClient.closeCalled, "expected client.Close() to be called")
 	})
+}
+
+type callerContextKey struct{}
+
+// callerContextHook records the value stored under callerContextKey in the
+// Go context that the SDK passes to its hooks.
+type callerContextHook struct {
+	ldhooks.Unimplemented
+	captured any
+}
+
+func (h *callerContextHook) Metadata() ldhooks.Metadata {
+	return ldhooks.NewMetadata("caller-context-hook")
+}
+
+func (h *callerContextHook) BeforeEvaluation(ctx context.Context, _ ldhooks.EvaluationSeriesContext, data ldhooks.EvaluationSeriesData) (ldhooks.EvaluationSeriesData, error) {
+	h.captured = ctx.Value(callerContextKey{})
+	return data, nil
+}
+
+func TestCallerContextReachesSDKHooks(t *testing.T) {
+	hook := &callerContextHook{}
+	err := openfeature.SetProviderAndWait(NewProvider(
+		makeLDClient(t, "testdata/flags.json", hook),
+		WithLogger(newTestLogger(t)),
+	))
+	assert.Ok(t, err)
+
+	evalCtx := openfeature.NewEvaluationContext("redpanda-blah12342", map[string]any{
+		"kind":            "redpanda-id",
+		"organization-id": "blah1234",
+		"redpanda-id":     "redpanda-blah12342",
+		"key":             "redpanda-blah12343",
+		"cloud-provider":  "aws",
+		"anonymous":       true,
+	})
+	ctx := context.WithValue(t.Context(), callerContextKey{}, "caller value")
+	client := openfeature.NewClient("hookTests")
+	_, err = client.BooleanValue(ctx, "mtls_enabled", false, evalCtx)
+	assert.Ok(t, err)
+	assert.Equals(t, "caller value", hook.captured)
 }

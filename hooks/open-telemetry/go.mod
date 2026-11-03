@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/hooks/open-telemetry
 go 1.26.0
 
 require (
-	github.com/open-feature/go-sdk v1.19.0
+	github.com/open-feature/go-sdk v1.20.0
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/metric v1.47.0
 	go.opentelemetry.io/otel/sdk v1.47.0
