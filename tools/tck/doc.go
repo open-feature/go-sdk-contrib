@@ -47,7 +47,9 @@
 //
 // Every setting is one [Option]; [Capability] is how a provider declares the
 // optional parts of the contract it supports; [WithFeatures] and [WithSteps]
-// run scenarios of your own inside this suite.
+// run scenarios of your own inside this suite — as an addition to the canonical
+// set and never a substitute for part of it, [Run] failing if any canonical
+// scenario produced no outcome.
 //
 // [Appendix F]: https://github.com/open-feature/spec/blob/main/specification/appendix-f-provider-conformance.md
 // [the README]: https://github.com/open-feature/go-sdk-contrib/blob/main/tools/tck/README.md
