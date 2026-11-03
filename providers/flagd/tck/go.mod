@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/cucumber/godog v0.16.0
-	github.com/open-feature/flagd-testbed/tck-extensions v0.0.0-20261102212954-6b32883cc9b1
+	github.com/open-feature/flagd-testbed/tck-extensions v0.0.0-20261103065835-c5ac5de5730f
 	github.com/open-feature/go-sdk v1.19.0
 	github.com/open-feature/go-sdk-contrib/providers/flagd v0.3.0
 	github.com/open-feature/go-sdk-contrib/tests/flagd/v2 v2.0.0-00010101000000-000000000000
