@@ -1,8 +1,8 @@
 package process
 
 import (
+	"fmt"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -99,38 +99,61 @@ func (c logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 	}
 	// hand the first zap.Error field to logr as err instead of a duplicate "error" value
 	var err error
-	rest := make([]zapcore.Field, 0, len(fields))
-	for _, f := range fields {
-		if e, ok := f.Interface.(error); ok && err == nil && f.Type == zapcore.ErrorType {
-			err = e
-			continue
+	skip := -1
+	for i, f := range fields {
+		if e, ok := f.Interface.(error); ok && f.Type == zapcore.ErrorType {
+			err, skip = e, i
+			break
 		}
-		rest = append(rest, f)
 	}
-	l.Error(err, ent.Message, keysAndValues(rest)...)
+	kv := make([]any, 0, 2*len(fields))
+	for i, f := range fields {
+		if i != skip {
+			kv = appendField(kv, f)
+		}
+	}
+	l.Error(err, ent.Message, kv...)
 	return nil
 }
 
 // Sync is a no-op; logr has no flush.
 func (c logrCore) Sync() error { return nil }
 
-// keysAndValues encodes zap fields into logr key/value pairs, sorted by key.
+// keysAndValues encodes zap fields into logr key/value pairs, in field order.
 func keysAndValues(fields []zapcore.Field) []any {
 	if len(fields) == 0 {
 		return nil
 	}
-	enc := zapcore.NewMapObjectEncoder()
+	kv := make([]any, 0, 2*len(fields))
 	for _, f := range fields {
-		f.AddTo(enc)
+		kv = appendField(kv, f)
 	}
-	keys := make([]string, 0, len(enc.Fields))
-	for k := range enc.Fields {
-		keys = append(keys, k)
+	return kv
+}
+
+// appendField appends one zap field as a key/value pair. The scalar types flagd core logs are
+// read straight from the field; other types go through a MapObjectEncoder.
+func appendField(kv []any, f zapcore.Field) []any {
+	switch f.Type {
+	case zapcore.StringType:
+		return append(kv, f.Key, f.String)
+	case zapcore.Int64Type, zapcore.Int32Type, zapcore.Int16Type, zapcore.Int8Type:
+		return append(kv, f.Key, f.Integer)
+	case zapcore.BoolType:
+		return append(kv, f.Key, f.Integer == 1)
+	case zapcore.DurationType:
+		return append(kv, f.Key, time.Duration(f.Integer))
+	case zapcore.ErrorType:
+		return append(kv, f.Key, f.Interface)
+	case zapcore.StringerType:
+		return append(kv, f.Key, f.Interface.(fmt.Stringer).String())
+	case zapcore.SkipType:
+		return kv
 	}
-	sort.Strings(keys)
-	kv := make([]any, 0, 2*len(keys))
-	for _, k := range keys {
-		kv = append(kv, k, enc.Fields[k])
+	enc := zapcore.NewMapObjectEncoder()
+	f.AddTo(enc)
+	for k, v := range enc.Fields {
+		kv = append(kv, k, v)
 	}
 	return kv
 }
