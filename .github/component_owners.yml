@@ -40,6 +40,8 @@ components:
     - semanticart
   tools/flagd-http-connector:
     - liran2000
+  tools/tck:
+    - aepfli
 
 ignored-authors:
   - renovate-bot
