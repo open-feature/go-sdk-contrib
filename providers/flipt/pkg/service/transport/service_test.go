@@ -174,8 +174,24 @@ func TestEvaluateInvalidContext(t *testing.T) {
 	_, err := s.Variant(t.Context(), t.Name(), "foo-namespace", "foo", nil)
 	assert.EqualError(t, err, of.NewInvalidContextResolutionError("evalCtx is nil").Error())
 
+	// An evaluation context without a targeting key is allowed: Flipt accepts
+	// an empty entity id and resolves the default variant.
+	mockClient := offlipt.NewMockClient(t)
+
+	mockClient.EXPECT().Variant(mock.Anything, &evaluation.EvaluationRequest{
+		FlagKey:        "foo",
+		EnvironmentKey: t.Name(),
+		NamespaceKey:   "foo-namespace",
+		EntityId:       "",
+		Context:        map[string]string{},
+	}).Return(&evaluation.VariantEvaluationResponse{
+		VariantKey: "bar",
+	}, nil)
+
+	s.client = mockClient
+
 	_, err = s.Variant(t.Context(), t.Name(), "foo-namespace", "foo", map[string]any{})
-	assert.EqualError(t, err, of.NewTargetingKeyMissingResolutionError("targetingKey is missing").Error())
+	assert.NoError(t, err)
 }
 
 func TestLoadTLSCredentials(t *testing.T) {
@@ -214,6 +230,11 @@ func TestGRPCToOpenFeatureError(t *testing.T) {
 			name:        "invalid argument",
 			grpcStatus:  status.New(codes.InvalidArgument, "invalid argument"),
 			expectedErr: of.NewInvalidContextResolutionError("invalid argument"),
+		},
+		{
+			name:        "invalid flag type",
+			grpcStatus:  status.New(codes.InvalidArgument, "flag type BOOLEAN_FLAG_TYPE invalid"),
+			expectedErr: of.NewTypeMismatchResolutionError("flag type BOOLEAN_FLAG_TYPE invalid"),
 		},
 		{
 			name:        "not found",
