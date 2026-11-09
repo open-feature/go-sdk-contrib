@@ -26,8 +26,8 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/open-feature/go-sdk v1.20.0 h1:cQV15LaPAQi1bLEoR2KHlzVxm6UuEqrohJ7qXVq+ZAk=
 github.com/open-feature/go-sdk v1.20.0/go.mod h1:lnLzUUPhw3J9gfj1utYmc7vXG9eM0apShLvr/rGAyCs=
-github.com/optimizely/go-sdk/v2 v2.6.0 h1:3/uaU9HyRGBSBP2soHcamoR3hZKPXQG0RkIPpmceqK4=
-github.com/optimizely/go-sdk/v2 v2.6.0/go.mod h1:MusRCFsU7+XzJCoCTgheLoENJSf1iiFYm4KbJqz6BYA=
+github.com/optimizely/go-sdk/v2 v2.7.0 h1:k4aVfT8tNUsdRjygMtLEhFKafN6Ushu4TkUYKkVarKA=
+github.com/optimizely/go-sdk/v2 v2.7.0/go.mod h1:MusRCFsU7+XzJCoCTgheLoENJSf1iiFYm4KbJqz6BYA=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
