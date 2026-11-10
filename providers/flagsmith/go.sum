@@ -1,5 +1,5 @@
-github.com/Flagsmith/flagsmith-go-client/v5 v5.3.0 h1:zIMVuEmWwU0ZvmqwNA2RHzG9MdwD1EcB2oiQl6fgR44=
-github.com/Flagsmith/flagsmith-go-client/v5 v5.3.0/go.mod h1:QYuqX094rqzVLGVXE4MVinN1y186hhlnG6sRFww4bpk=
+github.com/Flagsmith/flagsmith-go-client/v5 v5.5.0 h1:q4Gg7HJe2LS8Um90uesplfyEiQU1w3Tqia694dw3e4M=
+github.com/Flagsmith/flagsmith-go-client/v5 v5.5.0/go.mod h1:QYuqX094rqzVLGVXE4MVinN1y186hhlnG6sRFww4bpk=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/go-resty/resty/v2 v2.17.2 h1:FQW5oHYcIlkCNrMD2lloGScxcHJ0gkjshV3qcQAyHQk=

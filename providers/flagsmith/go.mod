@@ -3,7 +3,7 @@ module github.com/open-feature/go-sdk-contrib/providers/flagsmith
 go 1.26.0
 
 require (
-	github.com/Flagsmith/flagsmith-go-client/v5 v5.3.0
+	github.com/Flagsmith/flagsmith-go-client/v5 v5.5.0
 	github.com/open-feature/go-sdk v1.20.0
 	github.com/stretchr/testify v1.12.1
 )
