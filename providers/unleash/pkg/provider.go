@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Unleash/unleash-client-go/v4"
-	"github.com/Unleash/unleash-client-go/v4/api"
-	unleashContext "github.com/Unleash/unleash-client-go/v4/context"
+	"github.com/Unleash/unleash-go-sdk/v6"
+	"github.com/Unleash/unleash-go-sdk/v6/api"
+	unleashContext "github.com/Unleash/unleash-go-sdk/v6/context"
 	of "github.com/open-feature/go-sdk/openfeature"
 )
 
@@ -94,7 +94,10 @@ func (p *Provider) BooleanEvaluation(ctx context.Context, flag string, defaultVa
 		}
 	}
 
-	res := unleash.IsEnabled(flag, unleash.WithFallback(defaultValue), unleash.WithContext(*unleashContext))
+	res := unleash.IsEnabled(flag, unleash.FeatureOptions{
+		Ctx:      *unleashContext,
+		Fallback: new(defaultValue),
+	})
 	flagMetadata := map[string]any{
 		"enabled": res,
 	}
@@ -208,7 +211,7 @@ func (p *Provider) ObjectEvaluation(ctx context.Context, flag string, defaultVal
 		}
 	}
 
-	variant := unleash.GetVariant(flag, unleash.WithVariantContext(*unleashContext))
+	variant := unleash.GetVariant(flag, unleash.VariantOptions{Ctx: *unleashContext})
 	flagMetadata := map[string]any{
 		"enabled": variant.Enabled,
 	}
