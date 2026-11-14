@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"go.uber.org/zap"
 	googlegrpc "google.golang.org/grpc"
 
@@ -127,6 +128,10 @@ type Configuration struct {
 	DeadlineMs              int
 	StreamDeadlineMs        int
 	KeepAliveTime           int64
+	// Logger receives logs from the service, the built-in sync providers and the evaluator.
+	// A CustomSyncProvider logs through its own logger, which is not changed.
+	// Nil keeps the default zap JSON logger on stderr.
+	Logger *logr.Logger
 }
 
 // EventSync interface for sync providers that support events
@@ -147,7 +152,11 @@ type Shutdowner interface {
 
 // NewInProcessService creates a new InProcess service with the given configuration
 func NewInProcessService(cfg Configuration) *InProcess {
-	log := logger.NewLogger(NewRaw(), false)
+	zl := NewRaw()
+	if cfg.Logger != nil {
+		zl = zap.New(logrCore{l: *cfg.Logger})
+	}
+	log := logger.NewLogger(zl, false)
 	syncProvider, uri := createSyncProvider(cfg, log)
 
 	flagStore := store.NewFlags()
