@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr/funcr"
 	"github.com/open-feature/flagd/core/pkg/logger"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	levels "github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 )
@@ -18,7 +19,7 @@ import (
 func TestLogrCorePassesErrorAndCaller(t *testing.T) {
 	var lines []string
 	l := funcr.New(func(_, args string) { lines = append(lines, args) }, funcr.Options{LogCaller: funcr.All})
-	logger.NewLogger(zap.New(&logrCore{l: l}), false).Error("bad", zap.Error(errors.New("boom")))
+	logger.NewLogger(zap.New(newLogrCore(l)), false).Error("bad", zap.Error(errors.New("boom")))
 
 	if len(lines) != 1 {
 		t.Fatalf("expected one line, got %q", lines)
@@ -42,7 +43,7 @@ func TestLogrCorePassesErrorAndCaller(t *testing.T) {
 func logLines() (*zap.Logger, *[]string) {
 	var lines []string
 	l := funcr.New(func(_, args string) { lines = append(lines, args) }, funcr.Options{Verbosity: levels.Debug})
-	return zap.New(&logrCore{l: l}), &lines
+	return zap.New(newLogrCore(l)), &lines
 }
 
 // TestLogrCoreNilStringer checks that a nil Stringer is logged as "<nil>" instead of panicking.
@@ -93,4 +94,29 @@ func TestLogrCoreNamespace(t *testing.T) {
 			t.Errorf("expected the error nested under sync, got %q", *lines)
 		}
 	})
+}
+
+type ptrErr struct{ msg string }
+
+func (e *ptrErr) Error() string { return e.msg }
+
+// TestLogrCoreErrorFields checks that a zap.NamedError keeps its key and that a nil pointer error
+// is logged as "<nil>" instead of panicking in the sink.
+func TestLogrCoreErrorFields(t *testing.T) {
+	t.Run("named", func(t *testing.T) {
+		z, lines := logLines()
+		z.Error("bad", zap.NamedError("cause", errors.New("boom")))
+		if len(*lines) != 1 || !strings.Contains((*lines)[0], `"cause"="boom"`) {
+			t.Errorf("expected \"cause\"=\"boom\", got %q", *lines)
+		}
+	})
+	for _, lvl := range []zapcore.Level{zapcore.InfoLevel, zapcore.ErrorLevel} {
+		t.Run("nil pointer "+lvl.String(), func(t *testing.T) {
+			z, lines := logLines()
+			z.Log(lvl, "bad", zap.Error((*ptrErr)(nil)))
+			if len(*lines) != 1 || !strings.Contains((*lines)[0], `"error"="<nil>"`) {
+				t.Errorf("expected \"error\"=\"<nil>\", got %q", *lines)
+			}
+		})
+	}
 }

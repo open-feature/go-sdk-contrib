@@ -2,6 +2,7 @@ package process
 
 import (
 	"os"
+	"reflect"
 	"slices"
 	"time"
 
@@ -61,6 +62,13 @@ type logrCore struct {
 	ns []zapcore.Field
 }
 
+// newLogrCore returns a logrCore for l. The call depth skips logrCore.Write,
+// zapcore.CheckedEntry.Write and the zap/flagd logger method, so sinks that record the caller
+// report the real call site; WithValues keeps it for cores built by With.
+func newLogrCore(l logr.Logger) *logrCore {
+	return &logrCore{l: l.WithCallDepth(3)}
+}
+
 // vLevel maps a zap level below Error to the provider's logr V-level.
 func vLevel(lvl zapcore.Level) int {
 	switch {
@@ -99,9 +107,6 @@ func (c *logrCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.C
 
 // Write sends the entry to logr: Error and above to Error, lower levels to V(level).Info.
 func (c *logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
-	// skip logrCore.Write, zapcore.CheckedEntry.Write and the zap/flagd logger method,
-	// so sinks that record the caller report the real call site
-	l := c.l.WithCallDepth(3)
 	// top holds the fields before any namespace; nested holds the namespace and what follows it
 	top, nested := fields, c.ns
 	if len(nested) > 0 {
@@ -111,20 +116,22 @@ func (c *logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 		top, nested = fields[:i], fields[i:]
 	}
 	if ent.Level < zapcore.ErrorLevel {
-		l.V(vLevel(ent.Level)).Info(ent.Message, keysAndValues(top, -1, nested)...)
+		c.l.V(vLevel(ent.Level)).Info(ent.Message, keysAndValues(top, -1, nested)...)
 		return nil
 	}
 	// hand the first top-level zap.Error field to logr as err instead of a duplicate "error"
-	// value; an error inside a namespace stays nested, as zap's JSON encoder writes it
+	// value; an error inside a namespace stays nested, as zap's JSON encoder writes it. A
+	// zap.NamedError keeps its key, and a nil pointer error stays a field so it logs as "<nil>"
+	// instead of panicking in a sink that calls Error on it.
 	var err error
 	skip := -1
 	for i, f := range top {
-		if e, ok := f.Interface.(error); ok && f.Type == zapcore.ErrorType {
+		if e, ok := f.Interface.(error); ok && f.Type == zapcore.ErrorType && f.Key == "error" && !nilPtr(e) {
 			err, skip = e, i
 			break
 		}
 	}
-	l.Error(err, ent.Message, keysAndValues(top, skip, nested)...)
+	c.l.Error(err, ent.Message, keysAndValues(top, skip, nested)...)
 	return nil
 }
 
@@ -167,8 +174,8 @@ func keysAndValues(top []zapcore.Field, skip int, nested []zapcore.Field) []any 
 }
 
 // appendField appends one zap field as a key/value pair. The scalar types flagd core logs are
-// read straight from the field; other types go through a MapObjectEncoder, which for a Stringer
-// also recovers a panic from String and writes "<nil>" for a nil pointer.
+// read straight from the field; other types, and an error that is a nil pointer, go through a
+// MapObjectEncoder, which recovers a panic from String or Error and writes "<nil>" for a nil pointer.
 func appendField(kv []any, f zapcore.Field) []any {
 	switch f.Type {
 	case zapcore.StringType:
@@ -180,7 +187,9 @@ func appendField(kv []any, f zapcore.Field) []any {
 	case zapcore.DurationType:
 		return append(kv, f.Key, time.Duration(f.Integer))
 	case zapcore.ErrorType:
-		return append(kv, f.Key, f.Interface)
+		if !nilPtr(f.Interface) {
+			return append(kv, f.Key, f.Interface)
+		}
 	case zapcore.SkipType:
 		return kv
 	}
@@ -190,4 +199,10 @@ func appendField(kv []any, f zapcore.Field) []any {
 		kv = append(kv, k, v)
 	}
 	return kv
+}
+
+// nilPtr reports whether v is a nil pointer.
+func nilPtr(v any) bool {
+	rv := reflect.ValueOf(v)
+	return rv.Kind() == reflect.Pointer && rv.IsNil()
 }

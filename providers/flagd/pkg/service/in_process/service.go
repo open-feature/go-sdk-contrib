@@ -152,9 +152,11 @@ type Shutdowner interface {
 
 // NewInProcessService creates a new InProcess service with the given configuration
 func NewInProcessService(cfg Configuration) *InProcess {
-	zl := NewRaw()
+	var zl *zap.Logger
 	if cfg.Logger != nil {
-		zl = zap.New(&logrCore{l: *cfg.Logger})
+		zl = zap.New(newLogrCore(*cfg.Logger))
+	} else {
+		zl = NewRaw()
 	}
 	log := logger.NewLogger(zl, false)
 	syncProvider, uri := createSyncProvider(cfg, log)
