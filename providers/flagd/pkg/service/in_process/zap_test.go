@@ -87,6 +87,13 @@ func TestLogrCoreNamespace(t *testing.T) {
 			t.Errorf("expected each sibling to keep its own id, got %q", *lines)
 		}
 	})
+	t.Run("nested with", func(t *testing.T) {
+		z, lines := logLines()
+		z.With(zap.Namespace("sync")).With(zap.Namespace("source"), zap.String("id", "inner")).Info("msg")
+		if len(*lines) != 1 || !strings.Contains((*lines)[0], `"sync"={"source"={"id"="inner"}}`) {
+			t.Errorf("expected source nested under sync, got %q", *lines)
+		}
+	})
 	t.Run("nested error", func(t *testing.T) {
 		z, lines := logLines()
 		z.Error("bad", zap.Namespace("sync"), zap.Error(errors.New("boom")))
@@ -118,5 +125,33 @@ func TestLogrCoreErrorFields(t *testing.T) {
 				t.Errorf("expected \"error\"=\"<nil>\", got %q", *lines)
 			}
 		})
+	}
+}
+
+// TestLogrCoreLevels checks that Debug, Info and Warn map to the provider's V-levels, that entries
+// above the logr verbosity are dropped, and that Error is always logged.
+func TestLogrCoreLevels(t *testing.T) {
+	var lines []string
+	l := funcr.New(func(_, args string) { lines = append(lines, args) }, funcr.Options{Verbosity: levels.Info})
+	z := zap.New(newLogrCore(l))
+	z.Debug("debug")
+	z.Info("info")
+	z.Warn("warn")
+	z.Error("error")
+
+	want := []string{`"level"=1 "msg"="info"`, `"level"=0 "msg"="warn"`, `"msg"="error"`}
+	if len(lines) != len(want) {
+		t.Fatalf("expected %d lines, got %q", len(want), lines)
+	}
+	for i, w := range want {
+		if !strings.Contains(lines[i], w) {
+			t.Errorf("expected %s, got %q", w, lines[i])
+		}
+	}
+	if z.Core().Enabled(zapcore.DebugLevel) || !z.Core().Enabled(zapcore.InfoLevel) {
+		t.Errorf("expected Debug disabled and Info enabled at verbosity %d", levels.Info)
+	}
+	if zd, _ := logLines(); !zd.Core().Enabled(zapcore.DebugLevel) {
+		t.Errorf("expected Debug enabled at verbosity %d", levels.Debug)
 	}
 }
