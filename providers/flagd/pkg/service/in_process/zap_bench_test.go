@@ -23,7 +23,7 @@ func (s nopSink) WithValues(...any) logr.LogSink { return s }
 func (s nopSink) WithName(string) logr.LogSink   { return s }
 
 func benchLogger(maxV int) *logger.Logger {
-	return logger.NewLogger(zap.New(logrCore{l: logr.New(nopSink{maxV: maxV})}), false)
+	return logger.NewLogger(zap.New(&logrCore{l: logr.New(nopSink{maxV: maxV})}), false)
 }
 
 // BenchmarkLogrCoreInfo logs an info line shaped like flagd core's sync logs.

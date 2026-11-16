@@ -1,8 +1,8 @@
 package process
 
 import (
-	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -56,6 +56,9 @@ func NewRaw() *zap.Logger {
 // V-levels; Error and above go to logr's Error.
 type logrCore struct {
 	l logr.Logger
+	// ns holds the fields from the first zap.Namespace onward that With received. logr cannot
+	// reopen a map it already got, so they are encoded together with each entry's fields.
+	ns []zapcore.Field
 }
 
 // vLevel maps a zap level below Error to the provider's logr V-level.
@@ -71,17 +74,23 @@ func vLevel(lvl zapcore.Level) int {
 }
 
 // Enabled reports whether the logr logger accepts entries at lvl. Error and above are always on.
-func (c logrCore) Enabled(lvl zapcore.Level) bool {
+func (c *logrCore) Enabled(lvl zapcore.Level) bool {
 	return lvl >= zapcore.ErrorLevel || c.l.V(vLevel(lvl)).Enabled()
 }
 
-// With returns a core whose logr logger carries fields as key/value pairs.
-func (c logrCore) With(fields []zapcore.Field) zapcore.Core {
-	return logrCore{l: c.l.WithValues(keysAndValues(fields)...)}
+// With returns a core whose logr logger carries fields as key/value pairs. Fields from the first
+// zap.Namespace onward are kept on the core instead, so later fields nest under that namespace.
+func (c *logrCore) With(fields []zapcore.Field) zapcore.Core {
+	if len(c.ns) > 0 {
+		// Clip forces append to copy, so sibling cores never share a backing array
+		return &logrCore{l: c.l, ns: append(slices.Clip(c.ns), fields...)}
+	}
+	i := nsIndex(fields)
+	return &logrCore{l: c.l.WithValues(keysAndValues(fields[:i], -1, nil)...), ns: slices.Clone(fields[i:])}
 }
 
 // Check adds this core to ce when the entry's level is enabled.
-func (c logrCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+func (c *logrCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
 	if c.Enabled(ent.Level) {
 		return ce.AddCore(ent, c)
 	}
@@ -89,50 +98,77 @@ func (c logrCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.Ch
 }
 
 // Write sends the entry to logr: Error and above to Error, lower levels to V(level).Info.
-func (c logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
+func (c *logrCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 	// skip logrCore.Write, zapcore.CheckedEntry.Write and the zap/flagd logger method,
 	// so sinks that record the caller report the real call site
 	l := c.l.WithCallDepth(3)
+	// top holds the fields before any namespace; nested holds the namespace and what follows it
+	top, nested := fields, c.ns
+	if len(nested) > 0 {
+		top, nested = nil, append(slices.Clip(nested), fields...)
+	} else {
+		i := nsIndex(fields)
+		top, nested = fields[:i], fields[i:]
+	}
 	if ent.Level < zapcore.ErrorLevel {
-		l.V(vLevel(ent.Level)).Info(ent.Message, keysAndValues(fields)...)
+		l.V(vLevel(ent.Level)).Info(ent.Message, keysAndValues(top, -1, nested)...)
 		return nil
 	}
-	// hand the first zap.Error field to logr as err instead of a duplicate "error" value
+	// hand the first top-level zap.Error field to logr as err instead of a duplicate "error"
+	// value; an error inside a namespace stays nested, as zap's JSON encoder writes it
 	var err error
 	skip := -1
-	for i, f := range fields {
+	for i, f := range top {
 		if e, ok := f.Interface.(error); ok && f.Type == zapcore.ErrorType {
 			err, skip = e, i
 			break
 		}
 	}
-	kv := make([]any, 0, 2*len(fields))
-	for i, f := range fields {
-		if i != skip {
-			kv = appendField(kv, f)
-		}
-	}
-	l.Error(err, ent.Message, kv...)
+	l.Error(err, ent.Message, keysAndValues(top, skip, nested)...)
 	return nil
 }
 
 // Sync is a no-op; logr has no flush.
-func (c logrCore) Sync() error { return nil }
+func (c *logrCore) Sync() error { return nil }
 
-// keysAndValues encodes zap fields into logr key/value pairs, in field order.
-func keysAndValues(fields []zapcore.Field) []any {
-	if len(fields) == 0 {
+// nsIndex returns the index of the first zap.Namespace field, or len(fields) if there is none.
+func nsIndex(fields []zapcore.Field) int {
+	for i, f := range fields {
+		if f.Type == zapcore.NamespaceType {
+			return i
+		}
+	}
+	return len(fields)
+}
+
+// keysAndValues encodes zap fields into logr key/value pairs. The top fields come first, in order,
+// without the one at index skip. The nested fields, which start with a zap.Namespace, go through one
+// shared MapObjectEncoder so every field after a namespace lands inside it.
+func keysAndValues(top []zapcore.Field, skip int, nested []zapcore.Field) []any {
+	if len(top) == 0 && len(nested) == 0 {
 		return nil
 	}
-	kv := make([]any, 0, 2*len(fields))
-	for _, f := range fields {
-		kv = appendField(kv, f)
+	kv := make([]any, 0, 2*len(top))
+	for i, f := range top {
+		if i != skip {
+			kv = appendField(kv, f)
+		}
+	}
+	if len(nested) > 0 {
+		enc := zapcore.NewMapObjectEncoder()
+		for _, f := range nested {
+			f.AddTo(enc)
+		}
+		for k, v := range enc.Fields {
+			kv = append(kv, k, v)
+		}
 	}
 	return kv
 }
 
 // appendField appends one zap field as a key/value pair. The scalar types flagd core logs are
-// read straight from the field; other types go through a MapObjectEncoder.
+// read straight from the field; other types go through a MapObjectEncoder, which for a Stringer
+// also recovers a panic from String and writes "<nil>" for a nil pointer.
 func appendField(kv []any, f zapcore.Field) []any {
 	switch f.Type {
 	case zapcore.StringType:
@@ -145,8 +181,6 @@ func appendField(kv []any, f zapcore.Field) []any {
 		return append(kv, f.Key, time.Duration(f.Integer))
 	case zapcore.ErrorType:
 		return append(kv, f.Key, f.Interface)
-	case zapcore.StringerType:
-		return append(kv, f.Key, f.Interface.(fmt.Stringer).String())
 	case zapcore.SkipType:
 		return kv
 	}

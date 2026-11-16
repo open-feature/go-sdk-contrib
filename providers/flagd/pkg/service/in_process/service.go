@@ -154,7 +154,7 @@ type Shutdowner interface {
 func NewInProcessService(cfg Configuration) *InProcess {
 	zl := NewRaw()
 	if cfg.Logger != nil {
-		zl = zap.New(logrCore{l: *cfg.Logger})
+		zl = zap.New(&logrCore{l: *cfg.Logger})
 	}
 	log := logger.NewLogger(zl, false)
 	syncProvider, uri := createSyncProvider(cfg, log)
