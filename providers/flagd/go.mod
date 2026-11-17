@@ -11,7 +11,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/open-feature/flagd/core v0.19.2
+	github.com/open-feature/flagd/core v0.19.3
 	github.com/open-feature/go-sdk v1.20.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
@@ -23,7 +23,7 @@ require (
 require (
 	connectrpc.com/connect/v2 v2.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/diegoholiveira/jsonlogic/v3 v3.9.1 // indirect
+	github.com/diegoholiveira/jsonlogic/v3 v3.10.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
