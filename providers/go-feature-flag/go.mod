@@ -7,7 +7,7 @@ require (
 	github.com/open-feature/go-sdk v1.20.0
 	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.7
 	github.com/stretchr/testify v1.12.1
-	github.com/thomaspoignant/go-feature-flag/modules/core v0.8.1
+	github.com/thomaspoignant/go-feature-flag/modules/core v0.8.2
 )
 
 require (
