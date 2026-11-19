@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.3...providers/go-feature-flag/v1.2.0) (2026-11-17)
+
+
+### ✨ New Features
+
+* **go-feature-flag:** Bump in-process evaluation module to v0.8.0 ([#1074](https://github.com/open-feature/go-sdk-contrib/issues/1074)) ([5478aeb](https://github.com/open-feature/go-sdk-contrib/commit/5478aeb67a6e94f5dc6556bc07400ca3f9d7b1cd))
+* **go-feature-flag:** Bump in-process evaluation module to v0.8.1 ([#1096](https://github.com/open-feature/go-sdk-contrib/issues/1096)) ([567f88d](https://github.com/open-feature/go-sdk-contrib/commit/567f88d2e8e585e79ba1a6e36bfb239c3582c00e))
+
 ## [1.1.3](https://github.com/open-feature/go-sdk-contrib/compare/providers/go-feature-flag/v1.1.2...providers/go-feature-flag/v1.1.3) (2026-10-12)
 
 
