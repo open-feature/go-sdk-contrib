@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.8.1...providers/flagd/v0.8.2) (2026-11-21)
+
+
+### 🐛 Bug Fixes
+
+* **security:** update module github.com/containerd/containerd/v2 to v2.2.10 [security] ([#1098](https://github.com/open-feature/go-sdk-contrib/issues/1098)) ([a904ce2](https://github.com/open-feature/go-sdk-contrib/commit/a904ce28a9e829c8d27f7d464eb8e733dd350c72))
+
 ## [0.8.1](https://github.com/open-feature/go-sdk-contrib/compare/providers/flagd/v0.8.0...providers/flagd/v0.8.1) (2026-11-17)
 
 
