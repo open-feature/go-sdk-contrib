@@ -10,7 +10,7 @@ require (
 	go.uber.org/zap v1.28.0
 )
 
-require github.com/open-feature/flagd/core v0.19.2
+require github.com/open-feature/flagd/core v0.19.3
 
 require (
 	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1 // indirect
@@ -20,7 +20,7 @@ require (
 	connectrpc.com/connect/v2 v2.0.0 // indirect
 	connectrpc.com/otelconnect v0.12.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/diegoholiveira/jsonlogic/v3 v3.9.1 // indirect
+	github.com/diegoholiveira/jsonlogic/v3 v3.10.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
