@@ -164,14 +164,11 @@ func (i *InProcess) handleRefreshResult(status configurationRefreshStatus, err e
 		return
 	}
 
-	wasStale := i.clearStale()
-	switch status {
-	case configurationRefreshChanged:
+	if i.clearStale() {
+		i.emitEvent(openfeature.ProviderReady, "Configuration refresh recovered")
+	}
+	if status == configurationRefreshChanged {
 		i.emitEvent(openfeature.ProviderConfigChange, "Configuration has changed")
-	case configurationRefreshNotModified:
-		if wasStale {
-			i.emitEvent(openfeature.ProviderReady, "Configuration refresh recovered")
-		}
 	}
 }
 

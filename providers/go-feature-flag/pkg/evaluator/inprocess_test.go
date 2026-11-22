@@ -116,7 +116,7 @@ func TestInProcess_PollFailureEmitsStaleAndReadyAfterNotModifiedRecovery(t *test
 	assert.Equal(t, "Configuration refresh recovered", readyEvent.Message)
 }
 
-func TestInProcess_PollFailureEmitsConfigChangeAfterChangedRecovery(t *testing.T) {
+func TestInProcess_PollFailureEmitsReadyThenConfigChangeAfterChangedRecovery(t *testing.T) {
 	events := make(chan openfeature.Event, 8)
 	transport := &sequencedRoundTripper{
 		responses: []roundTripResponse{
@@ -134,10 +134,11 @@ func TestInProcess_PollFailureEmitsConfigChangeAfterChangedRecovery(t *testing.T
 
 	require.Equal(t, openfeature.ProviderConfigChange, requireEvent(t, events, time.Second).EventType)
 	require.Equal(t, openfeature.ProviderStale, requireEvent(t, events, time.Second).EventType)
+	require.Equal(t, openfeature.ProviderReady, requireEvent(t, events, time.Second).EventType)
 
-	recoveryEvent := requireEvent(t, events, time.Second)
-	require.Equal(t, openfeature.ProviderConfigChange, recoveryEvent.EventType)
-	assert.Equal(t, "Configuration has changed", recoveryEvent.Message)
+	changeEvent := requireEvent(t, events, time.Second)
+	require.Equal(t, openfeature.ProviderConfigChange, changeEvent.EventType)
+	assert.Equal(t, "Configuration has changed", changeEvent.Message)
 }
 
 func TestInProcess_DuplicatePollFailuresDoNotEmitDuplicateStaleEvents(t *testing.T) {
