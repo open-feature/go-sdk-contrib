@@ -313,7 +313,7 @@ func TestProvider_DataCollectorHookUsesProviderManager(t *testing.T) {
 	p := newTestProvider(t, mrt)
 
 	hooks := p.Hooks()
-	require.Len(t, hooks, 2)
+	require.Len(t, hooks, 1)
 
 	hookCtx := newProviderHookContext("user-123", map[string]any{})
 	evalDetails := openfeature.InterfaceEvaluationDetails{
@@ -1756,6 +1756,29 @@ func TestProvider_EvaluationEnrichmentHook(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.JSONEq(t, tt.want, cli.requestBodies[len(cli.requestBodies)-1])
+		})
+	}
+}
+
+func TestProvider_EvaluationEnrichmentHookOnlyForRemote(t *testing.T) {
+	tests := []struct {
+		name           string
+		evaluationType EvaluationType
+		wantHooks      int
+	}{
+		{name: "remote keeps the enrichment hook", evaluationType: EvaluationTypeRemote, wantHooks: 2},
+		{name: "in-process skips it", evaluationType: EvaluationTypeInProcess, wantHooks: 1},
+		{name: "default is in-process", wantHooks: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := NewProvider(ProviderOptions{
+				Endpoint:       "http://localhost:1031",
+				HTTPClient:     &http.Client{Transport: &mockRoundTripper{status: http.StatusOK}},
+				EvaluationType: tt.evaluationType,
+			})
+			require.NoError(t, err)
+			assert.Len(t, p.Hooks(), tt.wantHooks)
 		})
 	}
 }
