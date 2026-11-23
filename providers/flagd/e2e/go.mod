@@ -4,12 +4,12 @@ go 1.26.0
 
 require (
 	github.com/cucumber/godog v0.16.0
-	github.com/open-feature/go-sdk-contrib/providers/flagd v0.8.0
+	github.com/open-feature/go-sdk-contrib/providers/flagd v0.8.1
 	github.com/open-feature/go-sdk-contrib/tests/flagd v1.7.0
 )
 
 require (
-	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.0-20260824202443-4824facda674.1 // indirect
+	buf.build/gen/go/open-feature/flagd/connectrpc/go v1.21.1-20260824202443-4824facda674.1 // indirect
 	buf.build/gen/go/open-feature/flagd/grpc/go v1.6.2-20260824202443-4824facda674.1 // indirect
 	buf.build/gen/go/open-feature/flagd/protocolbuffers/go v1.36.12-20260824202443-4824facda674.2 // indirect
 	connectrpc.com/connect v1.21.1 // indirect
@@ -28,7 +28,7 @@ require (
 	github.com/compose-spec/compose-go/v2 v2.13.0 // indirect
 	github.com/containerd/console v1.0.5 // indirect
 	github.com/containerd/containerd/api v1.11.1 // indirect
-	github.com/containerd/containerd/v2 v2.2.9 // indirect
+	github.com/containerd/containerd/v2 v2.2.10 // indirect
 	github.com/containerd/continuity v0.5.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
@@ -39,7 +39,7 @@ require (
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
 	github.com/cucumber/gherkin/go/v42 v42.0.1 // indirect
 	github.com/cucumber/messages/go/v34 v34.2.1 // indirect
-	github.com/diegoholiveira/jsonlogic/v3 v3.9.1 // indirect
+	github.com/diegoholiveira/jsonlogic/v3 v3.10.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/buildx v0.35.0 // indirect
 	github.com/docker/cli v29.6.1+incompatible // indirect
@@ -100,9 +100,9 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
-	github.com/open-feature/flagd-schemas v0.2.13 // indirect
-	github.com/open-feature/flagd/core v0.19.0 // indirect
-	github.com/open-feature/go-sdk v1.19.0 // indirect
+	github.com/open-feature/flagd-schemas v0.2.15 // indirect
+	github.com/open-feature/flagd/core v0.19.3 // indirect
+	github.com/open-feature/go-sdk v1.20.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.1 // indirect
@@ -159,7 +159,7 @@ require (
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
@@ -167,7 +167,7 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
-	google.golang.org/grpc v1.84.0 // indirect
+	google.golang.org/grpc v1.85.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

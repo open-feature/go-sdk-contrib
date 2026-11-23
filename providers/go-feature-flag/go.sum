@@ -4,8 +4,8 @@ github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdn
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/bluele/gcache v0.0.2 h1:WcbfdXICg7G/DGBh1PFfcirkWOQV+v077yF1pSy3DGw=
 github.com/bluele/gcache v0.0.2/go.mod h1:m15KV+ECjptwSPxKhOhQoAFQVtUFjTVkc3H8o0t/fp0=
-github.com/diegoholiveira/jsonlogic/v3 v3.10.1 h1:LfEloCfkty+LOkYbLRTw7FrrQGqX+BYuKtPqizmoQ7k=
-github.com/diegoholiveira/jsonlogic/v3 v3.10.1/go.mod h1:mJcE63oWAS86KovXNXxyiBvJk8bvOaeGG7psnkzn9ms=
+github.com/diegoholiveira/jsonlogic/v3 v3.10.2 h1:8pCs/OI4SR4+PlNOfpjZHNEq16qhJhGtJaKqpag0yoA=
+github.com/diegoholiveira/jsonlogic/v3 v3.10.2/go.mod h1:mJcE63oWAS86KovXNXxyiBvJk8bvOaeGG7psnkzn9ms=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/nikunjy/rules v1.5.0 h1:KJDSLOsFhwt7kcXUyZqwkgrQg5YoUwj+TVu6ItCQShw=
@@ -16,8 +16,8 @@ github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.7 h1:+w02ezTV6VpTkeU
 github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.7/go.mod h1:9zHXbH1Y/dghye4s/PTqJbjMuM6ucHBpJ5zjjUvRuY0=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
-github.com/thomaspoignant/go-feature-flag/modules/core v0.8.0 h1:8ZYWAFaiVfyBLcDmS+6cl3nRUXnd944SeR3R9OvILpY=
-github.com/thomaspoignant/go-feature-flag/modules/core v0.8.0/go.mod h1:b2a0fpXczt04g+FaK2jSwEKter6Fn5HQvoul3PWtP90=
+github.com/thomaspoignant/go-feature-flag/modules/core v0.8.2 h1:3qLh+P4Es1yXOvAscDnuCUBPRoOW1BftPy88MP+Oi90=
+github.com/thomaspoignant/go-feature-flag/modules/core v0.8.2/go.mod h1:iQeidJz18VwmlvhP1lIXwOqQtoL+UZGudor16QMCxC4=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
