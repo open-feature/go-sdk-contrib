@@ -16,7 +16,7 @@ type MockClient struct {
 	GetFlagFunc func(flag string, user rfClient.UserContext) (*rfClient.FlagStatus, error)
 }
 
-func (m *MockClient) GetFlag(flag string, user rfClient.UserContext) (*rfClient.FlagStatus, error) {
+func (m *MockClient) GetFlag(flag string, user rfClient.UserContext, _ ...rfClient.CallOption) (*rfClient.FlagStatus, error) {
 	if m.GetFlagFunc != nil {
 		return m.GetFlagFunc(flag, user)
 	}

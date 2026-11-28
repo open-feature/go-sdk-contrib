@@ -9,7 +9,7 @@ import (
 
 // Client is an interface for the RocketFlag client.
 type Client interface {
-	GetFlag(flag string, user rocketflag.UserContext) (*rocketflag.FlagStatus, error)
+	GetFlag(flag string, user rocketflag.UserContext, opts ...rocketflag.CallOption) (*rocketflag.FlagStatus, error)
 }
 
 type Provider struct {
