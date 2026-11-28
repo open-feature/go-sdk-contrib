@@ -8,7 +8,9 @@ import (
 	parallel "sync"
 	"sync/atomic"
 
+	"github.com/go-logr/logr"
 	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/cache"
+	"github.com/open-feature/go-sdk-contrib/providers/flagd/internal/logger"
 	process "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/in_process"
 	rpcService "github.com/open-feature/go-sdk-contrib/providers/flagd/pkg/service/rpc"
 	of "github.com/open-feature/go-sdk/openfeature"
@@ -32,6 +34,8 @@ type Provider struct {
 	initPending           atomic.Bool
 }
 
+// NewProvider creates a flagd provider configured by opts, using the RPC, in-process or file resolver.
+// A logger set with WithLogger is used by every resolver.
 func NewProvider(opts ...ProviderOption) (*Provider, error) {
 	providerConfiguration, err := NewProviderConfiguration(opts)
 
@@ -52,6 +56,12 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 		provider.providerConfiguration.Cache,
 		provider.providerConfiguration.MaxCacheSize,
 		provider.providerConfiguration.log)
+
+	// The in-process and file resolvers keep their zap JSON stderr logger unless the caller set one.
+	var inProcessLog *logr.Logger
+	if _, isDefault := provider.providerConfiguration.log.GetSink().(logger.Logger); !isDefault {
+		inProcessLog = &provider.providerConfiguration.log
+	}
 
 	var service IService
 	switch provider.providerConfiguration.Resolver {
@@ -97,12 +107,14 @@ func NewProvider(opts ...ProviderOption) (*Provider, error) {
 			StreamDeadlineMs:        provider.providerConfiguration.StreamDeadlineMs,
 			KeepAliveTime:           provider.providerConfiguration.KeepAliveTime,
 			ContextEnricher:         provider.providerConfiguration.ContextEnricher,
+			Logger:                  inProcessLog,
 		})
 	default:
 		service = process.NewInProcessService(process.Configuration{
 			OfflineFlagSource: provider.providerConfiguration.OfflineFlagSourcePath,
 			OfflinePollMs:     provider.providerConfiguration.OfflinePollMs,
 			DeadlineMs:        provider.providerConfiguration.DeadlineMs,
+			Logger:            inProcessLog,
 		})
 	}
 
