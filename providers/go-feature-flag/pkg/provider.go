@@ -190,8 +190,10 @@ func selectEvaluator(options ProviderOptions, goffAPI *api.GoFeatureFlagAPI, eve
 
 // buildHooks constructs the list of hooks for the provider.
 func buildHooks(options ProviderOptions, dcm *controller.DataCollectorManager, ev evaluator.Evaluator) []openfeature.Hook {
-	hooks := []openfeature.Hook{
-		hook.NewEvaluationEnrichmentHook(options.ExporterMetadata),
+	var hooks []openfeature.Hook
+	// Only the relay proxy reads exporterMetadata from the context; in-process sends it with each data collector batch.
+	if options.EvaluationType == EvaluationTypeRemote {
+		hooks = append(hooks, hook.NewEvaluationEnrichmentHook(options.ExporterMetadata))
 	}
 
 	if !options.DataCollectorDisabled &&
