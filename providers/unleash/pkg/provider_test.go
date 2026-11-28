@@ -11,7 +11,7 @@ import (
 
 	_ "embed"
 
-	"github.com/Unleash/unleash-client-go/v4"
+	"github.com/Unleash/unleash-go-sdk/v6"
 	unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
 	of "github.com/open-feature/go-sdk/openfeature"
 	"github.com/stretchr/testify/require"

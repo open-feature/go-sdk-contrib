@@ -4,10 +4,10 @@
 
 # Installation
 
-To use the Unleash provider, you'll need to install [unleash Go client](https://github.com/Unleash/unleash-client-go/tree/v4) and unleash provider. You can install the packages using the following command
+To use the Unleash provider, you'll need to install [Unleash Go SDK](https://github.com/Unleash/unleash-go-sdk) and the Unleash provider. You can install the packages using the following command:
 
 ```shell
-go get github.com/Unleash/unleash-client-go/v4
+go get github.com/Unleash/unleash-go-sdk/v6
 go get github.com/open-feature/go-sdk-contrib/providers/unleash
 ```
 
@@ -22,7 +22,7 @@ Unleash OpenFeature Provider is using Unleash GO SDK.
 
 ```go
 import (
-  "github.com/Unleash/unleash-client-go/v4"
+  "github.com/Unleash/unleash-go-sdk/v6"
   unleashProvider "github.com/open-feature/go-sdk-contrib/providers/unleash/pkg"
 )
 
